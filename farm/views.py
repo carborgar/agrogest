@@ -1,5 +1,6 @@
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db import transaction
+from django.db.models import Sum
 from django.urls import reverse
 from django.views.generic import ListView, DetailView
 from django.views.generic.edit import CreateView, UpdateView
@@ -17,6 +18,22 @@ class FieldListView(ListView):
 
     def get_queryset(self):
         return Field.objects.all()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        fields = context['fields']
+
+        # Calcula el total de hectáreas
+        total_area = fields.aggregate(Sum('area'))['area__sum']
+
+        total_pending_tasks = sum(field.pending_tasks_count() for field in fields)
+        total_completed_tasks = sum(field.completed_tasks_count() for field in fields)
+
+        context['total_area'] = total_area
+        context['pending_tasks_count'] = total_pending_tasks
+        context['completed_tasks_count'] = total_completed_tasks
+
+        return context
 
 
 class TaskListView(ListView):

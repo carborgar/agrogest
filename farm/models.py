@@ -13,6 +13,30 @@ class Field(models.Model):
     def __str__(self):
         return self.name
 
+    # def field_task_status(self):
+    #     # Devuelve el estado de las tareas de este campo
+    #     pending = self.pending_tasks_count()
+    #
+    #     if pending > 0:
+    #         return 'Tratamientos pendientes'
+    #     elif completed > 0:
+    #         return 'Al día'
+    #     else:
+    #         return 'empty'
+
+    def pending_tasks_count(self):
+        # Cuenta las tareas pendientes para este campo
+        objs = Task.objects.filter(field=self, finish_date__isnull=True, date__gte=datetime.now().date())
+        return objs.count()
+
+    def completed_tasks_count(self):
+        # Cuenta las tareas completadas para este campo
+        return Task.objects.filter(field=self, finish_date__isnull=False).count()
+
+    def delayed_tasks_count(self):
+        # Cuenta las tareas retrasadas para este campo
+        return Task.objects.filter(field=self, finish_date__isnull=True, date__lt=datetime.now().date()).count()
+
 
 class Machine(models.Model):
     name = models.CharField(max_length=100)
