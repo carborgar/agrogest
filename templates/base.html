@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>{% block title %}AgroGest{% endblock %}</title>
+
+    {# Load the tag library #}
+    {% load django_bootstrap5 %}
+
+    {# Load CSS and JavaScript #}
+    {% bootstrap_css %}
+    {% bootstrap_javascript %}
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+
+    <style>
+        /* Barra de menú */
+        .navbar {
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+        }
+
+        .brand-logo {
+            width: 30px;
+            height: 30px;
+            margin-right: 10px;
+        }
+
+        .navbar-nav {
+            margin: 0 auto;
+        }
+
+        .offcanvas {
+            max-width: 300px;
+        }
+
+        body {
+            padding-top: 70px;
+        }
+
+    </style>
+
+    {% block extra_head %} {% endblock %}
+</head>
+<body style="background-color:#ECECEC;">
+
+{% include "menu.html" %}
+
+<div class="container py-4 card">
+    <section id="messages">
+        {% bootstrap_messages %}
+    </section>
+
+    {% block content %} {% endblock %}
+
+</div>
+
+<!-- Cargar Scripts de Bootstrap -->
+<script crossorigin="anonymous"
+        integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3"
+        src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+
+{% block extra_js %} {% endblock %}
+</body>
+</html>

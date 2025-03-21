@@ -1,0 +1,122 @@
+[
+    {
+        "model": "farm.field",
+        "pk": 1,
+        "fields": {
+            "name": "Cartuja",
+            "area": 5.2,
+            "crop": "Naranjos",
+            "planting_year": 2018,
+            "location": "Sevilla"
+        }
+    },
+    {
+        "model": "farm.field",
+        "pk": 2,
+        "fields": {
+            "name": "Vegueta",
+            "area": 3.8,
+            "crop": "Olivos",
+            "planting_year": 2015,
+            "location": "Córdoba"
+        }
+    },
+    {
+        "model": "farm.machine",
+        "pk": 1,
+        "fields": {
+            "name": "Pulverizador 2000L",
+            "type": "Pulverizador",
+            "capacity": 2000.0
+        }
+    },
+    {
+        "model": "farm.machine",
+        "pk": 2,
+        "fields": {
+            "name": "Tractor John Deere",
+            "type": "Tractor",
+            "capacity": 0.0
+        }
+    },
+    {
+        "model": "farm.product",
+        "pk": 1,
+        "fields": {
+            "name": "Abono NPK",
+            "type": "fertilizer",
+            "dose": 50.0,
+            "dose_type": "kg_per_ha"
+        }
+    },
+    {
+        "model": "farm.product",
+        "pk": 2,
+        "fields": {
+            "name": "Herbicida Glifosato",
+            "type": "pesticide",
+            "dose": 2.0,
+            "dose_type": "l_per_ha"
+        }
+    },
+    {
+        "model": "farm.task",
+        "pk": 1,
+        "fields": {
+            "type": "spraying",
+            "date": "2025-02-25",
+            "status": "pending",
+            "field": 1,
+            "machine": 1
+        }
+    },
+    {
+        "model": "farm.task",
+        "pk": 2,
+        "fields": {
+            "type": "fertigation",
+            "date": "2025-03-01",
+            "status": "completed",
+            "field": 2,
+            "machine": 2
+        }
+    },
+    {
+        "model": "farm.taskproduct",
+        "pk": 1,
+        "fields": {
+            "task": 1,
+            "product": 2,
+            "dose": 2.5,
+            "dose_type": "l_per_ha"
+        }
+    },
+    {
+        "model": "farm.taskproduct",
+        "pk": 2,
+        "fields": {
+            "task": 2,
+            "product": 1,
+            "dose": 55.0,
+            "dose_type": "kg_per_ha"
+        }
+    },
+    {
+        "model": "farm.harvest",
+        "pk": 1,
+        "fields": {
+            "field": 1,
+            "date": "2025-10-15",
+            "amount": 12000.0
+        }
+    },
+    {
+        "model": "farm.harvest",
+        "pk": 2,
+        "fields": {
+            "field": 2,
+            "date": "2025-11-10",
+            "amount": 8000.0
+        }
+    }
+]

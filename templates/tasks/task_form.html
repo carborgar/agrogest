@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+{% load django_bootstrap5 %}
+
+{% block content %}
+<div class="container py-4">
+    <h1>Nueva Tarea</h1>
+
+    {% bootstrap_form_errors form %}
+    {% bootstrap_formset_errors products_formset %}
+
+    <form id="taskForm" method="post">
+        {% csrf_token %}
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3>Información General</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label" for="{{ form.name.id_for_label }}">Nombre</label>
+                            {{ form.name|add_class:"form-control" }}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label" for="{{ form.type.id_for_label }}">Tipo</label>
+                            {{ form.type|add_class:"form-select" }}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label" for="{{ form.date.id_for_label }}">Fecha</label>
+                            {{ form.date|add_class:"form-control" }}
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label" for="{{ form.field.id_for_label }}">Campo</label>
+                            {{ form.field|add_class:"form-select" }}
+                            <div class="form-text" id="fieldAreaInfo"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label" for="{{ form.machine.id_for_label }}">Maquinaria</label>
+                            {{ form.machine|add_class:"form-select" }}
+                            <div class="form-text" id="machineCapacityInfo"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label" for="{{ form.water_per_ha.id_for_label }}">Mojado</label>
+                            {{ form.water_per_ha|add_class:"form-control" }}
+                            <div class="form-text">Cantidad de agua a aplicar por hectárea</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3>Productos</h3>
+            </div>
+            <div class="card-body">
+                {{ products_formset.management_form }}
+
+                <table class="table table-bordered" id="productsTable">
+                    <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Dosis por defecto</th>
+                        <th>Dosis a aplicar</th>
+                        <th>Dosis Total Estimada</th>
+                        <th>Eliminar</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for form in products_formset %}
+
+                    <tr class="product-form">
+                        <td>
+                            {{ form.id }}
+                            {{ form.product|add_class:"form-select product-select" }}
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <input class="form-control-plaintext" id="product-default-dose" readonly type="text">
+                            </div>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                {{ form.dose|add_class:"form-control product-dose" }}
+                            </div>
+                        </td>
+                        <td class="estimated-dose">-</td>
+                        <td>
+                            {% if form.instance.pk %}
+                            {{ form.DELETE|add_class:"form-check-input delete-checkbox" }}
+                            {% else %}
+                            <button class="btn btn-sm btn-danger remove-row" type="button">Eliminar</button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                <button class="btn btn-sm btn-primary" id="addProduct" type="button">Añadir Producto</button>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end">
+            <a class="btn btn-secondary me-2" href="{% url 'task_list' %}">Cancelar</a>
+            <button class="btn btn-primary" type="submit">Guardar Tarea</button>
+        </div>
+    </form>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        let fields = {}, machines = {}, products = {};
+        let formCount = {{ products_formset.total_form_count }};
+        const maxForms = parseInt('{{ products_formset.max_num }}');
+
+        const elements = {
+            fieldSelect: document.getElementById('{{ form.field.id_for_label }}'),
+            machineSelect: document.getElementById('{{ form.machine.id_for_label }}'),
+            waterPerHaInput: document.getElementById('{{ form.water_per_ha.id_for_label }}'),
+            fieldInfo: document.getElementById('fieldAreaInfo'),
+            machineInfo: document.getElementById('machineCapacityInfo'),
+            addProductBtn: document.getElementById('addProduct'),
+            productsTable: document.getElementById('productsTable').querySelector('tbody'),
+            totalFormsInput: document.getElementById('id_taskproduct_set-TOTAL_FORMS')
+        };
+
+        async function fetchData(url) {
+            const response = await fetch(url);
+            return response.json();
+        }
+
+        async function loadFieldsData() {
+            fields = Object.fromEntries((await fetchData('/api/fields/')).map(field => [field.id, field]));
+            updateFieldInfo();
+        }
+
+        async function loadMachinesData() {
+            machines = Object.fromEntries((await fetchData('/api/machines/')).map(machine => [machine.id, machine]));
+            updateMachineInfo();
+        }
+
+        async function loadProductsData() {
+            products = Object.fromEntries((await fetchData('/api/products/')).map(product => [product.id, product]));
+        }
+
+        function updateFieldInfo() {
+            const field = fields[elements.fieldSelect.value];
+            elements.fieldInfo.textContent = field ? `Área: ${field.area} ha - Cultivo: ${field.crop}` : '';
+            calculateTotalDoses();
+        }
+
+        function updateMachineInfo() {
+            const machine = machines[elements.machineSelect.value];
+            elements.machineInfo.textContent = machine ? `Capacidad: ${machine.capacity} litros` : '';
+            calculateTotalDoses();
+        }
+
+        function updateProductInfo(event) {
+            const row = event.target.closest('.product-form');
+            const product = products[event.target.value];
+
+            // Seleccionar todos los elementos con las clases 'product-dose' y 'dose-type-label' dentro de la fila
+            const doseInputs = row.querySelectorAll('.product-dose');
+            const doseTypeLabels = row.querySelectorAll('.dose-type-label');
+            const defaultDoseLabel = row.querySelector('#product-default-dose');
+
+            if (product) {
+                // Iterar sobre todos los elementos 'product-dose' y actualizar sus valores
+                doseInputs.forEach(doseInput => {
+                    doseInput.value = product.dose;
+                    doseInput.dataset.defaultDose = product.dose;
+                });
+
+                // Iterar sobre todos los elementos 'dose-type-label' y actualizar su texto
+                doseTypeLabels.forEach(doseTypeLabel => {
+                    doseTypeLabel.textContent = product.dose_type_display;
+                });
+
+                defaultDoseLabel.value = product.dose + ' ' + product.dose_type_display;
+
+            } else {
+                // Si no hay producto seleccionado, vaciar los valores
+                doseInputs.forEach(doseInput => {
+                    doseInput.value = '';
+                });
+
+                doseTypeLabels.forEach(doseTypeLabel => {
+                    doseTypeLabel.textContent = '-';
+                });
+
+                defaultDoseLabel.value = '';
+            }
+
+            calculateTotalDoses();
+        }
+
+        function calculateTotalDoses() {
+            const field = fields[elements.fieldSelect.value];
+            const machine = machines[elements.machineSelect.value];
+            const waterPerHa = parseFloat(elements.waterPerHaInput.value) || 0;
+
+            if (!field || !machine) return;
+
+            document.querySelectorAll('.product-form').forEach(row => {
+                const doseInput = row.querySelector('.product-dose');
+                const estimatedDoseCell = row.querySelector('.estimated-dose');
+                const productInput = row.querySelector('.product-select');
+
+                const dose = parseFloat(doseInput.value) || 0;
+                if (!dose) return (estimatedDoseCell.textContent = '-');
+
+                const doseType = products[productInput.value].dose_type;
+                const totalWater = field.area * waterPerHa;
+                const unit = doseType.includes('kg') ? 'kg' : 'L';
+                let totalDose = 0;
+
+                if (doseType.includes('_per_ha')) {
+                    totalDose = dose * field.area;
+                } else if (doseType.includes('_per_1000l')) {
+                    totalDose = (dose / 1000) * totalWater;
+                } else if (doseType.includes('_per_2000l')) {
+                    totalDose = (dose / 2000) * totalWater;
+                }
+
+                estimatedDoseCell.textContent = `${totalDose.toFixed(2)} ${unit}`;
+            });
+        }
+
+        function addProductRow() {
+            if (formCount >= maxForms) return alert('No se pueden añadir más productos');
+
+            // Clonar la fila sin eventos previos
+            const newRow = elements.productsTable.querySelector('.product-form').cloneNode(true);
+
+            // Actualizar atributos name e id de los elementos internos
+            newRow.querySelectorAll('[name]').forEach((input) => {
+                const oldName = input.getAttribute('name');
+                const newName = oldName.replace(/taskproduct_set-\d+-/, `taskproduct_set-${formCount}-`);
+                input.setAttribute('name', newName);
+
+                const oldId = input.getAttribute('id');
+                if (oldId) {
+                    const newId = oldId.replace(/id_taskproduct_set-\d+-/, `id_taskproduct_set-${formCount}-`);
+                    input.setAttribute('id', newId);
+                }
+            });
+
+            // Resetear valores en los nuevos inputs
+            newRow.querySelector('.product-dose').value = '';
+            newRow.querySelector('.estimated-dose').textContent = '-';
+
+            // Actualizar el select con las opciones originales
+            const productSelect = newRow.querySelector('.product-select');
+            productSelect.innerHTML = elements.productsTable.querySelector('.product-select').innerHTML;
+            productSelect.addEventListener('change', updateProductInfo);
+
+            // Añadir evento de eliminación
+            newRow.querySelector('.remove-row').addEventListener('click', () => {
+                newRow.remove();
+                updateFormIndexes();
+            });
+
+            // Evento para calcular dosis
+            newRow.querySelector('.product-dose').addEventListener('input', calculateTotalDoses);
+
+            // Agregar la nueva fila a la tabla
+            elements.productsTable.appendChild(newRow);
+
+            // Incrementar el contador de formularios
+            elements.totalFormsInput.value = ++formCount;
+
+        }
+
+
+        function updateFormIndexes() {
+            document.querySelectorAll('.product-form').forEach((row, index) => {
+                row.querySelectorAll('input, select').forEach(el => {
+                    ['name', 'id'].forEach(attr => {
+                        if (el.hasAttribute(attr)) {
+                            el.setAttribute(attr, el.getAttribute(attr).replace(/taskproduct_set-\d+-/, `taskproduct_set-${index}-`));
+                        }
+                    });
+                });
+            });
+            elements.totalFormsInput.value = formCount = document.querySelectorAll('.product-form').length;
+        }
+
+        elements.fieldSelect.addEventListener('change', updateFieldInfo);
+        elements.machineSelect.addEventListener('change', updateMachineInfo);
+        elements.waterPerHaInput.addEventListener('input', calculateTotalDoses);
+        elements.addProductBtn.addEventListener('click', addProductRow);
+
+        document.querySelectorAll('.remove-row').forEach(button => button.addEventListener('click', function () {
+            this.closest('.product-form').remove();
+            updateFormIndexes();
+        }));
+
+        document.querySelectorAll('.product-dose').forEach(el => el.addEventListener('input', calculateTotalDoses));
+        document.querySelectorAll('.product-select').forEach(select => select.addEventListener('change', updateProductInfo));
+
+        await loadFieldsData();
+        await loadMachinesData();
+        await loadProductsData();
+    });
+
+</script>
+{% endblock %}

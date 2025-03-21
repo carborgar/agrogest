@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% load calculation_filters %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>{{ task.name }}</h1>
+        <div>
+            {% comment %}
+            <a class="btn btn-primary me-2" href="{% url 'edit_task' task.pk %}">Editar</a>
+            {% endcomment %}
+            <a class="btn btn-secondary" href="{% url 'task_list' %}">Volver</a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3>Información General</h3>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">Tipo:</dt>
+                        <dd class="col-sm-8">{{ task.get_type_display }}</dd>
+
+                        <dt class="col-sm-4">Estado:</dt>
+                        <dd class="col-sm-8">
+              <span class="badge bg-{{ task.state_class }}">
+                {{ task.status_display }}
+              </span>
+                        </dd>
+
+                        <dt class="col-sm-4">Fecha:</dt>
+                        <dd class="col-sm-8">{{ task.date|date:"d/m/Y" }}</dd>
+
+                        <dt class="col-sm-4">Campo:</dt>
+                        <dd class="col-sm-8">{{ task.field.name }}</dd>
+
+                        <dt class="col-sm-4">Área:</dt>
+                        <dd class="col-sm-8">{{ task.field.area }} hectáreas</dd>
+
+                        <dt class="col-sm-4">Cultivo:</dt>
+                        <dd class="col-sm-8">{{ task.field.crop }}</dd>
+
+                        {% if task.machine %}
+                        <dt class="col-sm-4">Maquinaria:</dt>
+                        <dd class="col-sm-8">{{ task.machine.name }}</dd>
+
+                        <dt class="col-sm-4">Capacidad:</dt>
+                        <dd class="col-sm-8">{{ task.machine.capacity }} litros</dd>
+
+                        <dt class="col-sm-4">Mojado:</dt>
+                        <dd class="col-sm-8">{{ task.water_per_ha }} litros/ha</dd>
+                        {% endif %}
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3>Productos y Dosis</h3>
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered">
+                        <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Tipo</th>
+                            <th>Dosis</th>
+                            <th>Total Necesario</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for product in products %}
+                        <tr>
+                            <td>{{ product.product.name }}</td>
+                            <td>{{ product.product.get_type_display }}</td>
+                            <td>{{ product.dose }} {{ product.get_dose_type_display }}</td>
+                            <td>
+                                <strong>{{ product.total_dose|floatformat:2 }} {{ product.total_dose_unit }}</strong>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if task.machine %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3>Instrucciones para Operador</h3>
+        </div>
+        <div class="card-body">
+            <h4>Por cada carga completa de máquina ({{ task.machine.capacity }} litros):</h4>
+            <table class="table table-bordered">
+                <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Cantidad por Carga</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for product in products %}
+                <tr>
+                    <td>{{ product.product.name }}</td>
+                    <td>
+                        {% if 'ha' in product.dose_type %}
+                        {% with area_per_load=task.machine.capacity|divide:task.water_per_ha %}
+                        <strong>{{ product.dose|multiply:area_per_load|floatformat:2 }}
+                            {{ product.total_dose_unit }}</strong>
+                        {% endwith %}
+                        {% elif '1000l' in product.dose_type %}
+                        <strong>{{ product.dose|multiply:task.machine.capacity|divide:1000|floatformat:2 }}
+                            {{ product.total_dose_unit }}</strong>
+                        {% elif '2000l' in product.dose_type %}
+                        <strong>{{ product.dose|multiply:task.machine.capacity|divide:2000|floatformat:2 }}
+                            {{ product.total_dose_unit }}</strong>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
