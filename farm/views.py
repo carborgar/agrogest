@@ -27,11 +27,11 @@ class FieldListView(ListView):
         total_area = fields.aggregate(Sum('area'))['area__sum']
 
         total_pending_tasks = sum(field.pending_tasks_count() for field in fields)
-        total_completed_tasks = sum(field.completed_tasks_count() for field in fields)
+        total_delayed_tasks = sum(field.delayed_tasks_count() for field in fields)
 
         context['total_area'] = total_area
         context['pending_tasks_count'] = total_pending_tasks
-        context['completed_tasks_count'] = total_completed_tasks
+        context['delayed_tasks_count'] = total_delayed_tasks
 
         return context
 
