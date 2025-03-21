@@ -1,5 +1,4 @@
 {
-  "version": 2,
   "builds": [
     {
       "src": "agrogest/wsgi.py",
@@ -7,13 +6,6 @@
       "config": {
         "maxLambdaSize": "15mb",
         "runtime": "python3.12"
-      }
-    },
-    {
-      "src": "build.sh",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "staticfiles"
       }
     }
   ],
@@ -26,5 +18,16 @@
       "src": "/(.*)",
       "dest": "agrogest/wsgi.py"
     }
-  ]
+  ],
+  "build": {
+    "env": {
+      "DJANGO_SETTINGS_MODULE": "agrogest.settings"
+    },
+    "commands": [
+      "pip install -r requirements.txt",
+      "python3.12 manage.py makemigrations --noinput",
+      "python3.12 manage.py migrate --noinput",
+      "python3.12 manage.py collectstatic --noinput"
+    ]
+  }
 }
