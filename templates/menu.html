@@ -14,6 +14,12 @@
 
             <div class="offcanvas-body">
                 <ul class="navbar-nav justify-content-end flex-grow-1 pe-3">
+                    <li class="nav-item">
+                        <a aria-current="page" class="nav-link" href="/">Parcelas</a>
+                    </li>
+                    <li class="nav-item">
+                        <a aria-current="page" class="nav-link" href="{% url 'task_list' %}">Tratamientos</a>
+                    </li>
                     {% if user.is_authenticated %}
                     <li class="nav-item dropdown">
                         <a aria-expanded="false" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#"
@@ -36,9 +42,11 @@
                     </li>
 
                     {% else %}
+                    {% comment %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'login' %}">Iniciar sesión</a>
                     </li>
+                    {% endcomment %}
                     {% endif %}
                 </ul>
             </div>
