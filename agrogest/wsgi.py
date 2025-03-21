@@ -13,4 +13,5 @@ from django.core.wsgi import get_wsgi_application
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'agrogest.settings')
 
-application = get_wsgi_application()
+# para vercel es necesario que se llame app
+app = get_wsgi_application()
