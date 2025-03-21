@@ -1,7 +1,8 @@
-#!usr/bin/env bash
+#!/bin/bash
 
-echo "Building project packages..."
-pip install -r requirements.txt
+# Build the project
+echo "Building the project..."
+python3.12 -m pip install -r requirements.txt
 
 echo "Migrating database..."
 python3.12 manage.py makemigrations --noinput
