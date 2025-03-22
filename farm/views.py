@@ -1,6 +1,9 @@
+from datetime import datetime
+
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db import transaction
 from django.db.models import Sum
+from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 from django.views.generic import ListView, DetailView
 from django.views.generic.edit import CreateView, UpdateView
@@ -146,3 +149,25 @@ class TaskFormView(SuccessMessageMixin, CreateView, UpdateView):
             return self.form_valid(form)
         else:
             return self.form_invalid(form)
+
+
+def calendar_view(request):
+    """Vista para el calendario de tratamientos"""
+    fields = Field.objects.all()
+    task_types = Task.TYPE_CHOICES
+
+    # Mapeo de iconos para tipos de tarea
+    type_map = {
+        'spraying': 'spray-can-sparkles',
+        'fertigation': 'droplet',
+        'pest_control': 'bug',
+        'nutrition': 'leaf',
+    }
+
+    context = {
+        'fields': fields,
+        'task_types': task_types,
+        'type_map': type_map
+    }
+
+    return render(request, 'tasks/calendar.html', context)

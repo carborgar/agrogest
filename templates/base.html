@@ -12,7 +12,9 @@
     {% bootstrap_css %}
     {% bootstrap_javascript %}
 
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.css" rel="stylesheet">
 
     <style>
         /* Barra de menú */
@@ -40,111 +42,111 @@
         }*/
 
         :root {
-        --bs-primary: #2E7D32;
-        --bs-primary-rgb: 46, 125, 50;
-    }
+            --bs-primary: #2E7D32;
+            --bs-primary-rgb: 46, 125, 50;
+        }
 
-    body {
-        background-color: #f8f9fa;
-        font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-        padding-top: 70px;
-    }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            padding-top: 70px;
+        }
 
-    .card {
-        border: none;
-        border-radius: 12px;
-        box-shadow: 0 6px 15px rgba(0,0,0,0.05);
-        transition: transform 0.3s, box-shadow 0.3s;
-    }
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.05);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
 
-    .floating-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 12px 20px rgba(0,0,0,0.1);
-    }
+        .floating-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 20px rgba(0,0,0,0.1);
+        }
 
-    .card-header {
-        border-radius: 12px 12px 0 0 !important;
-        background-color: #fff;
-        border-bottom: 1px solid rgba(0,0,0,0.05);
-    }
+        .card-header {
+            border-radius: 12px 12px 0 0 !important;
+            background-color: #fff;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
 
-    .btn-primary {
-        background-color: var(--bs-primary);
-        border-color: var(--bs-primary);
-    }
+        /*.btn-primary {
+            background-color: var(--bs-primary);
+            border-color: var(--bs-primary);
+        }*/
 
-    .badge-status {
-        padding: 8px 12px;
-        font-weight: 500;
-        border-radius: 30px;
-    }
+        .badge-status {
+            padding: 8px 12px;
+            font-weight: 500;
+            border-radius: 30px;
+        }
 
-    .badge-active {
-        background-color: #E8F5E9;
-        color: var(--bs-primary);
-    }
+        .badge-active {
+            background-color: #E8F5E9;
+            color: var(--bs-primary);
+        }
 
-    .badge-pending {
-        background-color: #FFF8E1;
-        color: #F57F17;
-    }
+        .badge-pending {
+            background-color: #FFF8E1;
+            color: #F57F17;
+        }
 
-    .badge-completed {
-        background-color: #E3F2FD;
-        color: #1565C0;
-    }
+        .badge-completed {
+            background-color: #E3F2FD;
+            color: #1565C0;
+        }
 
-    .status-indicator {
-        width: 8px;
-        height: 8px;
-        display: inline-block;
-        border-radius: 50%;
-        margin-right: 6px;
-    }
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            display: inline-block;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
 
-    .action-icon {
-        width: 40px;
-        height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 8px;
-        background-color: #f8f9fa;
-        color: #6c757d;
-        margin-right: 8px;
-        transition: background-color 0.2s, color 0.2s;
-    }
+        .action-icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            color: #6c757d;
+            margin-right: 8px;
+            transition: background-color 0.2s, color 0.2s;
+        }
 
-    .action-icon:hover {
-        background-color: var(--bs-primary);
-        color: white;
-    }
+        .action-icon:hover {
+            background-color: var(--bs-primary);
+            color: white;
+        }
 
-    .parcela-img {
-        height: 160px;
-        object-fit: cover;
-        border-top-left-radius: 12px;
-        border-top-right-radius: 12px;
-    }
+        .parcela-img {
+            height: 160px;
+            object-fit: cover;
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+        }
 
-    .stat-value {
-        font-size: 1.25rem;
-        font-weight: 600;
-    }
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
 
-    .stat-label {
-        font-size: 0.85rem;
-        color: #6c757d;
-    }
+        .stat-label {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
 
-    .header-title {
-        font-weight: 700;
-        color: #212529;
-    }
+        .header-title {
+            font-weight: 700;
+            color: #212529;
+        }
 
-    .header-subtitle {
-        color: #6c757d;
-    }
+        .header-subtitle {
+            color: #6c757d;
+        }
 
     </style>
 
@@ -167,6 +169,10 @@
 <script crossorigin="anonymous"
         integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3"
         src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js'></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/locales/es.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/bootstrap5@6.1.15/index.global.min.js"></script>
 
 {% block extra_js %} {% endblock %}
 </body>
