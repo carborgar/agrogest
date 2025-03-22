@@ -1,9 +1,7 @@
-from datetime import datetime
-
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db import transaction
 from django.db.models import Sum
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render
 from django.urls import reverse
 from django.views.generic import ListView, DetailView
 from django.views.generic.edit import CreateView, UpdateView
@@ -35,6 +33,20 @@ class FieldListView(ListView):
         context['total_area'] = total_area
         context['pending_tasks_count'] = total_pending_tasks
         context['delayed_tasks_count'] = total_delayed_tasks
+
+        task_types = Task.TYPE_CHOICES
+
+        # Mapeo de iconos para tipos de tarea
+        type_map = {  # TODO: esto habría que hacerlo con los campos del modelo, o quitar el icono y listo
+            'spraying': 'spray-can-sparkles',
+            'fertigation': 'droplet',
+            'pest_control': 'bug',
+            'nutrition': 'leaf',
+        }
+
+        # context['fields']: fields
+        context['task_types'] = task_types
+        context['type_map'] = type_map
 
         return context
 
@@ -157,7 +169,7 @@ def calendar_view(request):
     task_types = Task.TYPE_CHOICES
 
     # Mapeo de iconos para tipos de tarea
-    type_map = {
+    type_map = {  # TODO: esto habría que hacerlo con los campos del modelo, o quitar el icono y listo
         'spraying': 'spray-can-sparkles',
         'fertigation': 'droplet',
         'pest_control': 'bug',
