@@ -3,124 +3,141 @@
 {% load django_bootstrap5 %}
 
 {% block content %}
-<div class="container py-4">
-    <h1>Nueva Tarea</h1>
-
-    {% bootstrap_form_errors form %}
-    {% bootstrap_formset_errors products_formset %}
-
-    <form id="taskForm" method="post">
-        {% csrf_token %}
-
-        <div class="card mb-4">
-            <div class="card-header">
-                <h3>Información General</h3>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label class="form-label" for="{{ form.name.id_for_label }}">Nombre</label>
-                            {{ form.name|add_class:"form-control" }}
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label class="form-label" for="{{ form.type.id_for_label }}">Tipo</label>
-                            {{ form.type|add_class:"form-select" }}
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label class="form-label" for="{{ form.date.id_for_label }}">Fecha</label>
-                            {{ form.date|add_class:"form-control" }}
-                        </div>
-                    </div>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-sm border-0 rounded-lg mb-4">
+                <div class="card-header bg-primary text-white py-3">
+                    <h2 class="mb-0 fs-3">Nuevo tratamiento</h2>
                 </div>
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label class="form-label" for="{{ form.field.id_for_label }}">Campo</label>
-                            {{ form.field|add_class:"form-select" }}
-                            <div class="form-text" id="fieldAreaInfo"></div>
+                <div class="card-body">
+                    {% bootstrap_form_errors form %}
+                    {% bootstrap_formset_errors products_formset %}
+
+                    <form id="taskForm" method="post">
+                        {% csrf_token %}
+
+                        <div class="card mb-4 border-0 shadow-sm">
+                            <div class="card-header bg-light py-3">
+                                <h3 class="m-0 fs-4 text-primary">Información General</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <div class="form-floating mb-3">
+                                            {{ form.name|add_class:"form-control" }}
+                                            <label for="{{ form.name.id_for_label }}">Nombre</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-floating mb-3">
+                                            {{ form.type|add_class:"form-select" }}
+                                            <label for="{{ form.type.id_for_label }}">Tipo</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-floating mb-3">
+                                            {{ form.date|add_class:"form-control" }}
+                                            <label for="{{ form.date.id_for_label }}">Fecha</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <div class="form-floating mb-3">
+                                            {{ form.field|add_class:"form-select" }}
+                                            <label for="{{ form.field.id_for_label }}">Campo</label>
+                                        </div>
+                                        <div class="form-text text-primary fw-semibold" id="fieldAreaInfo"></div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-floating mb-3">
+                                            {{ form.machine|add_class:"form-select" }}
+                                            <label for="{{ form.machine.id_for_label }}">Maquinaria</label>
+                                        </div>
+                                        <div class="form-text text-primary fw-semibold" id="machineCapacityInfo"></div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-floating mb-3">
+                                            {{ form.water_per_ha|add_class:"form-control" }}
+                                            <label for="{{ form.water_per_ha.id_for_label }}">Mojado</label>
+                                        </div>
+                                        <div class="form-text">Cantidad de agua a aplicar por hectárea</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label class="form-label" for="{{ form.machine.id_for_label }}">Maquinaria</label>
-                            {{ form.machine|add_class:"form-select" }}
-                            <div class="form-text" id="machineCapacityInfo"></div>
+
+                        <div class="card mb-4 border-0 shadow-sm">
+                            <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center">
+                                <h3 class="m-0 fs-4 text-primary">Productos</h3>
+                            </div>
+                            <div class="card-body">
+                                {{ products_formset.management_form }}
+
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle" id="productsTable">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Producto</th>
+                                                <th>Dosis por defecto</th>
+                                                <th>Dosis a aplicar</th>
+                                                <th>Dosis Total Estimada</th>
+                                                <th class="text-center">Eliminar</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                        {% for form in products_formset %}
+                                            <tr class="product-form">
+                                                <td>
+                                                    {{ form.id }}
+                                                    {{ form.product|add_class:"form-select product-select" }}
+                                                </td>
+                                                <td>
+                                                    <input class="form-control-plaintext fw-semibold" id="product-default-dose" readonly type="text">
+                                                </td>
+                                                <td>
+                                                    <div class="input-group">
+                                                        {{ form.dose|add_class:"form-control product-dose" }}
+                                                    </div>
+                                                </td>
+                                                <td class="estimated-dose fw-bold text-primary">-</td>
+                                                <td class="text-center">
+                                                    {% if form.instance.pk %}
+                                                        <div class="form-check form-switch d-flex justify-content-center">
+                                                            {{ form.DELETE|add_class:"form-check-input delete-checkbox" }}
+                                                        </div>
+                                                    {% else %}
+                                                        <button class="btn btn-sm btn-outline-danger rounded-circle remove-row" type="button">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <button class="btn btn-outline-primary mt-3" id="addProduct" type="button">
+                                    <i class="bi bi-plus-circle me-2"></i>Añadir Producto
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label class="form-label" for="{{ form.water_per_ha.id_for_label }}">Mojado</label>
-                            {{ form.water_per_ha|add_class:"form-control" }}
-                            <div class="form-text">Cantidad de agua a aplicar por hectárea</div>
+
+                        <div class="d-flex justify-content-end mt-4">
+                            <a class="btn btn-outline-secondary me-2" href="{% url 'task_list' %}">
+                                <i class="bi bi-x-circle me-2"></i>Cancelar
+                            </a>
+                            <button class="btn btn-primary" type="submit">
+                                <i class="bi bi-check-circle me-2"></i>Guardar Tarea
+                            </button>
                         </div>
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>
-
-        <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h3>Productos</h3>
-            </div>
-            <div class="card-body">
-                {{ products_formset.management_form }}
-
-                <table class="table table-bordered" id="productsTable">
-                    <thead>
-                    <tr>
-                        <th>Producto</th>
-                        <th>Dosis por defecto</th>
-                        <th>Dosis a aplicar</th>
-                        <th>Dosis Total Estimada</th>
-                        <th>Eliminar</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for form in products_formset %}
-
-                    <tr class="product-form">
-                        <td>
-                            {{ form.id }}
-                            {{ form.product|add_class:"form-select product-select" }}
-                        </td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <input class="form-control-plaintext" id="product-default-dose" readonly type="text">
-                            </div>
-                        </td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                {{ form.dose|add_class:"form-control product-dose" }}
-                            </div>
-                        </td>
-                        <td class="estimated-dose">-</td>
-                        <td>
-                            {% if form.instance.pk %}
-                            {{ form.DELETE|add_class:"form-check-input delete-checkbox" }}
-                            {% else %}
-                            <button class="btn btn-sm btn-danger remove-row" type="button">Eliminar</button>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-                <button class="btn btn-sm btn-primary" id="addProduct" type="button">Añadir Producto</button>
-            </div>
-        </div>
-
-        <div class="d-flex justify-content-end">
-            <a class="btn btn-secondary me-2" href="{% url 'task_list' %}">Cancelar</a>
-            <button class="btn btn-primary" type="submit">Guardar Tarea</button>
-        </div>
-    </form>
+    </div>
 </div>
-
 {% endblock %}
 
 {% block extra_js %}
