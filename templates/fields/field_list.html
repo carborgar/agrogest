@@ -6,6 +6,7 @@
 
 {% block extra_head %}
 <style>
+    /* Estilos base */
     .fc-event {
         cursor: pointer;
         border-radius: 4px;
@@ -40,9 +41,9 @@
 
     .calendar-legend {
         display: flex;
-        gap: 1rem; /* Espacio entre los elementos */
+        gap: 1rem;
         align-items: center;
-        flex-wrap: wrap; /* Opcional, por si no cabe en una sola línea */
+        flex-wrap: wrap;
     }
     .calendar-legend span {
         width: 12px;
@@ -53,7 +54,7 @@
     .calendar-legend div {
         display: flex;
         align-items: center;
-        gap: 0.5rem; /* Espacio entre el color y el texto */
+        gap: 0.5rem;
     }
 
     /* Responsive para el toolbar del calendario */
@@ -66,246 +67,349 @@
         }
      }
 
+    /* Estilos modernos para las pestañas */
+    .tab-container {
+        position: relative;
+    }
+
+    .modern-tabs {
+        display: flex;
+        border-bottom: none;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+        scrollbar-width: none;
+    }
+
+    .modern-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .modern-tabs .nav-link {
+        border: none;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1.25rem;
+        font-weight: 500;
+        color: #6c757d;
+        background-color: #f8f9fa;
+        transition: all 0.3s ease;
+        position: relative;
+        border-bottom: 3px solid transparent;
+    }
+
+    .modern-tabs .nav-link:hover {
+        color: #495057;
+        background-color: #e9ecef;
+    }
+
+    .modern-tabs .nav-link.active {
+        color: #0d6efd;
+        background-color: rgba(13, 110, 253, 0.1);
+        border-bottom: 3px solid #0d6efd;
+        font-weight: 600;
+    }
+
+    .modern-tabs .nav-link .badge {
+        margin-left: 0.5rem;
+    }
+
+    .tab-content > .tab-pane {
+        transition: opacity 0.15s linear;
+    }
+
+    /* Animación para cambio de pestañas */
+    .fade-enter {
+        opacity: 0;
+    }
+
+    .fade-enter-active {
+        opacity: 1;
+        transition: opacity 150ms ease-in;
+    }
+    /* Estilos para el collapse */
+    #filterCollapse {
+        transition: all 0.3s ease-out;
+    }
+
+    .collapse:not(.show) {
+        display: none;
+    }
+
+    .collapsing {
+        height: 0;
+        overflow: hidden;
+        transition: height 0.35s ease;
+    }
+
+    /* Rotación del icono */
+    .filter-icon {
+        transition: transform 0.3s ease;
+    }
+
+    [aria-expanded="true"] .filter-icon {
+        transform: rotate(180deg);
+    }
+
+    /* Efecto hover para el botón */
+    .btn-link:hover {
+        background-color: rgba(13, 110, 253, 0.05);
+        border-radius: 0.25rem;
+    }
+
+    /* Efecto de carta en móvil */
+    @media (max-width: 767.98px) {
+        #filterCollapse {
+            padding-top: 0.5rem;
+            margin-top: 0.5rem;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        /* Sombra suave cuando se expande */
+        #filterCollapse.show {
+            box-shadow: inset 0 5px 15px -10px rgba(0, 0, 0, 0.1);
+        }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<!--<div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h1 class="header-title mb-1">Parcelas</h1>
     </div>
-    <!--    <div>-->
-    <!--        <button class="btn btn-primary d-flex align-items-center">-->
-    <!--            <i class="bi bi-plus-circle me-2"></i> Nueva Parcela-->
-    <!--        </button>-->
-    <!--    </div>-->
+</div>-->
+
+<!-- Pestañas modernas -->
+<div class="tab-container">
+    <ul class="nav nav-tabs modern-tabs" id="parcelasTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button aria-controls="dashboard" aria-selected="true" class="nav-link active" data-bs-target="#dashboard"
+                    data-bs-toggle="tab" id="dashboard-tab" role="tab" type="button">
+                <i class="fa fa-chart-simple me-2"></i>Dashboard
+                <span class="badge rounded-pill bg-warning">{{ pending_tasks_count }}</span>
+                <span class="badge rounded-pill bg-danger">{{ delayed_tasks_count }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button aria-controls="parcelas" aria-selected="false" class="nav-link" data-bs-target="#parcelas"
+                    data-bs-toggle="tab" id="parcelas-tab" role="tab" type="button">
+                <i class="fa fa-location-dot me-2"></i>Parcelas
+                <span class="badge rounded-pill bg-primary">{{ fields.count }}</span>
+            </button>
+        </li>
+    </ul>
 </div>
 
-<!-- Stats Row -->
-<div class="row mb-4">
-    <div class="col-6 col-lg-3 col-md-6 mb-3 mb-lg-0 col-xs-6">
-        <div class="card floating-card h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="me-3 p-3 rounded-circle text-center" style="background-color: rgba(46, 125, 50, 0.1);">
-                        <i class="fa fa-location-dot text-primary fs-4" style="width: 24px; height: 24px;"></i>
-                    </div>
-                    <div>
-                        <div class="stat-value">{{ fields.count }}</div>
-                        <div class="stat-label">Total parcelas</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-6 col-lg-3 col-md-6 mb-3 mb-lg-0">
-        <div class="card floating-card h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="me-3 p-3 rounded-circle text-center"
-                         style="background-color: {% if delayed_tasks_count == 0 %}rgba(46, 125, 50, 0.1){% else %}rgba(255, 25, 25, 0.1){% endif %};">
-                        <i class="fa {% if delayed_tasks_count == 0 %}fa-thumbs-up text-success{% else %}fa-triangle-exclamation text-danger{% endif %} fs-4"
-                           style="width: 24px; height: 24px;"></i>
-                    </div>
-                    <div>
-                        <div class="stat-value">{{ delayed_tasks_count }}</div>
-                        <div class="stat-label">Tratamientos atrasados</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-6 col-lg-3 col-md-6 mb-3 mb-lg-0">
-        <div class="card floating-card h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="me-3 p-3 rounded-circle text-center"
-                         style="background-color: {% if pending_tasks_count == 0 %}rgba(46, 125, 50, 0.1){% else %}rgba(245, 127, 23, 0.1){% endif %};">
-                        <i class="fa {% if pending_tasks_count == 0 %}fa-thumbs-up text-success{% else %}fa-calendar-check text-warning{% endif %} fs-4"
-                           style="width: 24px; height: 24px;"></i>
-                    </div>
-                    <div>
-                        <div class="stat-value">{{ pending_tasks_count }}</div>
-                        <div class="stat-label">Tratamientos pendientes</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-6 col-lg-3 col-md-6">
-        <div class="card floating-card h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="me-3 p-3 rounded-circle text-center" style="background-color: rgba(76, 175, 80, 0.1);">
-                        <i class="fa fa-up-right-and-down-left-from-center fs-4" style="width: 24px; height: 24px;"></i>
-                    </div>
-                    <div>
-                        <div class="stat-value">{{ total_area }}</div>
-                        <div class="stat-label">Hectáreas totales</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Grid View of Parcelas -->
-<div class="row">
-    {% for aField in fields %}
-    <div class="col-lg-4 col-md-6 mb-4">
-        <div class="card floating-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="card-title mb-0">{{ aField.name }}</h5>
-                    <!--                    <span class="badge badge-status badge-active">-->
-                    <!--                                <span class="status-indicator" style="background-color: #2E7D32;"></span>Al día-->
-                    <!--                    </span>-->
-                </div>
-                <div class="card-text mb-3">
-                    <div class="row g-2 mb-2">
-                        <div class="col-6">
-                            <div class="d-flex align-items-center">
-                                <i class="fa fa-ruler-combined me-2 text-muted"></i>
-                                <span>{{ aField.area }} ha</span>
+<!-- Contenido de las pestañas -->
+<div class="tab-content" id="parcelasTabContent">
+    <!-- Pestaña de Dashboard -->
+    <div aria-labelledby="dashboard-tab" class="tab-pane fade show active" id="dashboard" role="tabpanel">
+        <!-- Stats Row y Próximos Tratamientos en formato de columnas -->
+        <div class="row mb-4">
+            <!-- Columna izquierda con las 4 cards en 2 columnas -->
+            <div class="col-md-6">
+                <div class="row">
+                    <!-- Primera columna de cards -->
+                    <div class="col-6 mb-3">
+                        <div class="card floating-card h-100">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3 p-3 rounded-circle text-center"
+                                         style="background-color: rgba(46, 125, 50, 0.1);">
+                                        <i class="fa fa-location-dot text-primary fs-4"
+                                           style="width: 24px; height: 24px;"></i>
+                                    </div>
+                                    <div>
+                                        <div class="stat-value">{{ fields.count }}</div>
+                                        <div class="stat-label">Total parcelas</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-6">
-                            {% if aField.location %}
-                            <div class="d-flex align-items-center">
-                                <i class="fa fa-map-location-dot me-2 text-muted"></i>
-                                <span>{{ aField.location }}</span>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <div class="card floating-card h-100">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3 p-3 rounded-circle text-center"
+                                         style="background-color: {% if delayed_tasks_count == 0 %}rgba(46, 125, 50, 0.1){% else %}rgba(255, 25, 25, 0.1){% endif %};">
+                                        <i class="fa {% if delayed_tasks_count == 0 %}fa-thumbs-up text-success{% else %}fa-triangle-exclamation text-danger{% endif %} fs-4"
+                                           style="width: 24px; height: 24px;"></i>
+                                    </div>
+                                    <div>
+                                        <div class="stat-value">{{ delayed_tasks_count }}</div>
+                                        <div class="stat-label">Tratamientos atrasados</div>
+                                    </div>
+                                </div>
                             </div>
-                            {% endif %}
                         </div>
-                        <div class="col-6">
-                            <div class="d-flex align-items-center">
-                                <i class="fa fa-seedling me-2 text-muted"></i>
-                                <span>{{ aField.crop }}</span>
+                    </div>
+                    <!-- Segunda columna de cards -->
+                    <div class="col-6 mb-3">
+                        <div class="card floating-card h-100">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3 p-3 rounded-circle text-center"
+                                         style="background-color: {% if pending_tasks_count == 0 %}rgba(46, 125, 50, 0.1){% else %}rgba(245, 127, 23, 0.1){% endif %};">
+                                        <i class="fa {% if pending_tasks_count == 0 %}fa-thumbs-up text-success{% else %}fa-calendar-check text-warning{% endif %} fs-4"
+                                           style="width: 24px; height: 24px;"></i>
+                                    </div>
+                                    <div>
+                                        <div class="stat-value">{{ pending_tasks_count }}</div>
+                                        <div class="stat-label">Tratamientos pendientes</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-6">
-                            <div class="d-flex align-items-center">
-                                <i class="fa fa-droplet me-2 text-muted"></i>
-                                <span>{{ aField.completed_tasks_count }} tratamientos</span>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <div class="card floating-card h-100">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3 p-3 rounded-circle text-center"
+                                         style="background-color: rgba(76, 175, 80, 0.1);">
+                                        <i class="fa fa-up-right-and-down-left-from-center fs-4"
+                                           style="width: 24px; height: 24px;"></i>
+                                    </div>
+                                    <div>
+                                        <div class="stat-value">{{ total_area }}</div>
+                                        <div class="stat-label">Hectáreas totales</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-
-                <hr>
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="text-muted small">{{ aField.pending_tasks_count }} Tratamientos pendientes</span>
-                    <span class="text-muted small">{{ aField.delayed_tasks_count }} Tratamientos atrasados</span>
-                </div>
-
-                {% comment %}
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="text-muted small">Último tratamiento: 15/03/2025</span>
-                    <div class="d-flex">
-                        <a class="action-icon" href="#">
-                            <i class="bi bi-eye"></i>
-                        </a>
-                        <a class="action-icon" href="#">
-                            <i class="bi bi-pencil"></i>
-                        </a>
-                        <a class="action-icon" href="#">
-                            <i class="bi bi-list-check"></i>
-                        </a>
-                    </div>
-                </div>
-                {% endcomment %}
             </div>
-        </div>
-    </div>
-    {% endfor %}
-</div>
 
-<div class="row">
-    <div class="col">
-        <h1 class="display-5 fw-bold">Calendario de Tratamientos</h1>
-    </div>
-</div>
-
-<div class="row">
-    <!-- Sidebar con filtros -->
-    <div class="col-md-3 mb-4">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body">
-                <h5 class="card-title mb-3">Filtros</h5>
-
-                <!-- Filtro por Campos -->
-                <div class="mb-4">
-                    <h6 class="fw-bold mb-2">Campos</h6>
-                    <div id="field-filters">
-                        <div class="form-check field-filter active">
-                            <input checked class="form-check-input" id="filter-all" type="checkbox" value="all">
-                            <label class="form-check-label" for="filter-all">
-                                Todos los campos
-                            </label>
+            <!-- Columna derecha con Próximos Tratamientos -->
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                        <h5 class="card-title mb-0">Próximos Tratamientos</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush">
+                            {% for task in upcoming_tasks|slice:":5" %}
+                            <div class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">{{ task.name }}</h6>
+                                        <p class="mb-1 text-muted small">{{ task.field_name }} - {{
+                                            task.date|date:"d/m/Y" }}</p>
+                                    </div>
+                                    <a class="btn btn-sm btn-outline-primary" href="#">
+                                        <i class="fa fa-check me-1"></i> Completar
+                                    </a>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="list-group-item py-4 text-center">
+                                <p class="mb-0 text-muted">No hay tratamientos programados</p>
+                            </div>
+                            {% endfor %}
                         </div>
-                        {% for field in fields %}
-                        <div class="form-check field-filter">
-                            <input class="form-check-input field-checkbox" id="filter-field-{{ field.id }}"
-                                   type="checkbox" value="{{ field.id }}">
-                            <label class="form-check-label" for="filter-field-{{ field.id }}">
-                                {{ field.name }}
-                            </label>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <!-- Filtro por tipo de tarea -->
-                <div class="mb-4">
-                    <h6 class="fw-bold mb-2">Tipo de Tratamiento</h6>
-                    <div id="task-type-filters">
-                        {% for type_value, type_name in task_types %}
-                        <div class="form-check">
-                            <input checked class="form-check-input task-type-checkbox"
-                                   id="filter-type-{{ type_value }}" type="checkbox" value="{{ type_value }}">
-                            <label class="form-check-label" for="filter-type-{{ type_value }}">
-                                <i class="fa fa-{{ type_map|get_item:type_value }}"></i> {{ type_name }}
-                            </label>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <!-- Botones de acción -->
-                <div class="d-grid gap-2">
-                    <a class="btn btn-primary" href="{% url 'create_task' %}">
-                        <i class="fa fa-plus-circle me-2"></i>Nuevo Tratamiento
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Calendario principal -->
-    <div class="col-md-9">
-        <div class="calendar-container shadow-sm mb-4">
-            <div id="calendar"></div>
-
-            <div class="mb-4">
-                <div class="row g-2 calendar-legend">
-                    <div class="col-12 col-sm-auto d-flex align-items-center">
-                        <span class="task-pending"></span> Pendiente
-                    </div>
-                    <div class="col-12 col-sm-auto d-flex align-items-center">
-                        <span class="task-completed"></span> Completada
-                    </div>
-                    <div class="col-12 col-sm-auto d-flex align-items-center">
-                        <span class="task-delayed"></span> Retrasada
                     </div>
                 </div>
             </div>
         </div>
 
+        <div class="row">
+            <!-- Sidebar con filtros -->
+            <!-- Reemplaza el div de filtros actual por esto -->
+            <div class="col-md-3 mb-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <!-- Título con toggle para móviles -->
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="card-title mb-0">Filtrar calendario</h5>
+                            <button aria-controls="filterCollapse" aria-expanded="false"
+                                    class="btn btn-sm btn-link d-md-none collapsed" data-bs-target="#filterCollapse"
+                                    data-bs-toggle="collapse"
+                                    type="button">
+                                <i class="fa fa-chevron-down filter-icon"></i>
+                            </button>
+                        </div>
+
+                        <!-- Contenido colapsable (solo en móviles) -->
+                        <div class="collapse d-md-block" id="filterCollapse">
+                            <!-- Filtro por Campos -->
+                            <div class="mb-4">
+                                <h6 class="fw-bold mb-2">Campos</h6>
+                                <div id="field-filters">
+                                    <div class="form-check field-filter active">
+                                        <input checked class="form-check-input" id="filter-all" type="checkbox"
+                                               value="all">
+                                        <label class="form-check-label" for="filter-all">
+                                            Todos los campos
+                                        </label>
+                                    </div>
+                                    {% for field in fields %}
+                                    <div class="form-check field-filter">
+                                        <input class="form-check-input field-checkbox" id="filter-field-{{ field.id }}"
+                                               type="checkbox" value="{{ field.id }}">
+                                        <label class="form-check-label" for="filter-field-{{ field.id }}">
+                                            {{ field.name }}
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- Filtro por tipo de tarea -->
+                            <div class="mb-4">
+                                <h6 class="fw-bold mb-2">Tipo de Tratamiento</h6>
+                                <div id="task-type-filters">
+                                    {% for type_value, type_name in task_types %}
+                                    <div class="form-check">
+                                        <input checked class="form-check-input task-type-checkbox"
+                                               id="filter-type-{{ type_value }}" type="checkbox"
+                                               value="{{ type_value }}">
+                                        <label class="form-check-label" for="filter-type-{{ type_value }}">
+                                            <i class="fa fa-{{ type_map|get_item:type_value }}"></i> {{ type_name }}
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- Botones de acción -->
+                            <div class="d-grid gap-2">
+                                <a class="btn btn-primary" href="{% url 'create_task' %}">
+                                    <i class="fa fa-plus-circle me-2"></i>Nuevo Tratamiento
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calendario principal -->
+            <div class="col-md-9">
+                <div class="calendar-container shadow-sm mb-4">
+                    <div id="calendar"></div>
+
+                    <div class="mb-4">
+                        <div class="row g-2 calendar-legend">
+                            <div class="col-12 col-sm-auto d-flex align-items-center">
+                                <span class="task-pending"></span> Pendiente
+                            </div>
+                            <div class="col-12 col-sm-auto d-flex align-items-center">
+                                <span class="task-completed"></span> Completada
+                            </div>
+                            <div class="col-12 col-sm-auto d-flex align-items-center">
+                                <span class="task-delayed"></span> Retrasada
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Panel de detalles de tarea (oculto inicialmente) -->
-        <div aria-hidden="true" aria-labelledby="detailsModalTitle" class="modal fade" id="task-detail"
-             tabindex="-1">
+        <div aria-hidden="true" aria-labelledby="detailsModalTitle" class="modal fade" id="task-detail" tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -345,13 +449,66 @@
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Cerrar</button>
-                        <button class="btn btn-primary" id="view-task" type="button"><i class="fa fa-eye"></i>Ver
-                            más
+                        <button class="btn btn-primary" id="view-task" type="button"><i class="fa fa-eye"></i>Ver más
                         </button>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Pestaña de Parcelas -->
+<div aria-labelledby="parcelas-tab" class="tab-pane fade" id="parcelas" role="tabpanel">
+    <!-- Grid View of Parcelas -->
+    <div class="row">
+        {% for aField in fields %}
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card floating-card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title mb-0">{{ aField.name }}</h5>
+                    </div>
+                    <div class="card-text mb-3">
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <div class="d-flex align-items-center">
+                                    <i class="fa fa-ruler-combined me-2 text-muted"></i>
+                                    <span>{{ aField.area }} ha</span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                {% if aField.location %}
+                                <div class="d-flex align-items-center">
+                                    <i class="fa fa-map-location-dot me-2 text-muted"></i>
+                                    <span>{{ aField.location }}</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-6">
+                                <div class="d-flex align-items-center">
+                                    <i class="fa fa-seedling me-2 text-muted"></i>
+                                    <span>{{ aField.crop }}</span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="d-flex align-items-center">
+                                    <i class="fa fa-droplet me-2 text-muted"></i>
+                                    <span>{{ aField.completed_tasks_count }} tratamientos</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted small">{{ aField.pending_tasks_count }} Tratamientos pendientes</span>
+                        <span class="text-muted small">{{ aField.delayed_tasks_count }} Tratamientos atrasados</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
     </div>
 </div>
 
@@ -545,6 +702,31 @@
                 month: '2-digit',
                 year: 'numeric'
             }).format(date);
+        }
+
+        // Agregar esto dentro del DOMContentLoaded existente
+        var filterToggleBtn = document.querySelector('[data-bs-target="#filterCollapse"]');
+        var filterCollapse = document.getElementById('filterCollapse');
+
+        // Manejar el estado del collapse al cambiar el tamaño de la ventana
+        window.addEventListener('resize', function() {
+            if (window.innerWidth >= 768) {
+                // En pantallas medianas o grandes, asegurarse de que esté expandido
+                if (filterCollapse) {
+                    filterCollapse.classList.add('show');
+                }
+            }
+        });
+
+        // Aplicar animación suave al toggle
+        if (filterToggleBtn) {
+            filterToggleBtn.addEventListener('click', function() {
+                // Cambiar el texto dependiendo del estado (opcional)
+                var isExpanded = this.getAttribute('aria-expanded') === 'true';
+
+                // Si quieres cambiar el texto del botón:
+                // this.querySelector('.filter-text').textContent = isExpanded ? 'Mostrar filtros' : 'Ocultar filtros';
+            });
         }
     });
 </script>
