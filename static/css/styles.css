@@ -1,0 +1,388 @@
+ /* Estilos personalizados */
+:root {
+  --primary-color: #2E7D32; /* Verde más oscuro para agricultura */
+  --secondary-color: #388E3C;
+  --light-color: #F1F8E9;
+  --dark-color: #1B5E20;
+  --accent-color: #689F38;
+  --warning-color: #FF6F00; /* Para alertas de plagas */
+}
+
+html, body {
+    height: 100%; /* Asegura que el body ocupe toda la altura de la pantalla */
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background-color: var(--light-color);
+  display: flex;
+  flex-direction: column;
+}
+
+footer {
+    margin-top: auto; /* Empuja el footer al final de la página */
+}
+
+.navbar {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.07);
+  background-color: white;
+}
+
+.navbar-brand {
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.nav-link {
+  font-weight: 500;
+  position: relative;
+}
+
+.nav-link:hover {
+  color: var(--primary-color);
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: 0;
+  left: 0;
+  background-color: var(--primary-color);
+  transition: width 0.3s ease-in-out;
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
+
+.navbar-toggler {
+  border: none;
+  padding: 0.5rem;
+}
+
+.navbar-toggler:focus {
+  box-shadow: none;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+  background-color: var(--secondary-color);
+  border-color: var(--secondary-color);
+}
+
+.hero {
+  padding: 6rem 0;
+  background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+  color: white;
+}
+
+.feature-card {
+  border-radius: 1rem;
+  border: none;
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+}
+
+.feature-icon {
+  font-size: 2.5rem;
+  color: var(--primary-color);
+}
+
+footer {
+  background-color: var(--dark-color);
+  color: white;
+}
+
+.social-icon {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  margin-right: 0.5rem;
+  transition: background-color 0.3s ease;
+}
+
+.social-icon:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+/* Estilos para el offcanvas */
+.offcanvas {
+  max-width: 300px;
+}
+
+.offcanvas-header {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.offcanvas-title {
+  font-weight: 700;
+}
+
+.offcanvas-body .nav-link {
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.offcanvas-body .nav-link:hover {
+  background-color: rgba(46, 125, 50, 0.1);
+}
+
+.offcanvas-body .nav-link.active {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.offcanvas-body .nav-link.active::after {
+  display: none;
+}
+
+.offcanvas-body .btn {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+@media (min-width: 992px) {
+  .offcanvas-toggler {
+    display: none;
+  }
+}
+
+.offcanvas-body > ul > li.nav-item.dropdown > ul {
+    position: static !important;
+    transform: none !important;
+}
+
+/* Estilos generales para toda la app*/
+.card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.05);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.floating-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 20px rgba(0,0,0,0.1);
+}
+
+.card-header {
+    border-radius: 12px 12px 0 0 !important;
+    background-color: #fff;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+/*.btn-primary {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}*/
+
+.badge-status {
+    padding: 8px 12px;
+    font-weight: 500;
+    border-radius: 30px;
+}
+
+.badge-active {
+    background-color: #E8F5E9;
+    color: var(--bs-primary);
+}
+
+.badge-pending {
+    background-color: #FFF8E1;
+    color: #F57F17;
+}
+
+.badge-completed {
+    background-color: #E3F2FD;
+    color: #1565C0;
+}
+
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    display: inline-block;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+
+.action-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    color: #6c757d;
+    margin-right: 8px;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.action-icon:hover {
+    background-color: var(--bs-primary);
+    color: white;
+}
+
+.parcela-img {
+    height: 160px;
+    object-fit: cover;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+}
+
+.stat-value {
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.header-title {
+    font-weight: 700;
+    color: #212529;
+}
+
+.header-subtitle {
+    color: #6c757d;
+}
+
+.task-pending {
+    background-color: #ffc107;
+    border-color: #ffc107;
+}
+.task-completed {
+    background-color: #198754;
+    border-color: #198754;
+}
+.task-delayed {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+.tab-container {
+    position: relative;
+}
+
+.modern-tabs {
+    display: flex;
+    border-bottom: none;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    scrollbar-width: none;
+}
+
+.modern-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.modern-tabs .nav-link {
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    font-weight: 500;
+    color: #6c757d;
+    background-color: #f8f9fa;
+    transition: all 0.3s ease;
+    position: relative;
+    border-bottom: 3px solid transparent;
+}
+
+.modern-tabs .nav-link:hover {
+    color: #495057;
+    background-color: #e9ecef;
+}
+
+.modern-tabs .nav-link.active {
+    color: #0d6efd;
+    background-color: rgba(13, 110, 253, 0.1);
+    border-bottom: 3px solid #0d6efd;
+    font-weight: 600;
+}
+
+.modern-tabs .nav-link .badge {
+    margin-left: 0.5rem;
+}
+
+.tab-content > .tab-pane {
+    transition: opacity 0.15s linear;
+}
+
+/* Animación para cambio de pestañas */
+.fade-enter {
+    opacity: 0;
+}
+
+.fade-enter-active {
+    opacity: 1;
+    transition: opacity 150ms ease-in;
+}
+/* Estilos para el collapse */
+#filterCollapse {
+    transition: all 0.3s ease-out;
+}
+
+.collapse:not(.show) {
+    display: none;
+}
+
+.collapsing {
+    height: 0;
+    overflow: hidden;
+    transition: height 0.35s ease;
+}
+
+.filter-icon {
+    transition: transform 0.3s ease;
+}
+
+[aria-expanded="true"] .filter-icon {
+    transform: rotate(180deg);
+}
+
+/* Efecto hover para el botón */
+.btn-link:hover {
+    background-color: rgba(13, 110, 253, 0.05);
+    border-radius: 0.25rem;
+}
+
+/* Efecto de carta en móvil */
+@media (max-width: 767.98px) {
+    #filterCollapse {
+        padding-top: 0.5rem;
+        margin-top: 0.5rem;
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    /* Sombra suave cuando se expande */
+    #filterCollapse.show {
+        box-shadow: inset 0 5px 15px -10px rgba(0, 0, 0, 0.1);
+    }
+}
+
+/* Estilos de listas de tratamientos */
+
