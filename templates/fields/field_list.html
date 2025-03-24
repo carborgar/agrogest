@@ -170,31 +170,6 @@
             box-shadow: inset 0 5px 15px -10px rgba(0, 0, 0, 0.1);
         }
     }
-
-    /* Estilos para la paginación */
-    #pagination-controls {
-        background-color: #f8f9fa;
-    }
-
-    #pagination-controls .btn {
-        padding: 0.25rem 0.5rem;
-        transition: all 0.2s ease-in-out;
-    }
-
-    #pagination-controls .btn:not(:disabled):hover {
-        background-color: #e9ecef;
-    }
-
-    /* Transición suave para los elementos de la lista */
-    .task-item {
-        transition: opacity 0.3s ease;
-    }
-
-    /* Estilo para el botón deshabilitado */
-    #pagination-controls .btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
 </style>
 {% endblock %}
 
@@ -207,8 +182,12 @@
             <button aria-controls="dashboard" aria-selected="true" class="nav-link active" data-bs-target="#dashboard"
                     data-bs-toggle="tab" id="dashboard-tab" role="tab" type="button">
                 <i class="fa fa-chart-simple me-2"></i>Vistazo
-                <span class="badge rounded-pill bg-warning">{{ pending_tasks_count }}</span>
+                {% if delayed_tasks_count > 0 %}
                 <span class="badge rounded-pill bg-danger">{{ delayed_tasks_count }}</span>
+                {% endif %}
+                {% if pending_tasks_count > 0 %}
+                <span class="badge rounded-pill bg-warning">{{ pending_tasks_count }}</span>
+                {% endif %}
             </button>
         </li>
         <li class="nav-item" role="presentation">
@@ -295,57 +274,6 @@
                     </div>
                 </div>
             </div>
-
-            {% comment %}
-            <!-- Columna derecha con control de tratamientos - atrasados y pendientes -->
-            <div class="col-md-6">
-                <div class="card h-100">
-                    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
-                        <h5 class="card-title mb-0">Control de tratamientos</h5>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="list-group list-group-flush" id="tasks-container">
-                            {% for task in upcoming_tasks %}
-                            <div class="list-group-item list-group-item-action task-item">
-                                <div class="d-flex w-100 justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="mb-1">{{ task.name }}</h6>
-                                        <p class="mb-1 text-muted small">
-                                            {{ task.field_name }} - {{ task.date|date:"d/m/Y" }}
-                                        </p>
-                                    </div>
-                                    <a class="btn btn-sm btn-outline-primary" href="#">
-                                        <i class="fa fa-check me-1"></i> Completar
-                                    </a>
-                                </div>
-                            </div>
-                            {% empty %}
-                            <div class="list-group-item py-4 text-center">
-                                <p class="mb-0 text-muted">No hay tratamientos programados</p>
-                            </div>
-                            {% endfor %}
-                        </div>
-
-                        <!-- Agregar controles de paginación -->
-                        <div class="d-flex justify-content-between align-items-center p-3 border-top"
-                             id="pagination-controls">
-                            <div class="small text-muted">
-                                Mostrando <span id="showing-from">1</span>-<span id="showing-to">5</span> de <span
-                                    id="total-items">{{ upcoming_tasks|length }}</span>
-                            </div>
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-secondary" disabled id="prev-page">
-                                    <i class="fa fa-chevron-left"></i>
-                                </button>
-                                <button class="btn btn-outline-secondary" id="next-page">
-                                    <i class="fa fa-chevron-right"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endcomment %}
         </div>
 
         <div class="row">
@@ -489,59 +417,59 @@
             </div>
         </div>
     </div>
-</div>
 
-<!-- Pestaña de Parcelas -->
-<div aria-labelledby="parcelas-tab" class="tab-pane fade" id="parcelas" role="tabpanel">
-    <!-- Grid View of Parcelas -->
-    <div class="row">
-        {% for aField in fields %}
-        <div class="col-lg-4 col-md-6 mb-4">
-            <div class="card floating-card h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="card-title mb-0">{{ aField.name }}</h5>
-                    </div>
-                    <div class="card-text mb-3">
-                        <div class="row g-2 mb-2">
-                            <div class="col-6">
-                                <div class="d-flex align-items-center">
-                                    <i class="fa fa-ruler-combined me-2 text-muted"></i>
-                                    <span>{{ aField.area }} ha</span>
+    <!-- Pestaña de Parcelas -->
+    <div aria-labelledby="parcelas-tab" class="tab-pane fade" id="parcelas" role="tabpanel">
+        <!-- Grid View of Parcelas -->
+        <div class="row">
+            {% for aField in fields %}
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card floating-card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="card-title mb-0">{{ aField.name }}</h5>
+                        </div>
+                        <div class="card-text mb-3">
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fa fa-ruler-combined me-2 text-muted"></i>
+                                        <span>{{ aField.area }} ha</span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-6">
-                                {% if aField.location %}
-                                <div class="d-flex align-items-center">
-                                    <i class="fa fa-map-location-dot me-2 text-muted"></i>
-                                    <span>{{ aField.location }}</span>
+                                <div class="col-6">
+                                    {% if aField.location %}
+                                    <div class="d-flex align-items-center">
+                                        <i class="fa fa-map-location-dot me-2 text-muted"></i>
+                                        <span>{{ aField.location }}</span>
+                                    </div>
+                                    {% endif %}
                                 </div>
-                                {% endif %}
-                            </div>
-                            <div class="col-6">
-                                <div class="d-flex align-items-center">
-                                    <i class="fa fa-seedling me-2 text-muted"></i>
-                                    <span>{{ aField.crop }}</span>
+                                <div class="col-6">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fa fa-seedling me-2 text-muted"></i>
+                                        <span>{{ aField.crop }}</span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="d-flex align-items-center">
-                                    <i class="fa fa-droplet me-2 text-muted"></i>
-                                    <span>{{ aField.completed_tasks_count }} tratamientos</span>
+                                <div class="col-6">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fa fa-droplet me-2 text-muted"></i>
+                                        <span>{{ aField.completed_tasks_count }} tratamientos</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <hr>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="text-muted small">{{ aField.pending_tasks_count }} Tratamientos pendientes</span>
-                        <span class="text-muted small">{{ aField.delayed_tasks_count }} Tratamientos atrasados</span>
+                        <hr>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">{{ aField.pending_tasks_count }} Tratamientos pendientes</span>
+                            <span class="text-muted small">{{ aField.delayed_tasks_count }} Tratamientos atrasados</span>
+                        </div>
                     </div>
                 </div>
             </div>
+            {% endfor %}
         </div>
-        {% endfor %}
     </div>
 </div>
 
@@ -764,75 +692,5 @@
     });
 </script>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Configuración de la paginación
-        const tasksPerPage = 5;
-        let currentPage = 1;
-
-        // Elementos DOM
-        const tasksContainer = document.getElementById('tasks-container');
-        const taskItems = tasksContainer.querySelectorAll('.task-item');
-        const totalItems = taskItems.length;
-
-        // Elementos de control de paginación
-        const prevPageBtn = document.getElementById('prev-page');
-        const nextPageBtn = document.getElementById('next-page');
-        const showingFrom = document.getElementById('showing-from');
-        const showingTo = document.getElementById('showing-to');
-        const totalItemsSpan = document.getElementById('total-items');
-
-        // Si no hay elementos, ocultar los controles de paginación
-        if (totalItems === 0) {
-            document.getElementById('pagination-controls').style.display = 'none';
-            return;
-        }
-
-        // Inicializar la vista
-        totalItemsSpan.textContent = totalItems;
-
-        // Función para mostrar la página actual
-        function showPage(page) {
-            // Calcular índices
-            const startIndex = (page - 1) * tasksPerPage;
-            const endIndex = Math.min(startIndex + tasksPerPage, totalItems);
-
-            // Actualizar indicadores
-            showingFrom.textContent = totalItems > 0 ? startIndex + 1 : 0;
-            showingTo.textContent = endIndex;
-
-            // Mostrar/ocultar elementos según la página actual
-            taskItems.forEach((item, index) => {
-                if (index >= startIndex && index < endIndex) {
-                    item.style.display = '';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-
-            // Actualizar estado de los botones
-            prevPageBtn.disabled = page === 1;
-            nextPageBtn.disabled = endIndex >= totalItems;
-        }
-
-        // Eventos para los botones de paginación
-        prevPageBtn.addEventListener('click', function() {
-            if (currentPage > 1) {
-                currentPage--;
-                showPage(currentPage);
-            }
-        });
-
-        nextPageBtn.addEventListener('click', function() {
-            if (currentPage * tasksPerPage < totalItems) {
-                currentPage++;
-                showPage(currentPage);
-            }
-        });
-
-        // Mostrar la primera página
-        showPage(currentPage);
-    });
-</script>
 
 {% endblock %}

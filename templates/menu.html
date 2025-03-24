@@ -1,55 +1,109 @@
-<nav class="navbar navbar-expand-lg navbar-light bg-white fixed-top">
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg sticky-top">
     <div class="container">
-        <button aria-controls="navbarOffcanvasLg" class="navbar-toggler" data-bs-target="#navbarOffcanvasLg"
-                data-bs-toggle="offcanvas" type="button">
-            <span class="navbar-toggler-icon"></span>
+        <!-- Botón para offcanvas (visible solo en móvil) -->
+        <button aria-controls="menuOffcanvas" aria-expanded="false" aria-label="Toggle navigation"
+                class="navbar-toggler offcanvas-toggler" data-bs-target="#menuOffcanvas" data-bs-toggle="offcanvas"
+                type="button">
+            <i class="bi bi-list fs-2"></i>
         </button>
-        <a class="navbar-brand" href="{% url 'field_list' %}">AgroGest</a>
-        <div aria-labelledby="navbarOffcanvasLgLabel" class="offcanvas offcanvas-start" id="navbarOffcanvasLg"
-             tabindex="-1">
-            <div class="offcanvas-header">
-                <h5 class="offcanvas-title" id="offcanvasNavbarLabel">Menú</h5>
-                <button aria-label="Close" class="btn-close" data-bs-dismiss="offcanvas" type="button"></button>
-            </div>
 
-            <div class="offcanvas-body">
-                <ul class="navbar-nav justify-content-end flex-grow-1 pe-3">
-                    <li class="nav-item">
-                        <a aria-current="page" class="nav-link" href="/">Inicio</a>
-                    </li>
-                    <li class="nav-item">
-                        <a aria-current="page" class="nav-link" href="{% url 'task_list' %}">Tratamientos</a>
-                    </li>
-                    {% if user.is_authenticated %}
-                    <li class="nav-item dropdown">
-                        <a aria-expanded="false" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#"
-                           role="button">
-                            <i class="fa fa-user"></i> {{ user.username }}
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#">Perfil</a></li>
-                            <li><a class="dropdown-item" href="#">Configuración</a></li>
-                            <li>
-                                <hr class="dropdown-divider">
-                            </li>
-                            <li>
-                                <form action="{% url 'logout' %}" method="post">
-                                    {% csrf_token %}
-                                    <button class="dropdown-item" type="submit">Cerrar sesión</button>
-                                </form>
-                            </li>
-                        </ul>
-                    </li>
+        <!-- Logo -->
+        <a class="navbar-brand mx-auto mx-lg-0" href="/">
+            <i class="bi bi-flower1 me-2"></i>AgroGest
+        </a>
 
-                    {% else %}
-                    {% comment %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'login' %}">Iniciar sesión</a>
-                    </li>
-                    {% endcomment %}
-                    {% endif %}
-                </ul>
-            </div>
+        <!-- Menú para escritorio -->
+        <div class="collapse navbar-collapse d-none d-lg-block" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/">Inicio</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'task_list' %}">Tratamientos</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">Calendario</a>
+                </li>
+                {% if user.is_authenticated %}
+                <li class="nav-item dropdown">
+                    <a aria-expanded="false" class="nav-link" data-bs-toggle="dropdown" href="#" role="button">
+                        <i class="fa fa-user"></i> {{ user.username }} <i class="fa-solid fa-chevron-down"></i>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#">Perfil</a></li>
+                        <li><a class="dropdown-item" href="#">Configuración</a></li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li>
+                            <form action="{% url 'logout' %}" method="post">
+                                {% csrf_token %}
+                                <button class="dropdown-item" type="submit">Cerrar sesión</button>
+                            </form>
+                        </li>
+                    </ul>
+                </li>
+                {% else %}
+                <li class="nav-item ms-lg-3">
+                    <a class="btn btn-primary rounded-pill px-4" href="#">Iniciar Sesión</a>
+                </li>
+                {% endif %}
+            </ul>
         </div>
     </div>
 </nav>
+
+<!-- Offcanvas Menu -->
+<div aria-labelledby="menuOffcanvasLabel" class="offcanvas offcanvas-start" id="menuOffcanvas" tabindex="-1">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="menuOffcanvasLabel">
+            <i class="bi bi-flower1 me-2"></i>AgroGest
+        </h5>
+        <button aria-label="Close" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" type="button"></button>
+    </div>
+    <div class="offcanvas-body">
+        <ul class="nav navbar-nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link" href="/">
+                    <i class="bi bi-house-door me-2"></i>Inicio
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'task_list' %}">
+                    <i class="bi bi-droplet me-2"></i>Tratamientos
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="bi bi-calendar3 me-2"></i>Calendario
+                </a>
+            </li>
+            {% if user.is_authenticated %}
+            <li class="nav-item dropdown">
+                <a aria-expanded="false" class="nav-link" data-bs-toggle="dropdown" href="#" role="button">
+                    <i class="fa fa-user"></i> {{ user.username }} <i class="fa-solid fa-chevron-down"></i>
+                </a>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#">Perfil</a></li>
+                    <li><a class="dropdown-item" href="#">Configuración</a></li>
+                    <li>
+                        <hr class="dropdown-divider">
+                    </li>
+                    <li>
+                        <form action="{% url 'logout' %}" method="post">
+                            {% csrf_token %}
+                            <button class="dropdown-item" type="submit">Cerrar sesión</button>
+                        </form>
+                    </li>
+                </ul>
+            </li>
+            {% else %}
+            <li class="nav-item ms-lg-3">
+                <a class="btn btn-primary rounded-pill px-4" href="#">Iniciar Sesión</a>
+            </li>
+            {% endif %}
+        </ul>
+
+    </div>
+</div>
