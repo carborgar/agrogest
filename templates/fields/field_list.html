@@ -76,7 +76,7 @@
         display: flex;
         border-bottom: none;
         gap: 0.5rem;
-        margin-bottom: 1.5rem;
+        margin-bottom: 0.5rem;
         overflow-x: auto;
         padding-bottom: 0.5rem;
         scrollbar-width: none;
@@ -170,16 +170,35 @@
             box-shadow: inset 0 5px 15px -10px rgba(0, 0, 0, 0.1);
         }
     }
+
+    /* Estilos para la paginación */
+    #pagination-controls {
+        background-color: #f8f9fa;
+    }
+
+    #pagination-controls .btn {
+        padding: 0.25rem 0.5rem;
+        transition: all 0.2s ease-in-out;
+    }
+
+    #pagination-controls .btn:not(:disabled):hover {
+        background-color: #e9ecef;
+    }
+
+    /* Transición suave para los elementos de la lista */
+    .task-item {
+        transition: opacity 0.3s ease;
+    }
+
+    /* Estilo para el botón deshabilitado */
+    #pagination-controls .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-
-<!--<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h1 class="header-title mb-1">Parcelas</h1>
-    </div>
-</div>-->
 
 <!-- Pestañas modernas -->
 <div class="tab-container">
@@ -187,7 +206,7 @@
         <li class="nav-item" role="presentation">
             <button aria-controls="dashboard" aria-selected="true" class="nav-link active" data-bs-target="#dashboard"
                     data-bs-toggle="tab" id="dashboard-tab" role="tab" type="button">
-                <i class="fa fa-chart-simple me-2"></i>Dashboard
+                <i class="fa fa-chart-simple me-2"></i>Vistazo
                 <span class="badge rounded-pill bg-warning">{{ pending_tasks_count }}</span>
                 <span class="badge rounded-pill bg-danger">{{ delayed_tasks_count }}</span>
             </button>
@@ -206,99 +225,94 @@
 <div class="tab-content" id="parcelasTabContent">
     <!-- Pestaña de Dashboard -->
     <div aria-labelledby="dashboard-tab" class="tab-pane fade show active" id="dashboard" role="tabpanel">
-        <!-- Stats Row y Próximos Tratamientos en formato de columnas -->
-        <div class="row mb-4">
-            <!-- Columna izquierda con las 4 cards en 2 columnas -->
-            <div class="col-md-6">
-                <div class="row">
-                    <!-- Primera columna de cards -->
-                    <div class="col-6 mb-3">
-                        <div class="card floating-card h-100">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center">
-                                    <div class="me-3 p-3 rounded-circle text-center"
-                                         style="background-color: rgba(46, 125, 50, 0.1);">
-                                        <i class="fa fa-location-dot text-primary fs-4"
-                                           style="width: 24px; height: 24px;"></i>
-                                    </div>
-                                    <div>
-                                        <div class="stat-value">{{ fields.count }}</div>
-                                        <div class="stat-label">Total parcelas</div>
-                                    </div>
-                                </div>
+        <!-- Stats Row -->
+        <div class="row">
+            <div class="col-6 col-lg-3 mb-3">
+                <div class="card floating-card h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3 p-3 rounded-circle text-center"
+                                 style="background-color: {% if delayed_tasks_count == 0 %}rgba(46, 125, 50, 0.1){% else %}rgba(255, 25, 25, 0.1){% endif %};">
+                                <i class="fa {% if delayed_tasks_count == 0 %}fa-thumbs-up text-success{% else %}fa-triangle-exclamation text-danger{% endif %} fs-4"
+                                   style="width: 24px; height: 24px;"></i>
+                            </div>
+                            <div>
+                                <div class="stat-value">{{ delayed_tasks_count }}</div>
+                                <div class="stat-label">Tratamientos atrasados</div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-6 mb-3">
-                        <div class="card floating-card h-100">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center">
-                                    <div class="me-3 p-3 rounded-circle text-center"
-                                         style="background-color: {% if delayed_tasks_count == 0 %}rgba(46, 125, 50, 0.1){% else %}rgba(255, 25, 25, 0.1){% endif %};">
-                                        <i class="fa {% if delayed_tasks_count == 0 %}fa-thumbs-up text-success{% else %}fa-triangle-exclamation text-danger{% endif %} fs-4"
-                                           style="width: 24px; height: 24px;"></i>
-                                    </div>
-                                    <div>
-                                        <div class="stat-value">{{ delayed_tasks_count }}</div>
-                                        <div class="stat-label">Tratamientos atrasados</div>
-                                    </div>
-                                </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3 mb-3">
+                <div class="card floating-card h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3 p-3 rounded-circle text-center"
+                                 style="background-color: {% if pending_tasks_count == 0 %}rgba(46, 125, 50, 0.1){% else %}rgba(245, 127, 23, 0.1){% endif %};">
+                                <i class="fa {% if pending_tasks_count == 0 %}fa-thumbs-up text-success{% else %}fa-calendar-check text-warning{% endif %} fs-4"
+                                   style="width: 24px; height: 24px;"></i>
+                            </div>
+                            <div>
+                                <div class="stat-value">{{ pending_tasks_count }}</div>
+                                <div class="stat-label">Tratamientos pendientes</div>
                             </div>
                         </div>
                     </div>
-                    <!-- Segunda columna de cards -->
-                    <div class="col-6 mb-3">
-                        <div class="card floating-card h-100">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center">
-                                    <div class="me-3 p-3 rounded-circle text-center"
-                                         style="background-color: {% if pending_tasks_count == 0 %}rgba(46, 125, 50, 0.1){% else %}rgba(245, 127, 23, 0.1){% endif %};">
-                                        <i class="fa {% if pending_tasks_count == 0 %}fa-thumbs-up text-success{% else %}fa-calendar-check text-warning{% endif %} fs-4"
-                                           style="width: 24px; height: 24px;"></i>
-                                    </div>
-                                    <div>
-                                        <div class="stat-value">{{ pending_tasks_count }}</div>
-                                        <div class="stat-label">Tratamientos pendientes</div>
-                                    </div>
-                                </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3 mb-3">
+                <div class="card floating-card h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3 p-3 rounded-circle text-center"
+                                 style="background-color: rgba(46, 125, 50, 0.1);">
+                                <i class="fa fa-location-dot text-primary fs-4"
+                                   style="width: 24px; height: 24px;"></i>
+                            </div>
+                            <div>
+                                <div class="stat-value">{{ fields.count }}</div>
+                                <div class="stat-label">Total parcelas</div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-6 mb-3">
-                        <div class="card floating-card h-100">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center">
-                                    <div class="me-3 p-3 rounded-circle text-center"
-                                         style="background-color: rgba(76, 175, 80, 0.1);">
-                                        <i class="fa fa-up-right-and-down-left-from-center fs-4"
-                                           style="width: 24px; height: 24px;"></i>
-                                    </div>
-                                    <div>
-                                        <div class="stat-value">{{ total_area }}</div>
-                                        <div class="stat-label">Hectáreas totales</div>
-                                    </div>
-                                </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3 mb-3">
+                <div class="card floating-card h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3 p-3 rounded-circle text-center"
+                                 style="background-color: rgba(76, 175, 80, 0.1);">
+                                <i class="fa fa-up-right-and-down-left-from-center fs-4"
+                                   style="width: 24px; height: 24px;"></i>
+                            </div>
+                            <div>
+                                <div class="stat-value">{{ total_area }}</div>
+                                <div class="stat-label">Hectáreas totales</div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Columna derecha con Próximos Tratamientos -->
+            {% comment %}
+            <!-- Columna derecha con control de tratamientos - atrasados y pendientes -->
             <div class="col-md-6">
                 <div class="card h-100">
                     <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
-                        <h5 class="card-title mb-0">Próximos Tratamientos</h5>
+                        <h5 class="card-title mb-0">Control de tratamientos</h5>
                     </div>
                     <div class="card-body p-0">
-                        <div class="list-group list-group-flush">
-                            {% for task in upcoming_tasks|slice:":5" %}
-                            <div class="list-group-item list-group-item-action">
+                        <div class="list-group list-group-flush" id="tasks-container">
+                            {% for task in upcoming_tasks %}
+                            <div class="list-group-item list-group-item-action task-item">
                                 <div class="d-flex w-100 justify-content-between align-items-center">
                                     <div>
                                         <h6 class="mb-1">{{ task.name }}</h6>
-                                        <p class="mb-1 text-muted small">{{ task.field_name }} - {{
-                                            task.date|date:"d/m/Y" }}</p>
+                                        <p class="mb-1 text-muted small">
+                                            {{ task.field_name }} - {{ task.date|date:"d/m/Y" }}
+                                        </p>
                                     </div>
                                     <a class="btn btn-sm btn-outline-primary" href="#">
                                         <i class="fa fa-check me-1"></i> Completar
@@ -311,15 +325,33 @@
                             </div>
                             {% endfor %}
                         </div>
+
+                        <!-- Agregar controles de paginación -->
+                        <div class="d-flex justify-content-between align-items-center p-3 border-top"
+                             id="pagination-controls">
+                            <div class="small text-muted">
+                                Mostrando <span id="showing-from">1</span>-<span id="showing-to">5</span> de <span
+                                    id="total-items">{{ upcoming_tasks|length }}</span>
+                            </div>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-secondary" disabled id="prev-page">
+                                    <i class="fa fa-chevron-left"></i>
+                                </button>
+                                <button class="btn btn-outline-secondary" id="next-page">
+                                    <i class="fa fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
+            {% endcomment %}
         </div>
 
         <div class="row">
             <!-- Sidebar con filtros -->
             <!-- Reemplaza el div de filtros actual por esto -->
-            <div class="col-md-3 mb-4">
+            <div class="col-md-3 mb-2">
                 <div class="card border-0 shadow-sm">
                     <div class="card-body">
                         <!-- Título con toggle para móviles -->
@@ -342,13 +374,12 @@
                                     <div class="form-check field-filter active">
                                         <input checked class="form-check-input" id="filter-all" type="checkbox"
                                                value="all">
-                                        <label class="form-check-label" for="filter-all">
-                                            Todos los campos
-                                        </label>
+                                        <label class="form-check-label" for="filter-all">Todos</label>
                                     </div>
                                     {% for field in fields %}
                                     <div class="form-check field-filter">
-                                        <input class="form-check-input field-checkbox" id="filter-field-{{ field.id }}"
+                                        <input class="form-check-input field-checkbox"
+                                               id="filter-field-{{ field.id }}"
                                                type="checkbox" value="{{ field.id }}">
                                         <label class="form-check-label" for="filter-field-{{ field.id }}">
                                             {{ field.name }}
@@ -409,7 +440,8 @@
         </div>
 
         <!-- Panel de detalles de tarea (oculto inicialmente) -->
-        <div aria-hidden="true" aria-labelledby="detailsModalTitle" class="modal fade" id="task-detail" tabindex="-1">
+        <div aria-hidden="true" aria-labelledby="detailsModalTitle" class="modal fade" id="task-detail"
+             tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -449,7 +481,8 @@
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Cerrar</button>
-                        <button class="btn btn-primary" id="view-task" type="button"><i class="fa fa-eye"></i>Ver más
+                        <button class="btn btn-primary" id="view-task" type="button"><i class="fa fa-eye"></i>Ver
+                            más
                         </button>
                     </div>
                 </div>
@@ -730,4 +763,76 @@
         }
     });
 </script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Configuración de la paginación
+        const tasksPerPage = 5;
+        let currentPage = 1;
+
+        // Elementos DOM
+        const tasksContainer = document.getElementById('tasks-container');
+        const taskItems = tasksContainer.querySelectorAll('.task-item');
+        const totalItems = taskItems.length;
+
+        // Elementos de control de paginación
+        const prevPageBtn = document.getElementById('prev-page');
+        const nextPageBtn = document.getElementById('next-page');
+        const showingFrom = document.getElementById('showing-from');
+        const showingTo = document.getElementById('showing-to');
+        const totalItemsSpan = document.getElementById('total-items');
+
+        // Si no hay elementos, ocultar los controles de paginación
+        if (totalItems === 0) {
+            document.getElementById('pagination-controls').style.display = 'none';
+            return;
+        }
+
+        // Inicializar la vista
+        totalItemsSpan.textContent = totalItems;
+
+        // Función para mostrar la página actual
+        function showPage(page) {
+            // Calcular índices
+            const startIndex = (page - 1) * tasksPerPage;
+            const endIndex = Math.min(startIndex + tasksPerPage, totalItems);
+
+            // Actualizar indicadores
+            showingFrom.textContent = totalItems > 0 ? startIndex + 1 : 0;
+            showingTo.textContent = endIndex;
+
+            // Mostrar/ocultar elementos según la página actual
+            taskItems.forEach((item, index) => {
+                if (index >= startIndex && index < endIndex) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            // Actualizar estado de los botones
+            prevPageBtn.disabled = page === 1;
+            nextPageBtn.disabled = endIndex >= totalItems;
+        }
+
+        // Eventos para los botones de paginación
+        prevPageBtn.addEventListener('click', function() {
+            if (currentPage > 1) {
+                currentPage--;
+                showPage(currentPage);
+            }
+        });
+
+        nextPageBtn.addEventListener('click', function() {
+            if (currentPage * tasksPerPage < totalItems) {
+                currentPage++;
+                showPage(currentPage);
+            }
+        });
+
+        // Mostrar la primera página
+        showPage(currentPage);
+    });
+</script>
+
 {% endblock %}
