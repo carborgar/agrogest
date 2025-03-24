@@ -28,6 +28,12 @@
         {% bootstrap_messages %}
     </section>
 
+    <div class="row mb-4">
+        <div class="col">
+            <h2 class="mb-0 fw-bold">{% block header %}{% endblock %}</h2>
+        </div>
+    </div>
+
     {% block content %} {% endblock %}
 
 </div>

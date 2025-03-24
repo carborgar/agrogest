@@ -250,251 +250,246 @@
 </style>
 {% endblock %}
 
-{% block content %}
-<div class="container py-4">
-    <div class="row mb-4">
-        <div class="col">
-            <h2 class="mb-0 fw-bold">Lista de tratamientos</h2>
-        </div>
-    </div>
+{% block header %}Lista de tratamientos{% endblock %}
 
-    <div class="row g-4">
-        <!-- Panel de filtros -->
-        <div class="col-lg-3">
-            <form method="GET">
-                <!-- Filtro por parcelas -->
-                <div class="filter-panel">
-                    <div class="filter-header">
-                        <button class="btn filter-btn {% if not selected_fields %}collapsed{% endif %}"
-                                type="button" data-bs-toggle="collapse" data-bs-target="#parcelasFilter"
-                                aria-expanded="{% if selected_fields %}true{% else %}false{% endif %}">
-                            <div class="d-flex align-items-center">
+{% block content %}
+<div class="row g-4">
+    <!-- Panel de filtros -->
+    <div class="col-lg-3">
+        <form method="GET">
+            <!-- Filtro por parcelas -->
+            <div class="filter-panel">
+                <div class="filter-header">
+                    <button class="btn filter-btn {% if not selected_fields %}collapsed{% endif %}"
+                            type="button" data-bs-toggle="collapse" data-bs-target="#parcelasFilter"
+                            aria-expanded="{% if selected_fields %}true{% else %}false{% endif %}">
+                        <div class="d-flex align-items-center">
                                 <span class="filter-icon">
                                     <i class="fa fa-map"></i>
                                 </span>
-                                <span>Parcelas</span>
-                            </div>
-                            <i class="fa fa-chevron-down toggle-icon"></i>
-                        </button>
-                    </div>
-                    <div class="collapse {% if selected_fields %}show{% endif %}" id="parcelasFilter">
-                        <div class="filter-body">
-                            {% for field in fields %}
-                            <div class="form-check mb-2">
-                                <input class="form-check-input" type="checkbox" value="{{ field.id }}" name="field"
-                                       id="parcela-{{ field.id }}"
-                                       {% if field.id|stringformat:"s" in selected_fields %}checked{% endif %}>
-                                <label class="form-check-label" for="parcela-{{ field.id }}">{{ field.name }}</label>
-                            </div>
-                            {% endfor %}
+                            <span>Parcelas</span>
                         </div>
+                        <i class="fa fa-chevron-down toggle-icon"></i>
+                    </button>
+                </div>
+                <div class="collapse {% if selected_fields %}show{% endif %}" id="parcelasFilter">
+                    <div class="filter-body">
+                        {% for field in fields %}
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" value="{{ field.id }}" name="field"
+                                   id="parcela-{{ field.id }}"
+                                   {% if field.id|stringformat:"s" in selected_fields %}checked{% endif %}>
+                            <label class="form-check-label" for="parcela-{{ field.id }}">{{ field.name }}</label>
+                        </div>
+                        {% endfor %}
                     </div>
                 </div>
+            </div>
 
-                <!-- Filtro por tipo de tratamiento -->
-                <div class="filter-panel">
-                    <div class="filter-header">
-                        <button class="btn filter-btn {% if not selected_types %}collapsed{% endif %}" type="button"
-                                data-bs-toggle="collapse" data-bs-target="#tratamientosFilter"
-                                aria-expanded="{% if selected_types %}true{% else %}false{% endif %}">
-                            <div class="d-flex align-items-center">
+            <!-- Filtro por tipo de tratamiento -->
+            <div class="filter-panel">
+                <div class="filter-header">
+                    <button class="btn filter-btn {% if not selected_types %}collapsed{% endif %}" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#tratamientosFilter"
+                            aria-expanded="{% if selected_types %}true{% else %}false{% endif %}">
+                        <div class="d-flex align-items-center">
                                 <span class="filter-icon">
                                     <i class="fa fa-droplet"></i>
                                 </span>
-                                <span>Tipos de tratamiento</span>
-                            </div>
-                            <i class="fa fa-chevron-down toggle-icon"></i>
-                        </button>
-                    </div>
-                    <div class="collapse {% if selected_types %}show{% endif %}" id="tratamientosFilter">
-                        <div class="filter-body">
-                            {% for key, value in type_choices %}
-                            <div class="form-check mb-2">
-                                <input class="form-check-input" type="checkbox" value="{{ key }}" name="type"
-                                       id="tipoTratamiento-{{ key }}"
-                                       {% if key in selected_types %}checked{% endif %}>
-                                <label class="form-check-label" for="tipoTratamiento-{{ key }}">{{ value }}</label>
-                            </div>
-                            {% endfor %}
+                            <span>Tipos de tratamiento</span>
                         </div>
+                        <i class="fa fa-chevron-down toggle-icon"></i>
+                    </button>
+                </div>
+                <div class="collapse {% if selected_types %}show{% endif %}" id="tratamientosFilter">
+                    <div class="filter-body">
+                        {% for key, value in type_choices %}
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" value="{{ key }}" name="type"
+                                   id="tipoTratamiento-{{ key }}"
+                                   {% if key in selected_types %}checked{% endif %}>
+                            <label class="form-check-label" for="tipoTratamiento-{{ key }}">{{ value }}</label>
+                        </div>
+                        {% endfor %}
                     </div>
                 </div>
+            </div>
 
-                <!-- Filtro por estado -->
-                <div class="filter-panel">
-                    <div class="filter-header">
-                        <button class="btn filter-btn {% if not selected_statuses %}collapsed{% endif %}" type="button"
-                                data-bs-toggle="collapse" data-bs-target="#estadosFilter"
-                                aria-expanded="{% if selected_statuses %}true{% else %}false{% endif %}">
-                            <div class="d-flex align-items-center">
+            <!-- Filtro por estado -->
+            <div class="filter-panel">
+                <div class="filter-header">
+                    <button class="btn filter-btn {% if not selected_statuses %}collapsed{% endif %}" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#estadosFilter"
+                            aria-expanded="{% if selected_statuses %}true{% else %}false{% endif %}">
+                        <div class="d-flex align-items-center">
                                 <span class="filter-icon">
                                     <i class="fa fa-circle-half-stroke"></i>
                                 </span>
-                                <span>Estados</span>
-                            </div>
-                            <i class="fa fa-chevron-down toggle-icon"></i>
-                        </button>
-                    </div>
-                    <div class="collapse {% if selected_statuses %}show{% endif %}" id="estadosFilter">
-                        <div class="filter-body">
-                            {% for key, value in status_choices %}
-                            <div class="form-check mb-2">
-                                <input class="form-check-input" type="checkbox" value="{{ key }}" name="status"
-                                       id="estado-{{ key }}"
-                                       {% if key in selected_statuses %}checked{% endif %}>
-                                <label class="form-check-label" for="estado-{{ key }}">{{ value }}</label>
-                            </div>
-                            {% endfor %}
+                            <span>Estados</span>
                         </div>
+                        <i class="fa fa-chevron-down toggle-icon"></i>
+                    </button>
+                </div>
+                <div class="collapse {% if selected_statuses %}show{% endif %}" id="estadosFilter">
+                    <div class="filter-body">
+                        {% for key, value in status_choices %}
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" value="{{ key }}" name="status"
+                                   id="estado-{{ key }}"
+                                   {% if key in selected_statuses %}checked{% endif %}>
+                            <label class="form-check-label" for="estado-{{ key }}">{{ value }}</label>
+                        </div>
+                        {% endfor %}
                     </div>
                 </div>
+            </div>
 
-                <!-- Filtro por producto -->
-                <div class="filter-panel">
-                    <div class="filter-header">
-                        <button class="btn filter-btn {% if not selected_products %}collapsed{% endif %}" type="button"
-                                data-bs-toggle="collapse" data-bs-target="#productosFilter"
-                                aria-expanded="{% if selected_products %}true{% else %}false{% endif %}">
-                            <div class="d-flex align-items-center">
+            <!-- Filtro por producto -->
+            <div class="filter-panel">
+                <div class="filter-header">
+                    <button class="btn filter-btn {% if not selected_products %}collapsed{% endif %}" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#productosFilter"
+                            aria-expanded="{% if selected_products %}true{% else %}false{% endif %}">
+                        <div class="d-flex align-items-center">
                                 <span class="filter-icon">
                                     <i class="fa fa-box"></i>
                                 </span>
-                                <span>Productos</span>
-                            </div>
-                            <i class="fa fa-chevron-down toggle-icon"></i>
-                        </button>
-                    </div>
-                    <div class="collapse {% if selected_products %}show{% endif %}" id="productosFilter">
-                        <div class="filter-body">
-                            {% for product in products %}
-                            <div class="form-check mb-2">
-                                <input class="form-check-input" type="checkbox" value="{{ product.id }}" name="products"
-                                       id="producto-{{ product.id }}"
-                                       {% if product.id|stringformat:"s" in selected_products %}checked{% endif %}>
-                                <label class="form-check-label" for="producto-{{ product.id }}">
-                                    {{ product.name }}</label>
-                            </div>
-                            {% endfor %}
+                            <span>Productos</span>
                         </div>
+                        <i class="fa fa-chevron-down toggle-icon"></i>
+                    </button>
+                </div>
+                <div class="collapse {% if selected_products %}show{% endif %}" id="productosFilter">
+                    <div class="filter-body">
+                        {% for product in products %}
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" value="{{ product.id }}" name="products"
+                                   id="producto-{{ product.id }}"
+                                   {% if product.id|stringformat:"s" in selected_products %}checked{% endif %}>
+                            <label class="form-check-label" for="producto-{{ product.id }}">
+                                {{ product.name }}</label>
+                        </div>
+                        {% endfor %}
                     </div>
                 </div>
+            </div>
 
-                <!-- Filtro por fecha -->
-                <div class="filter-panel">
-                    <div class="filter-header">
-                        <button class="btn filter-btn {% if not date_from and not date_to %}collapsed{% endif %}"
-                                type="button" data-bs-toggle="collapse" data-bs-target="#fechasFilter"
-                                aria-expanded="{% if date_from or date_to %}true{% else %}false{% endif %}">
-                            <div class="d-flex align-items-center">
+            <!-- Filtro por fecha -->
+            <div class="filter-panel">
+                <div class="filter-header">
+                    <button class="btn filter-btn {% if not date_from and not date_to %}collapsed{% endif %}"
+                            type="button" data-bs-toggle="collapse" data-bs-target="#fechasFilter"
+                            aria-expanded="{% if date_from or date_to %}true{% else %}false{% endif %}">
+                        <div class="d-flex align-items-center">
                                 <span class="filter-icon">
                                     <i class="fa fa-calendar"></i>
                                 </span>
-                                <span>Rango de fechas</span>
-                            </div>
-                            <i class="fa fa-chevron-down toggle-icon"></i>
-                        </button>
-                    </div>
-                    <div class="collapse {% if date_from or date_to %}show{% endif %}" id="fechasFilter">
-                        <div class="filter-body">
-                            <div class="date-filter mb-3">
-                                <label for="date_from" class="form-label fw-semibold">Desde:</label>
-                                <input type="date" name="date_from" value="{{ date_from }}" class="form-control"
-                                       id="date_from">
-                            </div>
-                            <div class="date-filter">
-                                <label for="date_to" class="form-label fw-semibold">Hasta:</label>
-                                <input type="date" name="date_to" value="{{ date_to }}" class="form-control"
-                                       id="date_to">
-                            </div>
+                            <span>Rango de fechas</span>
+                        </div>
+                        <i class="fa fa-chevron-down toggle-icon"></i>
+                    </button>
+                </div>
+                <div class="collapse {% if date_from or date_to %}show{% endif %}" id="fechasFilter">
+                    <div class="filter-body">
+                        <div class="date-filter mb-3">
+                            <label for="date_from" class="form-label fw-semibold">Desde:</label>
+                            <input type="date" name="date_from" value="{{ date_from }}" class="form-control"
+                                   id="date_from">
+                        </div>
+                        <div class="date-filter">
+                            <label for="date_to" class="form-label fw-semibold">Hasta:</label>
+                            <input type="date" name="date_to" value="{{ date_to }}" class="form-control"
+                                   id="date_to">
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="filter-actions">
-                    <button class="btn btn-primary apply-btn" type="submit">
-                        <i class="fa fa-filter"></i>Aplicar filtros
-                    </button>
-                    <a class="clear-filters" href="{% url 'task_list' %}">
-                        <i class="fa fa-times-circle"></i>Limpiar filtros
-                    </a>
+            <div class="filter-actions">
+                <button class="btn btn-primary apply-btn" type="submit">
+                    <i class="fa fa-filter"></i>Aplicar filtros
+                </button>
+                <a class="clear-filters" href="{% url 'task_list' %}">
+                    <i class="fa fa-times-circle"></i>Limpiar filtros
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Resultados -->
+    <div class="col-lg-9">
+        <div class="results-container">
+            <div class="results-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold">Resultados <span
+                        class="badge bg-primary rounded-pill ms-2">{{ tasks.count }}</span>
+                </h5>
+                <a class="btn btn-primary action-btn" href="{% url 'create_task' %}">
+                    <i class="fa fa-plus-circle"></i>Nuevo tratamiento
+                </a>
+            </div>
+            <div class="card-body p-4" id="results">
+                {% if not tasks %}
+                <div class="alert alert-info d-flex align-items-center" role="alert">
+                    <i class="fa fa-info-circle me-3 fs-4"></i>
+                    <div>No se encontraron tareas con los filtros actuales.</div>
                 </div>
-            </form>
-        </div>
+                {% endif %}
 
-        <!-- Resultados -->
-        <div class="col-lg-9">
-            <div class="results-container">
-                <div class="results-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold">Resultados <span class="badge bg-primary rounded-pill ms-2">{{ tasks.count }}</span>
-                    </h5>
-                    <a class="btn btn-primary action-btn" href="{% url 'create_task' %}">
-                        <i class="fa fa-plus-circle"></i>Nuevo tratamiento
-                    </a>
-                </div>
-                <div class="card-body p-4" id="results">
-                    {% if not tasks %}
-                    <div class="alert alert-info d-flex align-items-center" role="alert">
-                        <i class="fa fa-info-circle me-3 fs-4"></i>
-                        <div>No se encontraron tareas con los filtros actuales.</div>
-                    </div>
-                    {% endif %}
-
-                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-                        {% for task in tasks %}
-                        {% with state_class=task.state_class task_type=task.type_class %}
-                        <div class="col">
-                            <div class="card task-card position-relative">
-                                <div class="card-status bg-{{ state_class }}"></div>
-                                <div class="card-body ps-4 pt-3 pb-3">
-                                    <div class="card-header-row">
-                                        <div class="d-flex align-items-center">
-                                            <div class="card-icon bg-{{ state_class }} bg-opacity-10 me-3">
-                                                <i class="fas fa-{{task_type}} text-{{ state_class }}"></i>
-                                            </div>
-                                            <div class="card-title-container">
-                                                <h5 class="card-title mb-0 fw-bold" title="{{ task.name }}">
-                                                    {{ task.name }}</h5>
-                                            </div>
+                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                    {% for task in tasks %}
+                    {% with state_class=task.state_class task_type=task.type_class %}
+                    <div class="col">
+                        <div class="card task-card position-relative">
+                            <div class="card-status bg-{{ state_class }}"></div>
+                            <div class="card-body ps-4 pt-3 pb-3">
+                                <div class="card-header-row">
+                                    <div class="d-flex align-items-center">
+                                        <div class="card-icon bg-{{ state_class }} bg-opacity-10 me-3">
+                                            <i class="fas fa-{{task_type}} text-{{ state_class }}"></i>
                                         </div>
-                                        <div class="status-badge-row">
-                                            <span class="badge bg-{{ state_class }} badge-status">{{ task.status_display }}</span>
+                                        <div class="card-title-container">
+                                            <h5 class="card-title mb-0 fw-bold" title="{{ task.name }}">
+                                                {{ task.name }}</h5>
                                         </div>
                                     </div>
-
-                                    <div class="task-date mb-3">
-                                        <i class="fa fa-calendar-day"></i>
-                                        {{ task.date|date:"d/m/Y" }}
+                                    <div class="status-badge-row">
+                                        <span class="badge bg-{{ state_class }} badge-status">{{ task.status_display }}</span>
                                     </div>
+                                </div>
 
-                                    <hr class="my-3">
+                                <div class="task-date mb-3">
+                                    <i class="fa fa-calendar-day"></i>
+                                    {{ task.date|date:"d/m/Y" }}
+                                </div>
 
-                                    <div class="task-property">
-                                        <span class="property-icon"><i class="fa fa-location-dot"></i></span>
-                                        <span class="fw-semibold">{{ task.field.name }}</span>
-                                    </div>
+                                <hr class="my-3">
 
-                                    <div class="task-property">
-                                        <span class="property-icon"><i class="fa fa-wheat-awn"></i></span>
-                                        <span>{{ task.field.crop }} ({{ task.field.area }} ha)</span>
-                                    </div>
+                                <div class="task-property">
+                                    <span class="property-icon"><i class="fa fa-location-dot"></i></span>
+                                    <span class="fw-semibold">{{ task.field.name }}</span>
+                                </div>
 
-                                    <div class="task-property">
-                                        <span class="property-icon"><i class="fa fa-{{task_type}}"></i></span>
-                                        <span>{{ task.get_type_display }}</span>
-                                    </div>
+                                <div class="task-property">
+                                    <span class="property-icon"><i class="fa fa-wheat-awn"></i></span>
+                                    <span>{{ task.field.crop }} ({{ task.field.area }} ha)</span>
+                                </div>
 
-                                    <div class="mt-3">
-                                        <a href="{% url 'task_detail' task.id %}"
-                                           class="btn btn-{{ state_class }} w-100 action-btn">
-                                            <i class="fa fa-eye"></i>Ver detalles
-                                        </a>
-                                    </div>
+                                <div class="task-property">
+                                    <span class="property-icon"><i class="fa fa-{{task_type}}"></i></span>
+                                    <span>{{ task.get_type_display }}</span>
+                                </div>
+
+                                <div class="mt-3">
+                                    <a href="{% url 'task_detail' task.id %}"
+                                       class="btn btn-{{ state_class }} w-100 action-btn">
+                                        <i class="fa fa-eye"></i>Ver detalles
+                                    </a>
                                 </div>
                             </div>
                         </div>
-                        {% endwith %}
-                        {% endfor %}
                     </div>
+                    {% endwith %}
+                    {% endfor %}
                 </div>
             </div>
         </div>

@@ -23,7 +23,7 @@
                     <a class="nav-link" href="{% url 'task_list' %}">Tratamientos</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#">Calendario</a>
+                    <a class="nav-link" href="{% url 'task_calendar' %}">Calendario</a>
                 </li>
                 {% if user.is_authenticated %}
                 <li class="nav-item dropdown">
@@ -75,9 +75,7 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
-                    <i class="bi bi-calendar3 me-2"></i>Calendario
-                </a>
+                <a class="nav-link" href="{% url 'task_calendar' %}"><i class="bi bi-calendar3 me-2"></i>Calendario</a>
             </li>
             {% if user.is_authenticated %}
             <li class="nav-item dropdown">
