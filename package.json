@@ -1,0 +1,13 @@
+{
+  "name": "agrogest",
+  "version": "1.0.0",
+  "description": "Farm management application",
+  "scripts": {
+    "build:css": "sass static/scss/custom.scss:static/css/custom-bootstrap.min.css --style compressed --no-source-map",
+    "watch:css": "sass --watch static/scss/custom.scss:static/css/custom-bootstrap.min.css --style expanded"
+  },
+  "dependencies": {
+    "bootstrap": "^5.3.3",
+    "sass": "^1.70.0"
+  }
+}

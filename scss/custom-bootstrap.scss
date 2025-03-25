@@ -1,0 +1,138 @@
+// Custom Bootstrap theme for AgroGest based on the color palette
+
+// Override Bootstrap's variables
+$primary: #2E7D32;      // Verde bosque - Main brand color
+$secondary: #1565C0;    // Blue - For water/irrigation
+$success: #4CAF50;      // Success green
+$warning: #FF9800;      // Warning orange
+$danger: #F44336;       // Error red
+$info: #2196F3;         // Info blue
+
+// Additional custom colors
+$primary-light: #60AD5E; // Light green for backgrounds
+$primary-dark: #005005;  // Dark green for hover states
+$secondary-light: #5E92F3; // Light blue
+$secondary-dark: #003C8F; // Dark blue
+$accent: #FFA000;        // Amber - For alerts/harvest
+$accent-light: #FFC24A;  // Light amber
+$accent-dark: #C67100;   // Dark amber
+
+// Neutral colors
+$white: #FFFFFF;
+$gray-100: #F5F7FA;
+$gray-200: #E4E7EB;
+$gray-300: #CBD2D9;
+$gray-400: #9AA5B1;
+$gray-500: #7B8794;
+$gray-600: #4A5568;
+$gray-700: #323F4B;
+$gray-800: #1F2933;
+$gray-900: #121212;
+
+// Body
+$body-bg: $gray-100;
+$body-color: $gray-800;
+
+// Links
+$link-color: $primary;
+$link-hover-color: $primary-dark;
+
+// Components
+$border-radius: 0.5rem;
+$border-radius-sm: 0.25rem;
+$border-radius-lg: 0.75rem;
+$box-shadow: 0 0.5rem 1rem rgba($gray-900, 0.1);
+
+// Cards
+$card-bg: $white;
+$card-border-width: 0;
+$card-border-radius: $border-radius;
+$card-box-shadow: 0 0.25rem 0.75rem rgba($white, 0.05);
+
+// Buttons
+$btn-border-radius: $border-radius;
+$btn-font-weight: 500;
+
+// Import Bootstrap
+@import "../node_modules/bootstrap/scss/bootstrap";
+
+// Additional custom styles
+.btn-accent {
+  @include button-variant($accent, $accent);
+}
+
+.bg-accent {
+  background-color: $accent !important;
+}
+
+.text-accent {
+  color: $accent !important;
+}
+
+// Card hover effect
+.card-hover {
+  transition: transform 0.3s, box-shadow 0.3s;
+  
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1.5rem rgba($gray-900, 0.15);
+  }
+}
+
+// Status badges
+.badge-status {
+  padding: 0.5rem 0.75rem;
+  font-weight: 500;
+  border-radius: 2rem;
+}
+
+.badge-active {
+  background-color: rgba($success, 0.1);
+  color: $success;
+}
+
+.badge-pending {
+  background-color: rgba($warning, 0.1);
+  color: darken($warning, 15%);
+}
+
+.badge-completed {
+  background-color: rgba($info, 0.1);
+  color: darken($info, 15%);
+}
+
+// Action icons
+.action-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  background-color: $gray-100;
+  color: $gray-600;
+  margin-right: 0.5rem;
+  transition: background-color 0.2s, color 0.2s;
+  
+  &:hover {
+    background-color: $primary;
+    color: $white;
+  }
+}
+
+// CSS variables for use in regular CSS
+:root {
+  --primary: #{$primary};
+  --primary-light: #{$primary-light};
+  --primary-dark: #{$primary-dark};
+  --secondary: #{$secondary};
+  --secondary-light: #{$secondary-light};
+  --secondary-dark: #{$secondary-dark};
+  --success: #{$success};
+  --warning: #{$warning};
+  --danger: #{$danger};
+  --info: #{$info};
+  --accent: #{$accent};
+  --accent-light: #{$accent-light};
+  --accent-dark: #{$accent-dark};
+}

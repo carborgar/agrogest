@@ -140,5 +140,7 @@ GitHub.sublime-settings
 # envs
 *.env
 
+node_modules/
+
 #static files from collecstatic
 staticfiles/
