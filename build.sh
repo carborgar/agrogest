@@ -8,7 +8,7 @@ python3.12 -m pip install -r requirements.txt
 echo "Installing Node.js dependencies and compiling SCSS..."
 npm install
 # Compilar SCSS a CSS con npx
-npx sass scss/custom-bootstrap.scss static/css/bootstrap.min.css --style=compressed
+npx sass scss/custom-bootstrap.scss static/css/custom-bootstrap.min.css --style=compressed
 
 echo "Migrating database..."
 python3.12 manage.py makemigrations --noinput
