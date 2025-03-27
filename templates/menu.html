@@ -1,107 +1,71 @@
-<!-- Navbar -->
-<nav class="navbar navbar-expand-lg sticky-top">
-    <div class="container">
-        <!-- Botón para offcanvas (visible solo en móvil) -->
-        <button aria-controls="menuOffcanvas" aria-expanded="false" aria-label="Toggle navigation"
-                class="navbar-toggler offcanvas-toggler" data-bs-target="#menuOffcanvas" data-bs-toggle="offcanvas"
-                type="button">
-            <i class="bi bi-list fs-2"></i>
-        </button>
-
-        <!-- Logo -->
-        <a class="navbar-brand mx-auto mx-lg-0" href="/">
-            <i class="bi bi-flower1 me-2"></i>AgroGest
-        </a>
-
-        <!-- Menú para escritorio -->
-        <div class="collapse navbar-collapse d-none d-lg-block" id="navbarNav">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item">
-                    <a class="nav-link" href="/">Inicio</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'task_list' %}">Tratamientos</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'task_calendar' %}">Calendario</a>
-                </li>
-                {% if user.is_authenticated %}
-                <li class="nav-item dropdown">
-                    <a aria-expanded="false" class="nav-link" data-bs-toggle="dropdown" href="#" role="button">
-                        <i class="fa fa-user"></i> {{ user.username }} <i class="fa-solid fa-chevron-down"></i>
-                    </a>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="#">Perfil</a></li>
-                        <li><a class="dropdown-item" href="#">Configuración</a></li>
-                        <li>
-                            <hr class="dropdown-divider">
-                        </li>
-                        <li>
-                            <form action="{% url 'logout' %}" method="post">
-                                {% csrf_token %}
-                                <button class="dropdown-item" type="submit">Cerrar sesión</button>
-                            </form>
-                        </li>
-                    </ul>
-                </li>
-                {% else %}
-                <li class="nav-item ms-lg-3">
-                    <a class="btn btn-primary rounded-pill px-4" href="#">Iniciar Sesión</a>
-                </li>
-                {% endif %}
-            </ul>
+<div class="desktop-sidebar d-none d-lg-flex">
+    <div class="sidebar-content">
+        <div class="sidebar-logo">
+            <a class="logo-link disabled" href="#">
+                <i class="bi bi-flower1"></i>
+            </a>
+            <span class="logo-text">AgroGest</span>
         </div>
-    </div>
-</nav>
 
-<!-- Offcanvas Menu -->
-<div aria-labelledby="menuOffcanvasLabel" class="offcanvas offcanvas-start" id="menuOffcanvas" tabindex="-1">
-    <div class="offcanvas-header">
-        <h5 class="offcanvas-title" id="menuOffcanvasLabel">
-            <i class="bi bi-flower1 me-2"></i>AgroGest
-        </h5>
-        <button aria-label="Close" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" type="button"></button>
-    </div>
-    <div class="offcanvas-body">
-        <ul class="nav navbar-nav flex-column">
-            <li class="nav-item">
-                <a class="nav-link" href="/">
-                    <i class="bi bi-house-door me-2"></i>Inicio
+        <ul class="sidebar-nav">
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="/">
+                    <i class="fa fa-house"></i>
+                    <span class="link-text">Inicio</span>
                 </a>
             </li>
-            <li class="nav-item">
-                <a class="nav-link" href="{% url 'task_list' %}">
-                    <i class="bi bi-droplet me-2"></i>Tratamientos
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="{% url 'task_list' %}">
+                    <i class="fa fa-droplet"></i>
+                    <span class="link-text">Tratamientos</span>
                 </a>
             </li>
-            <li class="nav-item">
-                <a class="nav-link" href="{% url 'task_calendar' %}"><i class="bi bi-calendar3 me-2"></i>Calendario</a>
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="{% url 'task_calendar' %}">
+                    <i class="fa fa-calendar-days"></i>
+                    <span class="link-text">Calendario</span>
+                </a>
             </li>
+
+            <li class="sidebar-item mt-auto toggle-btn-container">
+                <button class="toggle-sidebar-btn">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+            </li>
+
+        </ul>
+
+        <div class="sidebar-footer">
             {% if user.is_authenticated %}
-            <li class="nav-item dropdown">
-                <a aria-expanded="false" class="nav-link" data-bs-toggle="dropdown" href="#" role="button">
-                    <i class="fa fa-user"></i> {{ user.username }} <i class="fa-solid fa-chevron-down"></i>
+            <div class="user-menu dropdown">
+                <a class="dropdown-toggle" data-bs-toggle="dropdown" href="#">
+                    <div class="user-avatar">
+                        <i class="fa fa-user"></i>
+                    </div>
+                    <div class="user-info">
+                        <span class="user-name">{{ user.username }}</span>
+                        <i class="fa-solid fa-chevron-up"></i>
+                    </div>
                 </a>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="#">Perfil</a></li>
-                    <li><a class="dropdown-item" href="#">Configuración</a></li>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Perfil</a></li>
+                    <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Configuración</a></li>
                     <li>
                         <hr class="dropdown-divider">
                     </li>
                     <li>
                         <form action="{% url 'logout' %}" method="post">
                             {% csrf_token %}
-                            <button class="dropdown-item" type="submit">Cerrar sesión</button>
+                            <button class="dropdown-item" type="submit"><i class="bi bi-box-arrow-right me-2"></i>Cerrar
+                                sesión
+                            </button>
                         </form>
                     </li>
                 </ul>
-            </li>
+            </div>
             {% else %}
-            <li class="nav-item ms-lg-3">
-                <a class="btn btn-primary rounded-pill px-4" href="#">Iniciar Sesión</a>
-            </li>
+            <a class="btn btn-primary w-100" href="#"><i class="bi bi-box-arrow-in-right me-2"></i>Iniciar Sesión</a>
             {% endif %}
-        </ul>
-
+        </div>
     </div>
 </div>

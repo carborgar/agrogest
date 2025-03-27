@@ -16,14 +16,16 @@
 
     <link href="{% static 'css/styles.css' %}" rel="stylesheet">
     <link href="{% static 'css/calendar.css' %}" rel="stylesheet">
+    <link href="{% static 'css/menu.css' %}" rel="stylesheet">
 
     {% block extra_head %} {% endblock %}
 </head>
 <body>
-<div class="wrapper">
-    {% include "menu.html" %}
 
-    <div class="container py-4 content">
+{% include "menu.html" %}
+
+<div class="main-content wrapper">
+    <div class="container-fluid py-4 content">
         <section id="messages">
             {% bootstrap_messages %}
         </section>
@@ -39,8 +41,10 @@
     </div>
 
     {% include "footer.html" %}
-
 </div>
+
+
+<script src="{% static 'js/menu.js' %}"></script>
 
 {% bootstrap_javascript %}
 <script crossorigin="anonymous"

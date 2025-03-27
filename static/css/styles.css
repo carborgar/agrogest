@@ -8,6 +8,7 @@ html, body {
 }
 .content {
     flex: 1;
+    padding: 0 1.25rem;
 }
 .navbar {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.07);

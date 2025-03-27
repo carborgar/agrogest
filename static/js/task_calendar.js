@@ -108,4 +108,11 @@ document.addEventListener('DOMContentLoaded', function () {
     window.addEventListener('resize', () => {
         if (window.innerWidth >= 768) filterCollapse.classList.add('show');
     });
+
+    document.addEventListener('sidebar-toggled', () => {
+        setTimeout(() => {
+            calendar.updateSize();
+        }, 300);
+    });
+
 });
