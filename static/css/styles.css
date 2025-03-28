@@ -161,10 +161,6 @@ footer {
     transition: transform 0.3s ease;
 }
 
-[aria-expanded="true"] .filter-icon {
-    transform: rotate(180deg);
-}
-
 /* Efecto hover para el botón */
 .btn-link:hover {
     background-color: rgba(13, 110, 253, 0.05);

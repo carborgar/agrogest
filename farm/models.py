@@ -13,17 +13,6 @@ class Field(models.Model):
     def __str__(self):
         return self.name
 
-    # def field_task_status(self):
-    #     # Devuelve el estado de las tareas de este campo
-    #     pending = self.pending_tasks_count()
-    #
-    #     if pending > 0:
-    #         return 'Tratamientos pendientes'
-    #     elif completed > 0:
-    #         return 'Al día'
-    #     else:
-    #         return 'empty'
-
     def pending_tasks_count(self):
         # Cuenta las tareas pendientes para este campo
         objs = Task.objects.filter(field=self, finish_date__isnull=True, date__gte=datetime.now().date())
@@ -185,21 +174,6 @@ class TaskProduct(models.Model):
         # Calculamos la dosis total antes de guardar
         self.calculate_total_dose()
         super().save(*args, **kwargs)
-
-
-# class TaskProduct(models.Model):
-#     task = models.ForeignKey("Task", on_delete=models.CASCADE)
-#     product = models.ForeignKey("Product", on_delete=models.CASCADE)
-#     dose = models.FloatField()
-#     dose_type = models.CharField(max_length=20, choices=Product.DOSE_TYPE_CHOICES)
-#     total_dose = models.FloatField()
-#     total_dose_unit = models.CharField(max_length=10, choices=[('L', 'Litros'), ('kg', 'Kilogramos')])
-#
-#     class Meta:
-#         unique_together = ('task', 'product')  # Evita duplicados
-#
-#     def __str__(self):
-#         return f"{self.product.name} en {self.task} - {self.dose}"
 
 
 class Harvest(models.Model):
