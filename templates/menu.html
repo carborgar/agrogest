@@ -38,14 +38,13 @@
 
         <div class="sidebar-footer">
             {% if user.is_authenticated %}
-            <div class="user-menu dropdown">
+            <div class="user-menu dropup">
                 <a class="dropdown-toggle" data-bs-toggle="dropdown" href="#">
                     <div class="user-avatar">
                         <i class="fa fa-user"></i>
                     </div>
                     <div class="user-info">
                         <span class="user-name">{{ user.username }}</span>
-                        <i class="fa-solid fa-chevron-up"></i>
                     </div>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end">
@@ -65,7 +64,7 @@
                 </ul>
             </div>
             {% else %}
-            <a class="btn btn-primary w-100" href="#"><i class="bi bi-box-arrow-in-right me-2"></i>Iniciar Sesión</a>
+            <!--<a class="btn btn-light w-100" href="#"><i class="bi bi-box-arrow-in-right me-2"></i>Iniciar Sesión</a>-->
             {% endif %}
         </div>
     </div>

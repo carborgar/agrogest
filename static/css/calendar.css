@@ -7,20 +7,23 @@
 }
 
 .calendar-container {
-    box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
     border-radius: 0.5rem;
     padding: 1.5rem;
     background-color: #fff;
 }
+
 .task-detail {
     opacity: 0;
     transform: translateY(20px);
     transition: all 0.3s ease-out;
 }
+
 .task-detail.show {
     opacity: 1;
     transform: translateY(0);
 }
+
 .calendar-legend {
     display: flex;
     flex-wrap: wrap;
@@ -44,8 +47,9 @@
 
 @media (max-width: 768px) {
     .fc-toolbar.fc-header-toolbar {
-        flex-direction:column;
+        flex-direction: column;
     }
+
     .fc-toolbar {
         flex-direction: column;
         gap: 0.75rem;
@@ -55,8 +59,8 @@
         width: 100%;
         justify-content: center;
         display: table-row;
-        text-align:center;
-        padding:5px 0;
+        text-align: center;
+        padding: 5px 0;
     }
 }
 
