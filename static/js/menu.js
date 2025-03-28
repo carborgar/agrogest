@@ -22,43 +22,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     });
 
-    // Mobile Bottom Dock Interaction
-    const dockItems = document.querySelectorAll('.dock-item');
-    dockItems.forEach(item => {
-        item.addEventListener('click', function() {
-            dockItems.forEach(i => i.classList.remove('active'));
-            this.classList.add('active');
-        });
-    });
-
-    // Mobile Offcanvas with Page Slide Effect
-    const mobileMenuTrigger = document.createElement('button');
-    mobileMenuTrigger.innerHTML = '<i class="bi bi-list"></i>';
-    mobileMenuTrigger.classList.add('mobile-menu-trigger');
-    document.body.insertBefore(mobileMenuTrigger, document.body.firstChild);
-
-    const mobileMenu = document.getElementById('mobileMenu');
-
-    mobileMenuTrigger.addEventListener('click', function() {
-        mobileMenu.classList.add('show');
-        mainContent.classList.add('slide-right');
-    });
-
-    mobileMenu.querySelector('.btn-close').addEventListener('click', function() {
-        mobileMenu.classList.remove('show');
-        mainContent.classList.remove('slide-right');
-    });
-
-    // Close mobile menu when clicking outside
-    document.addEventListener('click', function(e) {
-        if (mobileMenu.classList.contains('show') &&
-            !mobileMenu.contains(e.target) &&
-            e.target !== mobileMenuTrigger) {
-            mobileMenu.classList.remove('show');
-            mainContent.classList.remove('slide-right');
-        }
-    });
-
     // Set initial content width based on sidebar state
     if (window.innerWidth >= 992) {
         if (desktopSidebar.classList.contains('compact')) {
@@ -84,6 +47,23 @@ document.addEventListener('DOMContentLoaded', function() {
             mainContent.style.marginLeft = '0';
             mainContent.style.width = '100%';
         }
+    });
+
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const fullMenuToggle = document.getElementById('fullMenuToggle');
+    const fullMenu = document.getElementById('fullMenu');
+    const fullMenuClose = document.getElementById('fullMenuClose');
+
+    // Mostrar menú completo
+    fullMenuToggle.addEventListener('click', function() {
+        fullMenu.classList.add('show');
+    });
+
+    // Cerrar menú completo
+    fullMenuClose.addEventListener('click', function() {
+        fullMenu.classList.remove('show');
     });
 
 });

@@ -1,3 +1,4 @@
+<!-- Sidebar menu para escritorio -->
 <div class="desktop-sidebar d-none d-lg-flex">
     <div class="sidebar-content">
         <div class="sidebar-logo">
@@ -68,4 +69,50 @@
             {% endif %}
         </div>
     </div>
+</div>
+
+<!-- Botón flotante de menú -->
+<button class="floating-menu-btn" id="fullMenuToggle">
+    <i class="bi bi-grid-3x3-gap-fill fs-4"></i>
+</button>
+
+<!-- Menú Completo -->
+<div class="full-menu" id="fullMenu">
+    <div class="menu-grid container">
+        <div class="row g-4 mt-3">
+            <div class="col-4 text-center text-truncate">
+                <a class="text-decoration-none text-dark" href="/">
+                    <div class="p-3 bg-light rounded-3">
+                        <i class="fa fa-house fs-2"></i>
+                        <p class="mt-2">Inicio</p>
+                    </div>
+                </a>
+            </div>
+
+            <div class="col-4 text-center text-truncate">
+                <a class="text-decoration-none text-dark" href="{% url 'task_list' %}">
+                    <div class="p-3 bg-light rounded-3">
+                        <i class="fa fa-droplet fs-2"></i>
+                        <p class="mt-2">Tratamientos</p>
+                    </div>
+                </a>
+            </div>
+
+            <div class="col-4 text-center text-truncate">
+                <a class="text-decoration-none text-dark" href="{% url 'task_calendar' %}">
+                    <div class="p-3 bg-light rounded-3">
+                        <i class="fa fa-calendar-days fs-2"></i>
+                        <p class="mt-2">Calendario</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="full-menu-close-container">
+        <button class="bottom-close-btn" id="fullMenuClose">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+
 </div>
