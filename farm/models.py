@@ -36,6 +36,14 @@ class Machine(models.Model):
         return f"{self.name}"
 
 
+class ProductType(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.name
+
+
 class Product(models.Model):
     DOSE_TYPE_CHOICES = [
         ('kg_per_1000l', 'kg/1000L agua'),
@@ -46,8 +54,10 @@ class Product(models.Model):
     ]
     name = models.CharField(max_length=100)
     type = models.CharField(max_length=50, choices=[('fertilizer', 'Fertilizante'), ('pesticide', 'Fitosanitario')])
+    product_type = models.ForeignKey(ProductType, on_delete=models.CASCADE, null=True) #TODO poner non null cuando se migren los datos
     dose = models.FloatField()  # Dosis del producto
     dose_type = models.CharField(max_length=20, choices=DOSE_TYPE_CHOICES)
+    comments = models.TextField(blank=True)
 
     def __str__(self):
         return self.name
