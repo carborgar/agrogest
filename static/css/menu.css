@@ -551,3 +551,23 @@
         display: none;
     }
 }
+
+/* Sidebar expandido */
+html:not(.sidebar-collapsed) .desktop-sidebar {
+    width: 240px;
+}
+
+html:not(.sidebar-collapsed) #main-content {
+    margin-left: 240px;
+    width: calc(100% - 240px);
+}
+
+/* Sidebar contraído */
+html.sidebar-collapsed .desktop-sidebar {
+    width: 70px;
+}
+
+html.sidebar-collapsed .main-content {
+    margin-left: 70px;
+    width: calc(100% - 70px);
+}

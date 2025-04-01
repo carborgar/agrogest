@@ -1,5 +1,5 @@
 <!-- Sidebar menu para escritorio -->
-<div class="desktop-sidebar d-none d-lg-flex">
+<div class="desktop-sidebar d-none d-lg-flex {% if sidebar_collapsed %}compact{% endif %}">
     <div class="sidebar-content">
         <div class="sidebar-logo">
             <a class="logo-link disabled" href="#">
@@ -29,7 +29,7 @@
             </li>
 
             <li class="sidebar-item mt-auto toggle-btn-container">
-                <button class="toggle-sidebar-btn">
+                <button class="toggle-sidebar-btn" id="sidebar-collapse-btn">
                     <i class="fas fa-chevron-left"></i>
                 </button>
             </li>
@@ -39,7 +39,7 @@
         <div class="sidebar-footer">
             {% if user.is_authenticated %}
             <div class="user-menu dropup">
-                <a class="dropdown-toggle" data-bs-toggle="dropdown" href="#">
+                <a class="dropdown-toggle" data-bs-toggle="dropdown" href="#" >
                     <div class="user-avatar">
                         <i class="fa fa-user"></i>
                     </div>
