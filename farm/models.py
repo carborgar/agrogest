@@ -136,6 +136,11 @@ class Task(models.Model):
         }
         return type_map.get(self.type, 'secondary')  # 'secondary' como fallback
 
+    def get_water_per_ha(self):
+        if self.type == 'fertigation':
+            return 0
+        return self.water_per_ha
+
 
 class TaskProduct(models.Model):
     task = models.ForeignKey("Task", on_delete=models.CASCADE)

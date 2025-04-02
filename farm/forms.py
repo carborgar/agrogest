@@ -10,7 +10,8 @@ from .models import Task, TaskProduct
 class TaskForm(forms.ModelForm):
     water_per_ha = forms.FloatField(
         initial=1000,
-        help_text="Litros de agua por hectárea"
+        help_text="Litros de agua por hectárea",
+        required=False  # We'll handle requirement conditionally
     )
 
     date = forms.DateField(
@@ -21,6 +22,27 @@ class TaskForm(forms.ModelForm):
     class Meta:
         model = Task
         fields = ['name', 'type', 'date', 'field', 'machine', 'water_per_ha']
+
+    def clean(self):
+        cleaned_data = super().clean()
+        task_type = cleaned_data.get('type')
+        machine = cleaned_data.get('machine')
+        water_per_ha = cleaned_data.get('water_per_ha')
+
+        if task_type == 'spraying':
+            if not machine:
+                self.add_error('machine', 'Para tratamientos de pulverización, debe seleccionar una máquina')
+
+            if not water_per_ha:
+                self.add_error('water_per_ha', 'Para tratamientos de pulverización, debe indicar el volumen de caldo')
+
+        # Para fertirrigación, asegurar que máquina sea None y water_per_ha sea 0
+        if task_type == 'fertigation':
+            cleaned_data['machine'] = None
+            if water_per_ha is None:  # Solo establecer si es None para no sobreescribir valores existentes
+                cleaned_data['water_per_ha'] = 0
+
+        return cleaned_data
 
 
 class TaskProductForm(forms.ModelForm):

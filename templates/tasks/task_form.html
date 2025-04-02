@@ -49,14 +49,14 @@
                                     </div>
                                     <div class="form-text text-primary fw-semibold" id="fieldAreaInfo"></div>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-4 form-group">
                                     <div class="form-floating mb-3">
                                         {{ form.machine|add_class:"form-select" }}
                                         <label for="{{ form.machine.id_for_label }}">Maquinaria</label>
                                     </div>
                                     <div class="form-text text-primary fw-semibold" id="machineCapacityInfo"></div>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-4 form-group">
                                     <div class="form-floating mb-3">
                                         {{ form.water_per_ha|add_class:"form-control" }}
                                         <label for="{{ form.water_per_ha.id_for_label }}">Mojado</label>
@@ -335,6 +335,89 @@
         await loadFieldsData();
         await loadMachinesData();
         await loadProductsData();
+    });
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        // Get form elements
+        const taskTypeField = document.getElementById('id_type');
+        const machineField = document.getElementById('id_machine');
+        const waterPerHaField = document.getElementById('id_water_per_ha');
+        const machineFormGroup = machineField.closest('.form-group');
+        const waterFormGroup = waterPerHaField.closest('.form-group');
+
+        // Function to handle task type change
+        function handleTaskTypeChange() {
+            const selectedType = taskTypeField.value;
+
+            // Initially hide both fields if no type is selected
+            if (!selectedType) {
+                machineField.disabled = true;
+                machineFormGroup.classList.add('d-none');
+                waterFormGroup.classList.add('d-none');
+                return;
+            }
+
+            if (selectedType === 'spraying') {
+                // For spraying: Enable machine field and make it required
+                machineField.disabled = false;
+                machineField.required = true;
+                machineFormGroup.classList.remove('d-none');
+                machineFormGroup.querySelector('label').classList.add('required');
+
+                // Show water per ha field and make it required
+                waterFormGroup.classList.remove('d-none');
+                waterPerHaField.required = true;
+                waterFormGroup.querySelector('label').classList.add('required');
+            }
+            else if (selectedType === 'fertigation') {
+                // For fertigation: Disable and hide machine field
+                machineField.disabled = true;
+                machineField.required = false;
+                machineField.value = '';  // Clear any selected value
+                machineFormGroup.classList.add('d-none');
+
+                // Hide water per ha field
+                waterFormGroup.classList.add('d-none');
+                waterPerHaField.required = false;
+                waterPerHaField.value = '0';  // Set default value to prevent calculation errors
+            }
+        }
+
+        // Hide fields initially (before any selection is made)
+        machineFormGroup.classList.add('d-none');
+        waterFormGroup.classList.add('d-none');
+
+        // Initial call to set up form fields based on current selection
+        handleTaskTypeChange();
+
+        // Add event listener for task type changes
+        taskTypeField.addEventListener('change', handleTaskTypeChange);
+
+        // Add form submission validation
+        document.getElementById('taskForm').addEventListener('submit', function(event) {
+            const selectedType = taskTypeField.value;
+
+            if (!selectedType) {
+                event.preventDefault();
+                alert('Debe seleccionar un tipo de tratamiento');
+                return;
+            }
+
+            if (selectedType === 'spraying') {
+                // Validate machine is selected
+                if (!machineField.value) {
+                    event.preventDefault();
+                    alert('Para tratamientos de pulverización, debe seleccionar una máquina');
+                }
+
+                // Validate water per ha is filled
+                if (!waterPerHaField.value) {
+                    event.preventDefault();
+                    alert('Para tratamientos de pulverización, debe indicar el volumen de caldo (L/ha)');
+                }
+            }
+        });
+
     });
 
 </script>
