@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date as Datetime
 
 from django import forms
 from django.forms import BaseInlineFormSet
@@ -16,12 +16,18 @@ class TaskForm(forms.ModelForm):
 
     date = forms.DateField(
         widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-        initial=date.today().strftime('%Y-%m-%d')
+        initial=Datetime.today().strftime('%Y-%m-%d')
+    )
+
+    # must be in the past
+    finish_date = forms.DateField(
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        required=False
     )
 
     class Meta:
         model = Task
-        fields = ['name', 'type', 'date', 'field', 'machine', 'water_per_ha']
+        fields = ['name', 'type', 'date', 'field', 'machine', 'water_per_ha', 'finish_date']
 
     def clean(self):
         cleaned_data = super().clean()

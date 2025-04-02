@@ -4,8 +4,8 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-lg-10">
-        <div class="card shadow-sm border-0 rounded-lg mb-4">
+    <div class="col">
+        <div class="card shadow-sm border-0 rounded-lg">
             <div class="card-header bg-primary text-white py-3">
                 <h2 class="mb-0 fs-3">Nuevo tratamiento</h2>
             </div>
@@ -16,122 +16,169 @@
                 <form id="taskForm" method="post">
                     {% csrf_token %}
 
-                    <div class="card mb-4 border-0 shadow-sm">
-                        <div class="card-header bg-light py-3">
-                            <h3 class="m-0 fs-4 text-primary">Información General</h3>
+                    <!-- Indicador de progreso -->
+                    <div class="mb-4">
+                        <div class="progress" role="progressbar" style="height: 10px;">
+                            <div class="progress-bar bg-primary" id="progressBar" style="width: 50%"></div>
                         </div>
-                        <div class="card-body">
-                            <div class="row g-3">
-                                <div class="col-md-4">
-                                    <div class="form-floating mb-3">
-                                        {{ form.name|add_class:"form-control" }}
-                                        <label for="{{ form.name.id_for_label }}">Nombre</label>
+                        <div class="d-flex justify-content-between mt-2 small text-muted">
+                            <span>Paso 1: Información General</span>
+                            <span>Paso 2: Productos</span>
+                        </div>
+                    </div>
+
+                    <!-- Step 1: Información General -->
+                    <div class="step" id="step1">
+                        <div class="card mb-4 border-0 shadow-sm">
+                            <div class="card-header bg-light py-3">
+                                <h3 class="m-0 fs-4 text-primary">Información General</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="form-floating mb-3">
+                                            {{ form.name|add_class:"form-control" }}
+                                            <label for="{{ form.name.id_for_label }}">Nombre</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="form-floating mb-3">
+                                            {{ form.type|add_class:"form-select" }}
+                                            <label for="{{ form.type.id_for_label }}">Tipo</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="form-floating mb-3">
+                                            {{ form.date|add_class:"form-control" }}
+                                            <label for="{{ form.date.id_for_label }}">Fecha</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="form-floating mb-3">
+                                            {{ form.field|add_class:"form-select" }}
+                                            <label for="{{ form.field.id_for_label }}">Campo</label>
+                                        </div>
+                                        <div class="form-text text-primary fw-semibold" id="fieldAreaInfo"></div>
+                                    </div>
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="form-floating mb-3">
+                                            {{ form.finish_date|add_class:"form-control" }}
+                                            <label for="{{ form.finish_date.id_for_label }}">Fecha de
+                                                finalización</label>
+                                        </div>
+                                        <div class="form-text" id="completedDateInfo">Opcional. Si se establece, el
+                                            tratamiento se marcará como completado.
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <div class="form-floating mb-3">
-                                        {{ form.type|add_class:"form-select" }}
-                                        <label for="{{ form.type.id_for_label }}">Tipo</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-floating mb-3">
-                                        {{ form.date|add_class:"form-control" }}
-                                        <label for="{{ form.date.id_for_label }}">Fecha</label>
+
+                                <!-- Campos condicionales (aparecen según el tipo seleccionado) -->
+                                <div class="mt-3 d-none" id="conditionalFields">
+                                    <hr class="text-muted">
+                                    <div class="row g-3">
+                                        <div class="col-md-6 col-lg-4" id="machineFieldGroup">
+                                            <div class="form-floating mb-3">
+                                                {{ form.machine|add_class:"form-select" }}
+                                                <label for="{{ form.machine.id_for_label }}">Maquinaria</label>
+                                            </div>
+                                            <div class="form-text text-primary fw-semibold"
+                                                 id="machineCapacityInfo"></div>
+                                        </div>
+                                        <div class="col-md-6 col-lg-4" id="waterFieldGroup">
+                                            <div class="form-floating mb-3">
+                                                {{ form.water_per_ha|add_class:"form-control" }}
+                                                <label for="{{ form.water_per_ha.id_for_label }}">Mojado</label>
+                                            </div>
+                                            <div class="form-text">Cantidad de agua a aplicar por hectárea</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="row g-3">
-                                <div class="col-md-4">
-                                    <div class="form-floating mb-3">
-                                        {{ form.field|add_class:"form-select" }}
-                                        <label for="{{ form.field.id_for_label }}">Campo</label>
-                                    </div>
-                                    <div class="form-text text-primary fw-semibold" id="fieldAreaInfo"></div>
-                                </div>
-                                <div class="col-md-4 form-group">
-                                    <div class="form-floating mb-3">
-                                        {{ form.machine|add_class:"form-select" }}
-                                        <label for="{{ form.machine.id_for_label }}">Maquinaria</label>
-                                    </div>
-                                    <div class="form-text text-primary fw-semibold" id="machineCapacityInfo"></div>
-                                </div>
-                                <div class="col-md-4 form-group">
-                                    <div class="form-floating mb-3">
-                                        {{ form.water_per_ha|add_class:"form-control" }}
-                                        <label for="{{ form.water_per_ha.id_for_label }}">Mojado</label>
-                                    </div>
-                                    <div class="form-text">Cantidad de agua a aplicar por hectárea</div>
+                            <div class="card-footer bg-white py-3">
+                                <div class="d-flex justify-content-end">
+                                    <button class="btn btn-primary" id="nextToProducts" type="button">
+                                        <i class="bi bi-arrow-right me-2"></i>Continuar a Productos
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="card mb-4 border-0 shadow-sm">
-                        <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center">
-                            <h3 class="m-0 fs-4 text-primary">Productos</h3>
-                        </div>
-                        <div class="card-body">
-                            {{ products_formset.management_form }}
-
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle" id="productsTable">
-                                    <thead class="table-light">
-                                    <tr>
-                                        <th>Producto</th>
-                                        <th>Dosis por defecto</th>
-                                        <th>Dosis a aplicar</th>
-                                        <th>Dosis Total Estimada</th>
-                                        <th class="text-center">Eliminar</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    {% for form in products_formset %}
-                                    <tr class="product-form">
-                                        <td>
-                                            {{ form.id }}
-                                            {{ form.product|add_class:"form-select product-select" }}
-                                        </td>
-                                        <td>
-                                            <input class="form-control-plaintext fw-semibold" id="product-default-dose"
-                                                   readonly type="text">
-                                        </td>
-                                        <td>
-                                            <div class="input-group">
-                                                {{ form.dose|add_class:"form-control product-dose" }}
-                                            </div>
-                                        </td>
-                                        <td class="estimated-dose fw-bold text-primary">-</td>
-                                        <td class="text-center">
-                                            {% if form.instance.pk %}
-                                            <div class="form-check form-switch d-flex justify-content-center">
-                                                {{ form.DELETE|add_class:"form-check-input delete-checkbox" }}
-                                            </div>
-                                            {% else %}
-                                            <button class="btn btn-sm btn-outline-danger rounded-circle remove-row"
-                                                    type="button">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                    </tbody>
-                                </table>
+                    <!-- Step 2: Productos -->
+                    <div class="step d-none" id="step2">
+                        <div class="card mb-4 border-0 shadow-sm">
+                            <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center">
+                                <h3 class="m-0 fs-4 text-primary">Productos</h3>
                             </div>
-                            <button class="btn btn-outline-primary mt-3" id="addProduct" type="button">
-                                <i class="bi bi-plus-circle me-2"></i>Añadir Producto
-                            </button>
-                        </div>
-                    </div>
+                            <div class="card-body">
+                                {{ products_formset.management_form }}
 
-                    <div class="d-flex justify-content-end mt-4">
-                        <a class="btn btn-outline-secondary me-2" href="{% url 'task_list' %}">
-                            <i class="bi bi-x-circle me-2"></i>Cancelar
-                        </a>
-                        <button class="btn btn-primary" type="submit">
-                            <i class="bi bi-check-circle me-2"></i>Guardar Tarea
-                        </button>
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle" id="productsTable">
+                                        <thead class="table-light">
+                                        <tr>
+                                            <th>Producto</th>
+                                            <th>Dosis por defecto</th>
+                                            <th>Dosis a aplicar</th>
+                                            <th>Dosis Total Estimada</th>
+                                            <th class="text-center">Eliminar</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {% for form in products_formset %}
+                                        <tr class="product-form">
+                                            <td>
+                                                {{ form.id }}
+                                                {{ form.product|add_class:"form-select product-select" }}
+                                            </td>
+                                            <td>
+                                                <input class="form-control-plaintext fw-semibold"
+                                                       id="product-default-dose"
+                                                       readonly type="text">
+                                            </td>
+                                            <td>
+                                                <div class="input-group">
+                                                    {{ form.dose|add_class:"form-control product-dose" }}
+                                                </div>
+                                            </td>
+                                            <td class="estimated-dose fw-bold text-primary">-</td>
+                                            <td class="text-center">
+                                                {% if form.instance.pk %}
+                                                <div class="form-check form-switch d-flex justify-content-center">
+                                                    {{ form.DELETE|add_class:"form-check-input delete-checkbox" }}
+                                                </div>
+                                                {% else %}
+                                                <button class="btn btn-sm btn-outline-danger rounded-circle remove-row"
+                                                        type="button">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <button class="btn btn-outline-primary mt-3" id="addProduct" type="button">
+                                    <i class="bi bi-plus-circle me-2"></i>Añadir Producto
+                                </button>
+                            </div>
+                            <div class="card-footer bg-white py-3">
+                                <div class="d-flex justify-content-between">
+                                    <button class="btn btn-outline-secondary" id="backToInfo" type="button">
+                                        <i class="bi bi-arrow-left me-2"></i>Volver
+                                    </button>
+                                    <div>
+                                        <a class="btn btn-outline-secondary me-2" href="{% url 'task_list' %}">
+                                            <i class="bi bi-x-circle me-2"></i>Cancelar
+                                        </a>
+                                        <button class="btn btn-primary" type="submit">
+                                            <i class="bi bi-check-circle me-2"></i>Guardar Tarea
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -143,21 +190,36 @@
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', async () => {
+        // Variables globales
         let fields = {}, machines = {}, products = {};
         let formCount = {{ products_formset.total_form_count }};
         const maxForms = parseInt('{{ products_formset.max_num }}');
 
+        // Elementos del formulario
         const elements = {
             fieldSelect: document.getElementById('{{ form.field.id_for_label }}'),
+            taskTypeSelect: document.getElementById('{{ form.type.id_for_label }}'),
             machineSelect: document.getElementById('{{ form.machine.id_for_label }}'),
             waterPerHaInput: document.getElementById('{{ form.water_per_ha.id_for_label }}'),
+            completedDateInput: document.getElementById('{{ form.finish_date.id_for_label }}'),
             fieldInfo: document.getElementById('fieldAreaInfo'),
             machineInfo: document.getElementById('machineCapacityInfo'),
+            completedDateInfo: document.getElementById('completedDateInfo'),
             addProductBtn: document.getElementById('addProduct'),
             productsTable: document.getElementById('productsTable').querySelector('tbody'),
-            totalFormsInput: document.getElementById('id_taskproduct_set-TOTAL_FORMS')
+            totalFormsInput: document.getElementById('id_taskproduct_set-TOTAL_FORMS'),
+            conditionalFields: document.getElementById('conditionalFields'),
+            machineFieldGroup: document.getElementById('machineFieldGroup'),
+            waterFieldGroup: document.getElementById('waterFieldGroup'),
+            // Step elements
+            step1: document.getElementById('step1'),
+            step2: document.getElementById('step2'),
+            nextToProducts: document.getElementById('nextToProducts'),
+            backToInfo: document.getElementById('backToInfo'),
+            progressBar: document.getElementById('progressBar')
         };
 
+        // Funciones para cargar datos
         async function fetchData(url) {
             const response = await fetch(url);
             return response.json();
@@ -177,73 +239,100 @@
             products = Object.fromEntries((await fetchData('/api/products/')).map(product => [product.id, product]));
         }
 
+        // Funciones para actualizar información
         function updateFieldInfo() {
             const field = fields[elements.fieldSelect.value];
             elements.fieldInfo.textContent = field ? `Área: ${field.area} ha - Cultivo: ${field.crop}` : '';
             calculateTotalDoses();
+            checkStep1Completion();
         }
 
         function updateMachineInfo() {
             const machine = machines[elements.machineSelect.value];
             elements.machineInfo.textContent = machine ? `Capacidad: ${machine.capacity} litros` : '';
+
+            // Establecer valor por defecto de mojado a 850 cuando se selecciona una máquina
+            if (machine && (!elements.waterPerHaInput.value || elements.waterPerHaInput.value === '0')) {
+                elements.waterPerHaInput.value = '850';
+            }
+
             calculateTotalDoses();
+            checkStep1Completion();
         }
 
         function updateProductInfo(event) {
             const row = event.target.closest('.product-form');
             const product = products[event.target.value];
 
-            // Seleccionar todos los elementos con las clases 'product-dose' y 'dose-type-label' dentro de la fila
             const doseInputs = row.querySelectorAll('.product-dose');
-            const doseTypeLabels = row.querySelectorAll('.dose-type-label');
             const defaultDoseLabel = row.querySelector('#product-default-dose');
 
             if (product) {
-                // Iterar sobre todos los elementos 'product-dose' y actualizar sus valores
                 doseInputs.forEach(doseInput => {
                     doseInput.value = product.dose;
                     doseInput.dataset.defaultDose = product.dose;
                 });
 
-                // Iterar sobre todos los elementos 'dose-type-label' y actualizar su texto
-                doseTypeLabels.forEach(doseTypeLabel => {
-                    doseTypeLabel.textContent = product.dose_type_display;
-                });
-
                 defaultDoseLabel.value = product.dose + ' ' + product.dose_type_display;
-
             } else {
-                // Si no hay producto seleccionado, vaciar los valores
                 doseInputs.forEach(doseInput => {
                     doseInput.value = '';
                 });
-
-                doseTypeLabels.forEach(doseTypeLabel => {
-                    doseTypeLabel.textContent = '-';
-                });
-
                 defaultDoseLabel.value = '';
             }
 
             calculateTotalDoses();
         }
 
+        // Función para validar la fecha de finalización
+        function validateCompletedDate() {
+            const completedDate = elements.completedDateInput.value;
+            if (!completedDate) {
+                elements.completedDateInfo.textContent = 'Opcional. Si se establece, el tratamiento se marcará como completado.';
+                elements.completedDateInfo.classList.remove('text-danger');
+                return true;
+            }
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const selected = new Date(completedDate);
+            selected.setHours(0, 0, 0, 0);
+
+            if (selected > today) {
+                elements.completedDateInfo.textContent = 'La fecha de finalización no puede ser en el futuro.';
+                elements.completedDateInfo.classList.add('text-danger');
+                return false;
+            } else {
+                elements.completedDateInfo.textContent = 'El tratamiento se registrará como completado en esta fecha.';
+                elements.completedDateInfo.classList.add('text-success');
+                elements.completedDateInfo.classList.remove('text-danger');
+                return true;
+            }
+        }
+
+        // Función para calcular dosis totales
         function calculateTotalDoses() {
             const field = fields[elements.fieldSelect.value];
             const machine = machines[elements.machineSelect.value];
             const waterPerHa = parseFloat(elements.waterPerHaInput.value) || 0;
 
-            if (!field || !machine) return;
+            if (!field) return;
 
             document.querySelectorAll('.product-form').forEach(row => {
                 const doseInput = row.querySelector('.product-dose');
                 const estimatedDoseCell = row.querySelector('.estimated-dose');
                 const productInput = row.querySelector('.product-select');
 
+                const productId = productInput.value;
+                if (!productId || !products[productId]) {
+                    estimatedDoseCell.textContent = '-';
+                    return;
+                }
+
                 const dose = parseFloat(doseInput.value) || 0;
                 if (!dose) return (estimatedDoseCell.textContent = '-');
 
-                const doseType = products[productInput.value].dose_type;
+                const doseType = products[productId].dose_type;
                 const totalWater = field.area * waterPerHa;
                 const unit = doseType.includes('kg') ? 'kg' : 'L';
                 let totalDose = 0;
@@ -260,6 +349,7 @@
             });
         }
 
+        // Manejo de productos
         function addProductRow() {
             if (formCount >= maxForms) return alert('No se pueden añadir más productos');
 
@@ -302,9 +392,7 @@
 
             // Incrementar el contador de formularios
             elements.totalFormsInput.value = ++formCount;
-
         }
-
 
         function updateFormIndexes() {
             document.querySelectorAll('.product-form').forEach((row, index) => {
@@ -319,106 +407,165 @@
             elements.totalFormsInput.value = formCount = document.querySelectorAll('.product-form').length;
         }
 
-        elements.fieldSelect.addEventListener('change', updateFieldInfo);
-        elements.machineSelect.addEventListener('change', updateMachineInfo);
-        elements.waterPerHaInput.addEventListener('input', calculateTotalDoses);
-        elements.addProductBtn.addEventListener('click', addProductRow);
-
-        document.querySelectorAll('.remove-row').forEach(button => button.addEventListener('click', function () {
-            this.closest('.product-form').remove();
-            updateFormIndexes();
-        }));
-
-        document.querySelectorAll('.product-dose').forEach(el => el.addEventListener('input', calculateTotalDoses));
-        document.querySelectorAll('.product-select').forEach(select => select.addEventListener('change', updateProductInfo));
-
-        await loadFieldsData();
-        await loadMachinesData();
-        await loadProductsData();
-    });
-
-    document.addEventListener('DOMContentLoaded', async () => {
-        // Get form elements
-        const taskTypeField = document.getElementById('id_type');
-        const machineField = document.getElementById('id_machine');
-        const waterPerHaField = document.getElementById('id_water_per_ha');
-        const machineFormGroup = machineField.closest('.form-group');
-        const waterFormGroup = waterPerHaField.closest('.form-group');
-
-        // Function to handle task type change
-        function handleTaskTypeChange() {
-            const selectedType = taskTypeField.value;
-
-            // Initially hide both fields if no type is selected
-            if (!selectedType) {
-                machineField.disabled = true;
-                machineFormGroup.classList.add('d-none');
-                waterFormGroup.classList.add('d-none');
-                return;
-            }
-
-            if (selectedType === 'spraying') {
-                // For spraying: Enable machine field and make it required
-                machineField.disabled = false;
-                machineField.required = true;
-                machineFormGroup.classList.remove('d-none');
-                machineFormGroup.querySelector('label').classList.add('required');
-
-                // Show water per ha field and make it required
-                waterFormGroup.classList.remove('d-none');
-                waterPerHaField.required = true;
-                waterFormGroup.querySelector('label').classList.add('required');
-            }
-            else if (selectedType === 'fertigation') {
-                // For fertigation: Disable and hide machine field
-                machineField.disabled = true;
-                machineField.required = false;
-                machineField.value = '';  // Clear any selected value
-                machineFormGroup.classList.add('d-none');
-
-                // Hide water per ha field
-                waterFormGroup.classList.add('d-none');
-                waterPerHaField.required = false;
-                waterPerHaField.value = '0';  // Set default value to prevent calculation errors
+        // Funcionalidad Step Form
+        function showStep(stepNumber) {
+            if (stepNumber === 1) {
+                elements.step1.classList.remove('d-none');
+                elements.step2.classList.add('d-none');
+                elements.progressBar.style.width = '50%';
+            } else {
+                elements.step1.classList.add('d-none');
+                elements.step2.classList.remove('d-none');
+                elements.progressBar.style.width = '100%';
             }
         }
 
-        // Hide fields initially (before any selection is made)
-        machineFormGroup.classList.add('d-none');
-        waterFormGroup.classList.add('d-none');
+        function checkStep1Completion() {
+            const taskType = elements.taskTypeSelect.value;
+            const fieldSelected = elements.fieldSelect.value;
+            const machineSelected = elements.machineSelect.value;
+            const waterPerHaValue = elements.waterPerHaInput.value;
+            const completedDateValid = validateCompletedDate();
 
-        // Initial call to set up form fields based on current selection
-        handleTaskTypeChange();
+            const requiredFieldsFilled = fieldSelected !== '' && taskType !== '';
+            let conditionalFieldsValid = true;
 
-        // Add event listener for task type changes
-        taskTypeField.addEventListener('change', handleTaskTypeChange);
+            if (taskType === 'spraying') {
+                conditionalFieldsValid = machineSelected !== '' && waterPerHaValue !== '';
+            }
 
-        // Add form submission validation
-        document.getElementById('taskForm').addEventListener('submit', function(event) {
-            const selectedType = taskTypeField.value;
+            elements.nextToProducts.disabled = !(requiredFieldsFilled && conditionalFieldsValid && completedDateValid);
+        }
+
+        // Manejo de cambio en tipo de tratamiento
+        function handleTaskTypeChange() {
+            const selectedType = elements.taskTypeSelect.value;
+
+            // Mostrar/ocultar los campos condicionales
+            if (!selectedType) {
+                elements.conditionalFields.classList.add('d-none');
+                elements.machineSelect.disabled = true;
+                elements.waterPerHaInput.disabled = true;
+                return;
+            } else {
+                elements.conditionalFields.classList.remove('d-none');
+            }
+
+            if (selectedType === 'spraying') {
+                // Para pulverización: habilitar máquina y mojado
+                elements.machineFieldGroup.classList.remove('d-none');
+                elements.waterFieldGroup.classList.remove('d-none');
+                elements.machineSelect.disabled = false;
+                elements.machineSelect.required = true;
+                elements.waterPerHaInput.disabled = false;
+                elements.waterPerHaInput.required = true;
+            }
+            else if (selectedType === 'fertigation') {
+                // Para fertirrigación: ocultar máquina y mojado
+                elements.machineFieldGroup.classList.add('d-none');
+                elements.waterFieldGroup.classList.add('d-none');
+                elements.machineSelect.disabled = true;
+                elements.machineSelect.required = false;
+                elements.machineSelect.value = '';
+                elements.waterPerHaInput.value = '0';
+                elements.waterPerHaInput.required = false;
+            }
+
+            checkStep1Completion();
+        }
+
+        // Validación de formulario
+        function validateForm(event) {
+            const selectedType = elements.taskTypeSelect.value;
 
             if (!selectedType) {
                 event.preventDefault();
                 alert('Debe seleccionar un tipo de tratamiento');
-                return;
+                showStep(1);
+                return false;
             }
 
             if (selectedType === 'spraying') {
-                // Validate machine is selected
-                if (!machineField.value) {
+                // Validar máquina seleccionada
+                if (!elements.machineSelect.value) {
                     event.preventDefault();
                     alert('Para tratamientos de pulverización, debe seleccionar una máquina');
+                    showStep(1);
+                    return false;
                 }
 
-                // Validate water per ha is filled
-                if (!waterPerHaField.value) {
+                // Validar mojado
+                if (!elements.waterPerHaInput.value) {
                     event.preventDefault();
                     alert('Para tratamientos de pulverización, debe indicar el volumen de caldo (L/ha)');
+                    showStep(1);
+                    return false;
                 }
             }
-        });
 
+            // Validar que al menos hay un producto
+            const validProducts = Array.from(document.querySelectorAll('.product-form')).filter(row => {
+                const productSelect = row.querySelector('.product-select');
+                const dose = row.querySelector('.product-dose');
+                return productSelect.value && dose.value;
+            });
+
+            if (validProducts.length === 0) {
+                event.preventDefault();
+                alert('Debe agregar al menos un producto a la tarea');
+                showStep(2);
+                return false;
+            }
+
+            // Validar fecha de finalización
+            if (elements.completedDateInput.value) {
+                if (!validateCompletedDate()) {
+                    event.preventDefault();
+                    alert('La fecha de finalización no puede ser en el futuro');
+                    showStep(1);
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        // Añadir event listeners
+        elements.fieldSelect.addEventListener('change', updateFieldInfo);
+        elements.taskTypeSelect.addEventListener('change', handleTaskTypeChange);
+        elements.machineSelect.addEventListener('change', updateMachineInfo);
+        elements.waterPerHaInput.addEventListener('input', calculateTotalDoses);
+        elements.waterPerHaInput.addEventListener('input', checkStep1Completion);
+        elements.machineSelect.addEventListener('change', checkStep1Completion);
+        elements.fieldSelect.addEventListener('change', checkStep1Completion);
+        elements.taskTypeSelect.addEventListener('change', checkStep1Completion);
+        elements.completedDateInput.addEventListener('change', validateCompletedDate);
+        elements.completedDateInput.addEventListener('change', checkStep1Completion);
+        elements.addProductBtn.addEventListener('click', addProductRow);
+
+        // Event listeners para cambio de paso
+        elements.nextToProducts.addEventListener('click', () => showStep(2));
+        elements.backToInfo.addEventListener('click', () => showStep(1));
+
+        // Eventos para eliminar productos
+        document.querySelectorAll('.remove-row').forEach(button => button.addEventListener('click', function() {
+            this.closest('.product-form').remove();
+            updateFormIndexes();
+        }));
+
+        // Eventos para calcular dosis
+        document.querySelectorAll('.product-dose').forEach(el => el.addEventListener('input', calculateTotalDoses));
+        document.querySelectorAll('.product-select').forEach(select => select.addEventListener('change', updateProductInfo));
+
+        // Validación en envío del formulario
+        document.getElementById('taskForm').addEventListener('submit', validateForm);
+
+        // Inicialización
+        await loadFieldsData();
+        await loadMachinesData();
+        await loadProductsData();
+        handleTaskTypeChange();
+        checkStep1Completion();
     });
-
 </script>
 {% endblock %}
