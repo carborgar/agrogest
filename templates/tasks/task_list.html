@@ -331,6 +331,37 @@
                 </div>
             </div>
 
+            <!-- Filtro por tipo de producto -->
+            <div class="filter-panel">
+                <div class="filter-header">
+                    <button class="btn filter-btn {% if not selected_product_types %}collapsed{% endif %}" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#tipoProductoFilter"
+                            aria-expanded="{% if selected_product_types %}true{% else %}false{% endif %}">
+                        <div class="d-flex align-items-center">
+                                <span class="filter-icon">
+                                    <i class="fa fa-box"></i>
+                                </span>
+                            <span>Tipos de producto</span>
+                        </div>
+                        <i class="fa fa-chevron-down toggle-icon"></i>
+                    </button>
+                </div>
+                <div class="collapse {% if selected_product_types %}show{% endif %}" id="tipoProductoFilter">
+                    <div class="filter-body">
+                        {% for product_type in product_types %}
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" value="{{ product_type.id }}" name="product_types"
+                                   id="tipo-producto-{{ product_type.id }}"
+                                   {% if product_type.id|stringformat:"s" in selected_product_types %}checked{% endif %}>
+                            <label class="form-check-label" for="tipo-producto-{{ product_type.id }}">
+                                {{ product_type.name }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+
             <!-- Filtro por producto -->
             <div class="filter-panel">
                 <div class="filter-header">

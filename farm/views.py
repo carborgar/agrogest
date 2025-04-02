@@ -7,7 +7,7 @@ from django.views.generic import ListView, DetailView
 from django.views.generic.edit import CreateView, UpdateView
 
 from .forms import TaskForm, TaskProductFormSet
-from .models import Field
+from .models import Field, ProductType
 from .models import Product
 from .models import Task
 
@@ -65,6 +65,7 @@ class TaskListView(ListView):
         product_ids = self.request.GET.getlist('products')
         date_from = self.request.GET.get('date_from')
         date_to = self.request.GET.get('date_to')
+        product_type_filters = self.request.GET.getlist('product_type')
 
         if field_ids:
             queryset = queryset.filter(field__id__in=field_ids)
@@ -73,9 +74,11 @@ class TaskListView(ListView):
         if product_ids:
             queryset = queryset.filter(products__id__in=product_ids)
         if date_from:
-            queryset = queryset.filter(date__gte=date_from)  # Filtra por fecha desde
+            queryset = queryset.filter(date__gte=date_from)
         if date_to:
             queryset = queryset.filter(date__lte=date_to)
+        if product_type_filters:
+            queryset = queryset.filter(products__product_type__in=product_type_filters)
 
         # Filtrado por múltiples estados
         if status_filters:
@@ -85,6 +88,7 @@ class TaskListView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+
         context['fields'] = Field.objects.all()
         context['products'] = Product.objects.all()
         context['type_choices'] = Task.TYPE_CHOICES
@@ -95,6 +99,9 @@ class TaskListView(ListView):
         context['selected_products'] = self.request.GET.getlist('products')
         context['date_from'] = self.request.GET.get('date_from')
         context['date_to'] = self.request.GET.get('date_to')
+        context['product_types'] = ProductType.objects.all()
+        context['selected_product_types'] = self.request.GET.getlist('product_types')
+
         return context
 
 
