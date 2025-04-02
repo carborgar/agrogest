@@ -23,7 +23,7 @@ class Field(models.Model):
         return Task.objects.filter(field=self, finish_date__isnull=False).count()
 
     def delayed_tasks_count(self):
-        # Cuenta las tareas retrasadas para este campo
+        # Cuenta las tareas atrasadas para este campo
         return Task.objects.filter(field=self, finish_date__isnull=True, date__lt=datetime.now().date()).count()
 
 
@@ -78,7 +78,7 @@ class Task(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pendiente'),
         ('completed', 'Completada'),
-        ('delayed', 'Retrasada'),
+        ('delayed', 'Atrasada'),
     ]
 
     name = models.CharField(max_length=100)
@@ -118,7 +118,7 @@ class Task(models.Model):
         status_map = {
             'pending': 'Pendiente',
             'completed': 'Completada',
-            'delayed': 'Retrasada',
+            'delayed': 'Atrasada',
         }
         return status_map.get(self.status(), 'Desconocido')
 
