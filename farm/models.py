@@ -54,7 +54,8 @@ class Product(models.Model):
     ]
     name = models.CharField(max_length=100)
     type = models.CharField(max_length=50, choices=[('fertilizer', 'Fertilizante'), ('pesticide', 'Fitosanitario')])
-    product_type = models.ForeignKey(ProductType, on_delete=models.CASCADE, null=True) #TODO poner non null cuando se migren los datos
+    product_type = models.ForeignKey(ProductType, on_delete=models.CASCADE,
+                                     null=True)  # TODO poner non null cuando se migren los datos
     dose = models.FloatField()  # Dosis del producto
     dose_type = models.CharField(max_length=20, choices=DOSE_TYPE_CHOICES)
     comments = models.TextField(blank=True)
@@ -71,8 +72,6 @@ class Task(models.Model):
     TYPE_CHOICES = [
         ('spraying', 'Pulverización'),
         ('fertigation', 'Fertirrigación'),
-        ('pest_control', 'Fumigación'),
-        ('nutrition', 'Nutrición'),
     ]
 
     STATUS_CHOICES = [
@@ -134,8 +133,6 @@ class Task(models.Model):
         type_map = {
             'spraying': 'spray-can-sparkles',
             'fertigation': 'droplet',
-            'pest_control': 'bug',
-            'nutrition': 'leaf',
         }
         return type_map.get(self.type, 'secondary')  # 'secondary' como fallback
 

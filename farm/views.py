@@ -40,8 +40,6 @@ class FieldListView(ListView):
         type_map = {  # TODO: esto habría que hacerlo con los campos del modelo, o quitar el icono y listo
             'spraying': 'spray-can-sparkles',
             'fertigation': 'droplet',
-            'pest_control': 'bug',
-            'nutrition': 'leaf',
         }
 
         # context['fields']: fields
@@ -179,8 +177,6 @@ def calendar_view(request):
     type_map = {  # TODO: esto habría que hacerlo con los campos del modelo, o quitar el icono y listo
         'spraying': 'spray-can-sparkles',
         'fertigation': 'droplet',
-        'pest_control': 'bug',
-        'nutrition': 'leaf',
     }
 
     context = {
