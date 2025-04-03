@@ -1,4 +1,5 @@
 from datetime import date as Datetime
+from decimal import Decimal, ROUND_UP
 
 from django import forms
 from django.forms import BaseInlineFormSet
@@ -54,6 +55,16 @@ class TaskProductForm(forms.ModelForm):
     class Meta:
         model = TaskProduct
         fields = ['product', 'dose']
+        widgets = {
+            'dose': forms.NumberInput(attrs={'step': '0.01'}),
+        }
+
+    def clean_dose(self):
+        dose = self.cleaned_data.get('dose')
+        if dose is not None:
+            # Redondear a 2 decimales para evitar valores no permitidos
+            dose = dose.quantize(Decimal('0.01'), rounding=ROUND_UP)
+        return dose
 
 
 class BaseTaskProductFormSet(BaseInlineFormSet):

@@ -186,9 +186,9 @@ class Task(models.Model):
 class TaskProduct(models.Model):
     task = models.ForeignKey("Task", on_delete=models.CASCADE)
     product = models.ForeignKey("Product", on_delete=models.CASCADE)
-    dose = models.FloatField()
+    dose = models.DecimalField(max_digits=10, decimal_places=2)
     dose_type = models.CharField(max_length=20)
-    total_dose = models.FloatField()
+    total_dose = models.DecimalField(max_digits=10, decimal_places=2)
     total_dose_unit = models.CharField(max_length=10, choices=[('L', 'Litros'), ('kg', 'Kilogramos')])
 
     class Meta:

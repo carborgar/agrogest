@@ -417,6 +417,26 @@
             });
         }
 
+        function limitDecimalPlaces(event) {
+            const input = event.target;
+            const value = input.value;
+
+            // Si contiene un punto decimal
+            if (value.includes('.')) {
+                const parts = value.split('.');
+                // Si hay más de dos decimales después del punto
+                if (parts[1] && parts[1].length > 2) {
+                    // Truncar a dos decimales
+                    input.value = `${parts[0]}.${parts[1].substring(0, 2)}`;
+                }
+            }
+        }
+
+        // Aplicar la restricción a los campos de dosis existentes
+        document.querySelectorAll('.product-dose').forEach(input => {
+            input.addEventListener('input', limitDecimalPlaces);
+        });
+
         // Manejo de productos
         function addProductRow() {
             if (formCount >= maxForms) return alert('No se pueden añadir más productos');
@@ -470,6 +490,12 @@
 
             // Incrementar el contador de formularios
             elements.totalFormsInput.value = ++formCount;
+
+            // Agregar evento para limitar decimales
+            const doseInput = newRow.querySelector('.product-dose');
+            doseInput.addEventListener('input', limitDecimalPlaces);
+            doseInput.addEventListener('input', calculateTotalDoses);
+
         }
 
         function updateFormIndexes() {
