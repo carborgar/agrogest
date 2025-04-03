@@ -49,6 +49,8 @@ class Product(models.Model):
     SPRAYING_DOSE_TYPE_CHOICES = [
         ('l_per_1000l', 'L/1000L agua'),
         ('kg_per_1000l', 'kg/1000L agua'),
+        ('kg_per_ha', 'kg/ha'),
+        ('l_per_ha', 'L/ha'),
         ('pct', '%'),
     ]
 
