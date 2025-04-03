@@ -130,7 +130,7 @@ class Task(models.Model):
     field = models.ForeignKey('farm.Field', on_delete=models.CASCADE)
     machine = models.ForeignKey('farm.Machine', on_delete=models.SET_NULL, null=True, blank=True)
     products = models.ManyToManyField('farm.Product', through='TaskProduct')
-    water_per_ha = models.FloatField(help_text="Litros de agua por hectárea", null=True, blank=True)
+    water_per_ha = models.IntegerField(help_text="Litros de agua por hectárea", null=True, blank=True)
 
     def __str__(self):
         return f"{self.name} - {self.date}"
