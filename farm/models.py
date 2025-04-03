@@ -45,27 +45,68 @@ class ProductType(models.Model):
 
 
 class Product(models.Model):
-    DOSE_TYPE_CHOICES = [
-        ('kg_per_1000l', 'kg/1000L agua'),
+    # Separate choices for each application method
+    SPRAYING_DOSE_TYPE_CHOICES = [
         ('l_per_1000l', 'L/1000L agua'),
-        ('kg_per_ha', 'kg/ha'),
-        ('l_per_ha', 'L/ha'),
+        ('kg_per_1000l', 'kg/1000L agua'),
         ('pct', '%'),
     ]
+
+    FERTIGATION_DOSE_TYPE_CHOICES = [
+        ('l_per_ha', 'L/ha'),
+        ('kg_per_ha', 'kg/ha'),
+    ]
+
+    ALL_DOSE_TYPE_CHOICES = SPRAYING_DOSE_TYPE_CHOICES + FERTIGATION_DOSE_TYPE_CHOICES
+
     name = models.CharField(max_length=100)
     type = models.CharField(max_length=50, choices=[('fertilizer', 'Fertilizante'), ('pesticide', 'Fitosanitario')])
-    product_type = models.ForeignKey(ProductType, on_delete=models.CASCADE,
-                                     null=True)  # TODO poner non null cuando se migren los datos
-    dose = models.FloatField()  # Dosis del producto
-    dose_type = models.CharField(max_length=20, choices=DOSE_TYPE_CHOICES)
+    product_type = models.ForeignKey(ProductType, on_delete=models.CASCADE, null=True)
+
+    # Spraying-specific dose fields
+    spraying_dose = models.FloatField(null=True, blank=True)
+    spraying_dose_type = models.CharField(max_length=20, choices=SPRAYING_DOSE_TYPE_CHOICES, null=True, blank=True)
+
+    # Fertigation-specific dose fields
+    fertigation_dose = models.FloatField(null=True, blank=True)
+    fertigation_dose_type = models.CharField(max_length=20, choices=FERTIGATION_DOSE_TYPE_CHOICES, null=True,
+                                             blank=True)
+
     comments = models.TextField(blank=True)
+
+    def supports_application_type(self, application_type):
+        if application_type == 'spraying':
+            return self.supports_spraying
+        elif application_type == 'fertigation':
+            return self.supports_fertigation
+
+    @property
+    def supports_spraying(self):
+        return self.spraying_dose is not None and self.spraying_dose_type is not None
+
+    @property
+    def supports_fertigation(self):
+        return self.fertigation_dose is not None and self.fertigation_dose_type is not None
 
     def __str__(self):
         return self.name
 
-    def dose_type_name(self):
-        # Devuelve el valor legible para el template, usando el diccionario de opciones
-        return dict(self.DOSE_TYPE_CHOICES).get(self.dose_type, 'Tipo de dosis desconocido')
+    def get_dose_type_name(self, application_type):
+        dose_type = self.get_dose_type(application_type)
+        return dict(self.ALL_DOSE_TYPE_CHOICES).get(dose_type)
+
+    def get_dose_type(self, application_type):
+        if application_type == 'spraying':
+            return self.spraying_dose_type
+        elif application_type == 'fertigation':
+            return self.fertigation_dose_type
+
+    def get_dose(self, application_type):
+        if application_type == 'spraying':
+            return self.spraying_dose
+        elif application_type == 'fertigation':
+            return self.fertigation_dose
+        return None
 
 
 class Task(models.Model):
@@ -146,7 +187,7 @@ class TaskProduct(models.Model):
     task = models.ForeignKey("Task", on_delete=models.CASCADE)
     product = models.ForeignKey("Product", on_delete=models.CASCADE)
     dose = models.FloatField()
-    dose_type = models.CharField(max_length=20, choices=Product.DOSE_TYPE_CHOICES)
+    dose_type = models.CharField(max_length=20)
     total_dose = models.FloatField()
     total_dose_unit = models.CharField(max_length=10, choices=[('L', 'Litros'), ('kg', 'Kilogramos')])
 
@@ -158,29 +199,45 @@ class TaskProduct(models.Model):
 
     def calculate_total_dose(self):
         """Calcula la dosis total basada en el tipo de dosis y los parámetros de la tarea"""
-        # Primero, determinamos la unidad de medida
-        self.dose_type = self.product.dose_type
+        # Get the appropriate dose and dose type for the task's application method
+        task_type = self.task.type
+        dose_to_use, dose_type_to_use = self.product.get_dose_for_application(task_type)
+
+        # Si no hay una dosis específica para este tipo o si se especificó una dosis personalizada
+        if dose_to_use is None or self.dose is not None:
+            # Use the entered dose if available
+            dose_to_use = self.dose if self.dose is not None else None
+            dose_type_to_use = self.dose_type if self.dose_type else None
+
+            # Si no tenemos una dosis válida, no podemos continuar
+            if dose_to_use is None or dose_type_to_use is None:
+                raise ValueError(f"No se pudo determinar la dosis para {self.product.name} en tarea tipo {task_type}")
+
+        # Almacenar el tipo de dosis apropiado
+        self.dose_type = dose_type_to_use
+
+        # Determinar la unidad de medida
         if self.dose_type in ['kg_per_1000l', 'kg_per_ha']:
             self.total_dose_unit = 'kg'
         else:
             self.total_dose_unit = 'L'
 
-        # Obtenemos los datos necesarios
+        # Obtener datos necesarios
         field_area = self.task.field.area
         water_per_ha = self.task.water_per_ha
 
-        # Calculamos la dosis total según el tipo
+        # Calcular la dosis total según el tipo de dosis
         if self.dose_type in ['kg_per_1000l', 'l_per_1000l']:
-            total_water = water_per_ha * field_area  # Litros totales
-            self.total_dose = (self.dose * total_water) / 1000
+            total_water = water_per_ha * field_area  # Total litros
+            self.total_dose = (dose_to_use * total_water) / 1000
 
         elif self.dose_type in ['kg_per_ha', 'l_per_ha']:
-            self.total_dose = self.dose * field_area
+            self.total_dose = dose_to_use * field_area
 
         elif self.dose_type == 'pct':
             total_water = water_per_ha * field_area
-            self.total_dose = (self.dose / 100) * total_water
-            self.total_dose_unit = 'L'  # Siempre es litros para porcentaje
+            self.total_dose = (dose_to_use / 100) * total_water
+            self.total_dose_unit = 'L'  # Siempre litros para porcentaje
 
     def save(self, *args, **kwargs):
         # Calculamos la dosis total antes de guardar

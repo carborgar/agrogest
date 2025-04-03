@@ -29,7 +29,7 @@
 
                     <!-- Step 1: Información General -->
                     <div class="step" id="step1">
-                        <div class="card mb-4 border-0 shadow-sm">
+                        <div class="card border-0 shadow-sm">
                             <div class="card-header bg-light py-3">
                                 <h3 class="m-0 fs-4 text-primary">Información General</h3>
                             </div>
@@ -106,7 +106,7 @@
 
                     <!-- Step 2: Productos -->
                     <div class="step d-none" id="step2">
-                        <div class="card mb-4 border-0 shadow-sm">
+                        <div class="card border-0 shadow-sm">
                             <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center">
                                 <h3 class="m-0 fs-4 text-primary">Productos</h3>
                             </div>
@@ -235,8 +235,80 @@
             updateMachineInfo();
         }
 
-        async function loadProductsData() {
-            products = Object.fromEntries((await fetchData('/api/products/')).map(product => [product.id, product]));
+        async function loadProductsData(taskType = null) {
+            if (!taskType) {
+                products = {};
+                return;
+            }
+
+            products = Object.fromEntries((await fetchData(`/api/products/${taskType}`)).map(product => [product.id, product]));
+
+            updateProductsTableOptions();
+        }
+
+        function populateProductSelects() {
+            document.querySelectorAll('.product-select').forEach(productSelect => {
+                const currentValue = productSelect.value;
+                productSelect.innerHTML = '<option value="">Seleccione un producto</option>';
+                Object.values(products).forEach(product => {
+                    const option = document.createElement('option');
+                    option.value = product.id;
+                    option.textContent = product.name;
+                    if (product.id.toString() === currentValue) option.selected = true;
+                    productSelect.appendChild(option);
+                });
+            });
+        }
+
+        function resetProductsTable() {
+            document.querySelectorAll('.product-form:not(:first-child)').forEach(row => row.remove());
+            const firstRow = document.querySelector('.product-form');
+            if (firstRow) {
+                firstRow.querySelector('.product-dose').value = '';
+                firstRow.querySelector('.estimated-dose').textContent = '-';
+                firstRow.querySelector('#product-default-dose').value = '';
+            }
+            formCount = 1;
+            elements.totalFormsInput.value = formCount;
+            populateProductSelects();
+        }
+
+        function updateProductsTableOptions() {
+            // Actualizar todos los selects de productos en la tabla
+            document.querySelectorAll('.product-select').forEach(productSelect => {
+                const currentValue = productSelect.value;
+
+                // Guardar la opción seleccionada actualmente
+                const selectedOption = productSelect.options[productSelect.selectedIndex];
+                const selectedText = selectedOption ? selectedOption.text : '';
+
+                // Limpiar y reconstruir las opciones
+                productSelect.innerHTML = '<option value="">Seleccione un producto</option>';
+
+                // Añadir las opciones según los productos filtrados
+                Object.values(products).forEach(product => {
+                    const option = document.createElement('option');
+                    option.value = product.id;
+                    option.textContent = product.name;
+
+                    // Si este era el producto seleccionado anteriormente, mantenerlo seleccionado
+                    if (product.id.toString() === currentValue) {
+                        option.selected = true;
+                    }
+
+                    productSelect.appendChild(option);
+                });
+
+                // Si el valor anterior ya no existe en las nuevas opciones, limpiar los campos relacionados
+                if (productSelect.value !== currentValue) {
+                    const row = productSelect.closest('.product-form');
+                    if (row) {
+                        row.querySelector('.product-dose').value = '';
+                        row.querySelector('#product-default-dose').value = '';
+                        row.querySelector('.estimated-dose').textContent = '-';
+                    }
+                }
+            });
         }
 
         // Funciones para actualizar información
@@ -250,12 +322,6 @@
         function updateMachineInfo() {
             const machine = machines[elements.machineSelect.value];
             elements.machineInfo.textContent = machine ? `Capacidad: ${machine.capacity} litros` : '';
-
-            // Establecer valor por defecto de mojado a 850 cuando se selecciona una máquina
-            if (machine && (!elements.waterPerHaInput.value || elements.waterPerHaInput.value === '0')) {
-                elements.waterPerHaInput.value = '850';
-            }
-
             calculateTotalDoses();
             checkStep1Completion();
         }
@@ -372,10 +438,20 @@
             // Resetear valores en los nuevos inputs
             newRow.querySelector('.product-dose').value = '';
             newRow.querySelector('.estimated-dose').textContent = '-';
+            newRow.querySelector('#product-default-dose').value = '';
 
-            // Actualizar el select con las opciones originales
+            // Actualizar el select con los productos filtrados disponibles
             const productSelect = newRow.querySelector('.product-select');
-            productSelect.innerHTML = elements.productsTable.querySelector('.product-select').innerHTML;
+            productSelect.innerHTML = '<option value="">Seleccione un producto</option>';
+
+            // Añadir las opciones según los productos filtrados
+            Object.values(products).forEach(product => {
+                const option = document.createElement('option');
+                option.value = product.id;
+                option.textContent = product.name;
+                productSelect.appendChild(option);
+            });
+
             productSelect.addEventListener('change', updateProductInfo);
 
             // Añadir evento de eliminación
@@ -459,6 +535,12 @@
                 elements.machineSelect.required = true;
                 elements.waterPerHaInput.disabled = false;
                 elements.waterPerHaInput.required = true;
+
+                // Establecer valor por defecto de mojado a 850 cuando se selecciona una máquina
+                if (!elements.waterPerHaInput.value || elements.waterPerHaInput.value === '0') {
+                    elements.waterPerHaInput.value = '850';
+                }
+
             }
             else if (selectedType === 'fertigation') {
                 // Para fertirrigación: ocultar máquina y mojado
@@ -544,7 +626,19 @@
         elements.addProductBtn.addEventListener('click', addProductRow);
 
         // Event listeners para cambio de paso
-        elements.nextToProducts.addEventListener('click', () => showStep(2));
+        elements.nextToProducts.addEventListener('click', async () => {
+            const selectedType = elements.taskTypeSelect.value;
+
+            // Cargar los productos específicos para este tipo antes de mostrar el paso 2
+            await loadProductsData(selectedType);
+
+            // Reiniciar la tabla de productos
+            resetProductsTable();
+
+            // Avanzar al paso 2
+            showStep(2);
+        });
+
         elements.backToInfo.addEventListener('click', () => showStep(1));
 
         // Eventos para eliminar productos
@@ -563,9 +657,9 @@
         // Inicialización
         await loadFieldsData();
         await loadMachinesData();
-        await loadProductsData();
         handleTaskTypeChange();
         checkStep1Completion();
+
     });
 </script>
 {% endblock %}

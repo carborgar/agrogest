@@ -31,16 +31,18 @@ def get_machines(request):
     return JsonResponse(machines_data, safe=False)
 
 
-def get_products(request):
+def get_products(request, application_type):
     products = Product.objects.all()
+    products = [p for p in products if p.supports_application_type(application_type)]
+
     products_data = [
         {
             'id': product.id,
             'name': product.name,
             'type': product.type,
-            'dose': product.dose,
-            'dose_type': product.dose_type,
-            'dose_type_display': product.dose_type_name(),
+            'dose': product.get_dose(application_type),
+            'dose_type': product.get_dose_type(application_type),
+            'dose_type_display': product.get_dose_type_name(application_type),
 
         }
         for product in products
@@ -105,7 +107,7 @@ def get_calendar_tasks(request):
                 'name': tp.product.name,
                 'dose': tp.dose,
                 'dose_type': tp.dose_type,
-                'dose_type_display': dict(tp.product.DOSE_TYPE_CHOICES).get(tp.dose_type, ''),
+                'dose_type_display': dict(tp.product.ALL_DOSE_TYPE_CHOICES).get(tp.dose_type, ''),
                 'total_dose': tp.total_dose,
                 'total_dose_unit': tp.total_dose_unit
             })
