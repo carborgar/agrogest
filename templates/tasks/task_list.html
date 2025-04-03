@@ -350,9 +350,11 @@
                     <div class="filter-body">
                         {% for product_type in product_types %}
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" value="{{ product_type.id }}" name="product_types"
+                            <input class="form-check-input" type="checkbox" value="{{ product_type.id }}"
+                                   name="product_types"
                                    id="tipo-producto-{{ product_type.id }}"
-                                   {% if product_type.id|stringformat:"s" in selected_product_types %}checked{% endif %}>
+                                   {% if product_type.id|stringformat:"s" in selected_product_types %}checked
+                            {% endif %}>
                             <label class="form-check-label" for="tipo-producto-{{ product_type.id }}">
                                 {{ product_type.name }}</label>
                         </div>
@@ -434,17 +436,30 @@
         </form>
     </div>
 
-    <!-- Resultados -->
+    <!-- Results -->
     <div class="col-lg-9">
         <div class="results-container card">
             <div class="results-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0 fw-bold">Resultados <span
-                        class="badge bg-primary rounded-pill ms-2">{{ tasks.count }}</span>
-                </h5>
-                <a class="btn btn-primary action-btn" href="{% url 'create_task' %}">
-                    <i class="fa fa-plus-circle"></i>Nuevo tratamiento
-                </a>
+                <div class="d-flex align-items-center">
+                    <h5 class="mb-0 fw-bold">Resultados <span class="badge bg-primary rounded-pill ms-2">{{ tasks.count }}</span>
+                    </h5>
+                </div>
+                <div class="d-flex gap-3">
+                    <!-- View switcher -->
+                    <div class="view-switcher">
+                        <button type="button" class="btn view-btn active" id="cardViewBtn">
+                            <i class="fa fa-th"></i> Tarjetas
+                        </button>
+                        <button type="button" class="btn view-btn" id="listViewBtn">
+                            <i class="fa fa-list"></i> Lista
+                        </button>
+                    </div>
+                    <a class="btn btn-primary action-btn" href="{% url 'create_task' %}">
+                        <i class="fa fa-plus-circle"></i>Nuevo tratamiento
+                    </a>
+                </div>
             </div>
+
             <div class="card-body p-4" id="results">
                 {% if not tasks %}
                 <div class="alert alert-info d-flex align-items-center" role="alert">
@@ -453,13 +468,60 @@
                 </div>
                 {% endif %}
 
-                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="cardView">
                     {% for task in tasks %}
                     {% include 'tasks/task_card.html' with task=task %}
                     {% endfor %}
                 </div>
+
+                <div id="listView" class="accordion d-none">
+                    {% include 'tasks/task_list_item.html' with tasks=tasks %}
+                </div>
+
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get view elements
+        const cardView = document.getElementById('cardView');
+        const listView = document.getElementById('listView');
+        const cardViewBtn = document.getElementById('cardViewBtn');
+        const listViewBtn = document.getElementById('listViewBtn');
+
+        // Toggle between views
+        cardViewBtn.addEventListener('click', function() {
+            cardView.classList.remove('d-none');
+            listView.classList.add('d-none');
+            cardViewBtn.classList.add('active');
+            listViewBtn.classList.remove('active');
+
+            // Store preference in localStorage
+            localStorage.setItem('taskViewPreference', 'card');
+        });
+
+        listViewBtn.addEventListener('click', function() {
+            listView.classList.remove('d-none');
+            cardView.classList.add('d-none');
+            listViewBtn.classList.add('active');
+            cardViewBtn.classList.remove('active');
+
+            // Store preference in localStorage
+            localStorage.setItem('taskViewPreference', 'list');
+        });
+
+        // Check for stored preference and apply it
+        const storedPreference = localStorage.getItem('taskViewPreference');
+        if (storedPreference === 'list') {
+            listView.classList.remove('d-none');
+            cardView.classList.add('d-none');
+            listViewBtn.classList.add('active');
+            cardViewBtn.classList.remove('active');
+        }
+    });
+</script>
 {% endblock %}
