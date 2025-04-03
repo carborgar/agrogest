@@ -9,7 +9,6 @@ from .models import Task, TaskProduct
 
 class TaskForm(forms.ModelForm):
     water_per_ha = forms.FloatField(
-        initial=1000,
         help_text="Litros de agua por hectárea",
         required=False  # We'll handle requirement conditionally
     )
