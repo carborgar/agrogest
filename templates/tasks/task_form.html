@@ -211,6 +211,8 @@
             conditionalFields: document.getElementById('conditionalFields'),
             machineFieldGroup: document.getElementById('machineFieldGroup'),
             waterFieldGroup: document.getElementById('waterFieldGroup'),
+            nameInput: document.getElementById('{{ form.name.id_for_label }}'),
+            dateInput: document.getElementById('{{ form.date.id_for_label }}'),
             // Step elements
             step1: document.getElementById('step1'),
             step2: document.getElementById('step2'),
@@ -502,8 +504,15 @@
             const machineSelected = elements.machineSelect.value;
             const waterPerHaValue = elements.waterPerHaInput.value;
             const completedDateValid = validateCompletedDate();
+            const nameValue = elements.nameInput.value;
+            const dateValue = elements.dateInput.value;
 
-            const requiredFieldsFilled = fieldSelected !== '' && taskType !== '';
+            const requiredFieldsFilled =
+                fieldSelected !== '' &&
+                taskType !== '' &&
+                nameValue !== '' &&
+                dateValue !== '';
+
             let conditionalFieldsValid = true;
 
             if (taskType === 'spraying') {
@@ -559,6 +568,24 @@
         // Validación de formulario
         function validateForm(event) {
             const selectedType = elements.taskTypeSelect.value;
+            const nameValue = elements.nameInput.value;
+            const dateValue = elements.dateInput.value;
+
+            // Check name field
+            if (!nameValue) {
+                event.preventDefault();
+                alert('Debe ingresar un nombre para el tratamiento');
+                showStep(1);
+                return false;
+            }
+
+            // Check date field
+            if (!dateValue) {
+                event.preventDefault();
+                alert('Debe seleccionar una fecha para el tratamiento');
+                showStep(1);
+                return false;
+            }
 
             if (!selectedType) {
                 event.preventDefault();
@@ -624,6 +651,8 @@
         elements.completedDateInput.addEventListener('change', validateCompletedDate);
         elements.completedDateInput.addEventListener('change', checkStep1Completion);
         elements.addProductBtn.addEventListener('click', addProductRow);
+        elements.nameInput.addEventListener('input', checkStep1Completion);
+        elements.dateInput.addEventListener('change', checkStep1Completion);
 
         // Event listeners para cambio de paso
         elements.nextToProducts.addEventListener('click', async () => {
