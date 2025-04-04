@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load calculation_filters %}
+{% load custom_filters %}
 
 {% block header %}{{ task.name }}{% endblock %}
 
@@ -71,8 +72,8 @@
                     {% for product in products %}
                     <tr>
                         <td>{{ product.product.name }}</td>
-                        <td>{{ product.product.get_type_display }}</td>
-                        <td>{{ product.dose }} {{ product.get_dose_type_display }}</td>
+                        <td>{{ product.product.product_type.name }}</td>
+                        <td>{{ product.dose }} {{ product.dose_type|dose_type }}</td>
                         <td>
                             <strong>{{ product.total_dose|floatformat:2 }} {{ product.total_dose_unit }}</strong>
                         </td>
