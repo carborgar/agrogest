@@ -144,3 +144,4 @@ node_modules/
 
 #static files from collecstatic
 staticfiles/
+report.html

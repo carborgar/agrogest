@@ -6,7 +6,7 @@ from django.db import models
 
 class Field(models.Model):
     name = models.CharField(max_length=100)
-    area = models.FloatField()  # en hectáreas o m²
+    area = models.FloatField()  # en hectáreas
     crop = models.CharField(max_length=100)
     planting_year = models.IntegerField()
     location = models.CharField(max_length=255, blank=True, null=True)
