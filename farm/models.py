@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 
 from django.db import models
 
@@ -75,6 +76,13 @@ class Product(models.Model):
                                              blank=True)
 
     comments = models.TextField(blank=True)
+
+    def get_dose_for_application(self, application_type):
+        if application_type == 'spraying':
+            return self.spraying_dose_type
+        elif application_type == 'fertigation':
+            return self.fertigation_dose_type
+        return None, None
 
     def supports_application_type(self, application_type):
         if application_type == 'spraying':
@@ -203,20 +211,10 @@ class TaskProduct(models.Model):
         """Calcula la dosis total basada en el tipo de dosis y los parámetros de la tarea"""
         # Get the appropriate dose and dose type for the task's application method
         task_type = self.task.type
-        dose_to_use, dose_type_to_use = self.product.get_dose_for_application(task_type)
-
-        # Si no hay una dosis específica para este tipo o si se especificó una dosis personalizada
-        if dose_to_use is None or self.dose is not None:
-            # Use the entered dose if available
-            dose_to_use = self.dose if self.dose is not None else None
-            dose_type_to_use = self.dose_type if self.dose_type else None
-
-            # Si no tenemos una dosis válida, no podemos continuar
-            if dose_to_use is None or dose_type_to_use is None:
-                raise ValueError(f"No se pudo determinar la dosis para {self.product.name} en tarea tipo {task_type}")
+        product_dose_type = self.product.get_dose_for_application(task_type)
 
         # Almacenar el tipo de dosis apropiado
-        self.dose_type = dose_type_to_use
+        self.dose_type = product_dose_type
 
         # Determinar la unidad de medida
         if self.dose_type in ['kg_per_1000l', 'kg_per_ha']:
@@ -231,14 +229,14 @@ class TaskProduct(models.Model):
         # Calcular la dosis total según el tipo de dosis
         if self.dose_type in ['kg_per_1000l', 'l_per_1000l']:
             total_water = water_per_ha * field_area  # Total litros
-            self.total_dose = (dose_to_use * total_water) / 1000
+            self.total_dose = (self.dose * Decimal(total_water)) / 1000
 
         elif self.dose_type in ['kg_per_ha', 'l_per_ha']:
-            self.total_dose = dose_to_use * field_area
+            self.total_dose = self.dose * Decimal(field_area)
 
         elif self.dose_type == 'pct':
             total_water = water_per_ha * field_area
-            self.total_dose = (dose_to_use / 100) * total_water
+            self.total_dose = (self.dose / Decimal(100)) * total_water
             self.total_dose_unit = 'L'  # Siempre litros para porcentaje
 
     def save(self, *args, **kwargs):
