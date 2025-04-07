@@ -53,6 +53,8 @@ class TaskListView(ListView):
     model = Task
     template_name = 'tasks/task_list.html'
     context_object_name = 'tasks'
+    paginate_by = 6
+    ordering = ['-date']
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -99,6 +101,11 @@ class TaskListView(ListView):
         context['date_to'] = self.request.GET.get('date_to')
         context['product_types'] = ProductType.objects.all()
         context['selected_product_types'] = self.request.GET.getlist('product_types')
+
+        query_params = self.request.GET.copy()
+        if 'page' in query_params:
+            del query_params['page']
+        context['query_params'] = query_params.urlencode()
 
         return context
 
