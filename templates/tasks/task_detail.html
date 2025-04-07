@@ -8,8 +8,8 @@
 <div class="row">
     <div class="col-md-6">
         <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between">
-                <h3>Información General</h3>
+            <div class="card-header bg-primary text-white d-flex justify-content-between">
+                <h3 class="mb-0">Información General</h3>
                 {% if not task.is_completed %}
                 <button class="btn btn-success finish-task-btn" data-task-id="{{ task.id }}">
                     <i class="fa fa-check"></i> Finalizar tratamiento
@@ -34,21 +34,12 @@
                     <dd class="col-sm-8">{{ task.finish_date|date:"d/m/Y" }}</dd>
                     {% endif %}
 
-                    <dt class="col-sm-4">Campo:</dt>
-                    <dd class="col-sm-8">{{ task.field.name }}</dd>
-
-                    <dt class="col-sm-4">Área:</dt>
-                    <dd class="col-sm-8">{{ task.field.area }} hectáreas</dd>
-
-                    <dt class="col-sm-4">Cultivo:</dt>
-                    <dd class="col-sm-8">{{ task.field.crop }}</dd>
+                    <dt class="col-sm-4">Parcela:</dt>
+                    <dd class="col-sm-8">{{ task.field.name }} - {{ task.field.crop }}, {{ task.field.area }} ha </dd>
 
                     {% if task.machine %}
                     <dt class="col-sm-4">Maquinaria:</dt>
-                    <dd class="col-sm-8">{{ task.machine.name }}</dd>
-
-                    <dt class="col-sm-4">Capacidad:</dt>
-                    <dd class="col-sm-8">{{ task.machine.capacity }} litros</dd>
+                    <dd class="col-sm-8">{{ task.machine.name }} ({{ task.machine.capacity }} litros)</dd>
 
                     <dt class="col-sm-4">Mojado:</dt>
                     <dd class="col-sm-8">{{ task.water_per_ha }} litros/ha</dd>
@@ -62,73 +53,67 @@
 
     <div class="col-md-6">
         <div class="card mb-4">
-            <div class="card-header">
-                <h3>Productos y Dosis</h3>
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">Productos y Dosis</h3>
             </div>
             <div class="card-body">
-                <table class="table table-bordered">
-                    <thead>
-                    <tr>
-                        <th>Producto</th>
-                        <th>Tipo</th>
-                        <th>Dosis</th>
-                        <th>Total Necesario</th>
-                    </tr>
-                    </thead>
-                    <tbody>
+                <div class="row">
                     {% for product in products %}
-                    <tr>
-                        <td>{{ product.product.name }}</td>
-                        <td>{{ product.product.product_type.name }}</td>
-                        <td>{{ product.dose }} {{ product.dose_type|dose_type }}</td>
-                        <td>
-                            <strong>{{ product.total_dose|floatformat:2 }} {{ product.total_dose_unit }}</strong>
-                        </td>
-                    </tr>
+                    <div class="col-6 col-lg-6 mb-3">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">{{ product.product.name }}</h5>
+                            </div>
+                            <div class="card-body">
+                                <p><strong>Tipo:</strong> {{ product.product.product_type.name }}</p>
+                                <p><strong>Dosis:</strong> {{ product.dose }} {{ product.dose_type|dose_type }}</p>
+                                <p><strong>Total Necesario:</strong> <strong>{{ product.total_dose|floatformat:2 }}
+                                    {{ product.total_dose_unit }}</strong></p>
+                            </div>
+                        </div>
+                    </div>
                     {% endfor %}
-                    </tbody>
-                </table>
+                </div>
             </div>
         </div>
     </div>
+
 </div>
 
 {% if task.machine %}
-<div class="card mb-4">
-    <div class="card-header">
-        <h3>Instrucciones para Operador</h3>
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h3 class="mb-0">Instrucciones para Operador</h3>
     </div>
     <div class="card-body">
-        <h4>Por cada carga completa de máquina ({{ task.machine.capacity }} litros):</h4>
-        <table class="table table-bordered">
-            <thead>
-            <tr>
-                <th>Producto</th>
-                <th>Cantidad por Carga</th>
-            </tr>
-            </thead>
-            <tbody>
+        <h4>Por cada máquina completa ({{ task.machine.capacity }} litros):</h4>
+        <div class="row">
             {% for product in products %}
-            <tr>
-                <td>{{ product.product.name }}</td>
-                <td>
-                    {% if 'ha' in product.dose_type %}
-                    {% with area_per_load=task.machine.capacity|divide:task.water_per_ha %}
-                    <strong>{{ product.dose|multiply:area_per_load|floatformat:2 }}
-                        {{ product.total_dose_unit }}</strong>
-                    {% endwith %}
-                    {% elif '1000l' in product.dose_type %}
-                    <strong>{{ product.dose|multiply:task.machine.capacity|divide:1000|floatformat:2 }}
-                        {{ product.total_dose_unit }}</strong>
-                    {% elif '2000l' in product.dose_type %}
-                    <strong>{{ product.dose|multiply:task.machine.capacity|divide:2000|floatformat:2 }}
-                        {{ product.total_dose_unit }}</strong>
-                    {% endif %}
-                </td>
-            </tr>
+            <div class="col-6 col-sm-3 mb-3">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">{{ product.product.name }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">
+                            {% if 'ha' in product.dose_type %}
+                            {% with area_per_load=task.machine.capacity|divide:task.water_per_ha %}
+                            <strong>{{ product.dose|multiply:area_per_load|floatformat:2 }}
+                                {{ product.total_dose_unit }}</strong>
+                            {% endwith %}
+                            {% elif '1000l' in product.dose_type %}
+                            <strong>{{ product.dose|multiply:task.machine.capacity|divide:1000|floatformat:2 }}
+                                {{ product.total_dose_unit }}</strong>
+                            {% elif '2000l' in product.dose_type %}
+                            <strong>{{ product.dose|multiply:task.machine.capacity|divide:2000|floatformat:2 }}
+                                {{ product.total_dose_unit }}</strong>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
             {% endfor %}
-            </tbody>
-        </table>
+        </div>
     </div>
 </div>
 {% endif %}
