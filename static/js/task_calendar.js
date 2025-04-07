@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         buttonText: { today: 'Hoy', month: 'Mes', list: 'Lista' },
         events: fetchEvents,
-        eventClick: (info) => showTaskDetail(info.event),
+        eventClick: (info) => loadTaskDetail(info.event),
         eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false }
     });
 
@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', function () {
     fieldCheckboxes.forEach(cb => cb.addEventListener('change', updateFilters));
     typeCheckboxes.forEach(cb => cb.addEventListener('change', () => calendar.refetchEvents()));
 
-    // Obtener eventos AJAX
+    // Obtener eventos AJAX (solo datos básicos sin productos)
     function fetchEvents(info, successCallback, failureCallback) {
         const params = new URLSearchParams({
             start: info.startStr.split('T')[0],
@@ -76,26 +76,61 @@ document.addEventListener('DOMContentLoaded', function () {
         }[status] || 'task-pending';
     }
 
-    function showTaskDetail(event) {
-        const { title, extendedProps: taskData } = event;
-        document.querySelector('.task-title').textContent = title;
-        document.getElementById('detail-field').textContent = taskData.field_name;
-        document.getElementById('detail-date').textContent = formatDate(event.start);
-        document.getElementById('detail-type').textContent = taskData.type_display;
-        document.getElementById('detail-status').textContent = taskData.status;
-        document.getElementById('detail-machine').textContent = taskData.machine || 'No asignada';
-        document.getElementById('detail-water').textContent = taskData.water_per_ha;
-        fillProducts(taskData.products);
-        document.getElementById('view-task').href = `/tarea/${event.id}`;
-        document.getElementById('view-task').style.display = taskData.status === 'Completada' ? 'none' : 'block';
+    // Carga de detalles bajo demanda
+    function loadTaskDetail(event) {
+        const taskId = event.id;
+        const taskTitle = event.title;
+        const taskModal = document.getElementById("task-detail");
 
-        new bootstrap.Modal(document.getElementById("task-detail")).show();
+        // Mostrar información básica disponible inmediatamente
+        document.querySelector('.task-title').textContent = taskTitle;
+        document.getElementById('detail-date').textContent = formatDate(event.start);
+
+        // Mostrar indicadores de carga para los datos que vendrán del endpoint
+        document.getElementById('detail-field').textContent = 'Cargando...';
+        document.getElementById('detail-type').textContent = 'Cargando...';
+        document.getElementById('detail-status').textContent = 'Cargando...';
+        document.getElementById('detail-machine').textContent = 'Cargando...';
+        document.getElementById('detail-water').textContent = 'Cargando...';
+        document.getElementById('detail-products').innerHTML = '<tr><td colspan="3" class="text-center">Cargando productos...</td></tr>';
+        document.getElementById('view-task').href = `/tarea/${taskId}`;
+
+        // Mostrar el modal inmediatamente mientras se cargan los datos
+        new bootstrap.Modal(taskModal).show();
+
+        // Cargar detalles completos desde el endpoint separado
+        fetch(`/api/task-detail/${taskId}/`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error al cargar los detalles de la tarea');
+                }
+                return response.json();
+            })
+            .then(taskData => {
+                // Actualizar el modal con los datos recibidos
+                document.getElementById('detail-field').textContent = taskData.field_name;
+                document.getElementById('detail-type').textContent = taskData.type_display;
+                document.getElementById('detail-status').textContent = taskData.status_display;
+                document.getElementById('detail-machine').textContent = taskData.machine_name || 'No asignada';
+                document.getElementById('detail-water').textContent = taskData.water_per_ha;
+                fillProducts(taskData.products);
+                document.getElementById('view-task').style.display = taskData.status === 'completed' ? 'none' : 'block';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('detail-products').innerHTML =
+                    '<tr><td colspan="3" class="text-center">Error al cargar los datos</td></tr>';
+            });
     }
 
     function fillProducts(products) {
         const container = document.getElementById('detail-products');
         container.innerHTML = products?.length ? products.map(p =>
-            `<tr><td>${p.name}</td><td>${p.dose} ${p.dose_type_display}</td><td>${p.total_dose} ${p.total_dose_unit}</td></tr>`
+            `<tr>
+                <td>${p.name}</td>
+                <td>${p.dose} ${p.dose_type_display}</td>
+                <td>${p.total_dose} ${p.total_dose_unit}</td>
+            </tr>`
         ).join('') : `<tr><td colspan="3" class="text-center">No hay productos asignados</td></tr>`;
     }
 
@@ -114,5 +149,4 @@ document.addEventListener('DOMContentLoaded', function () {
             calendar.updateSize();
         }, 300);
     });
-
 });

@@ -17,5 +17,6 @@ urlpatterns = [
     path('api/machines/', api_views.get_machines, name='api_machines'),
     path('api/products/<str:application_type>/', api_views.get_products, name='api_products'),
     path('api/tasks/', api_views.get_calendar_tasks, name='api_calendar_tasks'),
+    path('api/task-detail/<int:task_id>/', api_views.task_detail, name='api_task_detail'),
 
 ]

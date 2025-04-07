@@ -92,27 +92,44 @@ def get_calendar_tasks(request):
             'status': task.status(),
             'status_display': task.status_display(),
             'type': task.type,
+            'water_per_ha': task.water_per_ha,
+        }
+
+        result.append(task_data)
+
+    return JsonResponse(result, safe=False)
+
+
+def task_detail(request, task_id):
+    try:
+        task = Task.objects.select_related('field', 'machine').prefetch_related('taskproduct_set').get(id=task_id)
+        products = task.taskproduct_set.all()
+
+        return JsonResponse({
+            'id': task.id,
+            'name': task.name,
+            'date': task.date.isoformat(),
+            'finish_date': task.finish_date.isoformat() if task.finish_date else None,
+            'status': task.status(),
+            'status_display': task.status_display(),
+            'type': task.type,
             'type_display': dict(Task.TYPE_CHOICES).get(task.type, ''),
             'field': task.field_id,
             'field_name': task.field.name,
             'machine_name': str(task.machine) if task.machine else None,
             'water_per_ha': task.water_per_ha,
-        }
+            'products': [
+                {
+                    'id': tp.product.id,
+                    'name': tp.product.name,
+                    'dose': tp.dose,
+                    'dose_type': tp.dose_type,
+                    'dose_type_display': dict(tp.product.ALL_DOSE_TYPE_CHOICES).get(tp.dose_type, ''),
+                    'total_dose': tp.total_dose,
+                    'total_dose_unit': tp.total_dose_unit
+                } for tp in products
+            ]
+        })
 
-        # Agregar productos
-        products = []
-        for tp in task.taskproduct_set.all():
-            products.append({
-                'id': tp.product.id,
-                'name': tp.product.name,
-                'dose': tp.dose,
-                'dose_type': tp.dose_type,
-                'dose_type_display': dict(tp.product.ALL_DOSE_TYPE_CHOICES).get(tp.dose_type, ''),
-                'total_dose': tp.total_dose,
-                'total_dose_unit': tp.total_dose_unit
-            })
-        task_data['products'] = products
-
-        result.append(task_data)
-
-    return JsonResponse(result, safe=False)
+    except Task.DoesNotExist:
+        return JsonResponse({'error': 'Tratamiento no encontrado'}, status=404)
