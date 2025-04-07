@@ -1,8 +1,11 @@
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db import transaction
 from django.db.models import Sum
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
 from django.shortcuts import render
 from django.urls import reverse
+from django.views.decorators.http import require_POST
 from django.views.generic import ListView, DetailView
 from django.views.generic.edit import CreateView, UpdateView
 
@@ -193,3 +196,14 @@ def calendar_view(request):
     }
 
     return render(request, 'tasks/calendar.html', context)
+
+
+@require_POST
+def finish_task(request, pk):
+    task = get_object_or_404(Task, pk=pk)
+    finish_date = request.POST.get('finish_date')
+    if finish_date:
+        task.finish_date = finish_date
+        task.save()
+        return JsonResponse({'success': True})
+    return JsonResponse({'success': False}, status=400)

@@ -10,6 +10,7 @@ urlpatterns = [
     path('tarea/<int:pk>', TaskDetailView.as_view(), name='task_detail'),  # Detalle de tarea
     path('tarea/nueva/', views.TaskFormView.as_view(), name='create_task'),
     path('tarea/editar/<int:pk>', views.TaskFormView.as_view(), name='edit_task'),
+    path('tarea/finalizar/<int:pk>', views.finish_task, name='finish_task'),
     path('calendario/', views.calendar_view, name='task_calendar'),
 
     # API Endpoints

@@ -8,8 +8,13 @@
 <div class="row">
     <div class="col-md-6">
         <div class="card mb-4">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between">
                 <h3>Información General</h3>
+                {% if not task.is_completed %}
+                <button class="btn btn-success finish-task-btn" data-task-id="{{ task.id }}">
+                    <i class="fa fa-check"></i> Finalizar tratamiento
+                </button>
+                {% endif %}
             </div>
             <div class="card-body">
                 <dl class="row">
@@ -18,16 +23,16 @@
 
                     <dt class="col-sm-4">Estado:</dt>
                     <dd class="col-sm-8">
-              <span class="badge bg-{{ task.state_class }}">
-                {{ task.status_display }}
-              </span>
+                        <span class="badge bg-{{ task.state_class }}">{{ task.status_display }}</span>
                     </dd>
 
                     <dt class="col-sm-4">Fecha:</dt>
                     <dd class="col-sm-8">{{ task.date|date:"d/m/Y" }}</dd>
 
+                    {% if task.finish_date %}
                     <dt class="col-sm-4">Fecha finalización:</dt>
                     <dd class="col-sm-8">{{ task.finish_date|date:"d/m/Y" }}</dd>
+                    {% endif %}
 
                     <dt class="col-sm-4">Campo:</dt>
                     <dd class="col-sm-8">{{ task.field.name }}</dd>
@@ -48,6 +53,8 @@
                     <dt class="col-sm-4">Mojado:</dt>
                     <dd class="col-sm-8">{{ task.water_per_ha }} litros/ha</dd>
                     {% endif %}
+
+
                 </dl>
             </div>
         </div>
@@ -125,4 +132,80 @@
     </div>
 </div>
 {% endif %}
+
+
+<!-- Modal Finalizar Tratamiento -->
+<div aria-hidden="true" aria-labelledby="finishModalLabel" class="modal fade" id="finishModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form class="modal-content" id="finishForm">
+            <div class="modal-header">
+                <h5 class="modal-title">Finalizar Tratamiento</h5>
+                <button aria-label="Cerrar" class="btn-close" data-bs-dismiss="modal" type="button"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger d-none" id="finishTaskErrorAlert" role="alert">
+                    Hubo un error al finalizar el tratamiento. Por favor, verifica la fecha de finalización. Si el
+                    problema persiste, contacta al administrador.
+                </div>
+                <label class="form-label" for="finishDate">Fecha de finalización</label>
+                <input class="form-control" id="finishDate" name="finish_date" required type="date">
+                <input id="taskIdInput" type="hidden">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-success" type="submit">Finalizar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div aria-live="assertive" class="toast align-items-center text-bg-success border-0" id="finishToast" role="alert">
+        <div class="d-flex">
+            <div class="toast-body">
+                Tratamiento finalizado correctamente.
+            </div>
+            <button class="btn-close me-2 m-auto" data-bs-dismiss="toast" type="button"></button>
+        </div>
+    </div>
+</div>
+
+
 {% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const modal = new bootstrap.Modal(document.getElementById('finishModal'))
+      const form = document.getElementById('finishForm')
+      const errorAlert = document.getElementById('finishTaskErrorAlert')
+
+      document.querySelectorAll('.finish-task-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const taskId = btn.dataset.taskId
+          document.getElementById('taskIdInput').value = taskId
+          modal.show()
+        })
+      })
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault()
+        const taskId = document.getElementById('taskIdInput').value
+        const finishDate = document.getElementById('finishDate').value
+        const res = await fetch(`/tarea/finalizar/${taskId}`, {
+          method: 'POST',
+          headers: {'X-CSRFToken': '{{ csrf_token }}'},
+          body: new URLSearchParams({finish_date: finishDate})
+        })
+
+        if (res.ok) {
+          modal.hide()
+          window.location.reload()
+        } else {
+            errorAlert.classList.remove('d-none');
+        }
+      })
+    })
+</script>
+{% endblock %}
+
