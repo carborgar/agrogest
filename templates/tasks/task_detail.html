@@ -11,7 +11,7 @@
             <div class="card-header bg-primary text-white d-flex justify-content-between">
                 <h3 class="mb-0">Información General</h3>
                 {% if not task.is_completed %}
-                <button class="btn btn-success finish-task-btn" data-task-id="{{ task.id }}">
+                <button class="btn btn-secondary finish-task-btn" data-task-id="{{ task.id }}">
                     <i class="fa fa-check"></i> Finalizar tratamiento
                 </button>
                 {% endif %}
