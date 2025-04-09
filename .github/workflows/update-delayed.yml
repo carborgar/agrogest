@@ -1,5 +1,5 @@
-name: Actualización de estado de tratamientos
-# Este workflow se ejecuta automáticamente a diario para actualizar los estados de los tratamientos en la base de datos.
+name: Actualizar tratamientos retrasados
+# Este workflow se ejecuta automáticamente a diario para pasar a atrasados los tratamientos pendientes con fecha pasada.
 # Solo procesa los datos de los últimos 3 días para ser más eficiente.
 # También se puede ejecutar manualmente a través de GitHub Actions.
 # La tarea se ejecuta con un entorno Python 3.12 y depende de las librerías especificadas en `requirements.txt`.
@@ -27,4 +27,4 @@ jobs:
       - name: Run update command
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: python manage.py update_task_status
+        run: python manage.py update_delayed_tasks
