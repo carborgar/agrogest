@@ -82,10 +82,8 @@ class TaskListView(ListView):
             queryset = queryset.filter(date__lte=date_to)
         if product_type_filters:
             queryset = queryset.filter(products__product_type__in=product_type_filters)
-
-        # Filtrado por múltiples estados
         if status_filters:
-            queryset = [task for task in queryset if task.status() in status_filters]
+            queryset = queryset.filter(status__in=status_filters)
 
         return queryset
 
@@ -104,6 +102,7 @@ class TaskListView(ListView):
         context['date_to'] = self.request.GET.get('date_to')
         context['product_types'] = ProductType.objects.all()
         context['selected_product_types'] = self.request.GET.getlist('product_types')
+        context['total_count'] = self.get_queryset().count()
 
         query_params = self.request.GET.copy()
         if 'page' in query_params:

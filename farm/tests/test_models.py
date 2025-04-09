@@ -1,3 +1,4 @@
+from datetime import timedelta, date
 from decimal import Decimal
 
 from django.test import TestCase
@@ -68,7 +69,7 @@ class TaskProductModelTest(TestCase):
 
     def test_task_product_dose_unit(self):
         # Setup inicial
-        task = Task.objects.create(name="Test Task", type="spraying", date="2025-04-04", field=self.field,
+        task = Task.objects.create(name="Test Task", type="spraying", date=date.today(), field=self.field,
                                    water_per_ha=10)
         product = Product.objects.create(name="Test Product", type="fertilizer", spraying_dose=5,
                                          spraying_dose_type='l_per_1000l')
@@ -101,3 +102,168 @@ class TaskProductModelTest(TestCase):
             TaskProduct.objects.create(
                 task=self.task, product=self.product, dose=3, dose_type="l_per_ha", total_dose=0, total_dose_unit="L"
             )
+
+
+class TaskStatusModelTest(TestCase):
+    def setUp(self):
+        # Setup básico
+        self.field = Field.objects.create(name="Campo A", area=10, crop="Maíz", planting_year=2022)
+        self.today = timezone.now().date()
+        self.yesterday = self.today - timedelta(days=1)
+        self.tomorrow = self.today + timedelta(days=1)
+
+    def test_task_status_on_create(self):
+        """Verifica que el estado se asigne correctamente al crear una tarea"""
+
+        # Tarea con fecha futura debe ser pendiente
+        future_task = Task.objects.create(
+            name="Tarea futura",
+            type="spraying",
+            date=self.tomorrow,
+            field=self.field
+        )
+        self.assertEqual(future_task.status, 'pending')
+
+        # Tarea con fecha pasada debe ser atrasada
+        past_task = Task.objects.create(
+            name="Tarea pasada",
+            type="spraying",
+            date=self.yesterday,
+            field=self.field
+        )
+        self.assertEqual(past_task.status, 'delayed')
+
+        # Tarea con fecha pasada pero completada debe ser completada
+        completed_task = Task.objects.create(
+            name="Tarea completada",
+            type="spraying",
+            date=self.yesterday,
+            finish_date=self.today,
+            field=self.field
+        )
+        self.assertEqual(completed_task.status, 'completed')
+
+    def test_task_created_with_finish_date(self):
+        """Verifica que una tarea creada con fecha de finalización tenga estado completada"""
+
+        # Crear tarea con fecha en el pasado pero ya completada
+        task_past = Task.objects.create(
+            name="Tarea pasada completada",
+            type="spraying",
+            date=self.yesterday,
+            finish_date=self.yesterday,  # Ya tiene fecha de finalización
+            field=self.field
+        )
+        self.assertEqual(task_past.status, 'completed')
+
+        # Crear tarea con fecha futura pero ya marcada como completada
+        task_future = Task.objects.create(
+            name="Tarea futura completada",
+            type="spraying",
+            date=self.tomorrow,
+            finish_date=self.today,  # Ya tiene fecha de finalización
+            field=self.field
+        )
+        self.assertEqual(task_future.status, 'completed')
+
+    def test_task_status_on_update(self):
+        """Verifica que el estado se actualice correctamente al modificar una tarea"""
+
+        # Crear tarea pendiente
+        task = Task.objects.create(
+            name="Tarea de prueba",
+            type="spraying",
+            date=self.tomorrow,
+            field=self.field
+        )
+        self.assertEqual(task.status, 'pending')
+
+        # Cambiar a completada
+        task.finish_date = self.today
+        task.save()
+        self.assertEqual(task.status, 'completed')
+
+        # Quitar fecha de finalización
+        task.finish_date = None
+        task.save()
+        self.assertEqual(task.status, 'pending')
+
+        # Cambiar fecha a pasada
+        task.date = self.yesterday
+        task.save()
+        self.assertEqual(task.status, 'delayed')
+
+    def test_status_consistency_with_methods(self):
+        """Verifica que los métodos is_pending, is_completed, is_delayed
+        sean consistentes con el campo status"""
+
+        # Tarea pendiente
+        pending_task = Task.objects.create(
+            name="Tarea pendiente",
+            type="spraying",
+            date=self.tomorrow,
+            field=self.field
+        )
+        self.assertTrue(pending_task.is_pending())
+        self.assertFalse(pending_task.is_completed())
+        self.assertFalse(pending_task.is_delayed())
+
+        # Tarea completada
+        completed_task = Task.objects.create(
+            name="Tarea completada",
+            type="spraying",
+            date=self.today,
+            finish_date=self.today,
+            field=self.field
+        )
+        self.assertFalse(completed_task.is_pending())
+        self.assertTrue(completed_task.is_completed())
+        self.assertFalse(completed_task.is_delayed())
+
+        # Tarea atrasada
+        delayed_task = Task.objects.create(
+            name="Tarea atrasada",
+            type="spraying",
+            date=self.yesterday,
+            field=self.field
+        )
+        self.assertFalse(delayed_task.is_pending())
+        self.assertFalse(delayed_task.is_completed())
+        self.assertTrue(delayed_task.is_delayed())
+
+    def test_task_status_display_and_classes(self):
+        """Verifica que los métodos auxiliares para mostrar en templates
+        devuelvan valores correctos"""
+
+        # Crear tareas con diferentes estados
+        pending_task = Task.objects.create(
+            name="Tarea pendiente",
+            type="spraying",
+            date=self.tomorrow,
+            field=self.field
+        )
+
+        completed_task = Task.objects.create(
+            name="Tarea completada",
+            type="spraying",
+            date=self.today,
+            finish_date=self.today,
+            field=self.field
+        )
+
+        delayed_task = Task.objects.create(
+            name="Tarea atrasada",
+            type="spraying",
+            date=self.yesterday,
+            field=self.field
+        )
+
+        # Verificar display values
+        self.assertEqual(pending_task.status_display(), 'Pendiente')
+        self.assertEqual(completed_task.status_display(), 'Completada')
+        self.assertEqual(delayed_task.status_display(), 'Atrasada')
+
+        # Verificar classes para CSS
+        self.assertEqual(pending_task.state_class(), 'warning')
+        self.assertEqual(completed_task.state_class(), 'success')
+        self.assertEqual(delayed_task.state_class(), 'danger')

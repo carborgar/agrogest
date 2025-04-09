@@ -141,26 +141,34 @@ class Task(models.Model):
     machine = models.ForeignKey('farm.Machine', on_delete=models.SET_NULL, null=True, blank=True)
     products = models.ManyToManyField('farm.Product', through='TaskProduct')
     water_per_ha = models.IntegerField(help_text="Litros de agua por hectárea", null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
 
     def __str__(self):
         return f"{self.name} - {self.date}"
 
+    def save(self, *args, **kwargs):
+        # Calcular status antes de guardar
+        self.update_status()
+        super().save(*args, **kwargs)
+
+    def update_status(self):
+        """Actualiza el campo status basado en las fechas y condiciones actuales"""
+        if self.finish_date is not None:
+            self.status = 'completed'
+        elif self.date < datetime.now().date():
+            self.status = 'delayed'
+        else:
+            self.status = 'pending'
+
+    # Los métodos existentes pueden mantenerse para compatibilidad
     def is_pending(self):
-        return not self.finish_date and self.date >= datetime.now().date()
+        return self.status == 'pending'
 
     def is_completed(self):
-        return self.finish_date is not None
+        return self.status == 'completed'
 
     def is_delayed(self):
-        return not self.finish_date and self.date < datetime.now().date()
-
-    def status(self):
-        if self.is_completed():
-            return 'completed'
-        elif self.is_delayed():
-            return 'delayed'
-        else:
-            return 'pending'
+        return self.status == 'delayed'
 
     # métodos para mostrar en el template
     def status_display(self):
@@ -170,7 +178,7 @@ class Task(models.Model):
             'completed': 'Completada',
             'delayed': 'Atrasada',
         }
-        return status_map.get(self.status(), 'Desconocido')
+        return status_map.get(self.status, 'Desconocido')
 
     def state_class(self):
         status_map = {
@@ -178,7 +186,7 @@ class Task(models.Model):
             'completed': 'success',
             'delayed': 'danger',
         }
-        return status_map.get(self.status(), 'secondary')  # 'secondary' como fallback
+        return status_map.get(self.status, 'secondary')  # 'secondary' como fallback
 
     def type_class(self):
         type_map = {

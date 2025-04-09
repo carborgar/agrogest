@@ -1,0 +1,38 @@
+name: Update Delayed Tasks
+
+on:
+  schedule:
+    - cron: '5 0 * * *'  # cada día a las 00:05 UTC
+
+jobs:
+  update-tasks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Run update command
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python manage.py update_delayed_tasks
+
+      - name: Notificar si falla
+        if: failure()
+        run: |
+          curl -X POST https://api.brevo.com/v3/smtp/email \
+          -H "Content-Type: application/json" \
+          -H "api-key: ${{ secrets.BREVO_API_KEY }}" \
+          -d '{
+                "sender": { "email": "${{ secrets.FROM_EMAIL }}" },
+                "to": [ { "email": "${{ secrets.TO_EMAIL }}" } ],
+                "subject": "❌ Fallo al actualizar tareas retrasadas",
+                "htmlContent": "<p>El cron job de tareas ha fallado. Revisa el workflow en GitHub Actions.</p>"
+              }'
