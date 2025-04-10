@@ -35,7 +35,7 @@
                     {% endif %}
 
                     <dt class="col-sm-4">Parcela:</dt>
-                    <dd class="col-sm-8">{{ task.field.name }} - {{ task.field.crop }}, {{ task.field.area }} ha </dd>
+                    <dd class="col-sm-8">{{ task.field.name }} - {{ task.field.crop }}, {{ task.field.area }} ha</dd>
 
                     {% if task.machine %}
                     <dt class="col-sm-4">Maquinaria:</dt>
@@ -61,14 +61,13 @@
                     {% for product in products %}
                     <div class="col-6 col-lg-6 mb-3">
                         <div class="card shadow-sm">
-                            <div class="card-header bg-light">
-                                <h5 class="mb-0">{{ product.product.name }}</h5>
-                            </div>
                             <div class="card-body">
-                                <p><strong>Tipo:</strong> {{ product.product.product_type.name }}</p>
-                                <p><strong>Dosis:</strong> {{ product.dose }} {{ product.dose_type|dose_type }}</p>
-                                <p><strong>Total Necesario:</strong> <strong>{{ product.total_dose|floatformat:2 }}
-                                    {{ product.total_dose_unit }}</strong></p>
+                                <h5 class="card-title text-primary">{{ product.product.name }}</h5>
+                                <p class="mb-1"><strong>Tipo:</strong> {{ product.product.product_type.name }}</p>
+                                <p class="mb-1"><strong>Dosis:</strong> {{ product.dose }}
+                                    {{ product.dose_type|dose_type }}</p>
+                                <p class="mb-0"><strong>Total Necesario:</strong> <strong>
+                                    {{ product.total_dose|floatformat:2 }} {{ product.total_dose_unit }}</strong></p>
                             </div>
                         </div>
                     </div>
@@ -91,10 +90,8 @@
             {% for product in products %}
             <div class="col-6 col-sm-3 mb-3">
                 <div class="card shadow-sm">
-                    <div class="card-header bg-light">
-                        <h5 class="mb-0">{{ product.product.name }}</h5>
-                    </div>
                     <div class="card-body">
+                        <h5 class="card-title text-primary">{{ product.product.name }}</h5>
                         <p class="card-text">
                             {% if 'ha' in product.dose_type %}
                             {% with area_per_load=task.machine.capacity|divide:task.water_per_ha %}
