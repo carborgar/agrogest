@@ -489,9 +489,12 @@
                 {% endif %}
 
                 {% if is_paginated %}
-                {% bootstrap_pagination page_obj justify_content="center" %}
+                    {% with request.GET.urlencode as querystring %}
+                        <div class="d-flex justify-content-center mt-3">
+                        {% bootstrap_pagination page_obj extra="&"|add:querystring %}
+                        </div>
+                    {% endwith %}
                 {% endif %}
-
             </div>
         </div>
     </div>
