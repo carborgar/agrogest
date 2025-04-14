@@ -87,7 +87,7 @@ def get_calendar_tasks(request):
         task_data = {
             'id': task.id,
             'name': task.name,
-            'date': task.date.isoformat(),
+            'date': task.finish_date.isoformat() if task.finish_date else task.date.isoformat(),
             'finish_date': task.finish_date.isoformat() if task.finish_date else None,
             'status': task.status,
             'status_display': task.status_display(),
