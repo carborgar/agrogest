@@ -2,6 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from django.db import models
+from softdelete.models import SoftDeleteObject
 
 
 class Field(models.Model):
@@ -119,7 +120,7 @@ class Product(models.Model):
         return None
 
 
-class Treatment(models.Model):
+class Treatment(SoftDeleteObject):
     TYPE_CHOICES = [
         ('spraying', 'Pulverización'),
         ('fertigation', 'Fertirrigación'),
@@ -201,7 +202,7 @@ class Treatment(models.Model):
         return self.water_per_ha
 
 
-class TreatmentProduct(models.Model):
+class TreatmentProduct(SoftDeleteObject):
     treatment = models.ForeignKey("Treatment", on_delete=models.CASCADE)
     product = models.ForeignKey("Product", on_delete=models.CASCADE)
     dose = models.DecimalField(max_digits=10, decimal_places=2)
