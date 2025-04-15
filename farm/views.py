@@ -1,8 +1,9 @@
+from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db import transaction
 from django.db.models import Sum
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
@@ -206,3 +207,11 @@ def finish_task(request, pk):
         task.save()
         return JsonResponse({'success': True})
     return JsonResponse({'success': False}, status=400)
+
+
+@require_POST
+def task_delete(request, task_id):
+    task = get_object_or_404(Task, pk=task_id)
+    task.delete()
+    messages.success(request, 'Tratamiento "{}" eliminado'.format(task.name))
+    return redirect('task_list') # deberia ser tasks_list
