@@ -85,7 +85,7 @@ class BaseTaskProductFormSet(BaseInlineFormSet):
                     valid_forms += 1
 
         if valid_forms < 1:
-            raise forms.ValidationError("Debe agregar al menos un producto a la tarea.")
+            raise forms.ValidationError("Debe agregar al menos un producto al tratamiento.")
 
 
 TaskProductFormSet = inlineformset_factory(

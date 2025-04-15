@@ -132,7 +132,7 @@
 {% endif %}
 
 <!-- Formulario oculto para las acciones de eliminación -->
-<form action="{% url 'task_delete' task.id %}" id="deleteForm" method="POST" style="display: none;">
+<form action="{% url 'treatment-delete' task.id %}" id="deleteForm" method="POST" style="display: none;">
     {% csrf_token %}
 </form>
 
@@ -168,7 +168,7 @@
         }).then((result) => {
             if (result.isConfirmed) {
                 showLoading('Procesando...', 'Registrando finalización del tratamiento');
-                fetch(`{% url 'finish_task' 0 %}`.replace('0', taskId), {
+                fetch(`{% url 'treatment-finish' 0 %}`.replace('0', taskId), {
                     method: 'POST',
                     headers: {'X-CSRFToken': '{{ csrf_token }}'},
                     body: new URLSearchParams({ finish_date: result.value.finishDate })
@@ -202,7 +202,7 @@
         showLoadingAlert('Procesando...', 'Registrando finalización del tratamiento');
 
         // Enviar al servidor
-        fetch(`{% url 'finish_task' 0 %}`.replace('0', taskId), {
+        fetch(`{% url 'treatment-finish' 0 %}`.replace('0', taskId), {
             method: 'POST',
             headers: {'X-CSRFToken': '{{ csrf_token }}'},
             body: new URLSearchParams({finish_date: finishDate})

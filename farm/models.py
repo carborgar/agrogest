@@ -15,16 +15,16 @@ class Field(models.Model):
         return self.name
 
     def pending_tasks_count(self):
-        # Cuenta las tareas pendientes para este campo
+        # Cuenta los tratamientos pendientes para este campo
         objs = Task.objects.filter(field=self, finish_date__isnull=True, date__gte=datetime.now().date())
         return objs.count()
 
     def completed_tasks_count(self):
-        # Cuenta las tareas completadas para este campo
+        # Cuenta los tratamientos completados para este campo
         return Task.objects.filter(field=self, finish_date__isnull=False).count()
 
     def delayed_tasks_count(self):
-        # Cuenta las tareas atrasadas para este campo
+        # Cuenta los tratamientos atrasados para este campo
         return Task.objects.filter(field=self, finish_date__isnull=True, date__lt=datetime.now().date()).count()
 
 
@@ -127,8 +127,8 @@ class Task(models.Model):
 
     STATUS_CHOICES = [
         ('pending', 'Pendiente'),
-        ('completed', 'Completada'),
-        ('delayed', 'Atrasada'),
+        ('completed', 'Completado'),
+        ('delayed', 'Atrasado'),
     ]
 
     name = models.CharField(max_length=100)
@@ -175,8 +175,8 @@ class Task(models.Model):
         # Devuelve el valor legible para el template
         status_map = {
             'pending': 'Pendiente',
-            'completed': 'Completada',
-            'delayed': 'Atrasada',
+            'completed': 'Completado',
+            'delayed': 'Atrasado',
         }
         return status_map.get(self.status, 'Desconocido')
 
@@ -216,7 +216,7 @@ class TaskProduct(models.Model):
         return f"{self.product.name} en {self.task} - {self.dose}"
 
     def calculate_total_dose(self):
-        """Calcula la dosis total basada en el tipo de dosis y los parámetros de la tarea"""
+        """Calcula la dosis total basada en el tipo de dosis y los parámetros del tratamiento"""
         # Get the appropriate dose and dose type for the task's application method
         task_type = self.task.type
         product_dose_type = self.product.get_dose_for_application(task_type)

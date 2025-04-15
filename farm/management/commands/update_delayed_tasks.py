@@ -4,11 +4,11 @@ from farm.models import Task
 
 
 class Command(BaseCommand):
-    help = 'Actualiza el estado de las tareas basado en sus fechas'
+    help = 'Actualiza el estado de los tratamientos basado en sus fechas'
 
     def handle(self, *args, **options):
         today = date.today()
-        # Procesa tareas con fecha en los últimos 3 días (por si se falla algún día)
+        # Procesa tratamientos con fecha en los últimos 3 días (por si se falla algún día)
         window_start = today - timedelta(days=3)
         tasks = Task.objects.filter(
             status='pending',
@@ -20,4 +20,4 @@ class Command(BaseCommand):
         for task in tasks:
             task.update_status()
             task.save(update_fields=['status'])
-        self.stdout.write(f"{count} tareas actualizadas como atrasadas.")
+        self.stdout.write(f"{count} tratamientos actualizados como atrasadas.")

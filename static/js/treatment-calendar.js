@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function () {
             types: [...document.querySelectorAll('.task-type-checkbox:checked')].map(cb => cb.value).join(',')
         });
 
-        fetch(`/api/tasks/?${params}`)
+        fetch(`${API_URLS.treatments}?${params.toString()}`)
             .then(response => response.json())
             .then(data => {
                 successCallback(data.map(formatEvent));
@@ -93,16 +93,16 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('detail-machine').textContent = 'Cargando...';
         document.getElementById('detail-water').textContent = 'Cargando...';
         document.getElementById('detail-products').innerHTML = '<tr><td colspan="3" class="text-center">Cargando productos...</td></tr>';
-        document.getElementById('view-task').href = `/tarea/${taskId}`;
+        document.getElementById('view-task').href = `/tratamientos/${taskId}`;
 
         // Mostrar el modal inmediatamente mientras se cargan los datos
         new bootstrap.Modal(taskModal).show();
 
         // Cargar detalles completos desde el endpoint separado
-        fetch(`/api/task-detail/${taskId}/`)
+        fetch(API_URLS.treatmentDetail(taskId))
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Error al cargar los detalles de la tarea');
+                    throw new Error('Error al cargar los detalles del tratamiento');
                 }
                 return response.json();
             })

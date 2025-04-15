@@ -2,23 +2,23 @@ from django.urls import path
 
 from . import api_views
 from . import views
-from .views import TaskListView, TaskDetailView
+from .views import TreatmentListView, TreatmentDetailView
 
 urlpatterns = [
-    path("", views.FieldListView.as_view(), name="field_list"),  # Listado de parcelas
-    path('tareas/', TaskListView.as_view(), name='task_list'),  # Listado de tareas
-    path('tarea/<int:pk>', TaskDetailView.as_view(), name='task_detail'),  # Detalle de tarea
-    path('tarea/nueva/', views.TaskFormView.as_view(), name='create_task'),
-    path('tarea/editar/<int:pk>', views.TaskFormView.as_view(), name='edit_task'),
-    path('tarea/finalizar/<int:pk>', views.finish_task, name='finish_task'),
-    path('tarea/<int:task_id>/eliminar/', views.task_delete, name='task_delete'),
-    path('calendario/', views.calendar_view, name='task_calendar'),
+    path("", views.FieldListView.as_view(), name="field_list"),
+    path('tratamientos/', TreatmentListView.as_view(), name='treatment-list'),
+    path('tratamientos/<int:pk>', TreatmentDetailView.as_view(), name='treatment-detail'),
+    path('tratamientos/nuevo/', views.TreatmentFormView.as_view(), name='treatment-create'),
+    # path('tratamientos/<int:pk>/editar/', views.TreatmentFormView.as_view(), name='treatment-update'),
+    path('tratamientos/<int:pk>/finalizar', views.finish_treatment, name='treatment-finish'),
+    path('tratamientos/<int:pk>/eliminar/', views.delete_treatment, name='treatment-delete'),
+    path('tratamientos/calendario/', views.treatment_calendar, name='treatment-calendar'),
 
     # API Endpoints
-    path('api/fields/', api_views.get_fields, name='api_fields'),
-    path('api/machines/', api_views.get_machines, name='api_machines'),
-    path('api/products/<str:application_type>/', api_views.get_products, name='api_products'),
-    path('api/tasks/', api_views.get_calendar_tasks, name='api_calendar_tasks'),
-    path('api/task-detail/<int:task_id>/', api_views.task_detail, name='api_task_detail'),
+    path('api/fields/', api_views.get_fields, name='api-fields'),
+    path('api/machines/', api_views.get_machines, name='api-machines'),
+    path('api/products/<str:application_type>/', api_views.get_products, name='api-products'),
+    path('api/treatments/', api_views.get_calendar_tasks, name='api-calendar-treatments'),
+    path('api/treatments/<int:task_id>/', api_views.treatment_detail, name='api-treatment-detail'),
 
 ]

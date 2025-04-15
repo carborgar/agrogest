@@ -429,14 +429,14 @@
                 <button class="btn btn-primary apply-btn" type="submit">
                     <i class="fa fa-filter"></i>Filtrar
                 </button>
-                <a class="clear-filters" href="{% url 'task_list' %}">
+                <a class="clear-filters" href="{% url 'treatment-list' %}">
                     <i class="fa fa-times-circle"></i>Limpiar
                 </a>
             </div>
         </form>
 
         <div class="mt-3 d-grid gap-2">
-            <a class="btn btn-block btn-primary action-btn" href="{% url 'create_task' %}">
+            <a class="btn btn-block btn-primary action-btn" href="{% url 'treatment-create' %}">
                 <i class="fa fa-plus-circle"></i>Nuevo tratamiento
             </a>
         </div>
@@ -468,18 +468,18 @@
                 {% if not tasks %}
                 <div class="alert alert-info d-flex align-items-center" role="alert">
                     <i class="fa fa-info-circle me-3 fs-4"></i>
-                    <div>No se encontraron tareas con los filtros actuales.</div>
+                    <div>No se encontraron tratamientos con los filtros actuales.</div>
                 </div>
                 {% endif %}
 
                 <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="cardView">
                     {% for task in tasks %}
-                    {% include 'tasks/task_card.html' with task=task %}
+                    {% include 'treatments/treatment_card.html' with task=task %}
                     {% endfor %}
                 </div>
 
                 <div id="listView" class="accordion d-none">
-                    {% include 'tasks/task_list_item.html' with tasks=tasks %}
+                    {% include 'treatments/treatment_list_item.html' with tasks=tasks %}
                 </div>
 
                 {% if page_obj.has_other_pages %}

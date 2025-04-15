@@ -12,7 +12,7 @@ def test_update_delayed_tasks(db):
     # Patch the update_status method to do nothing
     with patch.object(Task, 'update_status', lambda self: None):
         task = Task.objects.create(
-            name="Tarea vieja",
+            name="Tratamiento antiguo, pendiente",
             type="spraying",
             date=date.today() - timedelta(days=2),
             field=field,

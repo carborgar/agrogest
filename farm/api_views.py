@@ -52,7 +52,7 @@ def get_products(request, application_type):
 
 def get_calendar_tasks(request):
     """
-    API para obtener tareas para el calendario
+    API para obtener tratamientos para el calendario
     """
     # Parámetros de filtro
     start_date = request.GET.get('start', None)
@@ -75,7 +75,7 @@ def get_calendar_tasks(request):
         if field_id_list:
             tasks = tasks.filter(field_id__in=field_id_list)
 
-    # Filtrar por tipo de tarea
+    # Filtrar por tipo de tratamiento
     if task_types:
         type_list = task_types.split(',')
         if type_list:
@@ -100,7 +100,7 @@ def get_calendar_tasks(request):
     return JsonResponse(result, safe=False)
 
 
-def task_detail(request, task_id):
+def treatment_detail(request, task_id):
     try:
         task = Task.objects.select_related('field', 'machine').prefetch_related('taskproduct_set').get(id=task_id)
         products = task.taskproduct_set.all()

@@ -40,7 +40,7 @@ class FieldListView(ListView):
 
         task_types = Task.TYPE_CHOICES
 
-        # Mapeo de iconos para tipos de tarea
+        # Mapeo de iconos para tipos de tratamiento
         type_map = {  # TODO: esto habría que hacerlo con los campos del modelo, o quitar el icono y listo
             'spraying': 'spray-can-sparkles',
             'fertigation': 'droplet',
@@ -53,9 +53,9 @@ class FieldListView(ListView):
         return context
 
 
-class TaskListView(ListView):
+class TreatmentListView(ListView):
     model = Task
-    template_name = 'tasks/task_list.html'
+    template_name = 'treatments/treatment_list.html'
     context_object_name = 'tasks'
     paginate_by = 6
     ordering = ['-date']
@@ -113,9 +113,9 @@ class TaskListView(ListView):
         return context
 
 
-class TaskDetailView(DetailView):
+class TreatmentDetailView(DetailView):
     model = Task
-    template_name = 'tasks/task_detail.html'
+    template_name = 'treatments/treatment_detail.html'
     context_object_name = 'task'
 
     def get_context_data(self, **kwargs):
@@ -126,19 +126,19 @@ class TaskDetailView(DetailView):
         return context
 
 
-class TaskFormView(SuccessMessageMixin, CreateView, UpdateView):
+class TreatmentFormView(SuccessMessageMixin, CreateView, UpdateView):
     model = Task
     form_class = TaskForm
-    template_name = 'tasks/task_form.html'
+    template_name = 'treatments/treatment_form.html'
 
     def get_success_url(self):
-        return reverse('task_detail', kwargs={'pk': self.object.id})
+        return reverse('treatment-detail', kwargs={'pk': self.object.id})
 
     def get_success_message(self, cleaned_data):
         if self.object.pk is None or not hasattr(self, 'object') or self.object is None:
-            return f"Tarea '{cleaned_data['name']}' creada exitosamente"
+            return f"Tratamiento '{cleaned_data['name']}' creado exitosamente"
         else:
-            return f"Tarea '{cleaned_data['name']}' actualizada exitosamente"
+            return f"Tratamiento '{cleaned_data['name']}' actualizado exitosamente"
 
     def get_object(self, queryset=None):
         if 'pk' in self.kwargs:
@@ -178,12 +178,12 @@ class TaskFormView(SuccessMessageMixin, CreateView, UpdateView):
             return self.form_invalid(form)
 
 
-def calendar_view(request):
+def treatment_calendar(request):
     """Vista para el calendario de tratamientos"""
     fields = Field.objects.all()
     task_types = Task.TYPE_CHOICES
 
-    # Mapeo de iconos para tipos de tarea
+    # Mapeo de iconos para tipos de tratamiento
     type_map = {  # TODO: esto habría que hacerlo con los campos del modelo, o quitar el icono y listo
         'spraying': 'spray-can-sparkles',
         'fertigation': 'droplet',
@@ -195,11 +195,11 @@ def calendar_view(request):
         'type_map': type_map
     }
 
-    return render(request, 'tasks/calendar.html', context)
+    return render(request, 'treatments/calendar.html', context)
 
 
 @require_POST
-def finish_task(request, pk):
+def finish_treatment(request, pk):
     task = get_object_or_404(Task, pk=pk)
     finish_date = request.POST.get('finish_date')
     if finish_date:
@@ -210,8 +210,8 @@ def finish_task(request, pk):
 
 
 @require_POST
-def task_delete(request, task_id):
-    task = get_object_or_404(Task, pk=task_id)
+def delete_treatment(request, pk):
+    task = get_object_or_404(Task, pk=pk)
     task.delete()
     messages.success(request, 'Tratamiento "{}" eliminado'.format(task.name))
-    return redirect('task_list') # deberia ser tasks_list
+    return redirect('treatment-list')

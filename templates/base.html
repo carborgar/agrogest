@@ -107,6 +107,15 @@
     }
 </script>
 
+<script>
+    const API_URLS = {
+        fields: "{% url 'api-fields' %}",
+        machines: "{% url 'api-machines' %}",
+        productsByTaskType: (taskType) => `{% url 'api-products' 'TIPO' %}`.replace("TIPO", taskType),
+        treatments: "{% url 'api-calendar-treatments' %}",
+        treatmentDetail: (id) => `{% url 'api-treatment-detail' task_id=0 %}`.replace("0", id),
+    };
+</script>
 
 {% block extra_js %} {% endblock %}
 <div id="swal-container"></div>

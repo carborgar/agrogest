@@ -8,10 +8,10 @@ def populate_task_status(apps, schema_editor):
     Task = apps.get_model('farm', 'Task')
     today = timezone.now().date()
 
-    # Actualizar tareas completadas
+    # Actualizar tratamientos completados
     Task.objects.filter(finish_date__isnull=False).update(status='completed')
 
-    # Actualizar tareas atrasadas
+    # Actualizar tratamientos atrasados
     Task.objects.filter(
         finish_date__isnull=True,
         date__lt=today

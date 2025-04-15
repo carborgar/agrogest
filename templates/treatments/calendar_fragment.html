@@ -40,7 +40,7 @@
                         </div>
                     </div>
 
-                    <!-- Filtro por tipo de tarea -->
+                    <!-- Filtro por tipo de tratamiento -->
                     <div class="mb-4">
                         <h6 class="fw-bold mb-2">Tipo de Tratamiento</h6>
                         <div id="task-type-filters">
@@ -59,7 +59,7 @@
 
                     <!-- Botones de acción -->
                     <div class="d-grid gap-2">
-                        <a class="btn btn-primary" href="{% url 'create_task' %}">
+                        <a class="btn btn-primary" href="{% url 'treatment-create' %}">
                             <i class="fa fa-plus-circle me-2"></i>Nuevo Tratamiento
                         </a>
                     </div>
@@ -90,7 +90,7 @@
     </div>
 </div>
 
-<!-- Panel de detalles de tarea (oculto inicialmente) -->
+<!-- Panel de detalles de tratamiento (oculto inicialmente) -->
 <div aria-hidden="true" aria-labelledby="detailsModalTitle" class="modal fade" id="task-detail"
      tabindex="-1">
     <div class="modal-dialog">

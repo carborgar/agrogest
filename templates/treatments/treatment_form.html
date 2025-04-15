@@ -169,11 +169,11 @@
                                         <i class="bi bi-arrow-left me-2"></i>Volver
                                     </button>
                                     <div>
-                                        <a class="btn btn-outline-secondary me-2" href="{% url 'task_list' %}">
+                                        <a class="btn btn-outline-secondary me-2" href="{% url 'treatment-list' %}">
                                             <i class="bi bi-x-circle me-2"></i>Cancelar
                                         </a>
                                         <button class="btn btn-primary" type="submit">
-                                            <i class="bi bi-check-circle me-2"></i>Guardar Tarea
+                                            <i class="bi bi-check-circle me-2"></i>Guardar tratamiento
                                         </button>
                                     </div>
                                 </div>
@@ -228,12 +228,12 @@
         }
 
         async function loadFieldsData() {
-            fields = Object.fromEntries((await fetchData('/api/fields/')).map(field => [field.id, field]));
+            fields = Object.fromEntries((await fetchData(API_URLS.fields)).map(field => [field.id, field]));
             updateFieldInfo();
         }
 
         async function loadMachinesData() {
-            machines = Object.fromEntries((await fetchData('/api/machines/')).map(machine => [machine.id, machine]));
+            machines = Object.fromEntries((await fetchData(API_URLS.machines)).map(machine => [machine.id, machine]));
             updateMachineInfo();
         }
 
@@ -243,7 +243,7 @@
                 return;
             }
 
-            products = Object.fromEntries((await fetchData(`/api/products/${taskType}`)).map(product => [product.id, product]));
+            products = Object.fromEntries((await fetchData(API_URLS.productsByTaskType(taskType))).map(product => [product.id, product]));
 
             updateProductsTableOptions();
         }
@@ -647,7 +647,7 @@
 
             if (validProducts.length === 0) {
                 event.preventDefault();
-                alert('Debe agregar al menos un producto a la tarea');
+                alert('Debe agregar al menos un producto al tratamiento');
                 showStep(2);
                 return false;
             }

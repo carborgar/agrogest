@@ -10,7 +10,7 @@ on:
   workflow_dispatch:  # Permite ejecutar el workflow manualmente
 
 jobs:
-  update-tasks:
+  update-delayed-treatments:
     runs-on: ubuntu-latest
 
     steps:
