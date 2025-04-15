@@ -13,7 +13,7 @@
                 {% bootstrap_form_errors form %}
                 {% bootstrap_formset_errors products_formset %}
 
-                <form id="taskForm" method="post">
+                <form id="treatmentForm" method="post">
                     {% csrf_token %}
 
                     <!-- Indicador de progreso -->
@@ -198,7 +198,7 @@
         // Elementos del formulario
         const elements = {
             fieldSelect: document.getElementById('{{ form.field.id_for_label }}'),
-            taskTypeSelect: document.getElementById('{{ form.type.id_for_label }}'),
+            treatmentTypeSelect: document.getElementById('{{ form.type.id_for_label }}'),
             machineSelect: document.getElementById('{{ form.machine.id_for_label }}'),
             waterPerHaInput: document.getElementById('{{ form.water_per_ha.id_for_label }}'),
             completedDateInput: document.getElementById('{{ form.finish_date.id_for_label }}'),
@@ -207,7 +207,7 @@
             completedDateInfo: document.getElementById('completedDateInfo'),
             addProductBtn: document.getElementById('addProduct'),
             productsTable: document.getElementById('productsTable').querySelector('tbody'),
-            totalFormsInput: document.getElementById('id_taskproduct_set-TOTAL_FORMS'),
+            totalFormsInput: document.getElementById('id_treatmentproduct_set-TOTAL_FORMS'),
             conditionalFields: document.getElementById('conditionalFields'),
             machineFieldGroup: document.getElementById('machineFieldGroup'),
             waterFieldGroup: document.getElementById('waterFieldGroup'),
@@ -237,13 +237,13 @@
             updateMachineInfo();
         }
 
-        async function loadProductsData(taskType = null) {
-            if (!taskType) {
+        async function loadProductsData(treatmentType = null) {
+            if (!treatmentType) {
                 products = {};
                 return;
             }
 
-            products = Object.fromEntries((await fetchData(API_URLS.productsByTaskType(taskType))).map(product => [product.id, product]));
+            products = Object.fromEntries((await fetchData(API_URLS.productsByTreatmentType(treatmentType))).map(product => [product.id, product]));
 
             updateProductsTableOptions();
         }
@@ -447,12 +447,12 @@
             // Actualizar atributos name e id de los elementos internos
             newRow.querySelectorAll('[name]').forEach((input) => {
                 const oldName = input.getAttribute('name');
-                const newName = oldName.replace(/taskproduct_set-\d+-/, `taskproduct_set-${formCount}-`);
+                const newName = oldName.replace(/treatmentproduct_set-\d+-/, `treatmentproduct_set-${formCount}-`);
                 input.setAttribute('name', newName);
 
                 const oldId = input.getAttribute('id');
                 if (oldId) {
-                    const newId = oldId.replace(/id_taskproduct_set-\d+-/, `id_taskproduct_set-${formCount}-`);
+                    const newId = oldId.replace(/id_treatmentproduct_set-\d+-/, `id_treatmentproduct_set-${formCount}-`);
                     input.setAttribute('id', newId);
                 }
             });
@@ -503,7 +503,7 @@
                 row.querySelectorAll('input, select').forEach(el => {
                     ['name', 'id'].forEach(attr => {
                         if (el.hasAttribute(attr)) {
-                            el.setAttribute(attr, el.getAttribute(attr).replace(/taskproduct_set-\d+-/, `taskproduct_set-${index}-`));
+                            el.setAttribute(attr, el.getAttribute(attr).replace(/treatmentproduct_set-\d+-/, `treatmentproduct_set-${index}-`));
                         }
                     });
                 });
@@ -525,7 +525,7 @@
         }
 
         function checkStep1Completion() {
-            const taskType = elements.taskTypeSelect.value;
+            const treatmentType = elements.treatmentTypeSelect.value;
             const fieldSelected = elements.fieldSelect.value;
             const machineSelected = elements.machineSelect.value;
             const waterPerHaValue = elements.waterPerHaInput.value;
@@ -535,13 +535,13 @@
 
             const requiredFieldsFilled =
                 fieldSelected !== '' &&
-                taskType !== '' &&
+                treatmentType !== '' &&
                 nameValue !== '' &&
                 dateValue !== '';
 
             let conditionalFieldsValid = true;
 
-            if (taskType === 'spraying') {
+            if (treatmentType === 'spraying') {
                 conditionalFieldsValid = machineSelected !== '' && waterPerHaValue !== '';
             }
 
@@ -549,8 +549,8 @@
         }
 
         // Manejo de cambio en tipo de tratamiento
-        function handleTaskTypeChange() {
-            const selectedType = elements.taskTypeSelect.value;
+        function handleTreatmentTypeChange() {
+            const selectedType = elements.treatmentTypeSelect.value;
 
             // Mostrar/ocultar los campos condicionales
             if (!selectedType) {
@@ -593,7 +593,7 @@
 
         // Validación de formulario
         function validateForm(event) {
-            const selectedType = elements.taskTypeSelect.value;
+            const selectedType = elements.treatmentTypeSelect.value;
             const nameValue = elements.nameInput.value;
             const dateValue = elements.dateInput.value;
 
@@ -667,13 +667,13 @@
 
         // Añadir event listeners
         elements.fieldSelect.addEventListener('change', updateFieldInfo);
-        elements.taskTypeSelect.addEventListener('change', handleTaskTypeChange);
+        elements.treatmentTypeSelect.addEventListener('change', handleTreatmentTypeChange);
         elements.machineSelect.addEventListener('change', updateMachineInfo);
         elements.waterPerHaInput.addEventListener('input', calculateTotalDoses);
         elements.waterPerHaInput.addEventListener('input', checkStep1Completion);
         elements.machineSelect.addEventListener('change', checkStep1Completion);
         elements.fieldSelect.addEventListener('change', checkStep1Completion);
-        elements.taskTypeSelect.addEventListener('change', checkStep1Completion);
+        elements.treatmentTypeSelect.addEventListener('change', checkStep1Completion);
         elements.completedDateInput.addEventListener('change', validateCompletedDate);
         elements.completedDateInput.addEventListener('change', checkStep1Completion);
         elements.addProductBtn.addEventListener('click', addProductRow);
@@ -682,7 +682,7 @@
 
         // Event listeners para cambio de paso
         elements.nextToProducts.addEventListener('click', async () => {
-            const selectedType = elements.taskTypeSelect.value;
+            const selectedType = elements.treatmentTypeSelect.value;
 
             // Cargar los productos específicos para este tipo antes de mostrar el paso 2
             await loadProductsData(selectedType);
@@ -707,12 +707,12 @@
         document.querySelectorAll('.product-select').forEach(select => select.addEventListener('change', updateProductInfo));
 
         // Validación en envío del formulario
-        document.getElementById('taskForm').addEventListener('submit', validateForm);
+        document.getElementById('treatmentForm').addEventListener('submit', validateForm);
 
         // Inicialización
         await loadFieldsData();
         await loadMachinesData();
-        handleTaskTypeChange();
+        handleTreatmentTypeChange();
         checkStep1Completion();
 
     });

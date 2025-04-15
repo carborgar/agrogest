@@ -13,13 +13,13 @@
     background-color: #fff;
 }
 
-.task-detail {
+.treatment-detail {
     opacity: 0;
     transform: translateY(20px);
     transition: all 0.3s ease-out;
 }
 
-.task-detail.show {
+.treatment-detail.show {
     opacity: 1;
     transform: translateY(0);
 }
@@ -133,17 +133,17 @@
 
 
 /* Estilos de estado de tratamientos */
-.task-pending {
+.treatment-pending {
     background-color: #ffc107 !important;
     color: #212529;
 }
 
-.task-completed {
+.treatment-completed {
     background-color: #28a745 !important;
     color: white;
 }
 
-.task-delayed {
+.treatment-delayed {
     background-color: #dc3545 !important;
     color: white;
 }

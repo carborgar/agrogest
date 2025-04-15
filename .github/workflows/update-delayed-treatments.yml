@@ -27,4 +27,4 @@ jobs:
       - name: Run update command
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: python manage.py update_delayed_tasks
+        run: python manage.py update_delayed_treatments

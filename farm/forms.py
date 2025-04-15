@@ -5,10 +5,10 @@ from django import forms
 from django.forms import BaseInlineFormSet
 from django.forms import inlineformset_factory
 
-from .models import Task, TaskProduct
+from .models import Treatment, TreatmentProduct
 
 
-class TaskForm(forms.ModelForm):
+class TreatmentForm(forms.ModelForm):
     water_per_ha = forms.FloatField(
         help_text="Litros de agua por hectárea",
         required=False  # We'll handle requirement conditionally
@@ -26,16 +26,16 @@ class TaskForm(forms.ModelForm):
     )
 
     class Meta:
-        model = Task
+        model = Treatment
         fields = ['name', 'type', 'date', 'field', 'machine', 'water_per_ha', 'finish_date']
 
     def clean(self):
         cleaned_data = super().clean()
-        task_type = cleaned_data.get('type')
+        treatment_type = cleaned_data.get('type')
         machine = cleaned_data.get('machine')
         water_per_ha = cleaned_data.get('water_per_ha')
 
-        if task_type == 'spraying':
+        if treatment_type == 'spraying':
             if not machine:
                 self.add_error('machine', 'Para tratamientos de pulverización, debe seleccionar una máquina')
 
@@ -43,7 +43,7 @@ class TaskForm(forms.ModelForm):
                 self.add_error('water_per_ha', 'Para tratamientos de pulverización, debe indicar el volumen de caldo')
 
         # Para fertirrigación, asegurar que máquina sea None y water_per_ha sea 0
-        if task_type == 'fertigation':
+        if treatment_type == 'fertigation':
             cleaned_data['machine'] = None
             if water_per_ha is None:  # Solo establecer si es None para no sobreescribir valores existentes
                 cleaned_data['water_per_ha'] = 0
@@ -51,9 +51,9 @@ class TaskForm(forms.ModelForm):
         return cleaned_data
 
 
-class TaskProductForm(forms.ModelForm):
+class TreatmentProductForm(forms.ModelForm):
     class Meta:
-        model = TaskProduct
+        model = TreatmentProduct
         fields = ['product', 'dose']
         widgets = {
             'dose': forms.NumberInput(attrs={'step': '0.01'}),
@@ -67,7 +67,7 @@ class TaskProductForm(forms.ModelForm):
         return dose
 
 
-class BaseTaskProductFormSet(BaseInlineFormSet):
+class BaseTreatmentProductFormSet(BaseInlineFormSet):
     def clean(self):
         """
         Validate that at least one product is being used.
@@ -88,11 +88,11 @@ class BaseTaskProductFormSet(BaseInlineFormSet):
             raise forms.ValidationError("Debe agregar al menos un producto al tratamiento.")
 
 
-TaskProductFormSet = inlineformset_factory(
-    Task,
-    TaskProduct,
-    form=TaskProductForm,
-    formset=BaseTaskProductFormSet,
+TreatmentProductFormSet = inlineformset_factory(
+    Treatment,
+    TreatmentProduct,
+    form=TreatmentProductForm,
+    formset=BaseTreatmentProductFormSet,
     can_delete=True,
     min_num=1,
     extra=0,

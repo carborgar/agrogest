@@ -10,10 +10,10 @@ from django.views.decorators.http import require_POST
 from django.views.generic import ListView, DetailView
 from django.views.generic.edit import CreateView, UpdateView
 
-from .forms import TaskForm, TaskProductFormSet
+from .forms import TreatmentForm, TreatmentProductFormSet
 from .models import Field, ProductType
 from .models import Product
-from .models import Task
+from .models import Treatment
 
 
 class FieldListView(ListView):
@@ -31,32 +31,33 @@ class FieldListView(ListView):
         # Calcula el total de hectáreas
         total_area = fields.aggregate(Sum('area'))['area__sum']
 
-        total_pending_tasks = sum(field.pending_tasks_count() for field in fields)
-        total_delayed_tasks = sum(field.delayed_tasks_count() for field in fields)
+        total_pending_treatments = sum(field.pending_treatments_count() for field in fields)
+        total_delayed_treatments = sum(field.delayed_treatments_count() for field in fields)
 
         context['total_area'] = total_area
-        context['pending_tasks_count'] = total_pending_tasks
-        context['delayed_tasks_count'] = total_delayed_tasks
+        context['pending_treatments_count'] = total_pending_treatments
+        context['delayed_treatments_count'] = total_delayed_treatments
 
-        task_types = Task.TYPE_CHOICES
+        treatment_types = Treatment.TYPE_CHOICES
 
         # Mapeo de iconos para tipos de tratamiento
-        type_map = {  # TODO: esto habría que hacerlo con los campos del modelo, o quitar el icono y listo
+        type_map = {
             'spraying': 'spray-can-sparkles',
             'fertigation': 'droplet',
         }
 
-        # context['fields']: fields
-        context['task_types'] = task_types
+        context['treatment_types'] = treatment_types
         context['type_map'] = type_map
+
+        # TODO: esto no se debe hacer así. Es mejor incluir la carga de valores en el API y cargarlo por JS
 
         return context
 
 
 class TreatmentListView(ListView):
-    model = Task
+    model = Treatment
     template_name = 'treatments/treatment_list.html'
-    context_object_name = 'tasks'
+    context_object_name = 'treatments'
     paginate_by = 6
     ordering = ['-date']
 
@@ -93,8 +94,8 @@ class TreatmentListView(ListView):
 
         context['fields'] = Field.objects.all()
         context['products'] = Product.objects.all()
-        context['type_choices'] = Task.TYPE_CHOICES
-        context['status_choices'] = Task.STATUS_CHOICES
+        context['type_choices'] = Treatment.TYPE_CHOICES
+        context['status_choices'] = Treatment.STATUS_CHOICES
         context['selected_fields'] = self.request.GET.getlist('field')
         context['selected_types'] = self.request.GET.getlist('type')
         context['selected_statuses'] = self.request.GET.getlist('status')
@@ -114,21 +115,21 @@ class TreatmentListView(ListView):
 
 
 class TreatmentDetailView(DetailView):
-    model = Task
+    model = Treatment
     template_name = 'treatments/treatment_detail.html'
-    context_object_name = 'task'
+    context_object_name = 'treatment'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['status_choices'] = Task.STATUS_CHOICES
-        context['products'] = self.object.taskproduct_set.all()
+        context['status_choices'] = Treatment.STATUS_CHOICES
+        context['products'] = self.object.treatmentproduct_set.all()
 
         return context
 
 
 class TreatmentFormView(SuccessMessageMixin, CreateView, UpdateView):
-    model = Task
-    form_class = TaskForm
+    model = Treatment
+    form_class = TreatmentForm
     template_name = 'treatments/treatment_form.html'
 
     def get_success_url(self):
@@ -150,16 +151,16 @@ class TreatmentFormView(SuccessMessageMixin, CreateView, UpdateView):
 
         if self.request.POST:
             if self.object:  # Update operation
-                context['products_formset'] = TaskProductFormSet(
+                context['products_formset'] = TreatmentProductFormSet(
                     self.request.POST, instance=self.object
                 )
             else:  # Create operation
-                context['products_formset'] = TaskProductFormSet(self.request.POST)
+                context['products_formset'] = TreatmentProductFormSet(self.request.POST)
         else:
             if self.object:  # Update operation
-                context['products_formset'] = TaskProductFormSet(instance=self.object)
+                context['products_formset'] = TreatmentProductFormSet(instance=self.object)
             else:  # Create operation
-                context['products_formset'] = TaskProductFormSet()
+                context['products_formset'] = TreatmentProductFormSet()
 
         return context
 
@@ -167,12 +168,12 @@ class TreatmentFormView(SuccessMessageMixin, CreateView, UpdateView):
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         form = self.get_form()
-        task_product_formset = TaskProductFormSet(request.POST, instance=self.object)
+        treatment_product_formset = TreatmentProductFormSet(request.POST, instance=self.object)
 
-        if form.is_valid() and task_product_formset.is_valid():
+        if form.is_valid() and treatment_product_formset.is_valid():
             self.object = form.save()
-            task_product_formset.instance = self.object
-            task_product_formset.save()
+            treatment_product_formset.instance = self.object
+            treatment_product_formset.save()
             return self.form_valid(form)
         else:
             return self.form_invalid(form)
@@ -181,7 +182,7 @@ class TreatmentFormView(SuccessMessageMixin, CreateView, UpdateView):
 def treatment_calendar(request):
     """Vista para el calendario de tratamientos"""
     fields = Field.objects.all()
-    task_types = Task.TYPE_CHOICES
+    treatment_types = Treatment.TYPE_CHOICES
 
     # Mapeo de iconos para tipos de tratamiento
     type_map = {  # TODO: esto habría que hacerlo con los campos del modelo, o quitar el icono y listo
@@ -191,7 +192,7 @@ def treatment_calendar(request):
 
     context = {
         'fields': fields,
-        'task_types': task_types,
+        'treatment_types': treatment_types,
         'type_map': type_map
     }
 
@@ -200,18 +201,18 @@ def treatment_calendar(request):
 
 @require_POST
 def finish_treatment(request, pk):
-    task = get_object_or_404(Task, pk=pk)
+    treatment = get_object_or_404(Treatment, pk=pk)
     finish_date = request.POST.get('finish_date')
     if finish_date:
-        task.finish_date = finish_date
-        task.save()
+        treatment.finish_date = finish_date
+        treatment.save()
         return JsonResponse({'success': True})
     return JsonResponse({'success': False}, status=400)
 
 
 @require_POST
 def delete_treatment(request, pk):
-    task = get_object_or_404(Task, pk=pk)
-    task.delete()
-    messages.success(request, 'Tratamiento "{}" eliminado'.format(task.name))
+    treatment = get_object_or_404(Treatment, pk=pk)
+    treatment.delete()
+    messages.success(request, 'Tratamiento "{}" eliminado'.format(treatment.name))
     return redirect('treatment-list')

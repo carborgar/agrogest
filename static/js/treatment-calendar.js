@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         buttonText: { today: 'Hoy', month: 'Mes', list: 'Lista' },
         events: fetchEvents,
-        eventClick: (info) => loadTaskDetail(info.event),
+        eventClick: (info) => loadTreatmentDetail(info.event),
         eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false }
     });
 
@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Manejo de filtros
     const filterAll = document.getElementById('filter-all');
     const fieldCheckboxes = document.querySelectorAll('.field-checkbox');
-    const typeCheckboxes = document.querySelectorAll('.task-type-checkbox');
+    const typeCheckboxes = document.querySelectorAll('.treatment-type-checkbox');
 
     function updateFilters() {
         const anyChecked = [...fieldCheckboxes].some(cb => cb.checked);
@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function () {
             start: info.startStr.split('T')[0],
             end: info.endStr.split('T')[0],
             fields: [...document.querySelectorAll('.field-checkbox:checked')].map(cb => cb.value).join(','),
-            types: [...document.querySelectorAll('.task-type-checkbox:checked')].map(cb => cb.value).join(',')
+            types: [...document.querySelectorAll('.treatment-type-checkbox:checked')].map(cb => cb.value).join(',')
         });
 
         fetch(`${API_URLS.treatments}?${params.toString()}`)
@@ -58,32 +58,32 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
 
-    function formatEvent(task) {
+    function formatEvent(treatment) {
         return {
-            id: task.id,
-            title: task.name,
-            start: task.date,
-            end: task.date,
-            className: getStatusClass(task.status),
-            extendedProps: task
+            id: treatment.id,
+            title: treatment.name,
+            start: treatment.date,
+            end: treatment.date,
+            className: getStatusClass(treatment.status),
+            extendedProps: treatment
         };
     }
 
     function getStatusClass(status) {
         return {
-            completed: 'task-completed',
-            delayed: 'task-delayed'
-        }[status] || 'task-pending';
+            completed: 'treatment-completed',
+            delayed: 'treatment-delayed'
+        }[status] || 'treatment-pending';
     }
 
     // Carga de detalles bajo demanda
-    function loadTaskDetail(event) {
-        const taskId = event.id;
-        const taskTitle = event.title;
-        const taskModal = document.getElementById("task-detail");
+    function loadTreatmentDetail(event) {
+        const treatmentId = event.id;
+        const treatmentTitle = event.title;
+        const treatmentModal = document.getElementById("treatment-detail");
 
         // Mostrar información básica disponible inmediatamente
-        document.querySelector('.task-title').textContent = taskTitle;
+        document.querySelector('.treatment-title').textContent = treatmentTitle;
         document.getElementById('detail-date').textContent = formatDate(event.start);
 
         // Mostrar indicadores de carga para los datos que vendrán del endpoint
@@ -93,28 +93,28 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('detail-machine').textContent = 'Cargando...';
         document.getElementById('detail-water').textContent = 'Cargando...';
         document.getElementById('detail-products').innerHTML = '<tr><td colspan="3" class="text-center">Cargando productos...</td></tr>';
-        document.getElementById('view-task').href = `/tratamientos/${taskId}`;
+        document.getElementById('view-treatment').href = `/tratamientos/${treatmentId}`;
 
         // Mostrar el modal inmediatamente mientras se cargan los datos
-        new bootstrap.Modal(taskModal).show();
+        new bootstrap.Modal(treatmentModal).show();
 
         // Cargar detalles completos desde el endpoint separado
-        fetch(API_URLS.treatmentDetail(taskId))
+        fetch(API_URLS.treatmentDetail(treatmentId))
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Error al cargar los detalles del tratamiento');
                 }
                 return response.json();
             })
-            .then(taskData => {
+            .then(treatmentData => {
                 // Actualizar el modal con los datos recibidos
-                document.getElementById('detail-field').textContent = taskData.field_name;
-                document.getElementById('detail-type').textContent = taskData.type_display;
-                document.getElementById('detail-status').textContent = taskData.status_display;
-                document.getElementById('detail-machine').textContent = taskData.machine_name || 'No asignada';
-                document.getElementById('detail-water').textContent = taskData.water_per_ha;
-                fillProducts(taskData.products);
-                document.getElementById('view-task').style.display = taskData.status === 'completed' ? 'none' : 'block';
+                document.getElementById('detail-field').textContent = treatmentData.field_name;
+                document.getElementById('detail-type').textContent = treatmentData.type_display;
+                document.getElementById('detail-status').textContent = treatmentData.status_display;
+                document.getElementById('detail-machine').textContent = treatmentData.machine_name || 'No asignada';
+                document.getElementById('detail-water').textContent = treatmentData.water_per_ha;
+                fillProducts(treatmentData.products);
+                document.getElementById('view-treatment').style.display = treatmentData.status === 'completed' ? 'none' : 'block';
             })
             .catch(error => {
                 console.error('Error:', error);

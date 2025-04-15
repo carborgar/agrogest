@@ -79,17 +79,17 @@ footer {
     color: #6c757d;
 }
 
-.task-pending {
+.treatment-pending {
     background-color: #ffc107;
     border-color: #ffc107;
 }
 
-.task-completed {
+.treatment-completed {
     background-color: #198754;
     border-color: #198754;
 }
 
-.task-delayed {
+.treatment-delayed {
     background-color: #dc3545;
     border-color: #dc3545;
 }

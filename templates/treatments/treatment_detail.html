@@ -4,16 +4,16 @@
 
 {% block header %}
 <div class="d-flex justify-content-between align-items-center">
-    <span>{{ task.name }}</span>
+    <span>{{ treatment.name }}</span>
 
     <div class="dropdown">
         <button aria-expanded="false" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown"
-                id="taskActionsDropdown" type="button">
+                id="treatmentActionsDropdown" type="button">
             <i class="fa fa-cog me-1"></i><span class="d-none d-sm-inline">Acciones</span>
         </button>
-        <ul aria-labelledby="taskActionsDropdown" class="dropdown-menu dropdown-menu-end dropdown-menu-light">
-            {% if not task.is_completed %}
-            <li><a class="dropdown-item" href="#" onclick="finishTask({{ task.id }}); return false;">
+        <ul aria-labelledby="treatmentActionsDropdown" class="dropdown-menu dropdown-menu-end dropdown-menu-light">
+            {% if not treatment.is_completed %}
+            <li><a class="dropdown-item" href="#" onclick="finishTreatment({{ treatment.id }}); return false;">
                 <i class="fa fa-check-circle me-2 text-success"></i>Finalizar tratamiento
             </a></li>
             <li>
@@ -38,30 +38,30 @@
             <div class="card-body">
                 <dl class="row">
                     <dt class="col-sm-4">Tipo:</dt>
-                    <dd class="col-sm-8">{{ task.get_type_display }}</dd>
+                    <dd class="col-sm-8">{{ treatment.get_type_display }}</dd>
 
                     <dt class="col-sm-4">Estado:</dt>
                     <dd class="col-sm-8">
-                        <span class="badge bg-{{ task.state_class }}">{{ task.status_display }}</span>
+                        <span class="badge bg-{{ treatment.state_class }}">{{ treatment.status_display }}</span>
                     </dd>
 
                     <dt class="col-sm-4">Fecha:</dt>
-                    <dd class="col-sm-8">{{ task.date|date:"d/m/Y" }}</dd>
+                    <dd class="col-sm-8">{{ treatment.date|date:"d/m/Y" }}</dd>
 
-                    {% if task.finish_date %}
+                    {% if treatment.finish_date %}
                     <dt class="col-sm-4">Fecha finalización:</dt>
-                    <dd class="col-sm-8">{{ task.finish_date|date:"d/m/Y" }}</dd>
+                    <dd class="col-sm-8">{{ treatment.finish_date|date:"d/m/Y" }}</dd>
                     {% endif %}
 
                     <dt class="col-sm-4">Parcela:</dt>
-                    <dd class="col-sm-8">{{ task.field.name }} - {{ task.field.crop }}, {{ task.field.area }} ha</dd>
+                    <dd class="col-sm-8">{{ treatment.field.name }} - {{ treatment.field.crop }}, {{ treatment.field.area }} ha</dd>
 
-                    {% if task.machine %}
+                    {% if treatment.machine %}
                     <dt class="col-sm-4">Maquinaria:</dt>
-                    <dd class="col-sm-8">{{ task.machine.name }} ({{ task.machine.capacity }} litros)</dd>
+                    <dd class="col-sm-8">{{ treatment.machine.name }} ({{ treatment.machine.capacity }} litros)</dd>
 
                     <dt class="col-sm-4">Mojado:</dt>
-                    <dd class="col-sm-8">{{ task.water_per_ha }} litros/ha</dd>
+                    <dd class="col-sm-8">{{ treatment.water_per_ha }} litros/ha</dd>
                     {% endif %}
                 </dl>
             </div>
@@ -95,13 +95,13 @@
     </div>
 </div>
 
-{% if task.machine %}
+{% if treatment.machine %}
 <div class="card mb-4 shadow-sm">
     <div class="card-header bg-primary text-white">
         <h3 class="mb-0">Instrucciones para Operador</h3>
     </div>
     <div class="card-body">
-        <h4>Por cada máquina completa ({{ task.machine.capacity }} litros):</h4>
+        <h4>Por cada máquina completa ({{ treatment.machine.capacity }} litros):</h4>
         <div class="row">
             {% for product in products %}
             <div class="col-6 col-sm-3 mb-3">
@@ -110,15 +110,15 @@
                         <h5 class="card-title text-primary">{{ product.product.name }}</h5>
                         <p class="card-text">
                             {% if 'ha' in product.dose_type %}
-                            {% with area_per_load=task.machine.capacity|divide:task.water_per_ha %}
+                            {% with area_per_load=treatment.machine.capacity|divide:treatment.water_per_ha %}
                             <strong>{{ product.dose|multiply:area_per_load|floatformat:2 }}
                                 {{ product.total_dose_unit }}</strong>
                             {% endwith %}
                             {% elif '1000l' in product.dose_type %}
-                            <strong>{{ product.dose|multiply:task.machine.capacity|divide:1000|floatformat:2 }}
+                            <strong>{{ product.dose|multiply:treatment.machine.capacity|divide:1000|floatformat:2 }}
                                 {{ product.total_dose_unit }}</strong>
                             {% elif '2000l' in product.dose_type %}
-                            <strong>{{ product.dose|multiply:task.machine.capacity|divide:2000|floatformat:2 }}
+                            <strong>{{ product.dose|multiply:treatment.machine.capacity|divide:2000|floatformat:2 }}
                                 {{ product.total_dose_unit }}</strong>
                             {% endif %}
                         </p>
@@ -132,7 +132,7 @@
 {% endif %}
 
 <!-- Formulario oculto para las acciones de eliminación -->
-<form action="{% url 'treatment-delete' task.id %}" id="deleteForm" method="POST" style="display: none;">
+<form action="{% url 'treatment-delete' treatment.id %}" id="deleteForm" method="POST" style="display: none;">
     {% csrf_token %}
 </form>
 
@@ -141,7 +141,7 @@
 {% block extra_js %}
 <script>
     // Función para finalizar tratamiento
-    function finishTask(taskId) {
+    function finishTreatment(treatmentId) {
         Swal.fire({
             target: '#swal-container',
             title: 'Finalizar tratamiento',
@@ -167,8 +167,8 @@
             heightAuto: false
         }).then((result) => {
             if (result.isConfirmed) {
-                showLoading('Procesando...', 'Registrando finalización del tratamiento');
-                fetch(`{% url 'treatment-finish' 0 %}`.replace('0', taskId), {
+                showLoading('Procesando...', 'Marcando como finalizado');
+                fetch(`{% url 'treatment-finish' 0 %}`.replace('0', treatmentId), {
                     method: 'POST',
                     headers: {'X-CSRFToken': '{{ csrf_token }}'},
                     body: new URLSearchParams({ finish_date: result.value.finishDate })
@@ -193,36 +193,6 @@
                     });
                 });
             }
-        });
-    }
-
-    // Procesar la finalización del tratamiento
-    function processFinishTask(taskId, finishDate) {
-        // Mostrar indicador de carga
-        showLoadingAlert('Procesando...', 'Registrando finalización del tratamiento');
-
-        // Enviar al servidor
-        fetch(`{% url 'treatment-finish' 0 %}`.replace('0', taskId), {
-            method: 'POST',
-            headers: {'X-CSRFToken': '{{ csrf_token }}'},
-            body: new URLSearchParams({finish_date: finishDate})
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Error al finalizar el tratamiento');
-            }
-            return response.json();
-        })
-        .then(() => {
-            showNotification({
-                icon: 'success',
-                title: '¡Éxito!',
-                text: 'Tratamiento finalizado correctamente',
-                reload: true
-            });
-        })
-        .catch(error => {
-            showNotification('error', 'Error', 'Hubo un problema al finalizar el tratamiento. Por favor, verifica la fecha e inténtalo de nuevo.');
         });
     }
 

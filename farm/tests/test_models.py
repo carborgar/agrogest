@@ -4,31 +4,31 @@ from decimal import Decimal
 from django.test import TestCase
 from django.utils import timezone
 
-from farm.models import Field, Machine, ProductType, Product, Task, TaskProduct
+from farm.models import Field, Machine, ProductType, Product, Treatment, TreatmentProduct
 
 
-class TaskProductModelTest(TestCase):
+class TreatmentProductModelTest(TestCase):
     def setUp(self):
         # Setup básico
         self.field = Field.objects.create(name="Campo A", area=10, crop="Maíz", planting_year=2022)
         self.machine = Machine.objects.create(name="Pulverizadora", type="Pulverizador", capacity=500)
         self.product_type = ProductType.objects.create(name="Fitosanitario")
-        self.task = Task.objects.create(name="Tratamiento de prueba", type="spraying", date=timezone.now().date(),
-                                        water_per_ha=850, field=self.field)
+        self.treatment = Treatment.objects.create(name="Tratamiento de prueba", type="spraying", date=timezone.now().date(),
+                                                  water_per_ha=850, field=self.field)
 
     def create_treatment_product(self, product, dose, dose_type):
-        task_product = TaskProduct.objects.create(
-            task=self.task,
+        treatment_product = TreatmentProduct.objects.create(
+            treatment=self.treatment,
             product=product,
             dose=dose,
             dose_type=dose_type,
             total_dose=0,
             total_dose_unit="L"
         )
-        task_product.calculate_total_dose()
-        return task_product
+        treatment_product.calculate_total_dose()
+        return treatment_product
 
-    def test_task_product_total_dose_calculation(self):
+    def test_treatment_product_total_dose_calculation(self):
         """
         Verifica que la dosis total (total_dose) se calcule correctamente para cada tipo de dosis.
         """
@@ -46,7 +46,7 @@ class TaskProductModelTest(TestCase):
             ("spraying", "Producto Porcentaje", 10, "pct", 850, 'L'),
         ]
 
-        for task_type, product_name, dose, dose_type, expected_dose, expected_unit in test_cases:
+        for treatment_type, product_name, dose, dose_type, expected_dose, expected_unit in test_cases:
             # Crear el producto y el tratamiento según el tipo de aplicación
             product = Product.objects.create(
                 name=product_name,
@@ -56,25 +56,25 @@ class TaskProductModelTest(TestCase):
                 spraying_dose_type=dose_type,
             )
 
-            # Crear y calcular el TaskProduct
-            task_product = self.create_treatment_product(product, dose, dose_type)
+            # Crear y calcular el TreatmentProduct
+            treatment_product = self.create_treatment_product(product, dose, dose_type)
 
             # Comprobamos la dosis total y la unidad con el método extraído
-            self._assert_dose_and_unit(task_product, Decimal(expected_dose), expected_unit)
+            self._assert_dose_and_unit(treatment_product, Decimal(expected_dose), expected_unit)
 
-    def _assert_dose_and_unit(self, task_product, expected_dose, expected_unit):
+    def _assert_dose_and_unit(self, treatment, expected_dose, expected_unit):
         """Método para verificar la dosis total y la unidad de dosis"""
-        self.assertEqual(task_product.total_dose, expected_dose)
-        self.assertEqual(task_product.total_dose_unit, expected_unit)
+        self.assertEqual(treatment.total_dose, expected_dose)
+        self.assertEqual(treatment.total_dose_unit, expected_unit)
 
-    def test_task_product_dose_unit(self):
+    def test_treatment_product_dose_unit(self):
         # Setup inicial
-        task = Task.objects.create(name="Test Task", type="spraying", date=date.today(), field=self.field,
-                                   water_per_ha=10)
+        treatment = Treatment.objects.create(name="Test Treatment", type="spraying", date=date.today(), field=self.field,
+                                        water_per_ha=10)
         product = Product.objects.create(name="Test Product", type="fertilizer", spraying_dose=5,
                                          spraying_dose_type='l_per_1000l')
 
-        task_product = TaskProduct.objects.create(task=task, product=product, dose=5)
+        treatment_product = TreatmentProduct.objects.create(treatment=treatment, product=product, dose=5)
 
         # Lista de dosis y sus unidades esperadas
         dose_data = [
@@ -92,19 +92,19 @@ class TaskProductModelTest(TestCase):
             product.save()
 
             # Calculamos la dosis total
-            task_product.calculate_total_dose()
+            treatment_product.calculate_total_dose()
 
             # Comprobamos el resultado
-            self.assertEqual(task_product.total_dose_unit, expected_unit)
+            self.assertEqual(treatment_product.total_dose_unit, expected_unit)
 
-    def test_task_product_unique_together(self):
+    def test_treatment_product_unique_together(self):
         with self.assertRaises(Exception):
-            TaskProduct.objects.create(
-                task=self.task, product=self.product, dose=3, dose_type="l_per_ha", total_dose=0, total_dose_unit="L"
+            TreatmentProduct.objects.create(
+                treatment=self.treatment, product=self.product, dose=3, dose_type="l_per_ha", total_dose=0, total_dose_unit="L"
             )
 
 
-class TaskStatusModelTest(TestCase):
+class TreatmentStatusModelTest(TestCase):
     def setUp(self):
         # Setup básico
         self.field = Field.objects.create(name="Campo A", area=10, crop="Maíz", planting_year=2022)
@@ -112,138 +112,138 @@ class TaskStatusModelTest(TestCase):
         self.yesterday = self.today - timedelta(days=1)
         self.tomorrow = self.today + timedelta(days=1)
 
-    def test_task_status_on_create(self):
+    def test_treatment_status_on_create(self):
         """Verifica que el estado se asigne correctamente al crear un tratamiento"""
 
         # Tratamiento con fecha futura debe ser pendiente
-        future_task = Task.objects.create(
-            name="Tratamiento futura",
+        future_treatment = Treatment.objects.create(
+            name="Tratamiento futuro",
             type="spraying",
             date=self.tomorrow,
             field=self.field
         )
-        self.assertEqual(future_task.status, 'pending')
+        self.assertEqual(future_treatment.status, 'pending')
 
         # Tratamiento con fecha pasada debe ser atrasado
-        past_task = Task.objects.create(
+        past_treatment = Treatment.objects.create(
             name="Tratamiento pasado",
             type="spraying",
             date=self.yesterday,
             field=self.field
         )
-        self.assertEqual(past_task.status, 'delayed')
+        self.assertEqual(past_treatment.status, 'delayed')
 
         # Tratamiento con fecha pasada, pero completado, debe ser completado
-        completed_task = Task.objects.create(
+        completed_treatment = Treatment.objects.create(
             name="Tratamiento completado",
             type="spraying",
             date=self.yesterday,
             finish_date=self.today,
             field=self.field
         )
-        self.assertEqual(completed_task.status, 'completed')
+        self.assertEqual(completed_treatment.status, 'completed')
 
-    def test_task_created_with_finish_date(self):
+    def test_treatment_created_with_finish_date(self):
         """Verifica que un tratamiento creado con fecha de finalización tenga estado completado"""
 
         # Crear tratamiento con fecha en el pasado pero ya completado
-        task_past = Task.objects.create(
+        treatment_past = Treatment.objects.create(
             name="Tratamiento pasado completado",
             type="spraying",
             date=self.yesterday,
             finish_date=self.yesterday,  # Ya tiene fecha de finalización
             field=self.field
         )
-        self.assertEqual(task_past.status, 'completed')
+        self.assertEqual(treatment_past.status, 'completed')
 
         # Crear tratamiento con fecha futura pero ya marcado como completado
-        task_future = Task.objects.create(
-            name="Tratamiento futura completado",
+        treatment_future = Treatment.objects.create(
+            name="Tratamiento futuro completado",
             type="spraying",
             date=self.tomorrow,
             finish_date=self.today,  # Ya tiene fecha de finalización
             field=self.field
         )
-        self.assertEqual(task_future.status, 'completed')
+        self.assertEqual(treatment_future.status, 'completed')
 
-    def test_task_status_on_update(self):
+    def test_treatment_status_on_update(self):
         """Verifica que el estado se actualice correctamente al modificar un tratamiento"""
 
         # Crear tratamiento pendiente
-        task = Task.objects.create(
+        treatment = Treatment.objects.create(
             name="Tratamiento de prueba",
             type="spraying",
             date=self.tomorrow,
             field=self.field
         )
-        self.assertEqual(task.status, 'pending')
+        self.assertEqual(treatment.status, 'pending')
 
         # Cambiar a completado
-        task.finish_date = self.today
-        task.save()
-        self.assertEqual(task.status, 'completed')
+        treatment.finish_date = self.today
+        treatment.save()
+        self.assertEqual(treatment.status, 'completed')
 
         # Quitar fecha de finalización
-        task.finish_date = None
-        task.save()
-        self.assertEqual(task.status, 'pending')
+        treatment.finish_date = None
+        treatment.save()
+        self.assertEqual(treatment.status, 'pending')
 
         # Cambiar fecha a pasada
-        task.date = self.yesterday
-        task.save()
-        self.assertEqual(task.status, 'delayed')
+        treatment.date = self.yesterday
+        treatment.save()
+        self.assertEqual(treatment.status, 'delayed')
 
     def test_status_consistency_with_methods(self):
         """Verifica que los métodos is_pending, is_completed, is_delayed
         sean consistentes con el campo status"""
 
         # Tratamiento pendiente
-        pending_task = Task.objects.create(
+        pending_treatment = Treatment.objects.create(
             name="Tratamiento pendiente",
             type="spraying",
             date=self.tomorrow,
             field=self.field
         )
-        self.assertTrue(pending_task.is_pending())
-        self.assertFalse(pending_task.is_completed())
-        self.assertFalse(pending_task.is_delayed())
+        self.assertTrue(pending_treatment.is_pending())
+        self.assertFalse(pending_treatment.is_completed())
+        self.assertFalse(pending_treatment.is_delayed())
 
         # Tratamiento completado
-        completed_task = Task.objects.create(
+        completed_treatment = Treatment.objects.create(
             name="Tratamiento completado",
             type="spraying",
             date=self.today,
             finish_date=self.today,
             field=self.field
         )
-        self.assertFalse(completed_task.is_pending())
-        self.assertTrue(completed_task.is_completed())
-        self.assertFalse(completed_task.is_delayed())
+        self.assertFalse(completed_treatment.is_pending())
+        self.assertTrue(completed_treatment.is_completed())
+        self.assertFalse(completed_treatment.is_delayed())
 
         # Tratamiento atrasado
-        delayed_task = Task.objects.create(
+        delayed_treatment = Treatment.objects.create(
             name="Tratamiento atrasado",
             type="spraying",
             date=self.yesterday,
             field=self.field
         )
-        self.assertFalse(delayed_task.is_pending())
-        self.assertFalse(delayed_task.is_completed())
-        self.assertTrue(delayed_task.is_delayed())
+        self.assertFalse(delayed_treatment.is_pending())
+        self.assertFalse(delayed_treatment.is_completed())
+        self.assertTrue(delayed_treatment.is_delayed())
 
-    def test_task_status_display_and_classes(self):
+    def test_treatment_status_display_and_classes(self):
         """Verifica que los métodos auxiliares para mostrar en templates
         devuelvan valores correctos"""
 
         # Crear tratamientos con diferentes estados
-        pending_task = Task.objects.create(
+        pending_treatment = Treatment.objects.create(
             name="Tratamiento pendiente",
             type="spraying",
             date=self.tomorrow,
             field=self.field
         )
 
-        completed_task = Task.objects.create(
+        completed_treatment = Treatment.objects.create(
             name="Tratamiento completado",
             type="spraying",
             date=self.today,
@@ -251,7 +251,7 @@ class TaskStatusModelTest(TestCase):
             field=self.field
         )
 
-        delayed_task = Task.objects.create(
+        delayed_treatment = Treatment.objects.create(
             name="Tratamiento atrasado",
             type="spraying",
             date=self.yesterday,
@@ -259,11 +259,11 @@ class TaskStatusModelTest(TestCase):
         )
 
         # Verificar display values
-        self.assertEqual(pending_task.status_display(), 'Pendiente')
-        self.assertEqual(completed_task.status_display(), 'Completado')
-        self.assertEqual(delayed_task.status_display(), 'Atrasado')
+        self.assertEqual(pending_treatment.status_display(), 'Pendiente')
+        self.assertEqual(completed_treatment.status_display(), 'Completado')
+        self.assertEqual(delayed_treatment.status_display(), 'Atrasado')
 
         # Verificar classes para CSS
-        self.assertEqual(pending_task.state_class(), 'warning')
-        self.assertEqual(completed_task.state_class(), 'success')
-        self.assertEqual(delayed_task.state_class(), 'danger')
+        self.assertEqual(pending_treatment.state_class(), 'warning')
+        self.assertEqual(completed_treatment.state_class(), 'success')
+        self.assertEqual(delayed_treatment.state_class(), 'danger')

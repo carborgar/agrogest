@@ -18,7 +18,7 @@ urlpatterns = [
     path('api/fields/', api_views.get_fields, name='api-fields'),
     path('api/machines/', api_views.get_machines, name='api-machines'),
     path('api/products/<str:application_type>/', api_views.get_products, name='api-products'),
-    path('api/treatments/', api_views.get_calendar_tasks, name='api-calendar-treatments'),
-    path('api/treatments/<int:task_id>/', api_views.treatment_detail, name='api-treatment-detail'),
+    path('api/treatments/', api_views.get_calendar_treatments, name='api-calendar-treatments'),
+    path('api/treatments/<int:treatment_id>/', api_views.treatment_detail, name='api-treatment-detail'),
 
 ]

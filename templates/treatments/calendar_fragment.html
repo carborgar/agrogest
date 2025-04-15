@@ -43,10 +43,10 @@
                     <!-- Filtro por tipo de tratamiento -->
                     <div class="mb-4">
                         <h6 class="fw-bold mb-2">Tipo de Tratamiento</h6>
-                        <div id="task-type-filters">
-                            {% for type_value, type_name in task_types %}
+                        <div id="treatment-type-filters">
+                            {% for type_value, type_name in treatment_types %}
                             <div class="form-check">
-                                <input checked class="form-check-input task-type-checkbox"
+                                <input checked class="form-check-input treatment-type-checkbox"
                                        id="filter-type-{{ type_value }}" type="checkbox"
                                        value="{{ type_value }}">
                                 <label class="form-check-label" for="filter-type-{{ type_value }}">
@@ -76,13 +76,13 @@
             <div class="mb-4">
                 <div class="row g-2 calendar-legend">
                     <div class="col-12 col-sm-auto d-flex align-items-center">
-                        <span class="task-pending"></span> Pendiente
+                        <span class="treatment-pending"></span> Pendiente
                     </div>
                     <div class="col-12 col-sm-auto d-flex align-items-center">
-                        <span class="task-completed"></span> Completada
+                        <span class="treatment-completed"></span> Completado
                     </div>
                     <div class="col-12 col-sm-auto d-flex align-items-center">
-                        <span class="task-delayed"></span> Atrasada
+                        <span class="treatment-delayed"></span> Atrasado
                     </div>
                 </div>
             </div>
@@ -91,12 +91,12 @@
 </div>
 
 <!-- Panel de detalles de tratamiento (oculto inicialmente) -->
-<div aria-hidden="true" aria-labelledby="detailsModalTitle" class="modal fade" id="task-detail"
+<div aria-hidden="true" aria-labelledby="detailsModalTitle" class="modal fade" id="treatment-detail"
      tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h1 class="modal-title fs-5 task-title" id="detailsModalTitle">Resumen de tratamiento</h1>
+                <h1 class="modal-title fs-5 treatment-title" id="detailsModalTitle">Resumen de tratamiento</h1>
                 <button aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"></button>
             </div>
             <div class="modal-body">
@@ -132,7 +132,7 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Cerrar</button>
-                <a class="btn btn-primary" id="view-task" type="button"><i class="fa fa-eye"></i>Ver
+                <a class="btn btn-primary" id="view-treatment" type="button"><i class="fa fa-eye"></i>Ver
                     más
                 </a>
             </div>

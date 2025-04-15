@@ -1,6 +1,6 @@
 from django.http import JsonResponse
 
-from .models import Field, Machine, Product, Task
+from .models import Field, Machine, Product, Treatment
 
 
 def get_fields(request):
@@ -50,7 +50,7 @@ def get_products(request, application_type):
     return JsonResponse(products_data, safe=False)
 
 
-def get_calendar_tasks(request):
+def get_calendar_treatments(request):
     """
     API para obtener tratamientos para el calendario
     """
@@ -58,66 +58,66 @@ def get_calendar_tasks(request):
     start_date = request.GET.get('start', None)
     end_date = request.GET.get('end', None)
     field_ids = request.GET.get('fields', '')
-    task_types = request.GET.get('types', '')
+    treatment_types = request.GET.get('types', '')
 
     # Consulta base
-    tasks = Task.objects.all()
+    treatments = Treatment.objects.all()
 
     # Filtrar por fecha
     if start_date:
-        tasks = tasks.filter(date__gte=start_date)
+        treatments = treatments.filter(date__gte=start_date)
     if end_date:
-        tasks = tasks.filter(date__lte=end_date)
+        treatments = treatments.filter(date__lte=end_date)
 
     # Filtrar por campos
     if field_ids and field_ids != 'all':
         field_id_list = [int(id) for id in field_ids.split(',') if id.isdigit()]
         if field_id_list:
-            tasks = tasks.filter(field_id__in=field_id_list)
+            treatments = treatments.filter(field_id__in=field_id_list)
 
     # Filtrar por tipo de tratamiento
-    if task_types:
-        type_list = task_types.split(',')
+    if treatment_types:
+        type_list = treatment_types.split(',')
         if type_list:
-            tasks = tasks.filter(type__in=type_list)
+            treatments = treatments.filter(type__in=type_list)
 
     # Preparar datos para el calendario
     result = []
-    for task in tasks:
-        task_data = {
-            'id': task.id,
-            'name': task.name,
-            'date': task.finish_date.isoformat() if task.finish_date else task.date.isoformat(),
-            'finish_date': task.finish_date.isoformat() if task.finish_date else None,
-            'status': task.status,
-            'status_display': task.status_display(),
-            'type': task.type,
-            'water_per_ha': task.water_per_ha,
+    for t in treatments:
+        treatment_data = {
+            'id': t.id,
+            'name': t.name,
+            'date': t.finish_date.isoformat() if t.finish_date else t.date.isoformat(),
+            'finish_date': t.finish_date.isoformat() if t.finish_date else None,
+            'status': t.status,
+            'status_display': t.status_display(),
+            'type': t.type,
+            'water_per_ha': t.water_per_ha,
         }
 
-        result.append(task_data)
+        result.append(treatment_data)
 
     return JsonResponse(result, safe=False)
 
 
-def treatment_detail(request, task_id):
+def treatment_detail(request, treatment_id):
     try:
-        task = Task.objects.select_related('field', 'machine').prefetch_related('taskproduct_set').get(id=task_id)
-        products = task.taskproduct_set.all()
+        treatment = Treatment.objects.select_related('field', 'machine').prefetch_related('treatmentproduct_set').get(id=treatment_id)
+        products = treatment.treatmentproduct_set.all()
 
         return JsonResponse({
-            'id': task.id,
-            'name': task.name,
-            'date': task.date.isoformat(),
-            'finish_date': task.finish_date.isoformat() if task.finish_date else None,
-            'status': task.status,
-            'status_display': task.status_display(),
-            'type': task.type,
-            'type_display': dict(Task.TYPE_CHOICES).get(task.type, ''),
-            'field': task.field_id,
-            'field_name': task.field.name,
-            'machine_name': str(task.machine) if task.machine else None,
-            'water_per_ha': task.water_per_ha,
+            'id': treatment.id,
+            'name': treatment.name,
+            'date': treatment.date.isoformat(),
+            'finish_date': treatment.finish_date.isoformat() if treatment.finish_date else None,
+            'status': treatment.status,
+            'status_display': treatment.status_display(),
+            'type': treatment.type,
+            'type_display': dict(Treatment.TYPE_CHOICES).get(treatment.type, ''),
+            'field': treatment.field_id,
+            'field_name': treatment.field.name,
+            'machine_name': str(treatment.machine) if treatment.machine else None,
+            'water_per_ha': treatment.water_per_ha,
             'products': [
                 {
                     'id': tp.product.id,
@@ -131,5 +131,5 @@ def treatment_detail(request, task_id):
             ]
         })
 
-    except Task.DoesNotExist:
+    except Treatment.DoesNotExist:
         return JsonResponse({'error': 'Tratamiento no encontrado'}, status=404)

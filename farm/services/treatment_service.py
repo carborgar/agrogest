@@ -1,11 +1,11 @@
-from farm.models import Task, Product
+from farm.models import Treatment, Product
 
 
 def create_treatment(field, machine, product_id, type, date, status="pending"):
     """Crea un tratamiento copiando la dosis y el tipo de dosis del producto."""
     product = Product.objects.get(pk=product_id)
 
-    task = Task.objects.create(
+    treatment = Treatment.objects.create(
         field=field,
         machine=machine,
         type=type,
@@ -16,4 +16,4 @@ def create_treatment(field, machine, product_id, type, date, status="pending"):
         dose_type=product.dose_type
     )
 
-    return task
+    return treatment

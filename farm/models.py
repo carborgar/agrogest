@@ -14,18 +14,18 @@ class Field(models.Model):
     def __str__(self):
         return self.name
 
-    def pending_tasks_count(self):
+    def pending_treatments_count(self):
         # Cuenta los tratamientos pendientes para este campo
-        objs = Task.objects.filter(field=self, finish_date__isnull=True, date__gte=datetime.now().date())
+        objs = Treatment.objects.filter(field=self, status='pending')
         return objs.count()
 
-    def completed_tasks_count(self):
+    def completed_treatments_count(self):
         # Cuenta los tratamientos completados para este campo
-        return Task.objects.filter(field=self, finish_date__isnull=False).count()
+        return Treatment.objects.filter(field=self, status='completed').count()
 
-    def delayed_tasks_count(self):
+    def delayed_treatments_count(self):
         # Cuenta los tratamientos atrasados para este campo
-        return Task.objects.filter(field=self, finish_date__isnull=True, date__lt=datetime.now().date()).count()
+        return Treatment.objects.filter(field=self, status='delayed').count()
 
 
 class Machine(models.Model):
@@ -119,7 +119,7 @@ class Product(models.Model):
         return None
 
 
-class Task(models.Model):
+class Treatment(models.Model):
     TYPE_CHOICES = [
         ('spraying', 'Pulverización'),
         ('fertigation', 'Fertirrigación'),
@@ -139,7 +139,7 @@ class Task(models.Model):
     finish_date = models.DateField(null=True, blank=True)
     field = models.ForeignKey('farm.Field', on_delete=models.CASCADE)
     machine = models.ForeignKey('farm.Machine', on_delete=models.SET_NULL, null=True, blank=True)
-    products = models.ManyToManyField('farm.Product', through='TaskProduct')
+    products = models.ManyToManyField('farm.Product', through='TreatmentProduct')
     water_per_ha = models.IntegerField(help_text="Litros de agua por hectárea", null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
 
@@ -201,8 +201,8 @@ class Task(models.Model):
         return self.water_per_ha
 
 
-class TaskProduct(models.Model):
-    task = models.ForeignKey("Task", on_delete=models.CASCADE)
+class TreatmentProduct(models.Model):
+    treatment = models.ForeignKey("Treatment", on_delete=models.CASCADE)
     product = models.ForeignKey("Product", on_delete=models.CASCADE)
     dose = models.DecimalField(max_digits=10, decimal_places=2)
     dose_type = models.CharField(max_length=20)
@@ -210,16 +210,16 @@ class TaskProduct(models.Model):
     total_dose_unit = models.CharField(max_length=10, choices=[('L', 'Litros'), ('kg', 'Kilogramos')])
 
     class Meta:
-        unique_together = ('task', 'product')  # Evita duplicados
+        unique_together = ('treatment', 'product')  # Evita duplicados
 
     def __str__(self):
-        return f"{self.product.name} en {self.task} - {self.dose}"
+        return f"{self.product.name} en {self.treatment} - {self.dose}"
 
     def calculate_total_dose(self):
         """Calcula la dosis total basada en el tipo de dosis y los parámetros del tratamiento"""
-        # Get the appropriate dose and dose type for the task's application method
-        task_type = self.task.type
-        product_dose_type = self.product.get_dose_for_application(task_type)
+        # Get the appropriate dose and dose type for the treatment's application method
+        treatment_type = self.treatment.type
+        product_dose_type = self.product.get_dose_for_application(treatment_type)
 
         # Almacenar el tipo de dosis apropiado
         self.dose_type = product_dose_type
@@ -231,8 +231,8 @@ class TaskProduct(models.Model):
             self.total_dose_unit = 'L'
 
         # Obtener datos necesarios
-        field_area = self.task.field.area
-        water_per_ha = self.task.water_per_ha
+        field_area = self.treatment.field.area
+        water_per_ha = self.treatment.water_per_ha
 
         # Calcular la dosis total según el tipo de dosis
         if self.dose_type in ['kg_per_1000l', 'l_per_1000l']:

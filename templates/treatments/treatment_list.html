@@ -107,7 +107,7 @@
         border-bottom: 1px solid rgba(0,0,0,0.05);
     }
 
-    #results .task-card {
+    #results .treatment-card {
         transition: transform 0.3s, box-shadow 0.3s;
         height: 100%;
         border-radius: 12px;
@@ -116,7 +116,7 @@
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
 
-    #results .task-card:hover {
+    #results .treatment-card:hover {
         transform: translateY(-5px);
         box-shadow: 0 8px 18px rgba(0,0,0,0.15);
     }
@@ -186,7 +186,7 @@
         color: #6c757d;
     }
 
-    .task-property {
+    .treatment-property {
         display: flex;
         align-items: center;
         margin-bottom: 8px;
@@ -198,14 +198,14 @@
         font-size: 0.75rem;
     }
 
-    .task-date {
+    .treatment-date {
         font-size: 0.85rem;
         color: #6c757d;
         display: flex;
         align-items: center;
     }
 
-    .task-date i {
+    .treatment-date i {
         margin-right: 6px;
     }
 
@@ -465,7 +465,7 @@
             </div>
 
             <div class="card-body p-4" id="results">
-                {% if not tasks %}
+                {% if not treatments %}
                 <div class="alert alert-info d-flex align-items-center" role="alert">
                     <i class="fa fa-info-circle me-3 fs-4"></i>
                     <div>No se encontraron tratamientos con los filtros actuales.</div>
@@ -473,13 +473,13 @@
                 {% endif %}
 
                 <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="cardView">
-                    {% for task in tasks %}
-                    {% include 'treatments/treatment_card.html' with task=task %}
+                    {% for treatment in treatments %}
+                    {% include 'treatments/treatment_card.html' with treatment=treatment %}
                     {% endfor %}
                 </div>
 
                 <div id="listView" class="accordion d-none">
-                    {% include 'treatments/treatment_list_item.html' with tasks=tasks %}
+                    {% include 'treatments/treatment_list_item.html' with treatment_list=treatments %}
                 </div>
 
                 {% if page_obj.has_other_pages %}
@@ -489,11 +489,11 @@
                 {% endif %}
 
                 {% if is_paginated %}
-                    {% with request.GET.urlencode as querystring %}
-                        <div class="d-flex justify-content-center mt-3">
-                        {% bootstrap_pagination page_obj extra="&"|add:querystring %}
-                        </div>
-                    {% endwith %}
+                {% with request.GET.urlencode as querystring %}
+                <div class="d-flex justify-content-center mt-3">
+                    {% bootstrap_pagination page_obj extra="&"|add:querystring %}
+                </div>
+                {% endwith %}
                 {% endif %}
             </div>
         </div>
@@ -518,7 +518,7 @@
             listViewBtn.classList.remove('active');
 
             // Store preference in localStorage
-            localStorage.setItem('taskViewPreference', 'card');
+            localStorage.setItem('treatmentListViewPreference', 'card');
         });
 
         listViewBtn.addEventListener('click', function() {
@@ -528,11 +528,11 @@
             cardViewBtn.classList.remove('active');
 
             // Store preference in localStorage
-            localStorage.setItem('taskViewPreference', 'list');
+            localStorage.setItem('treatmentListViewPreference', 'list');
         });
 
         // Check for stored preference and apply it
-        const storedPreference = localStorage.getItem('taskViewPreference');
+        const storedPreference = localStorage.getItem('treatmentListViewPreference');
         if (storedPreference === 'list') {
             listView.classList.remove('d-none');
             cardView.classList.add('d-none');
