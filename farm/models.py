@@ -201,6 +201,62 @@ class Treatment(SoftDeleteObject):
             return 0
         return self.water_per_ha
 
+    # Añadir al modelo Treatment en models.py
+
+    def calculate_machine_loads(self):
+        """
+        Calcula el número de máquinas completas y parciales necesarias para el tratamiento.
+        """
+        if not self.machine or not self.water_per_ha or self.type != 'spraying':
+            return None
+
+        field_area = self.field.area
+        water_per_ha = self.water_per_ha
+        machine_capacity = self.machine.capacity
+
+        # Total de agua necesaria
+        total_water = field_area * water_per_ha
+
+        # Número de máquinas completas
+        full_loads = int(total_water // machine_capacity)
+
+        # Información sobre carga parcial
+        partial_water = total_water % machine_capacity
+        partial_load = partial_water > 0
+        partial_percentage = (partial_water / machine_capacity) * 100 if partial_load else 0
+
+        return {
+            'total_water': total_water,
+            'full_loads': full_loads,
+            'partial_load': partial_load,
+            'partial_water': partial_water,
+            'partial_percentage': partial_percentage
+        }
+
+    def calculate_product_for_partial_load(self, product_item):
+        """
+        Calcula la cantidad de producto necesario para la carga parcial.
+        """
+        load_info = self.calculate_machine_loads()
+        if not load_info or not load_info['partial_load']:
+            return 0
+
+        partial_water = load_info['partial_water']
+        dose_type = product_item.dose_type
+        dose = product_item.dose
+
+        if 'ha' in dose_type:
+            area_covered = partial_water / self.water_per_ha
+            return float(dose) * area_covered
+        elif '1000l' in dose_type:
+            return float(dose) * partial_water / 1000
+        elif '2000l' in dose_type:
+            return float(dose) * partial_water / 2000
+        elif 'pct' in dose_type:
+            return float(dose) * partial_water / 100
+
+        return 0
+
 
 class TreatmentProduct(SoftDeleteObject):
     treatment = models.ForeignKey("Treatment", on_delete=models.CASCADE)

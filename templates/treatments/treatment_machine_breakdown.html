@@ -1,0 +1,83 @@
+{% load treatment_filters %}
+{% load calculation_filters %}
+{% if treatment.machine and treatment.type == 'spraying' %}
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h3 class="mb-0">Instrucciones para Operador</h3>
+    </div>
+    <div class="card-body">
+        {% with load_info=treatment.calculate_machine_loads %}
+        {% if load_info %}
+        <div class="treatment-summary">
+            <i class="fa fa-info-circle me-2"></i>
+            Total: <strong>{{ load_info.total_water|floatformat:0 }} litros</strong> de agua
+            para <strong>{{ treatment.field.area }} ha</strong> a <strong>{{ treatment.water_per_ha }} l/ha</strong>
+        </div>
+
+        <!-- Productos para máquina completa -->
+        <div class="card mb-3">
+            <div class="card-header machine-header full-machine-header">
+                <h5 class="mb-0"><i class="fa fa-tractor"></i>{{ load_info.full_loads }} máquinas completas con:
+                </h5>
+            </div>
+            <div class="card-body full-machine">
+                <div class="row">
+                    {% for product in products %}
+                    <div class="col-6 col-sm-3 mb-2">
+                        <div class="card product-card">
+                            <div class="card-body">
+                                <h6 class="card-title">{{ product.product.name }}</h6>
+                                <p class="card-text mb-0">
+                                    {% if 'ha' in product.dose_type %}
+                                    {% with area_per_load=treatment.machine.capacity|divide:treatment.water_per_ha %}
+                                    <span class="dose-amount">{{ product.dose|multiply:area_per_load|floatformat:2 }}</span>
+                                    <span class="dose-unit">{{ product.total_dose_unit }}</span>
+                                    {% endwith %}
+                                    {% elif '1000l' in product.dose_type %}
+                                    <span class="dose-amount">{{ product.dose|multiply:treatment.machine.capacity|divide:1000|floatformat:2 }}</span>
+                                    <span class="dose-unit">{{ product.total_dose_unit }}</span>
+                                    {% elif '2000l' in product.dose_type %}
+                                    <span class="dose-amount">{{ product.dose|multiply:treatment.machine.capacity|divide:2000|floatformat:2 }}</span>
+                                    <span class="dose-unit">{{ product.total_dose_unit }}</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Productos para máquina parcial (si existe) -->
+        {% if load_info.partial_load %}
+        <div class="card">
+            <div class="card-header machine-header partial-machine-header">
+                <h5 class="mb-0"><i class="fa fa-fill-drip"></i>1 máquina parcial
+                    ({{ load_info.partial_water|floatformat:0 }} l) con:</h5>
+            </div>
+            <div class="card-body partial-machine">
+                <div class="row">
+                    {% for product in products %}
+                    <div class="col-6 col-sm-3 mb-2">
+                        <div class="card product-card">
+                            <div class="card-body">
+                                <h6 class="card-title">{{ product.product.name }}</h6>
+                                <p class="card-text mb-0">
+                                    {% load treatment_filters %}
+                                    <span class="dose-amount">{{ product|partial_load_product:treatment|floatformat:2 }}</span>
+                                    <span class="dose-unit">{{ product.total_dose_unit }}</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% endif %}
+        {% endwith %}
+    </div>
+</div>
+{% endif %}
