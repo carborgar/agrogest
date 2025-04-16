@@ -201,8 +201,6 @@ class Treatment(SoftDeleteObject):
             return 0
         return self.water_per_ha
 
-    # Añadir al modelo Treatment en models.py
-
     def calculate_machine_loads(self):
         """
         Calcula el número de máquinas completas y parciales necesarias para el tratamiento.
@@ -215,28 +213,24 @@ class Treatment(SoftDeleteObject):
         machine_capacity = self.machine.capacity
 
         # Total de agua necesaria
-        total_water = field_area * water_per_ha
+        total_water = int(field_area * water_per_ha)
 
         # Número de máquinas completas
         full_loads = int(total_water // machine_capacity)
 
         # Información sobre carga parcial
-        partial_water = total_water % machine_capacity
+        partial_water = int(total_water % machine_capacity)
+
         partial_load = partial_water > 0
-        partial_percentage = (partial_water / machine_capacity) * 100 if partial_load else 0
 
         return {
             'total_water': total_water,
             'full_loads': full_loads,
             'partial_load': partial_load,
             'partial_water': partial_water,
-            'partial_percentage': partial_percentage
         }
 
     def calculate_product_for_partial_load(self, product_item):
-        """
-        Calcula la cantidad de producto necesario para la carga parcial.
-        """
         load_info = self.calculate_machine_loads()
         if not load_info or not load_info['partial_load']:
             return 0
@@ -245,17 +239,18 @@ class Treatment(SoftDeleteObject):
         dose_type = product_item.dose_type
         dose = product_item.dose
 
+        result = 0
         if 'ha' in dose_type:
             area_covered = partial_water / self.water_per_ha
-            return float(dose) * area_covered
+            result = float(dose) * area_covered
         elif '1000l' in dose_type:
-            return float(dose) * partial_water / 1000
+            result = float(dose) * partial_water / 1000
         elif '2000l' in dose_type:
-            return float(dose) * partial_water / 2000
+            result = float(dose) * partial_water / 2000
         elif 'pct' in dose_type:
-            return float(dose) * partial_water / 100
+            result = float(dose) * partial_water / 100
 
-        return 0
+        return round(result, 2)
 
 
 class TreatmentProduct(SoftDeleteObject):
@@ -303,6 +298,32 @@ class TreatmentProduct(SoftDeleteObject):
             total_water = water_per_ha * field_area
             self.total_dose = (self.dose / Decimal(100)) * total_water
             self.total_dose_unit = 'L'  # Siempre litros para porcentaje
+
+    def get_dose_per_load(self):
+        """
+        Calcula la dosis de producto por carga de máquina, redondeada a 2 decimales.
+        """
+        machine = self.treatment.machine
+        water_per_ha = self.treatment.water_per_ha
+
+        if not machine or not water_per_ha or not self.dose or not self.dose_type:
+            return None
+
+        capacity = machine.capacity
+
+        if 'ha' in self.dose_type:
+            area_per_load = capacity / water_per_ha
+            value = float(self.dose) * area_per_load
+        elif '1000l' in self.dose_type:
+            value = float(self.dose) * capacity / 1000
+        elif '2000l' in self.dose_type:
+            value = float(self.dose) * capacity / 2000
+        elif 'pct' in self.dose_type:
+            value = float(self.dose) * capacity / 100
+        else:
+            return None
+
+        return round(value, 2)
 
     def save(self, *args, **kwargs):
         # Calculamos la dosis total antes de guardar

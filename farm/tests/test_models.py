@@ -7,14 +7,99 @@ from django.utils import timezone
 from farm.models import Field, Machine, ProductType, Product, Treatment, TreatmentProduct
 
 
+class TreatmentTestCase(TestCase):
+    def setUp(self):
+        # Setup básico de los objetos necesarios para las pruebas
+        self.field = Field.objects.create(name="Campo A", area=4.15, crop="Maíz", planting_year=2022)
+        self.machine = Machine.objects.create(name="Pulverizadora", type="Pulverizador", capacity=2000)
+        self.product_type = ProductType.objects.create(name="Fitosanitario")
+        self.treatment = Treatment.objects.create(
+            name="Tratamiento de prueba", type="spraying", date=timezone.now().date(),
+            water_per_ha=1328, field=self.field, machine=self.machine
+        )
+
+    def test_calculate_machine_loads(self):
+        """
+        Campo de 4.15ha con 1328 L/ha = 5511L necesarios.
+        Pulverizadora de 2000L:
+            → 5511 / 2000 = 2 cargas completas
+            → 5511 % 2000 = 1511L para la carga parcial
+        """
+        result = self.treatment.calculate_machine_loads()
+
+        # Comprobamos que los valores calculados son los correctos
+        self.assertEqual(result['total_water'], 5511)
+        self.assertEqual(result['full_loads'], 2)
+        self.assertTrue(result['partial_load'])
+        self.assertEqual(result['partial_water'], 1511)
+
+    def test_calculate_product_for_partial_load(self):
+        """
+        Producto con dosis de 2.5 L/ha.
+        La carga parcial tiene 1511L de agua → 1511 / 1328 = 1.1378ha tratadas
+        Dosis total para esa superficie: 2.5 * 1.1378 ≈ 2.85L
+        """
+        product = Product.objects.create(
+            name="Producto X",
+            type="pesticide",
+            product_type=self.product_type,
+            spraying_dose=2.5,
+            spraying_dose_type='l_per_ha'
+        )
+        treatment_product = TreatmentProduct.objects.create(
+            treatment=self.treatment,
+            product=product,
+            dose=Decimal('2.5'),
+            dose_type='l_per_ha',
+            total_dose=0,
+            total_dose_unit='L'
+        )
+        amount = self.treatment.calculate_product_for_partial_load(treatment_product)
+        self.assertEqual(amount, 2.84)
+
+    def test_calculate_product_for_partial_load_zero_water_per_ha(self):
+        """
+        Test para verificar que la función maneja correctamente cuando water_per_ha es 0.
+        """
+        # Configuramos el tratamiento sin agua por hectárea
+        self.treatment.water_per_ha = 0
+        self.treatment.save()
+
+        # Creamos un producto de prueba
+        product = Product.objects.create(
+            name="Producto sin agua",
+            type="pesticide",
+            product_type=self.product_type,
+            spraying_dose=2.5,
+            spraying_dose_type='l_per_ha'
+        )
+
+        # Creamos el TreatmentProduct
+        tp = TreatmentProduct.objects.create(
+            treatment=self.treatment,
+            product=product,
+            dose=Decimal(2.5),
+            dose_type='l_per_ha',
+            total_dose=0,
+            total_dose_unit='L'
+        )
+
+        # Ejecutamos el cálculo de la dosis para la carga parcial
+        result = self.treatment.calculate_product_for_partial_load(tp.product)
+
+        # Validamos que el resultado sea cero
+        self.assertEqual(result, 0)
+
+
 class TreatmentProductModelTest(TestCase):
     def setUp(self):
         # Setup básico
         self.field = Field.objects.create(name="Campo A", area=10, crop="Maíz", planting_year=2022)
         self.machine = Machine.objects.create(name="Pulverizadora", type="Pulverizador", capacity=500)
         self.product_type = ProductType.objects.create(name="Fitosanitario")
-        self.treatment = Treatment.objects.create(name="Tratamiento de prueba", type="spraying", date=timezone.now().date(),
-                                                  water_per_ha=850, field=self.field)
+        self.treatment = Treatment.objects.create(name="Tratamiento de prueba", type="spraying",
+                                                  date=timezone.now().date(),
+                                                  water_per_ha=850, field=self.field, machine=self.machine)
 
     def create_treatment_product(self, product, dose, dose_type):
         treatment_product = TreatmentProduct.objects.create(
@@ -69,8 +154,9 @@ class TreatmentProductModelTest(TestCase):
 
     def test_treatment_product_dose_unit(self):
         # Setup inicial
-        treatment = Treatment.objects.create(name="Test Treatment", type="spraying", date=date.today(), field=self.field,
-                                        water_per_ha=10)
+        treatment = Treatment.objects.create(name="Test Treatment", type="spraying", date=date.today(),
+                                             field=self.field,
+                                             water_per_ha=10)
         product = Product.objects.create(name="Test Product", type="fertilizer", spraying_dose=5,
                                          spraying_dose_type='l_per_1000l')
 
@@ -100,8 +186,41 @@ class TreatmentProductModelTest(TestCase):
     def test_treatment_product_unique_together(self):
         with self.assertRaises(Exception):
             TreatmentProduct.objects.create(
-                treatment=self.treatment, product=self.product, dose=3, dose_type="l_per_ha", total_dose=0, total_dose_unit="L"
+                treatment=self.treatment, product=self.product, dose=3, dose_type="l_per_ha", total_dose=0,
+                total_dose_unit="L"
             )
+
+    def test_get_dose_per_load_all_types(self):
+        test_cases = [
+            {'dose': 2.5, 'dose_type': 'l_per_ha', 'expected': 1.47},  # 500 / 850 = 0.588 ha → 2.5 * 0.588 = 1.47
+            {'dose': 3, 'dose_type': 'kg_per_ha', 'expected': 1.76},  # 3 * 0.588 = 1.764 → 1.76
+            {'dose': 5, 'dose_type': 'l_per_1000l', 'expected': 2.5},  # 5 * 500 / 1000 = 2.5
+            {'dose': 10, 'dose_type': 'kg_per_1000l', 'expected': 5.0},  # 10 * 500 / 1000 = 5.0
+            {'dose': 2, 'dose_type': 'pct', 'expected': 10.0},  # 2% de 500 = 10.0
+            {'dose': 2, 'dose_type': 'l_per_2000l', 'expected': 0.5},  # 2 * 500 / 2000 = 0.5
+        ]
+
+        for case in test_cases:
+            with self.subTest(dose_type=case['dose_type']):
+                product = Product.objects.create(
+                    name=f"Producto {case['dose_type']}",
+                    type="pesticide",
+                    product_type=self.product_type,
+                    spraying_dose=case['dose'],
+                    spraying_dose_type=case['dose_type']
+                )
+
+                tp = TreatmentProduct.objects.create(
+                    treatment=self.treatment,
+                    product=product,
+                    dose=Decimal(case['dose']),
+                    dose_type=case['dose_type'],
+                    total_dose=0,
+                    total_dose_unit='L'
+                )
+
+                result = tp.get_dose_per_load()
+                self.assertEqual(result, case['expected'])
 
 
 class TreatmentStatusModelTest(TestCase):

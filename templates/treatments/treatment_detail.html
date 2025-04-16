@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% load calculation_filters %}
 {% load custom_filters %}
 
 {% block title %}{{ treatment.name }}{% endblock %}
@@ -216,7 +215,7 @@
         {% if load_info %}
         <div class="treatment-summary">
             <i class="fa fa-info-circle me-2"></i>
-            Total: <strong>{{ load_info.total_water|floatformat:0 }} litros</strong> de agua
+            Total: <strong>{{ load_info.total_water }} litros</strong> de agua
             para <strong>{{ treatment.field.area }} ha</strong> a <strong>{{ treatment.water_per_ha }} l/ha</strong>
         </div>
 
@@ -234,18 +233,8 @@
                             <div class="card-body">
                                 <h6 class="card-title">{{ product.product.name }}</h6>
                                 <p class="card-text mb-0">
-                                    {% if 'ha' in product.dose_type %}
-                                    {% with area_per_load=treatment.machine.capacity|divide:treatment.water_per_ha %}
-                                    <span class="dose-amount">{{ product.dose|multiply:area_per_load|floatformat:2 }}</span>
+                                    <span class="dose-amount">{{ product.get_dose_per_load }}</span>
                                     <span class="dose-unit">{{ product.total_dose_unit }}</span>
-                                    {% endwith %}
-                                    {% elif '1000l' in product.dose_type %}
-                                    <span class="dose-amount">{{ product.dose|multiply:treatment.machine.capacity|divide:1000|floatformat:2 }}</span>
-                                    <span class="dose-unit">{{ product.total_dose_unit }}</span>
-                                    {% elif '2000l' in product.dose_type %}
-                                    <span class="dose-amount">{{ product.dose|multiply:treatment.machine.capacity|divide:2000|floatformat:2 }}</span>
-                                    <span class="dose-unit">{{ product.total_dose_unit }}</span>
-                                    {% endif %}
                                 </p>
                             </div>
                         </div>
@@ -260,7 +249,7 @@
         <div class="card">
             <div class="card-header machine-header partial-machine-header">
                 <h5 class="mb-0"><i class="fa fa-fill-drip"></i>1 máquina parcial
-                    ({{ load_info.partial_water|floatformat:0 }} l) con:</h5>
+                    ({{ load_info.partial_water }} L) con:</h5>
             </div>
             <div class="card-body partial-machine">
                 <div class="row">
@@ -271,7 +260,7 @@
                                 <h6 class="card-title">{{ product.product.name }}</h6>
                                 <p class="card-text mb-0">
                                     {% load treatment_filters %}
-                                    <span class="dose-amount">{{ product|partial_load_product:treatment|floatformat:2 }}</span>
+                                    <span class="dose-amount">{{ product|partial_load_product:treatment }}</span>
                                     <span class="dose-unit">{{ product.total_dose_unit }}</span>
                                 </p>
                             </div>
