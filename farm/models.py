@@ -77,6 +77,7 @@ class Product(models.Model):
                                              blank=True)
 
     comments = models.TextField(blank=True)
+    price = models.DecimalField(null=True, blank=True, max_digits=10, decimal_places=2)
 
     def get_dose_for_application(self, application_type):
         if application_type == 'spraying':
