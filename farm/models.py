@@ -77,7 +77,7 @@ class Product(models.Model):
                                              blank=True)
 
     comments = models.TextField(blank=True)
-    price = models.DecimalField(null=True, blank=True, max_digits=10, decimal_places=2)
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     def get_dose_for_application(self, application_type):
         if application_type == 'spraying':
@@ -262,6 +262,11 @@ class TreatmentProduct(SoftDeleteObject):
     total_dose = models.DecimalField(max_digits=10, decimal_places=2)
     total_dose_unit = models.CharField(max_length=10, choices=[('L', 'Litros'), ('kg', 'Kilogramos')])
 
+    # Nuevos campos de precio
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # Precio por L o kg
+    total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # Precio total
+    price_per_ha = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # Precio por hectárea
+
     class Meta:
         unique_together = ('treatment', 'product')  # Evita duplicados
 
@@ -329,6 +334,16 @@ class TreatmentProduct(SoftDeleteObject):
     def save(self, *args, **kwargs):
         # Calculamos la dosis total antes de guardar
         self.calculate_total_dose()
+
+        # Guardar el precio unitario del producto (en el momento de crear el tratamiento)
+        self.unit_price = self.product.price
+
+        # Calcular el precio total basado en la dosis total
+        self.total_price = self.unit_price * self.total_dose
+
+        # Calcular el precio por hectárea
+        self.price_per_ha = self.total_price / Decimal(self.treatment.field.area)
+
         super().save(*args, **kwargs)
 
 

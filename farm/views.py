@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db import transaction
@@ -122,7 +124,21 @@ class TreatmentDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['status_choices'] = Treatment.STATUS_CHOICES
-        context['products'] = self.object.treatmentproduct_set.all()
+
+        # Obtener productos
+        products = self.object.treatmentproduct_set.all()
+        context['products'] = products
+
+        # Calcular costos - ahora es mucho más simple
+        total_cost = sum(product.total_price for product in products)
+
+        # Calcular costo por hectárea
+        cost_per_ha = 0
+        if self.object.field and self.object.field.area > 0:
+            cost_per_ha = total_cost / Decimal(self.object.field.area)
+
+        context['total_cost'] = total_cost
+        context['cost_per_ha'] = cost_per_ha
 
         return context
 

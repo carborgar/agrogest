@@ -95,6 +95,54 @@
     .treatment-summary strong {
       color: #0d6efd;
     }
+
+    /* Nuevos estilos para los precios */
+    .price-tag {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #198754;
+    }
+
+    .price-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      margin-top: 0.5rem;
+      padding-top: 0.5rem;
+      border-top: 1px dashed rgba(0, 0, 0, 0.1);
+    }
+
+    .price-item {
+      font-size: 0.8rem;
+      display: flex;
+      flex-direction: column;
+      margin-right: 0.5rem;
+    }
+
+    .price-label {
+      color: #6c757d;
+      font-size: 0.7rem;
+    }
+
+    .price-value {
+      font-weight: 600;
+      color: #198754;
+    }
+
+    /* Ajustes para móviles */
+    @media (max-width: 767.98px) {
+      .product-card {
+        margin-bottom: 0.75rem;
+      }
+
+      .price-container {
+        flex-direction: column;
+      }
+
+      .price-item {
+        margin-bottom: 0.25rem;
+      }
+    }
 </style>
 {% endblock %}
 
@@ -173,13 +221,17 @@
             </div>
             <div class="card-body">
                 <div class="treatment-summary">
-                    <i class="fa fa-leaf me-2"></i>
-                    Total: <strong>{{ products|length }}</strong> productos aplicados en <strong>
-                    {{ treatment.field.name }}</strong>
+                    <i class="fa fa-leaf me-2"></i>Total: <strong>{{ products|length }}</strong> productos aplicados en
+                    <strong>{{ treatment.field.name }}</strong>
+                    {% if total_cost %}
+                    <br>
+                    <i class="fa fa-euro-sign me-2"></i>Coste total: <strong>{{ total_cost|floatformat:2 }}€</strong>
+                    ({{ cost_per_ha|floatformat:2 }} €/ha)
+                    {% endif %}
                 </div>
                 <div class="row">
                     {% for product in products %}
-                    <div class="col-6 col-lg-6 mb-3">
+                    <div class="col-md-6 mb-3">
                         <div class="card product-card"
                              style="background-color: #f8f9fa; border-left: 4px solid #28a745;">
                             <div class="card-body">
@@ -195,6 +247,26 @@
                                     Total: <span class="dose-amount">{{ product.total_dose|floatformat:2 }}</span>
                                     <span class="dose-unit">{{ product.total_dose_unit }}</span>
                                 </p>
+
+                                <!-- Información de precios -->
+                                {% if product.unit_price > 0 %}
+                                <div class="price-container">
+                                    <div class="price-item">
+                                        <span class="price-label">Precio ud</span>
+                                        <span class="price-value">{{ product.unit_price|floatformat:2 }}€</span>
+                                    </div>
+
+                                    <div class="price-item">
+                                        <span class="price-label">Precio total</span>
+                                        <span class="price-value">{{ product.total_price|floatformat:2 }}€</span>
+                                    </div>
+
+                                    <div class="price-item">
+                                        <span class="price-label">Precio/ha</span>
+                                        <span class="price-value">{{ product.price_per_ha|floatformat:2 }}€/ha</span>
+                                    </div>
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
