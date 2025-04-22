@@ -251,7 +251,7 @@ class Treatment(SoftDeleteObject):
         elif 'pct' in dose_type:
             result = float(dose) * partial_water / 100
 
-        return round(result, 2)
+        return round(result, 1)
 
 
 class TreatmentProduct(SoftDeleteObject):
@@ -329,7 +329,7 @@ class TreatmentProduct(SoftDeleteObject):
         else:
             return None
 
-        return round(value, 2)
+        return round(value, 1)
 
     def save(self, *args, **kwargs):
         # Calculamos la dosis total antes de guardar
