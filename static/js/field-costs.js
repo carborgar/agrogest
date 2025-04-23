@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const dateToInput = document.getElementById('dateTo');
     const applyFilterBtn = document.getElementById('applyDateFilter');
     const fieldsContainer = document.getElementById('fieldsContainer');
+    const fieldsInput = document.getElementById('fieldSelector');
 
     // Inicializar fechas (último año por defecto)
     const today = new Date();
@@ -27,6 +28,13 @@ document.addEventListener('DOMContentLoaded', function() {
     function loadFieldCostsData() {
         const dateFrom = dateFromInput.value;
         const dateTo = dateToInput.value;
+        const fieldsList = Array.from(fieldsInput.selectedOptions).map(opt => opt.value);
+
+        // Construir parámetros
+        const params = new URLSearchParams();
+        if (dateFrom) params.append('date_from', dateFrom);
+        if (dateTo) params.append('date_to', dateTo);
+        fieldsList.forEach(id => params.append('field_ids', id));
 
         // Mostrar spinner
         fieldsContainer.innerHTML = `
@@ -39,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
 
         // Hacer petición AJAX
-        fetch(`/api/field-costs-data/?date_from=${dateFrom}&date_to=${dateTo}`)
+        fetch(`${API_URLS.fieldCosts}?${params.toString()}`)
             .then(response => response.json())
             .then(data => {
                 updateDashboard(data);

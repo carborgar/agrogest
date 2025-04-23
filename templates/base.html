@@ -14,11 +14,13 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" rel="stylesheet">
 
     <link href="{% static 'css/styles.css' %}" rel="stylesheet">
     <link href="{% static 'css/calendar.css' %}" rel="stylesheet">
     <link href="{% static 'css/menu.css' %}" rel="stylesheet">
     <link href="{% static 'css/sweetalert2-custom.css' %}" rel="stylesheet">
+    <link href="{% static 'css/choices-bootstrap.css' %}" rel="stylesheet">
 
     {% block extra_head %} {% endblock %}
 </head>
@@ -58,6 +60,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/bootstrap5@6.1.15/index.global.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
 <script>
     function showNotification({ icon = 'info', title = '', text = '', reload = false, onOk = null }) {
@@ -115,7 +118,22 @@
         productsByTreatmentType: (treatmentType) => `{% url 'api-products' 'TIPO' %}`.replace("TIPO", treatmentType),
         treatments: "{% url 'api-calendar-treatments' %}",
         treatmentDetail: (id) => `{% url 'api-treatment-detail' treatment_id=0 %}`.replace("0", id),
+        fieldCosts:  `{% url 'api-field-costs-data' %}`,
     };
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('select:not(.no-choices)').forEach(select => {
+            new Choices(select, {
+                removeItemButton: true,
+                placeholderValue: 'Selecciona opciones',
+                searchPlaceholderValue: 'Buscar...',
+                noResultsText: 'No hay coincidencias',
+                itemSelectText: '',
+            });
+        });
+    });
 </script>
 
 {% block extra_js %} {% endblock %}

@@ -72,7 +72,7 @@ $btn-font-weight: 500;
 // Card hover effect
 .card-hover {
   transition: transform 0.3s, box-shadow 0.3s;
-  
+
   &:hover {
     transform: translateY(-5px);
     box-shadow: 0 0.5rem 1.5rem rgba($gray-900, 0.15);
@@ -113,7 +113,7 @@ $btn-font-weight: 500;
   color: $gray-600;
   margin-right: 0.5rem;
   transition: background-color 0.2s, color 0.2s;
-  
+
   &:hover {
     background-color: $primary;
     color: $white;
