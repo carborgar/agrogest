@@ -20,5 +20,6 @@ urlpatterns = [
     path('api/products/<str:application_type>/', api_views.get_products, name='api-products'),
     path('api/treatments/', api_views.get_calendar_treatments, name='api-calendar-treatments'),
     path('api/treatments/<int:treatment_id>/', api_views.treatment_detail, name='api-treatment-detail'),
+    path('api/field-costs-data/', api_views.field_costs_data, name='field-costs-data'),
 
 ]

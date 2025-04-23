@@ -1,6 +1,8 @@
-from django.http import JsonResponse
+from decimal import Decimal
 
-from .models import Field, Machine, Product, Treatment
+from django.db.models import Sum
+
+from .models import Field, Machine, Product, Treatment, TreatmentProduct
 
 
 def get_fields(request):
@@ -102,7 +104,8 @@ def get_calendar_treatments(request):
 
 def treatment_detail(request, treatment_id):
     try:
-        treatment = Treatment.objects.select_related('field', 'machine').prefetch_related('treatmentproduct_set').get(id=treatment_id)
+        treatment = Treatment.objects.select_related('field', 'machine').prefetch_related('treatmentproduct_set').get(
+            id=treatment_id)
         products = treatment.treatmentproduct_set.all()
 
         return JsonResponse({
@@ -133,3 +136,70 @@ def treatment_detail(request, treatment_id):
 
     except Treatment.DoesNotExist:
         return JsonResponse({'error': 'Tratamiento no encontrado'}, status=404)
+
+
+# Añadir a views.py
+from django.http import JsonResponse
+from django.utils.dateparse import parse_date
+from datetime import datetime, timedelta
+
+
+def field_costs_data(request):
+    # Obtener fechas de filtro o usar valores predeterminados (último año)
+    end_date = datetime.now().date()
+    start_date = end_date - timedelta(days=365)
+
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+
+    if date_from:
+        start_date = parse_date(date_from)
+    if date_to:
+        end_date = parse_date(date_to)
+
+    # Obtener IDs de campos específicos o todos
+    field_ids = request.GET.getlist('field_ids')
+    fields = Field.objects.all()
+    if field_ids:
+        fields = fields.filter(id__in=field_ids)
+
+    # Datos de costes por parcela
+    field_costs = []
+    for field in fields:
+        total_cost = field.get_treatments_cost(start_date, end_date)
+        cost_per_ha = total_cost / Decimal(field.area) if field.area > 0 else 0
+
+        # Obtener desglose por tipo de producto
+        product_types = field.get_cost_by_product_type(start_date, end_date)
+
+        field_costs.append({
+            'id': field.id,
+            'name': field.name,
+            'total_cost': float(total_cost),
+            'cost_per_ha': float(cost_per_ha),
+            'product_types': list(product_types.values('product__product_type__name', 'total')),
+            'area': field.area
+        })
+
+    # Costes totales
+    total_area = sum(field.area for field in fields)
+    total_cost = sum(item['total_cost'] for item in field_costs)
+
+    # Costes por tipo de producto (agregado)
+    product_type_costs = TreatmentProduct.objects.filter(
+        treatment__field__in=fields,
+        treatment__date__gte=start_date,
+        treatment__date__lte=end_date
+    ).values(
+        'product__product_type__name'
+    ).annotate(
+        total=Sum('total_price')
+    ).order_by('-total')
+
+    return JsonResponse({
+        'fields': field_costs,
+        'total_area': total_area,
+        'total_cost': float(total_cost),
+        'cost_per_ha': float(total_cost / total_area) if total_area > 0 else 0,
+        'product_type_costs': list(product_type_costs)
+    })

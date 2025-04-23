@@ -28,6 +28,66 @@ class Field(models.Model):
         # Cuenta los tratamientos atrasados para este campo
         return Treatment.objects.filter(field=self, status='delayed').count()
 
+    def get_treatments_cost(self, start_date=None, end_date=None):
+        """
+        Calcula el costo total de tratamientos para esta parcela en un rango de fechas.
+        Si no se especifican fechas, devuelve el costo total de todos los tratamientos.
+        """
+        from django.db.models import Sum
+        from datetime import datetime, timedelta
+
+        # Si no se proporcionan fechas, usar último año por defecto
+        if not start_date:
+            end_date = datetime.now().date()
+            start_date = end_date - timedelta(days=365)
+
+        treatments = Treatment.objects.filter(field=self)
+        if start_date:
+            treatments = treatments.filter(date__gte=start_date)
+        if end_date:
+            treatments = treatments.filter(date__lte=end_date)
+
+        # Sumar todos los costos de productos asociados a estos tratamientos
+        cost_sum = treatments.annotate(
+            treatment_cost=Sum('treatmentproduct__total_price')
+        ).aggregate(total_cost=Sum('treatment_cost'))
+
+        return cost_sum['total_cost'] or 0
+
+    def get_cost_by_product_type(self, start_date=None, end_date=None):
+        """
+        Devuelve un diccionario con el costo agrupado por tipo de producto
+        """
+        from django.db.models import Sum
+        from datetime import datetime, timedelta
+
+        # Si no se proporcionan fechas, usar último año por defecto
+        if not start_date:
+            end_date = datetime.now().date()
+            start_date = end_date - timedelta(days=365)
+
+        from django.db.models import F
+
+        treatments = Treatment.objects.filter(field=self)
+        if start_date:
+            treatments = treatments.filter(date__gte=start_date)
+        if end_date:
+            treatments = treatments.filter(date__lte=end_date)
+
+        treatment_ids = treatments.values_list('id', flat=True)
+
+        # Agrupar por tipo de producto
+        from django.db.models import Sum
+        cost_by_type = TreatmentProduct.objects.filter(
+            treatment_id__in=treatment_ids
+        ).values(
+            'product__product_type__name'
+        ).annotate(
+            total=Sum('total_price')
+        ).order_by('-total')
+
+        return cost_by_type
+
 
 class Machine(models.Model):
     name = models.CharField(max_length=100)
