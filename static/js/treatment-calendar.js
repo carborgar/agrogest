@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('detail-machine').textContent = treatmentData.machine_name || 'No asignada';
                 document.getElementById('detail-water').textContent = treatmentData.water_per_ha;
                 fillProducts(treatmentData.products);
-                document.getElementById('view-treatment').style.display = treatmentData.status === 'completed' ? 'none' : 'block';
+                document.getElementById('view-treatment').style.display = 'block';
             })
             .catch(error => {
                 console.error('Error:', error);
