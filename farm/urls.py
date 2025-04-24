@@ -1,11 +1,14 @@
 from django.urls import path
+from django.views.generic import RedirectView
 
 from . import api_views
 from . import views
 from .views import TreatmentListView, TreatmentDetailView
 
 urlpatterns = [
-    path("", views.FieldListView.as_view(), name="field_list"),
+    path("", RedirectView.as_view(url="/parcelas/vistazo/", permanent=False)),
+    path("parcelas/vistazo/", views.FieldListView.as_view(), name="field_list"),
+    path("parcelas/gastos/", views.FieldCostView.as_view(), name="field_costs"),
     path('tratamientos/', TreatmentListView.as_view(), name='treatment-list'),
     path('tratamientos/<int:pk>', TreatmentDetailView.as_view(), name='treatment-detail'),
     path('tratamientos/nuevo/', views.TreatmentFormView.as_view(), name='treatment-create'),

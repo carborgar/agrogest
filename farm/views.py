@@ -56,6 +56,15 @@ class FieldListView(ListView):
         return context
 
 
+class FieldCostView(ListView):
+    model = Field
+    template_name = "fields/field_costs.html"
+    context_object_name = "fields"
+
+    def get_queryset(self):
+        return Field.objects.all()
+
+
 class TreatmentListView(ListView):
     model = Treatment
     template_name = 'treatments/treatment_list.html'

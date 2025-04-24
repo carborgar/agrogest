@@ -10,9 +10,15 @@
 
         <ul class="sidebar-nav">
             <li class="sidebar-item">
-                <a class="sidebar-link" href="/">
+                <a class="sidebar-link" href="{% url 'field_list' %}">
                     <i class="fa fa-house"></i>
                     <span class="link-text">Inicio</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="{% url 'field_costs' %}">
+                    <i class="fa fa-coins"></i>
+                    <span class="link-text">Gastos</span>
                 </a>
             </li>
             <li class="sidebar-item">
@@ -39,7 +45,7 @@
         <div class="sidebar-footer">
             {% if user.is_authenticated %}
             <div class="user-menu dropup">
-                <a class="dropdown-toggle" data-bs-toggle="dropdown" href="#" >
+                <a class="dropdown-toggle" data-bs-toggle="dropdown" href="#">
                     <div class="user-avatar">
                         <i class="fa fa-user"></i>
                     </div>
@@ -80,7 +86,7 @@
     <div class="menu-grid container">
         <div class="row g-4 mt-3">
             <div class="col-4 text-center text-truncate">
-                <a class="text-decoration-none text-dark" href="/">
+                <a class="text-decoration-none text-dark" href="{% url 'field_list' %}">
                     <div class="p-3 bg-light rounded-3">
                         <i class="fa fa-house fs-2"></i>
                         <p class="mt-2">Inicio</p>
@@ -102,6 +108,15 @@
                     <div class="p-3 bg-light rounded-3">
                         <i class="fa fa-calendar-days fs-2"></i>
                         <p class="mt-2">Calendario</p>
+                    </div>
+                </a>
+            </div>
+
+            <div class="col-4 text-center text-truncate">
+                <a class="text-decoration-none text-dark" href="{% url 'field_costs' %}">
+                    <div class="p-3 bg-light rounded-3">
+                        <i class="fa fa-coins fs-2"></i>
+                        <p class="mt-2">Gastos</p>
                     </div>
                 </a>
             </div>

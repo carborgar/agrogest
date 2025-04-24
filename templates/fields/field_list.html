@@ -8,217 +8,82 @@
 
 {% block content %}
 
-<!-- Pestañas modernas -->
-<div class="tab-container">
-    <ul class="nav nav-tabs modern-tabs" id="parcelasTab" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button aria-controls="dashboard" aria-selected="true" class="nav-link active" data-bs-target="#dashboard"
-                    data-bs-toggle="tab" id="dashboard-tab" role="tab" type="button">
-                <i class="fa fa-chart-simple me-2"></i>Vistazo
-                {% if delayed_treatments_count > 0 %}
-                <span class="badge rounded-pill bg-danger">{{ delayed_treatments_count }}</span>
-                {% endif %}
-                {% if pending_treatments_count > 0 %}
-                <span class="badge rounded-pill bg-warning">{{ pending_treatments_count }}</span>
-                {% endif %}
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button aria-controls="parcelas" aria-selected="false" class="nav-link" data-bs-target="#parcelas"
-                    data-bs-toggle="tab" id="parcelas-tab" role="tab" type="button">
-                <i class="fa fa-coins me-2"></i>Gastos
-            </button>
-        </li>
-    </ul>
-</div>
-
-<!-- Contenido de las pestañas -->
-<div class="tab-content" id="parcelasTabContent">
-    <!-- Pestaña de Dashboard -->
-    <div aria-labelledby="dashboard-tab" class="tab-pane fade show active" id="dashboard" role="tabpanel">
-        <!-- Stats Row -->
-        <div class="row">
-            <div class="col-6 col-lg-3 mb-3">
-                <div class="card floating-card h-100">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <div class="me-3 p-3 rounded-circle text-center"
-                                 style="background-color: {% if delayed_treatments_count == 0 %}rgba(46, 125, 50, 0.1){% else %}rgba(255, 25, 25, 0.1){% endif %};">
-                                <i class="fa {% if delayed_treatments_count == 0 %}fa-thumbs-up text-success{% else %}fa-triangle-exclamation text-danger{% endif %} fs-4"
-                                   style="width: 24px; height: 24px;"></i>
-                            </div>
-                            <div>
-                                <div class="stat-value">{{ delayed_treatments_count }}</div>
-                                <div class="stat-label">Tratamientos atrasados</div>
-                            </div>
-                        </div>
+<!-- Stats Row -->
+<div class="row">
+    <div class="col-6 col-lg-3 mb-3">
+        <div class="card floating-card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3 p-3 rounded-circle text-center"
+                         style="background-color: {% if delayed_treatments_count == 0 %}rgba(46, 125, 50, 0.1){% else %}rgba(255, 25, 25, 0.1){% endif %};">
+                        <i class="fa {% if delayed_treatments_count == 0 %}fa-thumbs-up text-success{% else %}fa-triangle-exclamation text-danger{% endif %} fs-4"
+                           style="width: 24px; height: 24px;"></i>
                     </div>
-                </div>
-            </div>
-            <div class="col-6 col-lg-3 mb-3">
-                <div class="card floating-card h-100">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <div class="me-3 p-3 rounded-circle text-center"
-                                 style="background-color: {% if pending_treatments_count == 0 %}rgba(46, 125, 50, 0.1){% else %}rgba(245, 127, 23, 0.1){% endif %};">
-                                <i class="fa {% if pending_treatments_count == 0 %}fa-thumbs-up text-success{% else %}fa-calendar-check text-warning{% endif %} fs-4"
-                                   style="width: 24px; height: 24px;"></i>
-                            </div>
-                            <div>
-                                <div class="stat-value">{{ pending_treatments_count }}</div>
-                                <div class="stat-label">Tratamientos pendientes</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-lg-3 mb-3">
-                <div class="card floating-card h-100">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <div class="me-3 p-3 rounded-circle text-center"
-                                 style="background-color: rgba(46, 125, 50, 0.1);">
-                                <i class="fa fa-location-dot text-primary fs-4"
-                                   style="width: 24px; height: 24px;"></i>
-                            </div>
-                            <div>
-                                <div class="stat-value">{{ fields.count }}</div>
-                                <div class="stat-label">Total parcelas</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-lg-3 mb-3">
-                <div class="card floating-card h-100">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <div class="me-3 p-3 rounded-circle text-center"
-                                 style="background-color: rgba(76, 175, 80, 0.1);">
-                                <i class="fa fa-up-right-and-down-left-from-center fs-4"
-                                   style="width: 24px; height: 24px;"></i>
-                            </div>
-                            <div>
-                                <div class="stat-value">{{ total_area }}</div>
-                                <div class="stat-label">Hectáreas totales</div>
-                            </div>
-                        </div>
+                    <div>
+                        <div class="stat-value">{{ delayed_treatments_count }}</div>
+                        <div class="stat-label">Tratamientos atrasados</div>
                     </div>
                 </div>
             </div>
         </div>
-
-        {% include 'treatments/calendar_fragment.html' %}
-
     </div>
-
-    <!-- Pestaña de Parcelas -->
-    <div aria-labelledby="parcelas-tab" class="tab-pane fade" id="parcelas" role="tabpanel">
-        <div class="row d-flex align-items-stretch">
-            <!-- Tarjeta de filtros -->
-            <div class="col-md-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title mb-4">Filtros</h5>
-                        <div class="row mb-3">
-                            <div class="col">
-                                <label class="form-label small" for="dateFrom">Desde</label>
-                                <input class="form-control form-control-sm" id="dateFrom" type="date">
-                            </div>
-                            <div class="col">
-                                <label class="form-label small" for="dateTo">Hasta</label>
-                                <input class="form-control form-control-sm" id="dateTo" type="date">
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small" for="fieldSelector">Parcelas</label>
-                            <select class="form-select form-select-sm" id="fieldSelector" multiple>
-                                {% for f in fields %}
-                                <option value="{{ f.id }}">{{ f.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <button class="btn btn-primary btn-sm w-100" id="applyDateFilter">Aplicar filtro</button>
+    <div class="col-6 col-lg-3 mb-3">
+        <div class="card floating-card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3 p-3 rounded-circle text-center"
+                         style="background-color: {% if pending_treatments_count == 0 %}rgba(46, 125, 50, 0.1){% else %}rgba(245, 127, 23, 0.1){% endif %};">
+                        <i class="fa {% if pending_treatments_count == 0 %}fa-thumbs-up text-success{% else %}fa-calendar-check text-warning{% endif %} fs-4"
+                           style="width: 24px; height: 24px;"></i>
                     </div>
-                </div>
-            </div>
-
-            <!-- Tarjeta de estadísticas -->
-            <div class="col-md-8 mb-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title mb-4">Resumen de gastos</h5>
-                        <div class="row">
-                            <div class="col-sm-6 mb-3">
-                                <div class="stat-card">
-                                    <div class="stat-card-value" id="totalCost">-</div>
-                                    <div class="stat-card-label">Gasto total (€)</div>
-                                </div>
-                            </div>
-                            <div class="col-sm-6 mb-3">
-                                <div class="stat-card">
-                                    <div class="stat-card-value" id="costPerHa">-</div>
-                                    <div class="stat-card-label">€/hectárea</div>
-                                </div>
-                            </div>
-                            <div class="col-sm-6 mb-3">
-                                <div class="stat-card">
-                                    <div class="stat-card-value" id="totalArea">-</div>
-                                    <div class="stat-card-label">Hectáreas</div>
-                                </div>
-                            </div>
-                            <div class="col-sm-6 mb-3">
-                                <div class="stat-card">
-                                    <div class="stat-card-value" id="fieldCount">-</div>
-                                    <div class="stat-card-label">Parcelas</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- Gráficos -->
-        <div class="row">
-            <div class="col-md-6 mb-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Gasto por tipo de producto</h5>
-                        <div class="chart-container" style="position: relative; height:250px;">
-                            <canvas id="productTypeChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6 mb-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Gasto por parcela</h5>
-                        <div class="chart-container" style="position: relative; height:250px;">
-                            <canvas id="fieldCostChart"></canvas>
-                        </div>
+                    <div>
+                        <div class="stat-value">{{ pending_treatments_count }}</div>
+                        <div class="stat-label">Tratamientos pendientes</div>
                     </div>
                 </div>
             </div>
         </div>
-
-        <!-- Grid View of Parcelas -->
-        <div class="row" id="fieldsContainer">
-            <div class="text-center py-5">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Cargando...</span>
+    </div>
+    <div class="col-6 col-lg-3 mb-3">
+        <div class="card floating-card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3 p-3 rounded-circle text-center"
+                         style="background-color: rgba(46, 125, 50, 0.1);">
+                        <i class="fa fa-location-dot text-primary fs-4"
+                           style="width: 24px; height: 24px;"></i>
+                    </div>
+                    <div>
+                        <div class="stat-value">{{ fields.count }}</div>
+                        <div class="stat-label">Total parcelas</div>
+                    </div>
                 </div>
-                <p class="mt-2">Cargando datos de parcelas...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3 mb-3">
+        <div class="card floating-card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3 p-3 rounded-circle text-center"
+                         style="background-color: rgba(76, 175, 80, 0.1);">
+                        <i class="fa fa-up-right-and-down-left-from-center fs-4"
+                           style="width: 24px; height: 24px;"></i>
+                    </div>
+                    <div>
+                        <div class="stat-value">{{ total_area }}</div>
+                        <div class="stat-label">Hectáreas totales</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+{% include 'treatments/calendar_fragment.html' %}
 
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/field-costs.js' %}"></script>
 <script src="{% static 'js/treatment-calendar.js' %}"></script>
 {% endblock %}
