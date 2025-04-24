@@ -397,7 +397,7 @@ html.sidebar-collapsed .main-content {
     width: calc(100% - 70px);
 }
 
-.full-menu-active-item {
+.full-menu-item.active {
     background-color: var(--primary) !important;
     color: white;
 }

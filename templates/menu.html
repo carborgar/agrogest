@@ -8,30 +8,36 @@
             <span class="logo-text">AgroGest</span>
         </div>
 
+        {% with request.resolver_match.url_name as current_url %}
+        {% with home_menus='field_list' %}
+        {% with treatments_menus='treatment-list treatment-create treatment-detail' %}
+        {% with calendar_menus='treatment-calendar' %}
+        {% with field_costs_menus='field_costs' %}
+        
         <ul class="sidebar-nav">
             <li class="sidebar-item">
-                <a class="sidebar-link {% if request.resolver_match.url_name == 'field_list' %}active{% endif %}"
+                <a class="sidebar-link {% if current_url in home_menus %}active{% endif %}"
                    href="{% url 'field_list' %}">
                     <i class="fa fa-house"></i>
                     <span class="link-text">Inicio</span>
                 </a>
             </li>
             <li class="sidebar-item">
-                <a class="sidebar-link {% if request.resolver_match.url_name == 'treatment-list' %}active{% endif %}"
+                <a class="sidebar-link {% if current_url in treatments_menus %}active{% endif %}"
                    href="{% url 'treatment-list' %}">
                     <i class="fa fa-droplet"></i>
                     <span class="link-text">Tratamientos</span>
                 </a>
             </li>
             <li class="sidebar-item">
-                <a class="sidebar-link {% if request.resolver_match.url_name == 'treatment-calendar' %}active{% endif %}"
+                <a class="sidebar-link {% if current_url in calendar_menus %}active{% endif %}"
                    href="{% url 'treatment-calendar' %}">
                     <i class="fa fa-calendar-days"></i>
                     <span class="link-text">Calendario</span>
                 </a>
             </li>
             <li class="sidebar-item">
-                <a class="sidebar-link {% if request.resolver_match.url_name == 'field_costs' %}active{% endif %}"
+                <a class="sidebar-link {% if current_url in field_costs_menus %}active{% endif %}"
                    href="{% url 'field_costs' %}">
                     <i class="fa fa-coins"></i>
                     <span class="link-text">Gastos</span>
@@ -92,7 +98,7 @@
             <div class="col-4 text-center text-truncate">
                 <a class="text-decoration-none text-dark"
                    href="{% url 'field_list' %}">
-                    <div class="p-3 bg-light rounded-3 {% if request.resolver_match.url_name == 'field_list' %}full-menu-active-item{% endif %}">
+                    <div class="p-3 bg-light rounded-3 full-menu-item {% if current_url in home_menus %}active{% endif %}">
                         <i class="fa fa-house fs-2"></i>
                         <p class="mt-2">Inicio</p>
                     </div>
@@ -102,7 +108,7 @@
             <div class="col-4 text-center text-truncate">
                 <a class="text-decoration-none text-dark"
                    href="{% url 'treatment-list' %}">
-                    <div class="p-3 bg-light rounded-3 {% if request.resolver_match.url_name == 'treatment-list' %}full-menu-active-item{% endif %}">
+                    <div class="p-3 bg-light rounded-3 full-menu-item {% if current_url in treatments_menus %}active{% endif %}">
                         <i class="fa fa-droplet fs-2"></i>
                         <p class="mt-2">Tratamientos</p>
                     </div>
@@ -112,7 +118,7 @@
             <div class="col-4 text-center text-truncate">
                 <a class="text-decoration-none text-dark"
                    href="{% url 'treatment-calendar' %}">
-                    <div class="p-3 bg-light rounded-3 {% if request.resolver_match.url_name == 'treatment-calendar' %}full-menu-active-item{% endif %}">
+                    <div class="p-3 bg-light rounded-3 full-menu-item {% if current_url in calendar_menus %}active{% endif %}">
                         <i class="fa fa-calendar-days fs-2"></i>
                         <p class="mt-2">Calendario</p>
                     </div>
@@ -122,7 +128,7 @@
             <div class="col-4 text-center text-truncate">
                 <a class="text-decoration-none text-dark"
                    href="{% url 'field_costs' %}">
-                    <div class="p-3 bg-light rounded-3 {% if request.resolver_match.url_name == 'field_costs' %}full-menu-active-item{% endif %}">
+                    <div class="p-3 bg-light rounded-3 full-menu-item {% if current_url in field_costs_menus %}active{% endif %}">
                         <i class="fa fa-coins fs-2"></i>
                         <p class="mt-2">Gastos</p>
                     </div>
@@ -130,6 +136,12 @@
             </div>
         </div>
     </div>
+
+    {% endwith %}
+    {% endwith %}
+    {% endwith %}
+    {% endwith %}
+    {% endwith %}
 
     <div class="full-menu-close-container">
         <button class="bottom-close-btn" id="fullMenuClose">
