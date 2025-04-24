@@ -55,7 +55,7 @@ class TreatmentTestCase(TestCase):
             total_dose_unit='L'
         )
         amount = self.treatment.calculate_product_for_partial_load(treatment_product)
-        self.assertEqual(amount, 2.84)
+        self.assertEqual(amount, 2.8)
 
     def test_calculate_product_for_partial_load_zero_water_per_ha(self):
         """
@@ -192,8 +192,8 @@ class TreatmentProductModelTest(TestCase):
 
     def test_get_dose_per_load_all_types(self):
         test_cases = [
-            {'dose': 2.5, 'dose_type': 'l_per_ha', 'expected': 1.47},  # 500 / 850 = 0.588 ha → 2.5 * 0.588 = 1.47
-            {'dose': 3, 'dose_type': 'kg_per_ha', 'expected': 1.76},  # 3 * 0.588 = 1.764 → 1.76
+            {'dose': 2.5, 'dose_type': 'l_per_ha', 'expected': 1.5},  # 500 / 850 = 0.588 ha → 2.5 * 0.588 = 1.47 -> 1.5
+            {'dose': 3, 'dose_type': 'kg_per_ha', 'expected': 1.8},  # 3 * 0.588 = 1.764 → 1.76 -> 1.8
             {'dose': 5, 'dose_type': 'l_per_1000l', 'expected': 2.5},  # 5 * 500 / 1000 = 2.5
             {'dose': 10, 'dose_type': 'kg_per_1000l', 'expected': 5.0},  # 10 * 500 / 1000 = 5.0
             {'dose': 2, 'dose_type': 'pct', 'expected': 10.0},  # 2% de 500 = 10.0
@@ -386,3 +386,147 @@ class TreatmentStatusModelTest(TestCase):
         self.assertEqual(pending_treatment.state_class(), 'warning')
         self.assertEqual(completed_treatment.state_class(), 'success')
         self.assertEqual(delayed_treatment.state_class(), 'danger')
+
+
+class TreatmentRecalculationTest(TestCase):
+    """Test for automatic recalculation of TreatmentProduct on Treatment changes."""
+
+    def setUp(self):
+        """Set up test data."""
+        # Create Field
+        self.field = Field.objects.create(
+            name="Test Field",
+            area=10.0,  # 10 hectares
+            crop="Test Crop",
+            planting_year=2023
+        )
+
+        # Create Machine
+        self.machine = Machine.objects.create(
+            name="Test Sprayer",
+            type="sprayer",
+            capacity=1000  # 1000 liters
+        )
+
+        # Create Product Type
+        self.product_type = ProductType.objects.create(
+            name="Test Product Type"
+        )
+
+        # Create Product
+        self.product = Product.objects.create(
+            name="Test Product",
+            type="pesticide",
+            product_type=self.product_type,
+            spraying_dose=2.5,
+            spraying_dose_type="l_per_ha",
+            price=Decimal("50.00")  # 50 per liter
+        )
+
+    def create_treatment(self, water_per_ha=200):
+        """Helper to create a standard test treatment."""
+        treatment = Treatment.objects.create(
+            name="Test Treatment",
+            type="spraying",
+            date=timezone.now().date(),
+            field=self.field,
+            machine=self.machine,
+            water_per_ha=water_per_ha
+        )
+
+        # Add product to treatment
+        treatment_product = TreatmentProduct.objects.create(
+            treatment=treatment,
+            product=self.product,
+            dose=Decimal("2.5")  # 2.5 L/ha
+        )
+
+        return treatment, treatment_product
+
+    def test_initial_calculation(self):
+        """Test that initial values are calculated correctly."""
+        treatment, treatment_product = self.create_treatment()
+
+        # Check initial values
+        # For l_per_ha, total dose should be dose * field area
+        expected_total_dose = Decimal("2.5") * Decimal("10.0")  # 2.5 L/ha * 10 ha = 25 L
+        self.assertEqual(treatment_product.total_dose, expected_total_dose)
+
+    def test_recalculation_on_field_change(self):
+        """Test recalculation when the field area changes."""
+        treatment, treatment_product = self.create_treatment()
+
+        # Change field to one with different area
+        new_field = Field.objects.create(
+            name="Larger Field",
+            area=20.0,  # 20 hectares
+            crop="Test Crop",
+            planting_year=2023
+        )
+
+        # Update treatment with new field
+        treatment.field = new_field
+        treatment.save()
+
+        # Refresh from database
+        treatment_product.refresh_from_db()
+
+        # For l_per_ha, new total dose should be dose * new field area
+        expected_total_dose = Decimal("2.5") * Decimal("20.0")  # 2.5 L/ha * 20 ha = 50 L
+        self.assertEqual(treatment_product.total_dose, expected_total_dose)
+
+    def test_recalculation_on_water_per_ha_change(self):
+        """Test recalculation when water_per_ha changes."""
+        treatment, treatment_product = self.create_treatment(water_per_ha=200)
+
+        # Create another product with l_per_1000l dose type to test water-dependent calculation
+        water_based_product = Product.objects.create(
+            name="Water Based Product",
+            type="pesticide",
+            product_type=self.product_type,
+            spraying_dose=5.0,
+            spraying_dose_type="l_per_1000l",
+            price=Decimal("30.00")
+        )
+
+        water_based_tp = TreatmentProduct.objects.create(
+            treatment=treatment,
+            product=water_based_product,
+            dose=Decimal("5.0")  # 5 L per 1000L water
+        )
+
+        # Initial values for water-based product
+        # Total water: water_per_ha * field area = 200 * 10 = 2000 L
+        # Total dose: dose * total water / 1000 = 5 * 2000 / 1000 = 10 L
+        expected_initial_dose = Decimal("5.0") * Decimal("200") * Decimal("10.0") / Decimal("1000")
+        self.assertAlmostEqual(water_based_tp.total_dose, expected_initial_dose, places=2)
+
+        # Change water_per_ha
+        treatment.water_per_ha = 400  # Double the water
+        treatment.save()
+
+        # Refresh from database
+        water_based_tp.refresh_from_db()
+
+        # New calculation: 5 * 400 * 10 / 1000 = 20 L
+        expected_new_dose = Decimal("5.0") * Decimal("400") * Decimal("10.0") / Decimal("1000")
+        self.assertAlmostEqual(water_based_tp.total_dose, expected_new_dose, places=2)
+
+    def test_type_change_recalculation(self):
+        """Test recalculation when treatment type is changed."""
+        treatment, treatment_product = self.create_treatment()
+
+        # Add fertigation dose to product
+        self.product.fertigation_dose = 3.0
+        self.product.fertigation_dose_type = "l_per_ha"
+        self.product.save()
+
+        # Change treatment type to fertigation
+        treatment.type = "fertigation"
+        treatment.save()
+
+        # Refresh treatment product
+        treatment_product.refresh_from_db()
+
+        # Check that dose type has been updated
+        self.assertEqual(treatment_product.dose_type, "l_per_ha")

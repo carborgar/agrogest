@@ -123,15 +123,13 @@
 </script>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('select:not(.no-choices)').forEach(select => {
-            new Choices(select, {
-                removeItemButton: true,
-                placeholderValue: 'Selecciona opciones',
-                searchPlaceholderValue: 'Buscar...',
-                noResultsText: 'No hay coincidencias',
-                itemSelectText: '',
-            });
+    document.querySelectorAll('select.choices-init').forEach(select => {
+        new Choices(select, {
+            removeItemButton: true,
+            placeholderValue: 'Selecciona opciones',
+            searchPlaceholderValue: 'Buscar...',
+            noResultsText: 'No hay coincidencias',
+            itemSelectText: '',
         });
     });
 </script>

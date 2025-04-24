@@ -58,15 +58,12 @@ class Field(models.Model):
         """
         Devuelve un diccionario con el costo agrupado por tipo de producto
         """
-        from django.db.models import Sum
         from datetime import datetime, timedelta
 
         # Si no se proporcionan fechas, usar último año por defecto
         if not start_date:
             end_date = datetime.now().date()
             start_date = end_date - timedelta(days=365)
-
-        from django.db.models import F
 
         treatments = Treatment.objects.filter(field=self)
         if start_date:
@@ -209,9 +206,35 @@ class Treatment(SoftDeleteObject):
         return f"{self.name} - {self.date}"
 
     def save(self, *args, **kwargs):
-        # Calcular status antes de guardar
+        # Determinamos si es un nuevo objeto o uno existente
+        is_new = self.pk is None
+
+        # Si no es nuevo, obtenemos el objeto antiguo para comparar
+        if not is_new:
+            old_obj = Treatment.objects.get(pk=self.pk)
+            needs_recalculation = (
+                    old_obj.water_per_ha != self.water_per_ha or
+                    old_obj.field_id != self.field_id
+            )
+        else:
+            needs_recalculation = True
+
+        # Actualizamos el estado
         self.update_status()
+
+        # Guardamos el objeto
         super().save(*args, **kwargs)
+
+        # Solo recalculamos si es necesario
+        if needs_recalculation:
+            self.recalculate_product_doses()
+
+    def recalculate_product_doses(self):
+        """
+        Recalcula las dosis totales de todos los productos asociados a este tratamiento.
+        """
+        for treatment_product in self.treatmentproduct_set.all():
+            treatment_product.save()  # Esto activará el cálculo en el save() de TreatmentProduct
 
     def update_status(self):
         """Actualiza el campo status basado en las fechas y condiciones actuales"""
@@ -395,16 +418,20 @@ class TreatmentProduct(SoftDeleteObject):
         # Calculamos la dosis total antes de guardar
         self.calculate_total_dose()
 
-        # Guardar el precio unitario del producto (en el momento de crear el tratamiento)
-        self.unit_price = self.product.price
+        if not self.pk:  # sólo copiamos los campos de precios en la creación
+            self.calculate_prices()
 
-        # Calcular el precio total basado en la dosis total
+        super().save(*args, **kwargs)
+
+    def calculate_prices(self):
+        # Calcular el precio total
         self.total_price = self.unit_price * self.total_dose
 
         # Calcular el precio por hectárea
-        self.price_per_ha = self.total_price / Decimal(self.treatment.field.area)
-
-        super().save(*args, **kwargs)
+        if self.treatment.field and self.treatment.field.area > 0:
+            self.price_per_ha = self.total_price / Decimal(self.treatment.field.area)
+        else:
+            self.price_per_ha = 0
 
 
 class Harvest(models.Model):

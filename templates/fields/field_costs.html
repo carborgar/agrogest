@@ -24,7 +24,7 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label small" for="fieldSelector">Parcelas</label>
-                    <select class="form-select form-select-sm" id="fieldSelector" multiple>
+                    <select class="form-select form-select-sm choices-init" id="fieldSelector" multiple>
                         {% for f in fields %}
                         <option value="{{ f.id }}">{{ f.name }}</option>
                         {% endfor %}
