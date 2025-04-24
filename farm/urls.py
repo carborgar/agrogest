@@ -6,7 +6,7 @@ from . import views
 from .views import TreatmentListView, TreatmentDetailView
 
 urlpatterns = [
-    path("", RedirectView.as_view(url="/parcelas/vistazo/", permanent=False)),
+    path("", RedirectView.as_view(url="/parcelas/vistazo/", permanent=False), name="home"),
     path("parcelas/vistazo/", views.FieldListView.as_view(), name="field_list"),
     path("parcelas/gastos/", views.FieldCostView.as_view(), name="field_costs"),
     path('tratamientos/', TreatmentListView.as_view(), name='treatment-list'),

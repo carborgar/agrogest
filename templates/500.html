@@ -1,0 +1,42 @@
+{% extends "base_error.html" %}
+{% load static %}
+
+{% block title %}Error del servidor{% endblock %}
+
+{% block error_content %}
+<div class="container min-vh-100 d-flex align-items-center justify-content-center">
+    <div class="row">
+        <div class="col-md-6 mb-4 mb-md-0">
+            <div class="text-center text-md-start">
+                <h1 class="display-1 fw-bold text-danger">500</h1>
+                <h2 class="mb-4">Error del servidor</h2>
+                <p class="lead mb-4">Lo sentimos, estamos experimentando problemas técnicos. Nuestro equipo ha sido
+                    notificado y estamos trabajando para solucionarlo.</p>
+                <a class="btn btn-primary btn-lg" href="{% url 'home' %}">Volver al inicio</a>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="text-center">
+                <img alt="err-500-img" class="img-fluid rounded shadow-sm" src="{% static 'img/500-tractor.png' %}">
+            </div>
+        </div>
+    </div>
+</div>
+
+{%comment%}
+<div class="error-container">
+    <div class="error-image">
+        <img alt="500 Error" src="{% static 'img/500-tractor.png' %}">
+    </div>
+    <div class="error-details">
+        <h1>500</h1>
+        <h2>¡Algo salió mal!</h2>
+        <p>Estamos teniendo problemas técnicos. Nuestros ingenieros han sido notificados y están trabajando en ello.</p>
+        <a class="btn btn-primary btn-lg mt-3" href="{% url 'home' %}">
+            <i class="fa fa-home me-2"></i>Volver al inicio
+        </a>
+    </div>
+</div>
+{%endcomment%}
+{% endblock %}
+
