@@ -423,14 +423,9 @@ class TreatmentProduct(SoftDeleteObject):
         super().save(*args, **kwargs)
 
     def calculate_prices(self):
-        # Calcular el precio total
+        self.unit_price = self.product.price
         self.total_price = self.unit_price * self.total_dose
-
-        # Calcular el precio por hectárea
-        if self.treatment.field and self.treatment.field.area > 0:
-            self.price_per_ha = self.total_price / Decimal(self.treatment.field.area)
-        else:
-            self.price_per_ha = 0
+        self.price_per_ha = self.total_price / Decimal(self.treatment.field.area)
 
 
 class Harvest(models.Model):

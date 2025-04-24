@@ -41,7 +41,6 @@ class TreatmentTestCase(TestCase):
         """
         product = Product.objects.create(
             name="Producto X",
-            type="pesticide",
             product_type=self.product_type,
             spraying_dose=2.5,
             spraying_dose_type='l_per_ha'
@@ -68,7 +67,6 @@ class TreatmentTestCase(TestCase):
         # Creamos un producto de prueba
         product = Product.objects.create(
             name="Producto sin agua",
-            type="pesticide",
             product_type=self.product_type,
             spraying_dose=2.5,
             spraying_dose_type='l_per_ha'
@@ -135,7 +133,6 @@ class TreatmentProductModelTest(TestCase):
             # Crear el producto y el tratamiento según el tipo de aplicación
             product = Product.objects.create(
                 name=product_name,
-                type="pesticide",
                 product_type=self.product_type,
                 spraying_dose=dose,
                 spraying_dose_type=dose_type,
@@ -157,8 +154,7 @@ class TreatmentProductModelTest(TestCase):
         treatment = Treatment.objects.create(name="Test Treatment", type="spraying", date=date.today(),
                                              field=self.field,
                                              water_per_ha=10)
-        product = Product.objects.create(name="Test Product", type="fertilizer", spraying_dose=5,
-                                         spraying_dose_type='l_per_1000l')
+        product = Product.objects.create(name="Test Product", spraying_dose=5, spraying_dose_type='l_per_1000l')
 
         treatment_product = TreatmentProduct.objects.create(treatment=treatment, product=product, dose=5)
 
@@ -204,7 +200,6 @@ class TreatmentProductModelTest(TestCase):
             with self.subTest(dose_type=case['dose_type']):
                 product = Product.objects.create(
                     name=f"Producto {case['dose_type']}",
-                    type="pesticide",
                     product_type=self.product_type,
                     spraying_dose=case['dose'],
                     spraying_dose_type=case['dose_type']
@@ -416,7 +411,6 @@ class TreatmentRecalculationTest(TestCase):
         # Create Product
         self.product = Product.objects.create(
             name="Test Product",
-            type="pesticide",
             product_type=self.product_type,
             spraying_dose=2.5,
             spraying_dose_type="l_per_ha",
@@ -482,7 +476,6 @@ class TreatmentRecalculationTest(TestCase):
         # Create another product with l_per_1000l dose type to test water-dependent calculation
         water_based_product = Product.objects.create(
             name="Water Based Product",
-            type="pesticide",
             product_type=self.product_type,
             spraying_dose=5.0,
             spraying_dose_type="l_per_1000l",
