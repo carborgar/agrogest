@@ -121,7 +121,6 @@ class Product(models.Model):
     ALL_DOSE_TYPE_CHOICES = SPRAYING_DOSE_TYPE_CHOICES + FERTIGATION_DOSE_TYPE_CHOICES
 
     name = models.CharField(max_length=100)
-    type = models.CharField(max_length=50, choices=[('fertilizer', 'Fertilizante'), ('pesticide', 'Fitosanitario')])
     product_type = models.ForeignKey(ProductType, on_delete=models.CASCADE, null=True)
 
     # Spraying-specific dose fields

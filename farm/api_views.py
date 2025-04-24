@@ -41,7 +41,6 @@ def get_products(request, application_type):
         {
             'id': product.id,
             'name': product.name,
-            'type': product.type,
             'dose': product.get_dose(application_type),
             'dose_type': product.get_dose_type(application_type),
             'dose_type_display': product.get_dose_type_name(application_type),
