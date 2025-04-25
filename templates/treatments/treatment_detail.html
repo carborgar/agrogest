@@ -150,10 +150,6 @@
         border-bottom: 1px solid rgba(0, 0, 0, 0.1);
     }
 
-    .info-item-vertical:last-child {
-        border-bottom: none;
-    }
-
     .info-item-vertical .info-label {
         font-size: 0.75rem;
         color: #6c757d;
@@ -234,6 +230,86 @@
         font-size: 0.8rem;
     }
 </style>
+<link href="https://cdn.jsdelivr.net/npm/swiper@11.2.6/swiper-bundle.min.css" rel="stylesheet"/>
+<style>
+    .swiper {
+      width: 100%;
+      height: 100%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .swiper-slide {
+      text-align: center;
+      height: calc((100% - 30px) / 2) !important;
+
+      /* Center slide text vertically */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .product-slide {
+        background-color: #f8f9fa;
+        border-left: 4px solid #28a745;
+    }
+
+</style>
+<style>
+    .product-scroll-container {
+      position: relative;
+    }
+
+    .swiper {
+      width: 100%;
+      height: auto;
+    }
+
+    .product-column {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .swiper-slide {
+      height: auto;
+      padding: 10px 5px;
+    }
+
+    .swiper-button-next, .swiper-button-prev {
+      color: #0d6efd;
+      --swiper-navigation-size: 25px;
+    }
+
+    .swiper-pagination-bullet-active {
+      background-color: #0d6efd;
+    }
+</style>
+<style>
+    .swiper-pagination {
+      position: static; /* importante para que no flote sobre las slides */
+      text-align: center;
+      margin-top: 1rem;
+    }
+    .productSwiper {
+      position: relative; /* Necesario para posicionar los botones de navegación dentro del contenedor */
+    }
+
+    .swiper-button-next, .swiper-button-prev {
+      position: absolute;
+      bottom: 10px; /* Pegarlos al fondo */
+      z-index: 10; /* Asegura que los botones estén por encima de los slides */
+    }
+
+    .swiper-button-next {
+      right: 10px; /* Alinea el botón "next" a la derecha */
+    }
+
+    .swiper-button-prev {
+      left: 10px; /* Alinea el botón "prev" a la izquierda */
+    }
+</style>
 {% endblock %}
 
 {% block header %}
@@ -264,8 +340,8 @@
 
 {% block content %}
 <div class="row">
-    <div class="col-md-3">
-        <div class="card mb-3 print-friendly">
+    <div class="col-md-3 mb-3">
+        <div class="card h-100">
             <div class="card-header bg-primary text-white">
                 <h3 class="mb-0">Información</h3>
             </div>
@@ -321,8 +397,8 @@
         </div>
     </div>
 
-    <div class="col-md-9">
-        <div class="card mb-4 shadow-sm">
+    <div class="col-md-9 mb-3">
+        <div class="card shadow-sm">
             <div class="card-header bg-primary text-white">
                 <h3 class="mb-0">Productos, dosis y precios</h3>
             </div>
@@ -336,39 +412,47 @@
                     ({{ cost_per_ha|floatformat:2 }} €/ha)
                     {% endif %}
                 </div>
-                <div class="row">
-                    {% for product in products %}
-                    <div class="col-md-4 mb-3">
-                        <div class="card product-card"
-                             style="background-color: #f8f9fa; border-left: 4px solid #28a745;">
-                            <div class="card-body">
-                                <h6 class="card-title">{{ product.product.name }}</h6>
-                                <p class="card-text mb-1">
-                                    <small>{{ product.product.product_type.name }}</small>
-                                </p>
-                                <p class="card-text mb-0">
-                                    <span class="dose-amount">{{ product.dose }}</span>
-                                    <span class="dose-unit">{{ product.dose_type|dose_type }}</span>
-                                </p>
-                                <p class="card-text mb-0">
-                                    Total: <span class="dose-amount">{{ product.total_dose|floatformat:2 }}</span>
-                                    <span class="dose-unit">{{ product.total_dose_unit }}</span>
-                                </p>
+                <div class="product-scroll-container">
+                    <div class="swiper productSwiper">
+                        <div class="swiper-wrapper">
+                            {% for product in products %}
+                            <div class="swiper-slide">
+                                <div class="card product-card"
+                                     style="background-color: #f8f9fa; border-left: 4px solid #28a745;">
+                                    <div class="card-body">
+                                        <h6 class="card-title">{{ product.product.name }}</h6>
+                                        <p class="card-text mb-1">
+                                            <small>{{ product.product.product_type.name }}</small>
+                                        </p>
+                                        <p class="card-text mb-0">
+                                            <span class="dose-amount">{{ product.dose }}</span>
+                                            <span class="dose-unit">{{ product.dose_type|dose_type }}</span>
+                                        </p>
+                                        <p class="card-text mb-0">
+                                            Total: <span
+                                                class="dose-amount">{{ product.total_dose|floatformat:2 }}</span>
+                                            <span class="dose-unit">{{ product.total_dose_unit }}</span>
+                                        </p>
 
-                                <!-- Información de precios -->
-                                {% if product.unit_price > 0 %}
-                                <div class="price-container">
-                                    <small class="price-tag">
-                                        <i class="fa fa-tag me-1"></i>{{ product.unit_price|floatformat:2 }}€/ud ·
-                                        <strong>{{ product.total_price|floatformat:2 }}€</strong>
-                                        <span class="text-muted">({{ product.price_per_ha|floatformat:2 }}€/ha)</span>
-                                    </small>
+                                        {% if product.unit_price > 0 %}
+                                        <div class="price-container">
+                                            <small class="price-tag">
+                                                <i class="fa fa-tag me-1"></i>{{ product.unit_price|floatformat:2 }}€/ud
+                                                ·
+                                                <strong>{{ product.total_price|floatformat:2 }}€</strong>
+                                                <span class="text-muted">({{ product.price_per_ha|floatformat:2 }}€/ha)</span>
+                                            </small>
+                                        </div>
+                                        {% endif %}
+                                    </div>
                                 </div>
-                                {% endif %}
                             </div>
+                            {% endfor %}
                         </div>
+                        <div class="swiper-pagination mt-2"></div>
+                        <div class="swiper-button-next"></div>
+                        <div class="swiper-button-prev"></div>
                     </div>
-                    {% endfor %}
                 </div>
             </div>
         </div>
@@ -518,5 +602,32 @@
             onConfirm: () => document.getElementById('deleteForm').submit()
         });
     }
+</script>
+
+<!-- Swiper JS -->
+<script src="https://cdn.jsdelivr.net/npm/swiper@11.2.6/swiper-bundle.min.js"></script>
+<!-- Initialize Swiper -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var isMobile = window.innerWidth <= 640;
+
+      var swiper = new Swiper(".productSwiper", {
+        slidesPerView: isMobile ? 1 : 3,
+        grid: {
+          rows: isMobile ? 1 : 2,
+          fill: 'row', // ordena por filas
+        },
+        spaceBetween: 20,
+        pagination: {
+          el: ".swiper-pagination",
+          clickable: true,
+        },
+        navigation: {
+          nextEl: ".swiper-button-next",
+          prevEl: ".swiper-button-prev",
+        },
+        mousewheel: true
+      });
+    });
 </script>
 {% endblock %}
