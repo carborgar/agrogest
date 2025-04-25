@@ -143,6 +143,96 @@
         margin-bottom: 0.25rem;
       }
     }
+
+    /* Estilos para la columna de información vertical */
+    .info-item-vertical {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .info-item-vertical:last-child {
+        border-bottom: none;
+    }
+
+    .info-item-vertical .info-label {
+        font-size: 0.75rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.25rem;
+    }
+
+    .info-item-vertical .info-value {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #212529;
+    }
+
+    .info-item-vertical .info-subvalue {
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+    }
+
+    /* Estilos para el estado */
+    .info-item-vertical.status-success {
+        border-left: 4px solid #28a745;
+    }
+
+    .info-item-vertical.status-warning {
+        border-left: 4px solid #ffc107;
+    }
+
+    .info-item-vertical.status-danger {
+        border-left: 4px solid #dc3545;
+    }
+
+    /* Estilos para productos */
+    .product-card {
+        transition: all 0.3s ease;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        height: 100%;
+        border: none;
+        overflow: hidden;
+    }
+
+    .product-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .product-card .card-title {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding-bottom: 0.25rem;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    /* Estilos para los precios compactos */
+    .price-container {
+        margin-top: 0.5rem;
+        padding-top: 0.5rem;
+        border-top: 1px dashed rgba(0, 0, 0, 0.1);
+    }
+
+    .price-tag {
+        font-size: 0.85rem;
+        color: #198754;
+        display: block;
+    }
+
+    .price-tag strong {
+        color: #198754;
+    }
+
+    .price-tag .text-muted {
+        font-size: 0.8rem;
+    }
 </style>
 {% endblock %}
 
@@ -174,50 +264,67 @@
 
 {% block content %}
 <div class="row">
-    <div class="col-md-6">
-        <div class="card mb-4">
-            <div class="card-header bg-primary text-white d-flex justify-content-between">
-                <h3 class="mb-0">Información General</h3>
+    <div class="col-md-3">
+        <div class="card mb-3 print-friendly">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">Información</h3>
             </div>
-            <div class="card-body">
-                <dl class="row">
-                    <dt class="col-sm-4">Tipo:</dt>
-                    <dd class="col-sm-8">{{ treatment.get_type_display }}</dd>
+            <div class="card-body p-0">
+                <!-- Estado -->
+                <div class="info-item-vertical status-{{ treatment.state_class }}">
+                    <div class="info-label"><i class="fa fa-clipboard-check me-2"></i>Estado</div>
+                    <div class="info-value">{{ treatment.status_display }}</div>
+                </div>
 
-                    <dt class="col-sm-4">Estado:</dt>
-                    <dd class="col-sm-8">
-                        <span class="badge bg-{{ treatment.state_class }}">{{ treatment.status_display }}</span>
-                    </dd>
+                <!-- Tipo -->
+                <div class="info-item-vertical">
+                    <div class="info-label"><i class="fa fa-spray-can me-2"></i>Tipo</div>
+                    <div class="info-value">{{ treatment.get_type_display }}</div>
+                </div>
 
-                    <dt class="col-sm-4">Fecha:</dt>
-                    <dd class="col-sm-8">{{ treatment.date|date:"d/m/Y" }}</dd>
+                <!-- Fecha -->
+                <div class="info-item-vertical">
+                    <div class="info-label"><i class="fa fa-calendar-alt me-2"></i>Fecha</div>
+                    <div class="info-value">{{ treatment.date|date:"d/m/Y" }}</div>
+                </div>
 
-                    {% if treatment.finish_date %}
-                    <dt class="col-sm-4">Fecha finalización:</dt>
-                    <dd class="col-sm-8">{{ treatment.finish_date|date:"d/m/Y" }}</dd>
-                    {% endif %}
+                {% if treatment.finish_date %}
+                <!-- Fecha finalización -->
+                <div class="info-item-vertical">
+                    <div class="info-label"><i class="fa fa-calendar-check me-2"></i>Finalizado</div>
+                    <div class="info-value">{{ treatment.finish_date|date:"d/m/Y" }}</div>
+                </div>
+                {% endif %}
 
-                    <dt class="col-sm-4">Parcela:</dt>
-                    <dd class="col-sm-8">{{ treatment.field.name }} - {{ treatment.field.crop }},
-                        {{ treatment.field.area }} ha
-                    </dd>
+                <!-- Parcela -->
+                <div class="info-item-vertical">
+                    <div class="info-label"><i class="fa fa-map-marked-alt me-2"></i>Parcela</div>
+                    <div class="info-value">{{ treatment.field.name }}</div>
+                    <div class="info-subvalue">{{ treatment.field.crop }}, {{ treatment.field.area }} ha</div>
+                </div>
 
-                    {% if treatment.machine %}
-                    <dt class="col-sm-4">Maquinaria:</dt>
-                    <dd class="col-sm-8">{{ treatment.machine.name }} ({{ treatment.machine.capacity }} litros)</dd>
+                {% if treatment.machine %}
+                <!-- Maquinaria -->
+                <div class="info-item-vertical">
+                    <div class="info-label"><i class="fa fa-tractor me-2"></i>Maquinaria</div>
+                    <div class="info-value">{{ treatment.machine.name }}</div>
+                    <div class="info-subvalue">{{ treatment.machine.capacity }} litros</div>
+                </div>
 
-                    <dt class="col-sm-4">Mojado:</dt>
-                    <dd class="col-sm-8">{{ treatment.water_per_ha }} litros/ha</dd>
-                    {% endif %}
-                </dl>
+                <!-- Mojado -->
+                <div class="info-item-vertical">
+                    <div class="info-label"><i class="fa fa-fill-drip me-2"></i>Mojado</div>
+                    <div class="info-value">{{ treatment.water_per_ha }} litros/ha</div>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
 
-    <div class="col-md-6">
+    <div class="col-md-9">
         <div class="card mb-4 shadow-sm">
             <div class="card-header bg-primary text-white">
-                <h3 class="mb-0">Productos y Dosis</h3>
+                <h3 class="mb-0">Productos, dosis y precios</h3>
             </div>
             <div class="card-body">
                 <div class="treatment-summary">
@@ -231,7 +338,7 @@
                 </div>
                 <div class="row">
                     {% for product in products %}
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-4 mb-3">
                         <div class="card product-card"
                              style="background-color: #f8f9fa; border-left: 4px solid #28a745;">
                             <div class="card-body">
@@ -251,20 +358,11 @@
                                 <!-- Información de precios -->
                                 {% if product.unit_price > 0 %}
                                 <div class="price-container">
-                                    <div class="price-item">
-                                        <span class="price-label">Precio ud</span>
-                                        <span class="price-value">{{ product.unit_price|floatformat:2 }}€</span>
-                                    </div>
-
-                                    <div class="price-item">
-                                        <span class="price-label">Precio total</span>
-                                        <span class="price-value">{{ product.total_price|floatformat:2 }}€</span>
-                                    </div>
-
-                                    <div class="price-item">
-                                        <span class="price-label">Precio/ha</span>
-                                        <span class="price-value">{{ product.price_per_ha|floatformat:2 }}€/ha</span>
-                                    </div>
+                                    <small class="price-tag">
+                                        <i class="fa fa-tag me-1"></i>{{ product.unit_price|floatformat:2 }}€/ud ·
+                                        <strong>{{ product.total_price|floatformat:2 }}€</strong>
+                                        <span class="text-muted">({{ product.price_per_ha|floatformat:2 }}€/ha)</span>
+                                    </small>
                                 </div>
                                 {% endif %}
                             </div>
@@ -280,7 +378,7 @@
 {% if treatment.machine and treatment.type == 'spraying' %}
 <div class="card mb-4 shadow-sm">
     <div class="card-header bg-primary text-white">
-        <h3 class="mb-0">Instrucciones para Operador</h3>
+        <h3 class="mb-0">Instrucciones para operador</h3>
     </div>
     <div class="card-body">
         {% with load_info=treatment.calculate_machine_loads %}
