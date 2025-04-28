@@ -8,12 +8,13 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.shortcuts import render
 from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.views.generic import ListView, DetailView
 from django.views.generic.edit import CreateView, UpdateView
 
 from .forms import TreatmentForm, TreatmentProductFormSet
-from .models import Field, ProductType
+from .models import Field, ProductType, TreatmentProduct
 from .models import Product
 from .models import Treatment
 
@@ -248,3 +249,21 @@ def delete_treatment(request, pk):
     treatment.delete()
     messages.success(request, 'Tratamiento "{}" eliminado'.format(treatment.name))
     return redirect('treatment-list')
+
+
+def treatment_export(request, pk):
+    treatment = get_object_or_404(Treatment, pk=pk)
+    products = TreatmentProduct.objects.filter(treatment=treatment)
+
+    context = {
+        'treatment': treatment,
+        'products': products,
+        'now': timezone.now(),
+    }
+
+    # Si es una solicitud AJAX, retornamos solo el HTML
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return render(request, 'treatments/treatment_export.html', context)
+
+    # Para solicitudes normales, mostramos la vista completa
+    return render(request, 'treatments/treatment_export.html', context)

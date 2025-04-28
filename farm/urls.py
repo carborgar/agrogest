@@ -16,6 +16,7 @@ urlpatterns = [
     path('tratamientos/<int:pk>/finalizar', views.finish_treatment, name='treatment-finish'),
     path('tratamientos/<int:pk>/eliminar/', views.delete_treatment, name='treatment-delete'),
     path('tratamientos/calendario/', views.treatment_calendar, name='treatment-calendar'),
+    path('tratamientos/<int:pk>/operador/', views.treatment_export, name='treatment-operator-instructions'),
 
     # API Endpoints
     path('api/fields/', api_views.get_fields, name='api-fields'),

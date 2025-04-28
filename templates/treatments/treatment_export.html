@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Instrucciones para operador - {{ treatment.name }}</title>
+    <style>
+        :root {
+            --primary-color: #198754;
+            --light-primary: #d4edda;
+            --warning-color: #ffc107;
+            --light-warning: #fff3cd;
+            --border-color: #dee2e6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #212529;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px;
+            border-radius: 8px 8px 0 0;
+            margin: -15px -15px 15px -15px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo {
+            height: 30px;
+            margin-right: 10px;
+        }
+
+        .treatment-info {
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .info-card {
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 12px;
+            background-color: #f8f9fa;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+
+        .info-label i {
+            margin-right: 5px;
+        }
+
+        .info-value {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .summary {
+            background-color: #e9f2ff;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .summary i {
+            margin-right: 5px;
+        }
+
+        .loads-container {
+            margin-bottom: 20px;
+        }
+
+        .load-card {
+            border-radius: 8px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+
+        .load-header {
+            padding: 12px 15px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+
+        .load-header i {
+            margin-right: 8px;
+        }
+
+        .full-load-header {
+            background-color: var(--light-primary);
+            color: #0f5132;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .partial-load-header {
+            background-color: var(--light-warning);
+            color: #856404;
+            border-bottom: 2px solid var(--warning-color);
+        }
+
+        .load-body {
+            padding: 15px;
+            background-color: white;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        .product-card {
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .full-load .product-card {
+            background-color: #f8f9fa;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .partial-load .product-card {
+            background-color: #fff8e6;
+            border-left: 4px solid var(--warning-color);
+        }
+
+        .product-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-bottom: 5px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .product-dose {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .product-unit {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .export-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.5;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: middle;
+            cursor: pointer;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            transition: all 0.15s ease-in-out;
+        }
+
+        .btn i {
+            margin-right: 6px;
+        }
+
+        .btn-primary {
+            color: #fff;
+            background-color: #198754;
+            border-color: #198754;
+        }
+
+        .btn-danger {
+            color: #fff;
+            background-color: #dc3545;
+            border-color: #dc3545;
+        }
+
+        .btn-success {
+            color: #fff;
+            background-color: #198754;
+            border-color: #198754;
+        }
+
+        .btn-secondary {
+            color: #fff;
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+
+        /* Esconder elementos al imprimir */
+        @media print {
+            .export-buttons {
+                display: none;
+            }
+
+            body {
+                background-color: white;
+            }
+
+            .container {
+                box-shadow: none;
+                margin: 0;
+                padding: 10px;
+                max-width: 100%;
+            }
+
+            .header {
+                margin: 0 0 15px 0;
+                border-radius: 0;
+            }
+        }
+    </style>
+    <!-- Fuentes de iconos -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container" id="export-container">
+    <div class="header">
+        <h1>
+            <span class="logo-placeholder"></span>
+            Instrucciones para Operador
+        </h1>
+    </div>
+
+    <div class="treatment-info">
+        <div class="info-card">
+            <div class="info-label"><i class="fa fa-clipboard-check"></i> Tratamiento</div>
+            <div class="info-value">{{ treatment.name }}</div>
+        </div>
+
+        <div class="info-card">
+            <div class="info-label"><i class="fa fa-map-marked-alt"></i> Parcela</div>
+            <div class="info-value">{{ treatment.field.name }}</div>
+            <div>{{ treatment.field.crop }}, {{ treatment.field.area }} ha</div>
+        </div>
+
+        {% if treatment.machine %}
+        <div class="info-card">
+            <div class="info-label"><i class="fa fa-fill-drip"></i> Mojado</div>
+            <div class="info-value">{{ treatment.water_per_ha }} litros/ha</div>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if treatment.machine and treatment.type == 'spraying' %}
+    {% with load_info=treatment.calculate_machine_loads %}
+    {% if load_info %}
+    <div class="summary">
+        <i class="fa fa-info-circle"></i>
+        Total: <strong>{{ load_info.total_water }} litros</strong> de agua
+        para <strong>{{ treatment.field.area }} ha</strong> a <strong>{{ treatment.water_per_ha }} l/ha</strong>
+    </div>
+
+    <div class="loads-container">
+        <!-- Productos para máquina completa -->
+        <div class="load-card">
+            <div class="load-header full-load-header">
+                <i class="fa fa-tractor"></i> {{ load_info.full_loads }} máquinas completas con:
+            </div>
+            <div class="load-body full-load">
+                {% for product in products %}
+                <div class="product-card">
+                    <div class="product-title">{{ product.product.name }}</div>
+                    <div>
+                        <span class="product-dose">{{ product.get_dose_per_load }}</span>
+                        <span class="product-unit">{{ product.total_dose_unit }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Productos para máquina parcial (si existe) -->
+        {% if load_info.partial_load %}
+        <div class="load-card">
+            <div class="load-header partial-load-header">
+                <i class="fa fa-fill-drip"></i> 1 máquina parcial ({{ load_info.partial_water }} L) con:
+            </div>
+            <div class="load-body partial-load">
+                {% for product in products %}
+                <div class="product-card">
+                    <div class="product-title">{{ product.product.name }}</div>
+                    <div>
+                        {% load treatment_filters %}
+                        <span class="product-dose">{{ product|partial_load_product:treatment }}</span>
+                        <span class="product-unit">{{ product.total_dose_unit }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% endwith %}
+    {% endif %}
+
+    <div class="footer">
+        Generado por AgroGest el {{ now|date:"d/m/Y H:i" }}
+    </div>
+</div>
+
+<div class="export-buttons">
+    <button class="btn btn-danger" id="export-pdf">
+        <i class="fa fa-file-pdf"></i> Exportar PDF
+    </button>
+    <button class="btn btn-success" id="export-image">
+        <i class="fa fa-file-image"></i> Exportar Imagen
+    </button>
+    <a class="btn btn-secondary" href="{% url 'treatment-detail' treatment.id %}">
+        <i class="fa fa-arrow-left"></i> Volver
+    </a>
+</div>
+
+<!-- Scripts para la exportación -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Esperar a que se carguen las fuentes e iconos
+        window.setTimeout(function() {
+            const container = document.getElementById('export-container');
+            const pdfButton = document.getElementById('export-pdf');
+            const imageButton = document.getElementById('export-image');
+
+            // Función para exportar como imagen PNG
+            imageButton.addEventListener('click', function() {
+                // Mostrar alguna indicación de carga
+                this.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Generando...';
+                this.disabled = true;
+
+                html2canvas(container, {
+                    scale: 2, // Mejor calidad
+                    logging: false,
+                    useCORS: true
+                }).then(canvas => {
+                    // Crear enlace de descarga
+                    const link = document.createElement('a');
+                    link.download = 'instrucciones-tratamiento-{{ treatment.id }}.png';
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+
+                    // Restaurar botón
+                    imageButton.innerHTML = '<i class="fa fa-file-image"></i> Exportar Imagen';
+                    imageButton.disabled = false;
+                });
+            });
+
+            // Función para exportar como PDF
+            pdfButton.addEventListener('click', function() {
+                this.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Generando...';
+                this.disabled = true;
+
+                html2canvas(container, {
+                    scale: 2,
+                    logging: false,
+                    useCORS: true
+                }).then(canvas => {
+                    const { jsPDF } = window.jspdf;
+
+                    // Crear PDF con dimensiones A4
+                    const imgData = canvas.toDataURL('image/png');
+                    const pdf = new jsPDF('p', 'mm', 'a4');
+
+                    const pdfWidth = pdf.internal.pageSize.getWidth();
+                    const pdfHeight = pdf.internal.pageSize.getHeight();
+
+                    // Calcular proporciones para mantener relación de aspecto
+                    const imgWidth = canvas.width;
+                    const imgHeight = canvas.height;
+                    const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+
+                    const imgX = (pdfWidth - imgWidth * ratio) / 2;
+                    const imgY = 10; // Margen superior
+
+                    pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
+                    pdf.save(`instrucciones-tratamiento-{{ treatment.id }}.pdf`);
+
+                    // Restaurar botón
+                    pdfButton.innerHTML = '<i class="fa fa-file-pdf"></i> Exportar PDF';
+                    pdfButton.disabled = false;
+                });
+            });
+        }, 500);
+    });
+</script>
+</body>
+</html>
