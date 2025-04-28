@@ -336,9 +336,10 @@
                     ({{ cost_per_ha|floatformat:2 }} €/ha)
                     {% endif %}
                 </div>
-                <div class="row">
+
+                <div class="row" id="productsContainer">
                     {% for product in products %}
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-4 mb-3 product-item">
                         <div class="card product-card"
                              style="background-color: #f8f9fa; border-left: 4px solid #28a745;">
                             <div class="card-body">
@@ -369,6 +370,11 @@
                         </div>
                     </div>
                     {% endfor %}
+                </div>
+                <div class="d-flex justify-content-center">
+                    <ul class="pagination pagination-sm" id="productsPagination">
+                        <!-- La paginación se genera con JavaScript -->
+                    </ul>
                 </div>
             </div>
         </div>
@@ -518,5 +524,92 @@
             onConfirm: () => document.getElementById('deleteForm').submit()
         });
     }
+
+    // Paginación de productos
+    document.addEventListener('DOMContentLoaded', function() {
+        const container = document.getElementById('productsContainer');
+        const paginationContainer = document.getElementById('productsPagination');
+
+        const productItems = Array.from(document.querySelectorAll('.product-item'));
+        let currentPage = 1;
+        // Número fijo de items por página
+        const itemsPerPage = 6;
+
+        // Función para renderizar items y paginación
+        function renderItems() {
+            productItems.forEach(item => item.style.display = 'none');
+
+            // Calcular paginación
+            const totalPages = Math.ceil(productItems.length / itemsPerPage);
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = Math.min(startIndex + itemsPerPage, productItems.length);
+
+            // Mostrar items de la página actual
+            for (let i = startIndex; i < endIndex; i++) {
+                productItems[i].style.display = '';
+            }
+
+            // Generar controles de paginación
+            renderPagination(totalPages);
+        }
+
+        // Generar controles de paginación
+        function renderPagination(totalPages) {
+            if (totalPages <= 1) {
+                paginationContainer.innerHTML = '';
+                return;
+            }
+
+            let html = `
+                <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" data-page="${currentPage - 1}" aria-label="Anterior">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+            `;
+
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+            if (endPage - startPage + 1 < maxVisiblePages) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                html += `
+                    <li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <a class="page-link" href="#" data-page="${i}">${i}</a>
+                    </li>
+                `;
+            }
+
+            html += `
+                <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" data-page="${currentPage + 1}" aria-label="Siguiente">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            `;
+
+            paginationContainer.innerHTML = html;
+
+            // Agregar eventos a los enlaces de paginación
+            paginationContainer.querySelectorAll('.page-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    if (!this.parentElement.classList.contains('disabled')) {
+                        currentPage = parseInt(this.dataset.page);
+                        renderItems();
+                        // Scroll suave al inicio del contenedor
+                        container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                });
+            });
+        }
+
+        // Inicializar
+        renderItems();
+    });
 </script>
 {% endblock %}
