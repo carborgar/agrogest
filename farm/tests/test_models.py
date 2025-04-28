@@ -466,8 +466,12 @@ class TreatmentRecalculationTest(TestCase):
         treatment_product.refresh_from_db()
 
         # For l_per_ha, new total dose should be dose * new field area
-        expected_total_dose = Decimal("2.5") * Decimal("20.0")  # 2.5 L/ha * 20 ha = 50 L
+        expected_total_dose = Decimal("50.0")  # 2.5 L/ha * 20 ha = 50 L
         self.assertEqual(treatment_product.total_dose, expected_total_dose)
+
+        # Total price is also updated
+        expected_total_price = Decimal("2500.00")  # 50€/ud * 50 = 2500€
+        self.assertEqual(treatment_product.total_price, expected_total_price)
 
     def test_recalculation_on_water_per_ha_change(self):
         """Test recalculation when water_per_ha changes."""
@@ -504,6 +508,10 @@ class TreatmentRecalculationTest(TestCase):
         # New calculation: 5 * 400 * 10 / 1000 = 20 L
         expected_new_dose = Decimal("5.0") * Decimal("400") * Decimal("10.0") / Decimal("1000")
         self.assertAlmostEqual(water_based_tp.total_dose, expected_new_dose, places=2)
+
+        # Total price is also updated
+        expected_total_price = Decimal("1250.00")
+        self.assertEqual(treatment_product.total_price, expected_total_price)
 
     def test_type_change_recalculation(self):
         """Test recalculation when treatment type is changed."""

@@ -228,11 +228,18 @@ def treatment_calendar(request):
 def finish_treatment(request, pk):
     treatment = get_object_or_404(Treatment, pk=pk)
     finish_date = request.POST.get('finish_date')
-    if finish_date:
-        treatment.finish_date = finish_date
-        treatment.save()
-        return JsonResponse({'success': True})
-    return JsonResponse({'success': False}, status=400)
+    real_water_used = request.POST.get('real_water_used')
+
+    if not finish_date:
+        return JsonResponse({'success': False}, status=400)
+
+    if real_water_used:
+        treatment.water_per_ha = int(real_water_used)
+
+    treatment.finish_date = finish_date
+    treatment.save()
+
+    return JsonResponse({'success': True})
 
 
 @require_POST

@@ -467,6 +467,10 @@
                   <label for="swalFinishDate" class="form-label">Fecha de finalización</label>
                   <input type="date" class="form-control" id="swalFinishDate" required>
                 </div>
+                <div class="mb-3">
+                  <label for="swalFinalWater" class="form-label">Mojado final (litros/ha)</label>
+                  <input type="number" class="form-control" id="swalFinalWater" value="{{ treatment.water_per_ha }}" min="1" required>
+                </div>
               </form>
             `,
             showCancelButton: true,
@@ -475,10 +479,15 @@
             confirmButtonColor: '#198754',
             preConfirm: () => {
                 const finishDate = document.getElementById('swalFinishDate').value;
+                const finalWater = document.getElementById('swalFinalWater').value;
+
                 if (!finishDate) {
                     Swal.showValidationMessage('Por favor, ingresa una fecha de finalización');
                 }
-                return { finishDate };
+                if (!finalWater || finalWater < 1) {
+                    Swal.showValidationMessage('Por favor, ingresa un valor válido para el mojado final');
+                }
+                return { finishDate, finalWater };
             },
             heightAuto: false
         }).then((result) => {
@@ -487,7 +496,10 @@
                 fetch(`{% url 'treatment-finish' 0 %}`.replace('0', treatmentId), {
                     method: 'POST',
                     headers: {'X-CSRFToken': '{{ csrf_token }}'},
-                    body: new URLSearchParams({ finish_date: result.value.finishDate })
+                    body: new URLSearchParams({
+                        finish_date: result.value.finishDate,
+                        real_water_used: result.value.finalWater
+                    })
                 })
                 .then(r => {
                     if (!r.ok) throw new Error();
@@ -505,7 +517,7 @@
                     showNotification({
                         icon: 'error',
                         title: 'Error',
-                        text: 'Hubo un problema. Verifica la fecha e inténtalo de nuevo.'
+                        text: 'Hubo un problema. Verifica los datos e inténtalo de nuevo.'
                     });
                 });
             }

@@ -417,13 +417,15 @@ class TreatmentProduct(SoftDeleteObject):
         # Calculamos la dosis total antes de guardar
         self.calculate_total_dose()
 
-        if not self.pk:  # sólo copiamos los campos de precios en la creación
-            self.calculate_prices()
+        # Calculamos los precios finales
+        self.calculate_prices()
 
         super().save(*args, **kwargs)
 
     def calculate_prices(self):
-        self.unit_price = self.product.price
+        if self.unit_price == 0:
+            self.unit_price = self.product.price  # Solo si aún no estaba puesto (caso creación)
+
         self.total_price = self.unit_price * self.total_dose
         self.price_per_ha = self.total_price / Decimal(self.treatment.field.area)
 
