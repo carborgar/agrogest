@@ -199,6 +199,8 @@ class Treatment(SoftDeleteObject):
     machine = models.ForeignKey('farm.Machine', on_delete=models.SET_NULL, null=True, blank=True)
     products = models.ManyToManyField('farm.Product', through='TreatmentProduct')
     water_per_ha = models.IntegerField(help_text="Litros de agua por hectárea", null=True, blank=True)
+    real_water_per_ha = models.IntegerField(help_text="Mojado real usado por hectárea (en litros)", null=True,
+                                            blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
 
     def __str__(self):
@@ -212,7 +214,8 @@ class Treatment(SoftDeleteObject):
         if not is_new:
             old_obj = Treatment.objects.get(pk=self.pk)
             needs_recalculation = (
-                    old_obj.water_per_ha != self.water_per_ha or
+                    old_obj.actual_water_per_ha() != self.actual_water_per_ha() or
+                    old_obj.real_water_per_ha != self.real_water_per_ha or
                     old_obj.field_id != self.field_id
             )
         else:
@@ -279,20 +282,15 @@ class Treatment(SoftDeleteObject):
         }
         return type_map.get(self.type, 'secondary')  # 'secondary' como fallback
 
-    def get_water_per_ha(self):
-        if self.type == 'fertigation':
-            return 0
-        return self.water_per_ha
-
     def calculate_machine_loads(self):
         """
         Calcula el número de máquinas completas y parciales necesarias para el tratamiento.
         """
-        if not self.machine or not self.water_per_ha or self.type != 'spraying':
+        if not self.machine or not self.actual_water_per_ha() or self.type != 'spraying':
             return None
 
         field_area = self.field.area
-        water_per_ha = self.water_per_ha
+        water_per_ha = self.actual_water_per_ha()
         machine_capacity = self.machine.capacity
 
         # Total de agua necesaria
@@ -324,7 +322,7 @@ class Treatment(SoftDeleteObject):
 
         result = 0
         if 'ha' in dose_type:
-            area_covered = partial_water / self.water_per_ha
+            area_covered = partial_water / self.actual_water_per_ha()
             result = float(dose) * area_covered
         elif '1000l' in dose_type:
             result = float(dose) * partial_water / 1000
@@ -340,6 +338,13 @@ class Treatment(SoftDeleteObject):
 
     def is_spraying(self):
         return self.type == 'spraying'
+
+    def actual_water_per_ha(self):
+        """
+        Devuelve el agua real por hectárea utilizada en el tratamiento.
+        Si no se ha especificado, devuelve el valor por defecto.
+        """
+        return self.real_water_per_ha if self.real_water_per_ha else self.water_per_ha
 
 
 class TreatmentProduct(SoftDeleteObject):
@@ -378,7 +383,7 @@ class TreatmentProduct(SoftDeleteObject):
 
         # Obtener datos necesarios
         field_area = self.treatment.field.area
-        water_per_ha = self.treatment.water_per_ha
+        water_per_ha = self.treatment.actual_water_per_ha()
 
         # Calcular la dosis total según el tipo de dosis
         if self.dose_type in ['kg_per_1000l', 'l_per_1000l']:
@@ -403,7 +408,7 @@ class TreatmentProduct(SoftDeleteObject):
             return self.total_dose
 
         machine = self.treatment.machine
-        water_per_ha = self.treatment.water_per_ha
+        water_per_ha = self.treatment.actual_water_per_ha()
 
         if not machine or not water_per_ha or not self.dose or not self.dose_type:
             return None

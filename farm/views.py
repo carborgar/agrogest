@@ -235,7 +235,7 @@ def finish_treatment(request, pk):
         return JsonResponse({'success': False}, status=400)
 
     if real_water_used:
-        treatment.water_per_ha = int(real_water_used)
+        treatment.real_water_per_ha = int(real_water_used)
 
     treatment.finish_date = finish_date
     treatment.save()
