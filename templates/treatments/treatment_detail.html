@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load custom_filters %}
+{% load mathfilters %}
 
 {% block title %}{{ treatment.name }}{% endblock %}
 
@@ -461,6 +462,8 @@
 <script>
     // Función para finalizar tratamiento
     function finishTreatment(treatmentId) {
+        const fieldArea = parseFloat('{{ treatment.field.area }}'.replace(',', '.'));
+
         Swal.fire({
             target: '#swal-container',
             title: 'Finalizar tratamiento',
@@ -472,7 +475,13 @@
                 </div>
                 <div class="mb-3">
                   <label for="swalFinalWater" class="form-label">Mojado final (litros/ha)</label>
-                  <input type="number" class="form-control" id="swalFinalWater" value="{{ treatment.water_per_ha }}" min="1" required>
+                  <input type="number" class="form-control" id="swalFinalWater" value="{{ treatment.water_per_ha }}" min="1" step="1" required
+                    oninput="this.value = Math.round(this.value); document.getElementById('swalTotalWater').value = Math.round(this.value * ${fieldArea})">
+                </div>
+                <div class="mb-3">
+                  <label for="swalTotalWater" class="form-label">Total agua utilizada (litros)</label>
+                  <input type="number" class="form-control" id="swalTotalWater" value="{{ treatment.water_per_ha|mul:treatment.field.area }}" min="1" step="1" required
+                    oninput="this.value = Math.round(this.value); document.getElementById('swalFinalWater').value = Math.round(this.value / ${fieldArea})">
                 </div>
               </form>
             `,
@@ -482,17 +491,36 @@
             confirmButtonColor: '#198754',
             preConfirm: () => {
                 const finishDate = document.getElementById('swalFinishDate').value;
-                const finalWater = document.getElementById('swalFinalWater').value;
+                const finalWater = parseFloat(document.getElementById('swalFinalWater').value);
+                const totalWater = parseFloat(document.getElementById('swalTotalWater').value);
 
                 if (!finishDate) {
                     Swal.showValidationMessage('Por favor, ingresa una fecha de finalización');
+                    return false;
                 }
-                if (!finalWater || finalWater < 1) {
-                    Swal.showValidationMessage('Por favor, ingresa un valor válido para el mojado final');
+                if (!finalWater || finalWater < 1 || !Number.isInteger(finalWater)) {
+                    Swal.showValidationMessage('El mojado final debe ser un número entero mayor que 0');
+                    return false;
                 }
+                if (!totalWater || totalWater < 1 || !Number.isInteger(totalWater)) {
+                    Swal.showValidationMessage('El total de litros debe ser un número entero mayor que 0');
+                    return false;
+                }
+
                 return { finishDate, finalWater };
             },
-            heightAuto: false
+            heightAuto: false,
+            didOpen: () => {
+                // Set today's date as default
+                const today = new Date();
+                const formattedDate = today.toISOString().split('T')[0];
+                document.getElementById('swalFinishDate').value = formattedDate;
+
+                // Initialize total water calculation
+                const waterPerHa = {{ treatment.water_per_ha }};
+                document.getElementById('swalFinalWater').value = Math.round(waterPerHa);
+                document.getElementById('swalTotalWater').value = Math.round(waterPerHa * fieldArea);
+            }
         }).then((result) => {
             if (result.isConfirmed) {
                 showLoading('Procesando...', 'Marcando como finalizado');

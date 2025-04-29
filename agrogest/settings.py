@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'widget_tweaks',
     'whitenoise.runserver_nostatic',
     'softdelete',
+    'mathfilters',
 
 ]
 
