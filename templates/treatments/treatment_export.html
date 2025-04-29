@@ -1,9 +1,14 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    {% load static %}
     <meta charset="UTF-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>Instrucciones para operador - {{ treatment.name }}</title>
+
+    <link href="{% static 'css/custom-bootstrap.min.css' %}" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+
     <style>
         :root {
             --primary-color: #198754;
@@ -14,7 +19,6 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
             color: #212529;
             background-color: #f8f9fa;
@@ -234,33 +238,7 @@
             background-color: #6c757d;
             border-color: #6c757d;
         }
-
-        /* Esconder elementos al imprimir */
-        @media print {
-            .export-buttons {
-                display: none;
-            }
-
-            body {
-                background-color: white;
-            }
-
-            .container {
-                box-shadow: none;
-                margin: 0;
-                padding: 10px;
-                max-width: 100%;
-            }
-
-            .header {
-                margin: 0 0 15px 0;
-                border-radius: 0;
-            }
-        }
     </style>
-    <!-- Fuentes de iconos -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
 </head>
 <body>
 <div class="container" id="export-container">
@@ -291,20 +269,27 @@
         {% endif %}
     </div>
 
-    {% if treatment.machine and treatment.type == 'spraying' %}
     {% with load_info=treatment.calculate_machine_loads %}
-    {% if load_info %}
     <div class="summary">
         <i class="fa fa-info-circle"></i>
+        {% if treatment.is_spraying and treatment.machine %}
         Total: <strong>{{ load_info.total_water }} litros</strong> de agua
         para <strong>{{ treatment.field.area }} ha</strong> a <strong>{{ treatment.water_per_ha }} l/ha</strong>
+        {% elif treatment.is_fertigation %}
+        Aplicación de fertirrigación para <strong>{{ treatment.field.area }} ha</strong> en <strong>
+        {{ treatment.field.name }}</strong>
+        {% endif %}
     </div>
 
     <div class="loads-container">
         <!-- Productos para máquina completa -->
         <div class="load-card">
             <div class="load-header full-load-header">
+                {% if treatment.is_fertigation %}
+                <i class="fa fa-droplet me-2"></i>Dosis a aplicar:
+                {% elif treatment.is_spraying %}
                 <i class="fa fa-tractor"></i> {{ load_info.full_loads }} máquinas completas con:
+                {% endif %}
             </div>
             <div class="load-body full-load">
                 {% for product in products %}
@@ -340,9 +325,13 @@
         </div>
         {% endif %}
     </div>
-    {% endif %}
     {% endwith %}
-    {% endif %}
+
+    <div class="alert alert-info">
+        <i class="fa fa-circle-info me-2"></i>
+        <strong>Nota:</strong>
+        Asegúrese de aplicar los productos en el orden indicado.
+    </div>
 
     <div class="footer">
         Generado por AgroGest el {{ now|date:"d/m/Y H:i" }}

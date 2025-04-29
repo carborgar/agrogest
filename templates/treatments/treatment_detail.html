@@ -60,6 +60,12 @@
       border-left: 4px solid #ffc107;
     }
 
+    /* Estilos para fertirrigación */
+    .fertigation .product-card {
+      background-color: #f8f9fa;
+      border-left: 4px solid #20c997;
+    }
+
     /* Mejoras para los encabezados de secciones */
     .machine-header {
       padding: 0.75rem 1rem;
@@ -81,6 +87,12 @@
       background-color: #fff3cd;
       color: #856404;
       border-bottom: 2px solid #ffc107;
+    }
+
+    .fertigation-header {
+      background-color: #d1e7dd;
+      color: #0f5132;
+      border-bottom: 2px solid #20c997;
     }
 
     /* Totales y resumen */
@@ -187,39 +199,7 @@
         border-left: 4px solid #dc3545;
     }
 
-    /* Estilos para productos */
-    .product-card {
-        transition: all 0.3s ease;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        height: 100%;
-        border: none;
-        overflow: hidden;
-    }
-
-    .product-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    }
-
-    .product-card .card-title {
-        font-size: 1rem;
-        font-weight: 600;
-        margin-bottom: 0.25rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        padding-bottom: 0.25rem;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    }
-
     /* Estilos para los precios compactos */
-    .price-container {
-        margin-top: 0.5rem;
-        padding-top: 0.5rem;
-        border-top: 1px dashed rgba(0, 0, 0, 0.1);
-    }
-
     .price-tag {
         font-size: 0.85rem;
         color: #198754;
@@ -381,25 +361,33 @@
     </div>
 </div>
 
-{% if treatment.machine and treatment.type == 'spraying' %}
 <div class="card mb-4 shadow-sm">
     <div class="card-header bg-primary text-white">
         <h3 class="mb-0">Instrucciones para operador</h3>
     </div>
     <div class="card-body">
-        {% with load_info=treatment.calculate_machine_loads %}
-        {% if load_info %}
         <div class="treatment-summary">
             <i class="fa fa-info-circle me-2"></i>
+            {% if treatment.is_spraying and treatment.machine %}
+            {% with load_info=treatment.calculate_machine_loads %}
             Total: <strong>{{ load_info.total_water }} litros</strong> de agua
             para <strong>{{ treatment.field.area }} ha</strong> a <strong>{{ treatment.water_per_ha }} l/ha</strong>
+            {% endwith %}
+            {% elif treatment.is_fertigation %}
+            Aplicación de fertirrigación para <strong>{{ treatment.field.area }} ha</strong> en <strong>
+            {{ treatment.field.name }}</strong>
+            {% endif %}
         </div>
 
-        <!-- Productos para máquina completa -->
+        {% with load_info=treatment.calculate_machine_loads %}
         <div class="card mb-3">
             <div class="card-header machine-header full-machine-header">
+                {% if treatment.is_fertigation %}
+                <h5 class="mb-0"><i class="fa fa-droplet me-2"></i>Dosis a aplicar:</h5>
+                {% elif treatment.is_spraying %}
                 <h5 class="mb-0"><i class="fa fa-tractor"></i>{{ load_info.full_loads }} máquinas completas con:
                 </h5>
+                {% endif %}
             </div>
             <div class="card-body full-machine">
                 <div class="row">
@@ -420,8 +408,8 @@
             </div>
         </div>
 
-        <!-- Productos para máquina parcial (si existe) -->
         {% if load_info.partial_load %}
+        <!-- Productos para máquina parcial -->
         <div class="card">
             <div class="card-header machine-header partial-machine-header">
                 <h5 class="mb-0"><i class="fa fa-fill-drip"></i>1 máquina parcial
@@ -447,11 +435,15 @@
             </div>
         </div>
         {% endif %}
-        {% endif %}
         {% endwith %}
+
+        <div class="alert alert-info">
+            <i class="fa fa-circle-info me-2"></i>
+            <strong>Nota:</strong>
+            Asegúrese de aplicar los productos en el orden indicado.
+        </div>
     </div>
 </div>
-{% endif %}
 
 <!-- Formulario oculto para las acciones de eliminación -->
 <form action="{% url 'treatment-delete' treatment.id %}" id="deleteForm" method="POST" style="display: none;">

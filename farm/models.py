@@ -335,6 +335,12 @@ class Treatment(SoftDeleteObject):
 
         return round(result, 1)
 
+    def is_fertigation(self):
+        return self.type == 'fertigation'
+
+    def is_spraying(self):
+        return self.type == 'spraying'
+
 
 class TreatmentProduct(SoftDeleteObject):
     treatment = models.ForeignKey("Treatment", on_delete=models.CASCADE)
@@ -390,7 +396,12 @@ class TreatmentProduct(SoftDeleteObject):
     def get_dose_per_load(self):
         """
         Calcula la dosis de producto por carga de máquina, redondeada a 2 decimales.
+        Si el tratamiento es de fertirrigación, devuelve la dosis completa para toda la parcela
         """
+        if self.treatment.type == 'fertigation':
+            # En fertirrigación, la dosis es para toda la parcela
+            return self.total_dose
+
         machine = self.treatment.machine
         water_per_ha = self.treatment.water_per_ha
 
