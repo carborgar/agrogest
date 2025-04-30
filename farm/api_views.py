@@ -123,6 +123,7 @@ def treatment_detail(request, treatment_id):
             'field_name': treatment.field.name,
             'machine_name': str(treatment.machine) if treatment.machine else None,
             'water_per_ha': treatment.water_per_ha,
+            'real_water_per_ha': treatment.real_water_per_ha,
             'products': [
                 {
                     'id': tp.product.id,

@@ -8,6 +8,7 @@
 
     <link href="{% static 'css/custom-bootstrap.min.css' %}" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <link href="{% static 'css/treatment-styles.css' %}" rel="stylesheet">
 
     <style>
         :root {
@@ -260,7 +261,14 @@
         {% if treatment.machine %}
         <div class="info-card">
             <div class="info-label"><i class="fa fa-fill-drip"></i> Mojado</div>
-            <div class="info-value">{{ treatment.water_per_ha }} litros/ha</div>
+            <div class="info-value">
+                {% if treatment.real_water_per_ha and treatment.real_water_per_ha != treatment.water_per_ha %}
+                <del class="text-muted">{{ treatment.water_per_ha }} L/ha</del>
+                <br>
+                {% endif %}
+                {{ treatment.actual_water_per_ha }} L/ha
+
+            </div>
         </div>
         {% endif %}
     </div>
@@ -270,7 +278,7 @@
         <i class="fa fa-info-circle"></i>
         {% if treatment.is_spraying and treatment.machine %}
         Total: <strong>{{ load_info.total_water }} litros</strong> de agua
-        para <strong>{{ treatment.field.area }} ha</strong> a <strong>{{ treatment.water_per_ha }} l/ha</strong>
+        para <strong>{{ treatment.field.area }} ha</strong> a <strong>{{ treatment.actual_water_per_ha }} l/ha</strong>
         {% elif treatment.is_fertigation %}
         Aplicación de fertirrigación para <strong>{{ treatment.field.area }} ha</strong> en <strong>
         {{ treatment.field.name }}</strong>

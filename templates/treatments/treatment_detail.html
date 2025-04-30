@@ -4,219 +4,6 @@
 
 {% block title %}{{ treatment.name }}{% endblock %}
 
-{% block extra_head %}
-<style>
-    .product-card {
-      transition: all 0.3s ease;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      height: 100%;
-      border: none;
-      overflow: hidden;
-    }
-
-    .product-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    }
-
-    .product-card .card-body {
-      padding: 0.75rem;
-    }
-
-    .product-card .card-title {
-      font-size: 1rem;
-      font-weight: 600;
-      margin-bottom: 0.25rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      padding-bottom: 0.25rem;
-      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    }
-
-    .product-card .card-text {
-      font-size: 0.9rem;
-    }
-
-    .product-card .dose-amount {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: #0d6efd;
-    }
-
-    .product-card .dose-unit {
-      font-size: 0.85rem;
-      font-weight: 500;
-    }
-
-    /* Estilos para máquina completa vs parcial */
-    .full-machine .product-card {
-      background-color: #f8f9fa;
-      border-left: 4px solid #28a745;
-    }
-
-    .partial-machine .product-card {
-      background-color: #fff8e6;
-      border-left: 4px solid #ffc107;
-    }
-
-    /* Estilos para fertirrigación */
-    .fertigation .product-card {
-      background-color: #f8f9fa;
-      border-left: 4px solid #20c997;
-    }
-
-    /* Mejoras para los encabezados de secciones */
-    .machine-header {
-      padding: 0.75rem 1rem;
-      border-radius: 6px 6px 0 0;
-      font-weight: 500;
-    }
-
-    .machine-header i {
-      margin-right: 0.5rem;
-    }
-
-    .full-machine-header {
-      background-color: #d4edda;
-      color: #0f5132;
-      border-bottom: 2px solid #28a745;
-    }
-
-    .partial-machine-header {
-      background-color: #fff3cd;
-      color: #856404;
-      border-bottom: 2px solid #ffc107;
-    }
-
-    .fertigation-header {
-      background-color: #d1e7dd;
-      color: #0f5132;
-      border-bottom: 2px solid #20c997;
-    }
-
-    /* Totales y resumen */
-    .treatment-summary {
-      background-color: #e9f2ff;
-      padding: 0.75rem;
-      border-radius: 6px;
-      margin-bottom: 1rem;
-      border-left: 4px solid #0d6efd;
-    }
-
-    .treatment-summary strong {
-      color: #0d6efd;
-    }
-
-    /* Nuevos estilos para los precios */
-    .price-tag {
-      font-size: 0.95rem;
-      font-weight: 600;
-      color: #198754;
-    }
-
-    .price-container {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      margin-top: 0.5rem;
-      padding-top: 0.5rem;
-      border-top: 1px dashed rgba(0, 0, 0, 0.1);
-    }
-
-    .price-item {
-      font-size: 0.8rem;
-      display: flex;
-      flex-direction: column;
-      margin-right: 0.5rem;
-    }
-
-    .price-label {
-      color: #6c757d;
-      font-size: 0.7rem;
-    }
-
-    .price-value {
-      font-weight: 600;
-      color: #198754;
-    }
-
-    /* Ajustes para móviles */
-    @media (max-width: 767.98px) {
-      .product-card {
-        margin-bottom: 0.75rem;
-      }
-
-      .price-container {
-        flex-direction: column;
-      }
-
-      .price-item {
-        margin-bottom: 0.25rem;
-      }
-    }
-
-    /* Estilos para la columna de información vertical */
-    .info-item-vertical {
-        padding: 0.75rem 1rem;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-    }
-
-    .info-item-vertical:last-child {
-        border-bottom: none;
-    }
-
-    .info-item-vertical .info-label {
-        font-size: 0.75rem;
-        color: #6c757d;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 0.25rem;
-    }
-
-    .info-item-vertical .info-value {
-        font-size: 0.95rem;
-        font-weight: 600;
-        color: #212529;
-    }
-
-    .info-item-vertical .info-subvalue {
-        font-size: 0.8rem;
-        color: #6c757d;
-        margin-top: 0.25rem;
-    }
-
-    /* Estilos para el estado */
-    .info-item-vertical.status-success {
-        border-left: 4px solid #28a745;
-    }
-
-    .info-item-vertical.status-warning {
-        border-left: 4px solid #ffc107;
-    }
-
-    .info-item-vertical.status-danger {
-        border-left: 4px solid #dc3545;
-    }
-
-    /* Estilos para los precios compactos */
-    .price-tag {
-        font-size: 0.85rem;
-        color: #198754;
-        display: block;
-    }
-
-    .price-tag strong {
-        color: #198754;
-    }
-
-    .price-tag .text-muted {
-        font-size: 0.8rem;
-    }
-</style>
-{% endblock %}
-
 {% block header %}
 <div class="d-flex justify-content-between align-items-center">
     <span>{{ treatment.name }}</span>
@@ -258,33 +45,33 @@
             </div>
             <div class="card-body p-0">
                 <!-- Estado -->
-                <div class="info-item-vertical status-{{ treatment.state_class }} bg-{{ treatment.state_class }} bg-opacity-25">
+                <div class="info-item-vertical status-{{ treatment.state_class }} bg-{{ treatment.state_class }} bg-opacity-25 border-bottom">
                     <div class="info-label"><i class="fa fa-clipboard-check me-2"></i>Estado</div>
                     <div class="info-value">{{ treatment.status_display }}</div>
                 </div>
 
                 <!-- Tipo -->
-                <div class="info-item-vertical">
+                <div class="info-item-vertical border-bottom">
                     <div class="info-label"><i class="fa fa-spray-can me-2"></i>Tipo</div>
                     <div class="info-value">{{ treatment.get_type_display }}</div>
                 </div>
 
                 <!-- Fecha -->
-                <div class="info-item-vertical">
+                <div class="info-item-vertical border-bottom">
                     <div class="info-label"><i class="fa fa-calendar-alt me-2"></i>Fecha</div>
                     <div class="info-value">{{ treatment.date|date:"d/m/Y" }}</div>
                 </div>
 
                 {% if treatment.finish_date %}
                 <!-- Fecha finalización -->
-                <div class="info-item-vertical">
+                <div class="info-item-vertical border-bottom">
                     <div class="info-label"><i class="fa fa-calendar-check me-2"></i>Finalizado</div>
                     <div class="info-value">{{ treatment.finish_date|date:"d/m/Y" }}</div>
                 </div>
                 {% endif %}
 
                 <!-- Parcela -->
-                <div class="info-item-vertical">
+                <div class="info-item-vertical border-bottom">
                     <div class="info-label"><i class="fa fa-map-marked-alt me-2"></i>Parcela</div>
                     <div class="info-value">{{ treatment.field.name }}</div>
                     <div class="info-subvalue">{{ treatment.field.crop }}, {{ treatment.field.area }} ha</div>
@@ -292,7 +79,7 @@
 
                 {% if treatment.machine %}
                 <!-- Maquinaria -->
-                <div class="info-item-vertical">
+                <div class="info-item-vertical border-bottom">
                     <div class="info-label"><i class="fa fa-tractor me-2"></i>Maquinaria</div>
                     <div class="info-value">{{ treatment.machine.name }}</div>
                     <div class="info-subvalue">{{ treatment.machine.capacity }} litros</div>
@@ -378,7 +165,7 @@
             {% if treatment.is_spraying and treatment.machine %}
             {% with load_info=treatment.calculate_machine_loads %}
             Total: <strong>{{ load_info.total_water }} litros</strong> de agua
-            para <strong>{{ treatment.field.area }} ha</strong> a <strong>{{ treatment.water_per_ha }} l/ha</strong>
+            para <strong>{{ treatment.field.area }} ha</strong> a <strong>{{ treatment.actual_water_per_ha }} l/ha</strong>
             {% endwith %}
             {% elif treatment.is_fertigation %}
             Aplicación de fertirrigación para <strong>{{ treatment.field.area }} ha</strong> en <strong>

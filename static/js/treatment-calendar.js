@@ -88,12 +88,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Mostrar indicadores de carga para los datos que vendrán del endpoint
         document.getElementById('detail-field').textContent = 'Cargando...';
+        document.getElementById('detail-field-info').textContent = '';
         document.getElementById('detail-type').textContent = 'Cargando...';
         document.getElementById('detail-status').textContent = 'Cargando...';
         document.getElementById('detail-machine').textContent = 'Cargando...';
-        document.getElementById('detail-water').textContent = 'Cargando...';
+        document.getElementById('detail-machine-info').textContent = '';
+        document.getElementById('detail-water').innerHTML = 'Cargando...';
         document.getElementById('detail-products').innerHTML = '<tr><td colspan="3" class="text-center">Cargando productos...</td></tr>';
         document.getElementById('view-treatment').href = `/tratamientos/${treatmentId}`;
+
+        // Resetear clases de estado
+        const statusContainer = document.getElementById('status-container');
+        statusContainer.className = 'info-item-vertical col-6';
 
         // Mostrar el modal inmediatamente mientras se cargan los datos
         new bootstrap.Modal(treatmentModal).show();
@@ -109,10 +115,35 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(treatmentData => {
                 // Actualizar el modal con los datos recibidos
                 document.getElementById('detail-field').textContent = treatmentData.field_name;
+
+                // Mostrar información adicional del campo si está disponible
+                if (treatmentData.field_crop || treatmentData.field_area) {
+                    const fieldInfo = [];
+                    if (treatmentData.field_crop) fieldInfo.push(treatmentData.field_crop);
+                    if (treatmentData.field_area) fieldInfo.push(`${treatmentData.field_area} ha`);
+                    document.getElementById('detail-field-info').textContent = fieldInfo.join(', ');
+                }
+
                 document.getElementById('detail-type').textContent = treatmentData.type_display;
                 document.getElementById('detail-status').textContent = treatmentData.status_display;
+
+                // Añadir clase de estado para colorear el contenedor
+                if (treatmentData.state_class) {
+                    statusContainer.classList.add(`status-${treatmentData.state_class}`);
+                    statusContainer.classList.add(`bg-${treatmentData.state_class}`);
+                    statusContainer.classList.add('bg-opacity-25');
+                }
+
                 document.getElementById('detail-machine').textContent = treatmentData.machine_name || 'No asignada';
-                document.getElementById('detail-water').textContent = treatmentData.water_per_ha;
+
+                // Añadir información de capacidad de la máquina si está disponible
+                if (treatmentData.machine_capacity) {
+                    document.getElementById('detail-machine-info').textContent = `${treatmentData.machine_capacity} litros`;
+                }
+
+                // Lógica para mostrar el mojado estimado y real
+                updateWaterDisplay(treatmentData.water_per_ha, treatmentData.real_water_per_ha);
+
                 fillProducts(treatmentData.products);
                 document.getElementById('view-treatment').style.display = 'block';
             })
@@ -121,6 +152,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('detail-products').innerHTML =
                     '<tr><td colspan="3" class="text-center">Error al cargar los datos</td></tr>';
             });
+    }
+
+    // Nueva función para actualizar la visualización del mojado
+    function updateWaterDisplay(estimatedWater, realWater) {
+        const waterElement = document.getElementById('detail-water');
+
+        // Verificar si hay valores reales diferentes del estimado
+        if (realWater && realWater !== estimatedWater) {
+            // Mostrar el estimado tachado y el real abajo
+            waterElement.innerHTML = `<del class="info-subvalue">${estimatedWater} L/ha</del><br>${realWater} L/ha`;
+        } else {
+            // Solo mostrar el valor estimado (o real si son iguales)
+            waterElement.textContent = `${estimatedWater || realWater || '0'} L/ha`;
+        }
     }
 
     function fillProducts(products) {

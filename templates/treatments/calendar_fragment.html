@@ -95,44 +95,80 @@
      tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header bg-primary text-white">
                 <h1 class="modal-title fs-5 treatment-title" id="detailsModalTitle">Resumen de tratamiento</h1>
-                <button aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"></button>
+                <button aria-label="Close" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        type="button"></button>
             </div>
-            <div class="modal-body">
-                <div class="container-fluid">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <p><strong>Campo:</strong> <span id="detail-field"></span></p>
-                            <p><strong>Fecha:</strong> <span id="detail-date"></span></p>
-                            <p><strong>Tipo:</strong> <span id="detail-type"></span></p>
-                            <p><strong>Estado:</strong> <span id="detail-status"></span></p>
+            <div class="modal-body p-0">
+                <div class="container">
+                    <div class="row mb-3 border-bottom treatment-preview">
+                        <!-- Estado -->
+                        <div class="info-item-vertical col-6" id="status-container">
+                            <div class="info-label"><i class="fa fa-clipboard-check me-2"></i>Estado</div>
+                            <div class="info-value" id="detail-status">Cargando...</div>
                         </div>
-                        <div class="col-md-6">
-                            <p><strong>Máquina:</strong> <span id="detail-machine"></span></p>
-                            <p><strong>Mojado:</strong> <span id="detail-water"></span> L/ha</p>
+
+                        <!-- Tipo -->
+                        <div class="info-item-vertical col-6">
+                            <div class="info-label"><i class="fa fa-spray-can me-2"></i>Tipo</div>
+                            <div class="info-value" id="detail-type">Cargando...</div>
+                        </div>
+
+                        <!-- Fecha -->
+                        <div class="info-item-vertical col-6">
+                            <div class="info-label"><i class="fa fa-calendar-alt me-2"></i>Fecha</div>
+                            <div class="info-value" id="detail-date">Cargando...</div>
+                        </div>
+
+                        <!-- Parcela -->
+                        <div class="info-item-vertical col-6">
+                            <div class="info-label"><i class="fa fa-map-marked-alt me-2"></i>Parcela</div>
+                            <div class="info-value" id="detail-field">Cargando...</div>
+                            <div class="info-subvalue" id="detail-field-info"></div>
+                        </div>
+
+                        <!-- Maquinaria -->
+                        <div class="info-item-vertical col-6">
+                            <div class="info-label"><i class="fa fa-tractor me-2"></i>Maquinaria</div>
+                            <div class="info-value" id="detail-machine">Cargando...</div>
+                            <div class="info-subvalue" id="detail-machine-info"></div>
+                        </div>
+
+                        <!-- Mojado -->
+                        <div class="info-item-vertical col-6">
+                            <div class="info-label"><i class="fa fa-fill-drip me-2"></i>Mojado</div>
+                            <div class="info-value" id="detail-water">Cargando...</div>
                         </div>
                     </div>
-                    <h6 class="mt-3 mb-2">Productos</h6>
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
-                            <tr>
-                                <th>Producto</th>
-                                <th>Dosis</th>
-                                <th>Total</th>
-                            </tr>
-                            </thead>
-                            <tbody id="detail-products">
-                            <!-- Productos se cargan dinámicamente -->
-                            </tbody>
-                        </table>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <h5 class="mb-3"><i class="fa fa-flask me-2"></i>Productos</h5>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-striped table-hover">
+                                    <thead class="table-light">
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Dosis</th>
+                                        <th>Total</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody id="detail-products">
+                                    <tr>
+                                        <td class="text-center" colspan="3">Cargando productos...</td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
+
             <div class="modal-footer">
                 <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Cerrar</button>
-                <a class="btn btn-primary" id="view-treatment" type="button"><i class="fa fa-eye"></i>Ver más</a>
+                <a class="btn btn-primary" href="#" id="view-treatment"><i class="fa fa-eye me-2"></i>Ver detalles</a>
             </div>
         </div>
     </div>
