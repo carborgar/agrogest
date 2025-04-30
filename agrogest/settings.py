@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'accounts',
     'farm',
     'django_filters',
     'django_bootstrap5',
@@ -51,6 +52,9 @@ INSTALLED_APPS = [
 
 ]
 
+# AUTH_USER_MODEL = 'auth.User'
+AUTH_USER_MODEL = 'accounts.User'
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -60,6 +64,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'accounts.middleware.UserTrackingMiddleware',
 
 ]
 
@@ -143,6 +148,6 @@ STATICFILES_DIRS = [
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-LOGIN_URL = '/login'
-LOGIN_REDIRECT_URL = '/'
-LOGOUT_REDIRECT_URL = '/login'
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = ''
+LOGOUT_REDIRECT_URL = 'login'
