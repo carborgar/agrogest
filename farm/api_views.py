@@ -1,6 +1,9 @@
+from datetime import datetime, timedelta
 from decimal import Decimal
 
 from django.db.models import Sum
+from django.http import JsonResponse
+from django.utils.dateparse import parse_date
 
 from .models import Field, Machine, Product, Treatment, TreatmentProduct
 
@@ -135,12 +138,6 @@ def treatment_detail(request, treatment_id):
 
     except Treatment.DoesNotExist:
         return JsonResponse({'error': 'Tratamiento no encontrado'}, status=404)
-
-
-# Añadir a views.py
-from django.http import JsonResponse
-from django.utils.dateparse import parse_date
-from datetime import datetime, timedelta
 
 
 def field_costs_data(request):

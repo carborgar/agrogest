@@ -294,7 +294,7 @@ class Treatment(SoftDeleteObject):
         machine_capacity = self.machine.capacity
 
         # Total de agua necesaria
-        total_water = int(field_area * water_per_ha)
+        total_water = int(round(field_area * water_per_ha, 0))
 
         # Número de máquinas completas
         full_loads = int(total_water // machine_capacity)
@@ -302,7 +302,7 @@ class Treatment(SoftDeleteObject):
         # Información sobre carga parcial
         partial_water = int(total_water % machine_capacity)
 
-        partial_load = partial_water > 0
+        partial_load = partial_water > 50 # consideramos carga parcial si queda más de 50L
 
         return {
             'total_water': total_water,
