@@ -368,7 +368,7 @@ class Treatment(OrganizationOwnedModel, SoftDeleteObject):
 
 
 class TreatmentProduct(OrganizationOwnedModel, SoftDeleteObject):
-    treatment = models.ForeignKey("Treatment", on_delete=models.RESTRICT)
+    treatment = models.ForeignKey("Treatment", on_delete=models.CASCADE)
     product = models.ForeignKey("Product", on_delete=models.RESTRICT)
     dose = models.DecimalField(max_digits=10, decimal_places=2)
     dose_type = models.CharField(max_length=20)
