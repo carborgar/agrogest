@@ -22,7 +22,7 @@ class OwnershipRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
             obj = self.get_object()
 
             if not obj:
-                return True # creación
+                return True  # creación
 
             # Verificar si el usuario es propietario
             if hasattr(obj, 'owner') and obj.owner == self.request.user:
@@ -69,16 +69,8 @@ class AuditableMixin:
 
         # Registrar usuario en creación
         if not obj.pk:
-            if hasattr(obj, 'created_by'):
-                obj.created_by = self.request.user
-            if hasattr(obj, 'owner') and obj.owner is None:
-                obj.owner = self.request.user
             if hasattr(obj, 'organization') and obj.organization is None:
                 obj.organization = self.request.user.organization
-
-        # Registrar usuario en actualización
-        if hasattr(obj, 'updated_by'):
-            obj.updated_by = self.request.user
 
         # Guardar objeto
         obj.save()
