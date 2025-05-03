@@ -370,6 +370,24 @@
     opacity: 0.8;
 }
 
+/* Estilo para el botón de cerrar sesión en el menú móvil */
+.full-menu .menu-grid .btn-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+}
+
+.full-menu .menu-grid .btn-link:active {
+    transform: scale(0.95);
+}
+
+.full-menu .menu-grid form {
+    width: 100%;
+    height: 100%;
+}
+
 /* hide floating-menu-btn if not mobile*/
 @media (min-width: 768px) {
     .floating-menu-btn {

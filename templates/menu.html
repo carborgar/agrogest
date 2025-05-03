@@ -60,7 +60,6 @@
         </ul>
 
         <div class="sidebar-footer">
-            {% if user.is_authenticated %}
             <div class="user-menu dropup">
                 <a class="dropdown-toggle" data-bs-toggle="dropdown" href="#">
                     <div class="user-avatar">
@@ -88,9 +87,6 @@
                     </li>
                 </ul>
             </div>
-            {% else %}
-            <!--<a class="btn btn-light w-100" href="#"><i class="bi bi-box-arrow-in-right me-2"></i>Iniciar Sesión</a>-->
-            {% endif %}
         </div>
     </div>
 </div>
@@ -153,14 +149,51 @@
                     </div>
                 </a>
             </div>
+
+            <div class="col-4 text-center text-truncate">
+                <div class="p-3 bg-light rounded-3 full-menu-item">
+                    <a class="text-decoration-none text-dark user-menu-mobile" data-bs-target="#userModal"
+                       data-bs-toggle="modal"
+                       href="#">
+                        <i class="fa fa-user fs-2"></i>
+                        <p class="mt-2">{{ user.first_name|default:user.username }}</p>
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
+
 
     {% endwith %}
     {% endwith %}
     {% endwith %}
     {% endwith %}
     {% endwith %}
+
+    <!-- Modal de usuario -->
+    <div aria-hidden="true" aria-labelledby="userModalLabel" class="modal fade" id="userModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="userModalLabel">Usuario: {{ user.username }}</h5>
+                    <button aria-label="Cerrar" class="btn-close" data-bs-dismiss="modal" type="button"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="list-group">
+                        <form action="{% url 'accounts:logout' %}" class="list-group-item list-group-item-action"
+                              method="post">
+                            {% csrf_token %}
+                            <button class="btn btn-link text-decoration-none text-danger w-100 text-start p-2"
+                                    type="submit">
+                                <i class="bi bi-box-arrow-right me-2"></i>Cerrar sesión
+                            </button>
+                        </form>
+                        <!-- Aquí puedes añadir más opciones en el futuro -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="full-menu-close-container">
         <button class="bottom-close-btn" id="fullMenuClose">
