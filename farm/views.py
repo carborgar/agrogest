@@ -1,9 +1,10 @@
+import logging
 from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db import transaction
-from django.db.models import Sum
+from django.db.models import Sum, Count
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
@@ -20,8 +21,9 @@ from .mixins import OwnershipRequiredMixin, QuerysetFilterMixin, AuditableMixin
 from .models import Field, ProductType, TreatmentProduct
 from .models import Product
 from .models import Treatment
-import logging
+
 logger = logging.getLogger(__name__)
+
 
 class BaseSecureViewMixin(OwnershipRequiredMixin, QuerysetFilterMixin, AuditableMixin):
     """Mixin base que aplica control de acceso, filtrado y auditoría."""
@@ -263,10 +265,32 @@ class TreatmentExportView(BaseSecureViewMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['products'] = TreatmentProduct.ownership_objects.get_queryset_for_user(self.request.user).filter(treatment=self.object)
+        context['products'] = TreatmentProduct.ownership_objects.get_queryset_for_user(self.request.user).filter(
+            treatment=self.object)
         context['now'] = timezone.now()
 
         if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             self.template_name = 'treatments/treatment_export.html'
+
+        return context
+
+
+class ProductTypeListView(BaseSecureViewMixin, ListView):
+    model = ProductType
+    template_name = 'farm/product-types/product_type_list.html'
+    context_object_name = 'product_types'
+    paginate_by = 9
+    ordering = ['-updated_at']
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(product_count=Count('products'))
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        query_params = self.request.GET.copy()
+        if 'page' in query_params:
+            del query_params['page']
+        context['query_params'] = query_params.urlencode()
 
         return context

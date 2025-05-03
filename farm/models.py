@@ -139,7 +139,7 @@ class Product(OrganizationOwnedModel):
     ALL_DOSE_TYPE_CHOICES = SPRAYING_DOSE_TYPE_CHOICES + FERTIGATION_DOSE_TYPE_CHOICES
 
     name = models.CharField(max_length=100)
-    product_type = models.ForeignKey(ProductType, on_delete=models.RESTRICT)
+    product_type = models.ForeignKey(ProductType, on_delete=models.RESTRICT, related_name="products")
 
     # Spraying-specific dose fields
     spraying_dose = models.FloatField(null=True, blank=True)
