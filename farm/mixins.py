@@ -21,6 +21,9 @@ class OwnershipRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
         if hasattr(self, 'get_object'):
             obj = self.get_object()
 
+            if not obj:
+                return True # creación
+
             # Verificar si el usuario es propietario
             if hasattr(obj, 'owner') and obj.owner == self.request.user:
                 return True
@@ -44,7 +47,7 @@ class OwnershipRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
                 self.get_redirect_field_name()
             )
 
-        return redirect('farm:home')
+        return redirect('home')
 
 
 class QuerysetFilterMixin:
