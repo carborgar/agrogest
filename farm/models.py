@@ -12,13 +12,7 @@ class OrganizationOwnedModel(models.Model):
     """
     Modelo base abstracto que implementa la relación con una organización.
     """
-    organization = models.ForeignKey('accounts.Organization', on_delete=models.CASCADE, related_name="%(class)ss",
-                                     null=True)  # TODO: obligatorio cuando se migren los datos de prod
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
-                                   # TODO: obligatorio cuando se migren los datos de prod
-                                   related_name="created_%(class)ss")
-    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
-                                   related_name="updated_%(class)ss")
+    organization = models.ForeignKey('accounts.Organization', on_delete=models.RESTRICT, related_name="%(class)ss")
     created_at = models.DateTimeField(auto_now_add=True, null=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -145,7 +139,7 @@ class Product(OrganizationOwnedModel):
     ALL_DOSE_TYPE_CHOICES = SPRAYING_DOSE_TYPE_CHOICES + FERTIGATION_DOSE_TYPE_CHOICES
 
     name = models.CharField(max_length=100)
-    product_type = models.ForeignKey(ProductType, on_delete=models.CASCADE, null=True)  # TODO: hacer obligatorio
+    product_type = models.ForeignKey(ProductType, on_delete=models.RESTRICT)
 
     # Spraying-specific dose fields
     spraying_dose = models.FloatField(null=True, blank=True)
@@ -219,7 +213,7 @@ class Treatment(OrganizationOwnedModel, SoftDeleteObject):
     update_timestamp = models.DateTimeField(auto_now=True)
     date = models.DateField()
     finish_date = models.DateField(null=True, blank=True)
-    field = models.ForeignKey('farm.Field', on_delete=models.CASCADE)
+    field = models.ForeignKey('farm.Field', on_delete=models.RESTRICT)
     machine = models.ForeignKey('farm.Machine', on_delete=models.SET_NULL, null=True, blank=True)
     products = models.ManyToManyField('farm.Product', through='TreatmentProduct')
     water_per_ha = models.IntegerField(help_text="Litros de agua por hectárea", null=True, blank=True)
@@ -374,8 +368,8 @@ class Treatment(OrganizationOwnedModel, SoftDeleteObject):
 
 
 class TreatmentProduct(OrganizationOwnedModel, SoftDeleteObject):
-    treatment = models.ForeignKey("Treatment", on_delete=models.CASCADE)
-    product = models.ForeignKey("Product", on_delete=models.CASCADE)
+    treatment = models.ForeignKey("Treatment", on_delete=models.RESTRICT)
+    product = models.ForeignKey("Product", on_delete=models.RESTRICT)
     dose = models.DecimalField(max_digits=10, decimal_places=2)
     dose_type = models.CharField(max_length=20)
     total_dose = models.DecimalField(max_digits=10, decimal_places=2)
@@ -475,6 +469,6 @@ class TreatmentProduct(OrganizationOwnedModel, SoftDeleteObject):
 
 
 class Harvest(OrganizationOwnedModel):
-    field = models.ForeignKey(Field, on_delete=models.CASCADE)
+    field = models.ForeignKey(Field, on_delete=models.RESTRICT)
     date = models.DateField()
     amount = models.FloatField()  # kg o toneladas
