@@ -284,11 +284,6 @@
     transition: color 0.2s;
 }
 
-.form-check-input:checked + .form-check-label {
-    color: var(--bs-primary);
-    font-weight: 500;
-}
-
 .date-filter .form-control {
     border-radius: 8px;
     padding: 10px 12px;
