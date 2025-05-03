@@ -4,35 +4,35 @@
 
 {% block title %}{{ treatment.name }}{% endblock %}
 
-{% block header %}
-<div class="d-flex justify-content-between align-items-center">
-    <span>{{ treatment.name }}</span>
+{% block header %}{{ treatment.name }}{% endblock %}
+{% block sub_header %} prueba de subtitulo {% endblock %}
 
-    <div class="dropdown">
-        <button aria-expanded="false" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown"
-                id="treatmentActionsDropdown" type="button">
-            <i class="fa fa-cog me-1"></i><span class="d-none d-sm-inline">Acciones</span>
-        </button>
-        <ul aria-labelledby="treatmentActionsDropdown" class="dropdown-menu dropdown-menu-end dropdown-menu-light">
-            {% if not treatment.is_completed %}
-            <li><a class="dropdown-item" href="#" onclick="finishTreatment({{ treatment.id }}); return false;">
-                <i class="fa fa-check-circle me-2 text-success"></i>Finalizar tratamiento
-            </a></li>
-            <li>
-                <hr class="dropdown-divider">
-            </li>
-            {% endif %}
-            <li><a class="dropdown-item" href="{% url 'treatment-instructions' treatment.id %}">
-                <i class="fa fa-print me-2 text-primary"></i>Instrucciones para operador
-            </a></li>
-            <li>
-                <hr class="dropdown-divider">
-            </li>
-            <li><a class="dropdown-item text-danger" href="#" onclick="confirmDelete(); return false;">
-                <i class="fa fa-trash me-2"></i>Eliminar
-            </a></li>
-        </ul>
-    </div>
+{% block actions %}
+
+<div class="dropdown">
+    <button aria-expanded="false" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown"
+            id="treatmentActionsDropdown" type="button">
+        <i class="fa fa-cog me-1"></i><span class="d-none d-sm-inline">Acciones</span>
+    </button>
+    <ul aria-labelledby="treatmentActionsDropdown" class="dropdown-menu dropdown-menu-end dropdown-menu-light">
+        {% if not treatment.is_completed %}
+        <li><a class="dropdown-item" href="#" onclick="finishTreatment({{ treatment.id }}); return false;">
+            <i class="fa fa-check-circle me-2 text-success"></i>Finalizar tratamiento
+        </a></li>
+        <li>
+            <hr class="dropdown-divider">
+        </li>
+        {% endif %}
+        <li><a class="dropdown-item" href="{% url 'treatment-instructions' treatment.id %}">
+            <i class="fa fa-print me-2 text-primary"></i>Instrucciones para operador
+        </a></li>
+        <li>
+            <hr class="dropdown-divider">
+        </li>
+        <li><a class="dropdown-item text-danger" href="#" onclick="confirmDelete(); return false;">
+            <i class="fa fa-trash me-2"></i>Eliminar
+        </a></li>
+    </ul>
 </div>
 {% endblock %}
 
@@ -165,7 +165,8 @@
             {% if treatment.is_spraying and treatment.machine %}
             {% with load_info=treatment.calculate_machine_loads %}
             Total: <strong>{{ load_info.total_water }} litros</strong> de agua
-            para <strong>{{ treatment.field.area }} ha</strong> a <strong>{{ treatment.actual_water_per_ha }} l/ha</strong>
+            para <strong>{{ treatment.field.area }} ha</strong> a <strong>{{ treatment.actual_water_per_ha }}
+            l/ha</strong>
             {% endwith %}
             {% elif treatment.is_fertigation %}
             Aplicación de fertirrigación para <strong>{{ treatment.field.area }} ha</strong> en <strong>
