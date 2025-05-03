@@ -143,6 +143,16 @@
                     </div>
                 </a>
             </div>
+
+            <div class="col-4 text-center text-truncate">
+                <a class="text-decoration-none text-dark"
+                   href="{% url 'treatment-shopping-list' %}">
+                    <div class="p-3 bg-light rounded-3 full-menu-item {% if request.resolver_match.url_name == 'treatment-shopping-list' %}active{% endif %}">
+                        <i class="fa fa-shopping-cart fs-2"></i>
+                        <p class="mt-2">Compras</p>
+                    </div>
+                </a>
+            </div>
         </div>
     </div>
 
