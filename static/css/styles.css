@@ -194,3 +194,10 @@ footer {
     border-color: #FBBF24;
     color: #92400E;
 }
+
+@media print {
+    .main-content {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+}

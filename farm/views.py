@@ -1,3 +1,4 @@
+import logging
 from decimal import Decimal
 
 from django.contrib import messages
@@ -20,8 +21,9 @@ from .mixins import OwnershipRequiredMixin, QuerysetFilterMixin, AuditableMixin
 from .models import Field, ProductType, TreatmentProduct
 from .models import Product
 from .models import Treatment
-import logging
+
 logger = logging.getLogger(__name__)
+
 
 class BaseSecureViewMixin(OwnershipRequiredMixin, QuerysetFilterMixin, AuditableMixin):
     """Mixin base que aplica control de acceso, filtrado y auditoría."""
@@ -263,10 +265,87 @@ class TreatmentExportView(BaseSecureViewMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['products'] = TreatmentProduct.ownership_objects.get_queryset_for_user(self.request.user).filter(treatment=self.object)
+        context['products'] = TreatmentProduct.ownership_objects.get_queryset_for_user(self.request.user).filter(
+            treatment=self.object)
         context['now'] = timezone.now()
 
         if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             self.template_name = 'treatments/treatment_export.html'
+
+        return context
+
+
+class ShoppingListView(BaseSecureViewMixin, ListView):
+    template_name = 'treatments/shopping_list.html'
+    context_object_name = 'product_items'
+
+    def get_queryset(self):
+        # Base queryset - get products from pending or delayed treatments
+        queryset = TreatmentProduct.objects.filter(
+            treatment__status__in=['pending', 'delayed'],
+            organization=self.request.user.organization
+        ).select_related('product', 'product__product_type', 'treatment', 'treatment__field')
+
+        # Filter by field if specified
+        selected_fields = self.request.GET.getlist('field')
+        if selected_fields:
+            queryset = queryset.filter(treatment__field_id__in=selected_fields)
+
+        # Group by product, summing total_dose
+        # Get the product ID from the aggregation (which will be our group key)
+        product_totals = {}
+
+        # We need to process the queryset in Python to properly group by product
+        # and handle different units and fields
+        for product_item in queryset:
+            product_id = product_item.product_id
+
+            # Create a key that includes product and unit
+            key = (product_id, product_item.total_dose_unit)
+
+            if key not in product_totals:
+                product_totals[key] = {
+                    'product': product_item.product,
+                    'product_name': product_item.product.name,
+                    'product_type': product_item.product.product_type.name,
+                    'unit': product_item.total_dose_unit,
+                    'total_dose': 0,
+                    'total_price': 0,
+                    'treatment_count': 0,
+                    'fields': set(),  # Use a set to avoid duplicates
+                }
+
+            # Sum the dose and price
+            product_totals[key]['total_dose'] += float(product_item.total_dose)
+            product_totals[key]['total_price'] += float(product_item.total_price)
+            product_totals[key]['treatment_count'] += 1
+            product_totals[key]['fields'].add(product_item.treatment.field.name)
+
+        # Convert to a list and format the fields as a string
+        result = []
+        for key, data in product_totals.items():
+            data['fields'] = ", ".join(sorted(data['fields']))
+            data['total_dose'] = round(data['total_dose'], 2)
+            data['total_price'] = round(data['total_price'], 2)
+            result.append(data)
+
+        # Sort by product name
+        result.sort(key=lambda x: x['product_name'])
+
+        return result
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Add fields for filtering
+        context['fields'] = Field.objects.filter(organization=self.request.user.organization)
+
+        # Add selected filters to context
+        context['selected_fields'] = self.request.GET.getlist('field')
+
+        # Calculate totals
+        total_price = sum(item['total_price'] for item in self.object_list)
+        context['total_price'] = round(total_price, 2)
+        context['total_count'] = len(self.object_list)
 
         return context

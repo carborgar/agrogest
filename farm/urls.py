@@ -2,21 +2,22 @@ from django.urls import path
 
 from . import api_views
 from . import views
-from .views import TreatmentListView, TreatmentDetailView
+from .views import *
 from django.views.generic import RedirectView
 
 urlpatterns = [
     path("", RedirectView.as_view(url="/parcelas/vistazo/", permanent=False), name="home"),
-    path("parcelas/vistazo/", views.FieldListView.as_view(), name="field_list"),
-    path("parcelas/gastos/", views.FieldCostView.as_view(), name="field_costs"),
+    path("parcelas/vistazo/", FieldListView.as_view(), name="field_list"),
+    path("parcelas/gastos/", FieldCostView.as_view(), name="field_costs"),
     path('tratamientos/', TreatmentListView.as_view(), name='treatment-list'),
     path('tratamientos/<int:pk>', TreatmentDetailView.as_view(), name='treatment-detail'),
-    path('tratamientos/nuevo/', views.TreatmentFormView.as_view(), name='treatment-create'),
-    # path('tratamientos/<int:pk>/editar/', views.TreatmentFormView.as_view(), name='treatment-update'),
-    path('tratamientos/<int:pk>/finalizar', views.FinishTreatmentView.as_view(), name='treatment-finish'),
-    path('tratamientos/<int:pk>/eliminar/', views.DeleteTreatmentView.as_view(), name='treatment-delete'),
-    path('tratamientos/calendario/', views.TreatmentCalendarView.as_view(), name='treatment-calendar'),
-    path('tratamientos/<int:pk>/operador/', views.TreatmentExportView.as_view(), name='treatment-instructions'),
+    path('tratamientos/nuevo/', TreatmentFormView.as_view(), name='treatment-create'),
+    # path('tratamientos/<int:pk>/editar/', TreatmentFormView.as_view(), name='treatment-update'),
+    path('tratamientos/<int:pk>/finalizar', FinishTreatmentView.as_view(), name='treatment-finish'),
+    path('tratamientos/<int:pk>/eliminar/', DeleteTreatmentView.as_view(), name='treatment-delete'),
+    path('tratamientos/calendario/', TreatmentCalendarView.as_view(), name='treatment-calendar'),
+    path('tratamientos/<int:pk>/operador/', TreatmentExportView.as_view(), name='treatment-instructions'),
+    path('tratamientos/lista-compra/', ShoppingListView.as_view(), name='treatment-shopping-list'),
 
     # API Endpoints
     path('api/fields/', api_views.get_fields, name='api-fields'),

@@ -1,5 +1,5 @@
 <!-- Sidebar menu para escritorio -->
-<div class="desktop-sidebar d-none d-lg-flex {% if sidebar_collapsed %}compact{% endif %}">
+<div class="desktop-sidebar d-none d-lg-flex {% if sidebar_collapsed %}compact{% endif %} d-print-none">
     <div class="sidebar-content">
         <div class="sidebar-logo">
             <a class="logo-link disabled" href="#">
@@ -41,6 +41,13 @@
                    href="{% url 'field_costs' %}">
                     <i class="fa fa-coins"></i>
                     <span class="link-text">Gastos</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link {% if request.resolver_match.url_name == 'treatment-shopping-list' %}active{% endif %}"
+                   href="{% url 'treatment-shopping-list' %}">
+                    <i class="fa fa-shopping-cart"></i>
+                    <span class="link-text">Compras</span>
                 </a>
             </li>
 
@@ -89,12 +96,12 @@
 </div>
 
 <!-- Botón flotante de menú -->
-<button class="floating-menu-btn" id="fullMenuToggle">
+<button class="floating-menu-btn d-print-none" id="fullMenuToggle">
     <i class="bi bi-grid-3x3-gap-fill fs-4"></i>
 </button>
 
 <!-- Menú Completo -->
-<div class="full-menu" id="fullMenu">
+<div class="full-menu d-print-none" id="fullMenu">
     <div class="menu-grid container">
         <div class="row g-4 mt-3">
             <div class="col-4 text-center text-truncate">
