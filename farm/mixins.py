@@ -65,15 +65,7 @@ class AuditableMixin:
     """
 
     def form_valid(self, form):
-        obj = form.save(commit=False)
-
-        # Registrar usuario en creación
-        if not obj.pk:
-            if hasattr(obj, 'organization') and obj.organization is None:
-                obj.organization = self.request.user.organization
-
-        # Guardar objeto
-        obj.save()
+        obj = form.save()
         form.save_m2m()
 
         # Determinar si es creación o actualización
