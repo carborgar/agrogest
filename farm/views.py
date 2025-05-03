@@ -6,26 +6,35 @@ from django.db import transaction
 from django.db.models import Sum
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
-from django.shortcuts import render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.decorators import method_decorator
+from django.views import View
 from django.views.decorators.http import require_POST
 from django.views.generic import ListView, DetailView
+from django.views.generic import TemplateView
 from django.views.generic.edit import CreateView, UpdateView
 
 from .forms import TreatmentForm, TreatmentProductFormSet
+from .mixins import OwnershipRequiredMixin, QuerysetFilterMixin, AuditableMixin
 from .models import Field, ProductType, TreatmentProduct
 from .models import Product
 from .models import Treatment
+import logging
+logger = logging.getLogger(__name__)
+
+class BaseSecureViewMixin(OwnershipRequiredMixin, QuerysetFilterMixin, AuditableMixin):
+    """Mixin base que aplica control de acceso, filtrado y auditoría."""
+    pass
 
 
-class FieldListView(ListView):
+class FieldListView(BaseSecureViewMixin, ListView):
     model = Field
     template_name = "fields/field_list.html"
     context_object_name = "fields"
 
     def get_queryset(self):
-        return Field.objects.all()
+        return Field.ownership_objects.get_queryset_for_user(self.request.user)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -57,16 +66,16 @@ class FieldListView(ListView):
         return context
 
 
-class FieldCostView(ListView):
+class FieldCostView(BaseSecureViewMixin, ListView):
     model = Field
     template_name = "fields/field_costs.html"
     context_object_name = "fields"
 
     def get_queryset(self):
-        return Field.objects.all()
+        return Field.ownership_objects.get_queryset_for_user(self.request.user)
 
 
-class TreatmentListView(ListView):
+class TreatmentListView(BaseSecureViewMixin, ListView):
     model = Treatment
     template_name = 'treatments/treatment_list.html'
     context_object_name = 'treatments'
@@ -104,8 +113,8 @@ class TreatmentListView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        context['fields'] = Field.objects.all()
-        context['products'] = Product.objects.all()
+        context['fields'] = Field.ownership_objects.get_queryset_for_user(self.request.user)
+        context['products'] = Product.ownership_objects.get_queryset_for_user(self.request.user)
         context['type_choices'] = Treatment.TYPE_CHOICES
         context['status_choices'] = Treatment.STATUS_CHOICES
         context['selected_fields'] = self.request.GET.getlist('field')
@@ -114,7 +123,7 @@ class TreatmentListView(ListView):
         context['selected_products'] = self.request.GET.getlist('products')
         context['date_from'] = self.request.GET.get('date_from')
         context['date_to'] = self.request.GET.get('date_to')
-        context['product_types'] = ProductType.objects.all()
+        context['product_types'] = ProductType.ownership_objects.get_queryset_for_user(self.request.user)
         context['selected_product_types'] = self.request.GET.getlist('product_types')
         context['total_count'] = self.get_queryset().count()
 
@@ -126,7 +135,7 @@ class TreatmentListView(ListView):
         return context
 
 
-class TreatmentDetailView(DetailView):
+class TreatmentDetailView(BaseSecureViewMixin, DetailView):
     model = Treatment
     template_name = 'treatments/treatment_detail.html'
     context_object_name = 'treatment'
@@ -153,7 +162,7 @@ class TreatmentDetailView(DetailView):
         return context
 
 
-class TreatmentFormView(SuccessMessageMixin, CreateView, UpdateView):
+class TreatmentFormView(BaseSecureViewMixin, SuccessMessageMixin, CreateView, UpdateView):
     model = Treatment
     form_class = TreatmentForm
     template_name = 'treatments/treatment_form.html'
@@ -205,65 +214,59 @@ class TreatmentFormView(SuccessMessageMixin, CreateView, UpdateView):
             return self.form_invalid(form)
 
 
-def treatment_calendar(request):
-    """Vista para el calendario de tratamientos"""
-    fields = Field.objects.all()
-    treatment_types = Treatment.TYPE_CHOICES
+class TreatmentCalendarView(BaseSecureViewMixin, TemplateView):
+    template_name = 'treatments/calendar.html'
 
-    # Mapeo de iconos para tipos de tratamiento
-    type_map = {  # TODO: esto habría que hacerlo con los campos del modelo, o quitar el icono y listo
-        'spraying': 'spray-can-sparkles',
-        'fertigation': 'droplet',
-    }
-
-    context = {
-        'fields': fields,
-        'treatment_types': treatment_types,
-        'type_map': type_map
-    }
-
-    return render(request, 'treatments/calendar.html', context)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['fields'] = Field.ownership_objects.get_queryset_for_user(self.request.user)
+        context['treatment_types'] = Treatment.TYPE_CHOICES
+        context['type_map'] = {  # TODO: esto habría que hacerlo con los campos del modelo, o quitar el icono y listo
+            'spraying': 'spray-can-sparkles',
+            'fertigation': 'droplet',
+        }
+        return context
 
 
-@require_POST
-def finish_treatment(request, pk):
-    treatment = get_object_or_404(Treatment, pk=pk)
-    finish_date = request.POST.get('finish_date')
-    real_water_used = request.POST.get('real_water_used')
+@method_decorator(require_POST, name='dispatch')
+class FinishTreatmentView(BaseSecureViewMixin, View):
+    def post(self, request, pk):
+        treatment = get_object_or_404(Treatment, pk=pk)
+        finish_date = request.POST.get('finish_date')
+        real_water_used = request.POST.get('real_water_used')
 
-    if not finish_date:
-        return JsonResponse({'success': False}, status=400)
+        if not finish_date:
+            return JsonResponse({'success': False}, status=400)
 
-    if real_water_used:
-        treatment.real_water_per_ha = int(real_water_used)
+        if real_water_used:
+            treatment.real_water_per_ha = int(real_water_used)
 
-    treatment.finish_date = finish_date
-    treatment.save()
+        treatment.finish_date = finish_date
+        treatment.save()
 
-    return JsonResponse({'success': True})
-
-
-@require_POST
-def delete_treatment(request, pk):
-    treatment = get_object_or_404(Treatment, pk=pk)
-    treatment.delete()
-    messages.success(request, 'Tratamiento "{}" eliminado'.format(treatment.name))
-    return redirect('treatment-list')
+        return JsonResponse({'success': True})
 
 
-def treatment_export(request, pk):
-    treatment = get_object_or_404(Treatment, pk=pk)
-    products = TreatmentProduct.objects.filter(treatment=treatment)
+@method_decorator(require_POST, name='dispatch')
+class DeleteTreatmentView(BaseSecureViewMixin, View):
+    def post(self, request, pk):
+        treatment = get_object_or_404(Treatment, pk=pk)
+        treatment.delete()
+        messages.success(request, f'Tratamiento "{treatment.name}" eliminado')
+        return redirect('treatment-list')
 
-    context = {
-        'treatment': treatment,
-        'products': products,
-        'now': timezone.now(),
-    }
 
-    # Si es una solicitud AJAX, retornamos solo el HTML
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render(request, 'treatments/treatment_export.html', context)
+class TreatmentExportView(BaseSecureViewMixin, DetailView):
+    model = Treatment
+    template_name = 'treatments/treatment_export.html'
+    context_object_name = 'treatment'
 
-    # Para solicitudes normales, mostramos la vista completa
-    return render(request, 'treatments/treatment_export.html', context)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['products'] = TreatmentProduct.ownership_objects.get_queryset_for_user(self.request.user).filter(treatment=self.object)
+        context['now'] = timezone.now()
+
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            self.template_name = 'treatments/treatment_export.html'
+
+        return context

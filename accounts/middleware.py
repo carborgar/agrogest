@@ -1,25 +1,22 @@
 from django.utils import timezone
-from django.utils.deprecation import MiddlewareMixin
 
 
-class UserTrackingMiddleware(MiddlewareMixin):
+class UserTrackingMiddleware:
     """
     Middleware para rastrear la última actividad y dirección IP del usuario.
     """
 
-    def process_request(self, request):
-        if request.user.is_authenticated:
-            # Obtener IP del usuario
-            x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-            if x_forwarded_for:
-                ip = x_forwarded_for.split(',')[0]
-            else:
-                ip = request.META.get('REMOTE_ADDR')
+    def __init__(self, get_response):
+        self.get_response = get_response
 
-            # Actualizar datos del usuario solo si ha pasado cierto tiempo (evita actualizaciones excesivas)
-            if not request.user.last_activity or \
-                    (timezone.now() - request.user.last_activity).seconds > 60:  # 1 minuto
+    def __call__(self, request):
+        if request.user.is_authenticated:
+            x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+            ip = x_forwarded_for.split(',')[0] if x_forwarded_for else request.META.get('REMOTE_ADDR')
+
+            # Evitar actualizaciones frecuentes
+            last_activity = getattr(request.user, 'last_activity', None)
+            if not last_activity or (timezone.now() - last_activity).seconds > 60:
                 request.user.last_login_ip = ip
                 request.user.update_last_activity()
-        return None
-   
+        return self.get_response(request)

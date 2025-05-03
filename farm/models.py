@@ -1,11 +1,33 @@
 from datetime import datetime
 from decimal import Decimal
 
+from django.conf import settings
 from django.db import models
 from softdelete.models import SoftDeleteObject
 
+from .managers import OwnershipManager
 
-class Field(models.Model):
+
+class OrganizationOwnedModel(models.Model):
+    """
+    Modelo base abstracto que implementa la relación con una organización.
+    """
+    organization = models.ForeignKey('accounts.Organization', on_delete=models.CASCADE, related_name="%(class)ss", null=True) #TODO: obligatorio cuando se migren los datos de prod
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, #TODO: obligatorio cuando se migren los datos de prod
+                                   related_name="created_%(class)ss")
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
+                                   related_name="updated_%(class)ss")
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    objects = models.Manager()  # Manager predeterminado
+    ownership_objects = OwnershipManager()  # Manager personalizado
+
+    class Meta:
+        abstract = True
+
+
+class Field(OrganizationOwnedModel):
     name = models.CharField(max_length=100)
     area = models.FloatField()  # en hectáreas
     crop = models.CharField(max_length=100)
@@ -86,7 +108,7 @@ class Field(models.Model):
         return cost_by_type
 
 
-class Machine(models.Model):
+class Machine(OrganizationOwnedModel):
     name = models.CharField(max_length=100)
     type = models.CharField(max_length=50)  # Ej. Pulverizador
     capacity = models.IntegerField()  # Capacidad en litros
@@ -95,7 +117,7 @@ class Machine(models.Model):
         return f"{self.name}"
 
 
-class ProductType(models.Model):
+class ProductType(OrganizationOwnedModel):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
 
@@ -103,7 +125,7 @@ class ProductType(models.Model):
         return self.name
 
 
-class Product(models.Model):
+class Product(OrganizationOwnedModel):
     # Separate choices for each application method
     SPRAYING_DOSE_TYPE_CHOICES = [
         ('l_per_1000l', 'L/1000L agua'),
@@ -121,7 +143,7 @@ class Product(models.Model):
     ALL_DOSE_TYPE_CHOICES = SPRAYING_DOSE_TYPE_CHOICES + FERTIGATION_DOSE_TYPE_CHOICES
 
     name = models.CharField(max_length=100)
-    product_type = models.ForeignKey(ProductType, on_delete=models.CASCADE, null=True)
+    product_type = models.ForeignKey(ProductType, on_delete=models.CASCADE, null=True) #TODO: hacer obligatorio
 
     # Spraying-specific dose fields
     spraying_dose = models.FloatField(null=True, blank=True)
@@ -177,7 +199,7 @@ class Product(models.Model):
         return None
 
 
-class Treatment(SoftDeleteObject):
+class Treatment(OrganizationOwnedModel, SoftDeleteObject):
     TYPE_CHOICES = [
         ('spraying', 'Pulverización'),
         ('fertigation', 'Fertirrigación'),
@@ -302,7 +324,7 @@ class Treatment(SoftDeleteObject):
         # Información sobre carga parcial
         partial_water = int(total_water % machine_capacity)
 
-        partial_load = partial_water > 50 # consideramos carga parcial si queda más de 50L
+        partial_load = partial_water > 50  # consideramos carga parcial si queda más de 50L
 
         return {
             'total_water': total_water,
@@ -347,7 +369,7 @@ class Treatment(SoftDeleteObject):
         return self.real_water_per_ha if self.real_water_per_ha else self.water_per_ha
 
 
-class TreatmentProduct(SoftDeleteObject):
+class TreatmentProduct(OrganizationOwnedModel, SoftDeleteObject):
     treatment = models.ForeignKey("Treatment", on_delete=models.CASCADE)
     product = models.ForeignKey("Product", on_delete=models.CASCADE)
     dose = models.DecimalField(max_digits=10, decimal_places=2)
@@ -446,7 +468,7 @@ class TreatmentProduct(SoftDeleteObject):
         self.price_per_ha = self.total_price / Decimal(self.treatment.field.area)
 
 
-class Harvest(models.Model):
+class Harvest(OrganizationOwnedModel):
     field = models.ForeignKey(Field, on_delete=models.CASCADE)
     date = models.DateField()
     amount = models.FloatField()  # kg o toneladas

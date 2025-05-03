@@ -1,40 +1,29 @@
-from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
+from django.contrib.auth.views import LoginView
+from django.shortcuts import render
+from django.urls import reverse_lazy
 
 
-def login_view(request):
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        remember_me = request.POST.get('remember', None)
+class CustomLoginView(LoginView):
+    template_name = 'accounts/login.html'
+    redirect_authenticated_user = True
 
-        user = authenticate(request, username=username, password=password)
+    def get_success_url(self):
+        # Obtener el valor 'next' o redirigir a la página principal
+        next_url = self.request.POST.get('next') or self.request.GET.get('next')
+        return next_url or reverse_lazy('home')  # Cambia 'home' a tu URL principal
 
-        if user is not None:
-            login(request, user)
+    def form_valid(self, form):
+        remember_me = self.request.POST.get('remember')
 
-            # Configurar la duración de la sesión si "recordarme" está activado
-            if not remember_me:
-                # Sesión expira cuando el usuario cierra el navegador
-                request.session.set_expiry(0)
-            else:
-                # Sesión expira en 30 días (en segundos)
-                request.session.set_expiry(60 * 60 * 24 * 30)
+        if not remember_me:
+            # La sesión expirará cuando el usuario cierre el navegador
+            self.request.session.set_expiry(0)
 
-            return redirect('accounts:dashboard')
-        else:
-            messages.error(request, 'Usuario o contraseña incorrectos')
-
-    return render(request, 'accounts/login.html')
+        # Llamamos al método form_valid padre que maneja el login
+        return super().form_valid(form)
 
 
 @login_required
 def dashboard_view(request):
     return render(request, 'accounts/dashboard.html', {'user': request.user})
-
-
-def logout_view(request):
-    logout(request)
-    return redirect('accounts:login')

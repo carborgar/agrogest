@@ -1,9 +1,9 @@
 from django.urls import path
-from django.views.generic import RedirectView
 
 from . import api_views
 from . import views
 from .views import TreatmentListView, TreatmentDetailView
+from django.views.generic import RedirectView
 
 urlpatterns = [
     path("", RedirectView.as_view(url="/parcelas/vistazo/", permanent=False), name="home"),
@@ -13,10 +13,10 @@ urlpatterns = [
     path('tratamientos/<int:pk>', TreatmentDetailView.as_view(), name='treatment-detail'),
     path('tratamientos/nuevo/', views.TreatmentFormView.as_view(), name='treatment-create'),
     # path('tratamientos/<int:pk>/editar/', views.TreatmentFormView.as_view(), name='treatment-update'),
-    path('tratamientos/<int:pk>/finalizar', views.finish_treatment, name='treatment-finish'),
-    path('tratamientos/<int:pk>/eliminar/', views.delete_treatment, name='treatment-delete'),
-    path('tratamientos/calendario/', views.treatment_calendar, name='treatment-calendar'),
-    path('tratamientos/<int:pk>/operador/', views.treatment_export, name='treatment-operator-instructions'),
+    path('tratamientos/<int:pk>/finalizar', views.FinishTreatmentView.as_view(), name='treatment-finish'),
+    path('tratamientos/<int:pk>/eliminar/', views.DeleteTreatmentView.as_view(), name='treatment-delete'),
+    path('tratamientos/calendario/', views.TreatmentCalendarView.as_view(), name='treatment-calendar'),
+    path('tratamientos/<int:pk>/operador/', views.TreatmentExportView.as_view(), name='treatment-instructions'),
 
     # API Endpoints
     path('api/fields/', api_views.get_fields, name='api-fields'),

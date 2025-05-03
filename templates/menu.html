@@ -70,7 +70,7 @@
                         <hr class="dropdown-divider">
                     </li>
                     <li>
-                        <form action="{% url 'logout' %}" method="post">
+                        <form action="{% url 'accounts:logout' %}" method="post">
                             {% csrf_token %}
                             <button class="dropdown-item" type="submit"><i class="bi bi-box-arrow-right me-2"></i>Cerrar
                                 sesión

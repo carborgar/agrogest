@@ -1,3 +1,4 @@
+from django.contrib.auth import views as auth_views
 from django.urls import path
 
 from . import views
@@ -5,8 +6,7 @@ from . import views
 app_name = 'accounts'
 
 urlpatterns = [
-    path('', views.login_view, name='login'),
-    path('dashboard/', views.dashboard_view, name='dashboard'),
-    path('logout/', views.logout_view, name='logout'),
-]
+    path('login/', views.CustomLoginView.as_view(), name='login'),
+    path('logout/', auth_views.logout_then_login, name='logout'),
 
+]

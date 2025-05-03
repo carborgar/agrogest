@@ -1,0 +1,311 @@
+{% extends 'base_no_menu.html' %}
+
+{% load static %}
+
+{% block title %}AgroGest - Login{% endblock %}
+{% block extra_head %}
+<style>
+    :root {
+        --primary: #2E7D32;
+        --primary-dark: #005005;
+        --primary-light: #60AD5E;
+        --accent: #8BC34A;
+        --text-color: #333;
+        --light-text: #fff;
+    }
+
+    body {
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        display: flex;
+        align-items: center;
+        position: relative;
+    }
+
+    body::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, rgba(245, 247, 250, 0.2) 0%, rgba(228, 232, 236, 0.45) 100%);
+        z-index: -1;
+    }
+
+    .login-card {
+        backdrop-filter: blur(5px);
+        background-color: rgba(255, 255, 255, 0.9);
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        max-width: 900px;
+        width: 100%;
+        margin: auto auto;
+    }
+
+    .login-header {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        padding: 2rem;
+        color: white;
+        text-align: center;
+    }
+
+    .login-header h1 {
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        font-size: 2.2rem;
+    }
+
+    .login-header p {
+        opacity: 0.9;
+        font-size: 1rem;
+        max-width: 80%;
+        margin: 1rem auto;
+    }
+
+    .login-body {
+        padding: 2.5rem;
+    }
+
+    .farm-icon {
+        font-size: 3rem;
+        color: var(--primary);
+        margin-bottom: 1rem;
+    }
+
+    .form-label {
+        font-weight: 500;
+        color: var(--text-color);
+    }
+
+    .form-control {
+        padding: 0.75rem 1rem;
+        border-radius: 10px;
+        border: 1px solid #ddd;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 0.25rem rgba(76, 175, 80, 0.25);
+    }
+
+    .input-group-text {
+        background-color: #f8f9fa;
+        border-right: none;
+        color: #aaa;
+        border-top-left-radius: 10px;
+        border-bottom-left-radius: 10px;
+    }
+
+    .input-group .form-control {
+        border-left: none;
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+    }
+
+    .btn-primary {
+        background-color: var(--primary);
+        border-color: var(--primary);
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        background-color: var(--primary-dark);
+        border-color: var(--primary-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+    }
+
+    .btn-primary:active {
+        transform: translateY(0);
+    }
+
+    .form-check-input:checked {
+        background-color: var(--primary);
+        border-color: var(--primary);
+    }
+
+    .register-link {
+        color: #666;
+    }
+
+    .register-link a {
+        color: var(--primary);
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .register-link a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    /* Farm decorative elements */
+    .farm-decoration {
+        position: relative;
+    }
+
+    .farm-decoration::before {
+        content: '';
+        position: absolute;
+        bottom: -20px;
+        left: 0;
+        width: 100%;
+        height: 20px;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 100'%3E%3Cpath fill='%234CAF50' fill-opacity='0.3' d='M0,80L120,73.3C240,67,480,53,720,53.3C960,53,1200,67,1320,73.3L1440,80L1440,0L1320,0C1200,0,960,0,720,0C480,0,240,0,120,0L0,0Z'%3E%3C/path%3E%3C/svg%3E");
+        background-size: cover;
+        z-index: -1;
+    }
+
+    @media (max-width: 992px) {
+        body {
+            display: block;
+            align-items: initial; /* Por si acaso */
+        }
+
+        #loginContainer {
+            margin-top: auto;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block base_content %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Cargar una imagen aleatoria del directorio de fondos
+        const setRandomBackground = () => {
+            // Ruta hacia la carpeta de imágenes de fondo (ajusta esta ruta según tu estructura)
+            const bgImagesPath = "{% static 'img/login_backgrounds/' %}";
+
+            // Array de imágenes disponibles en la carpeta (asegúrate de tener estos archivos)
+            const backgroundImages = [
+                'login-background-1.webp',
+                'login-background-2.webp',
+                'login-background-3.webp',
+                'login-background-4.webp',
+                'login-background-5.webp',
+                'login-background-6.webp',
+                'login-background-7.webp',
+                'login-background-8.webp',
+                'login-background-9.webp',
+                'login-background-10.webp',
+            ];
+
+            // Seleccionar una imagen aleatoria
+            const randomIndex = Math.floor(Math.random() * backgroundImages.length);
+            const selectedImage = backgroundImages[randomIndex];
+
+            // Aplicar la imagen como fondo
+            document.body.style.backgroundImage = `url('${bgImagesPath}${selectedImage}')`;
+        };
+
+        // Establecer el fondo aleatorio cuando cargue la página
+        setRandomBackground();
+    });
+</script>
+
+<div class="container py-4" id="loginContainer">
+    <div class="row justify-content-center">
+        <div class="col-12">
+            <div class="login-card">
+                <div class="row g-0">
+                    <!-- Login header/info section -->
+                    <div class="col-lg-5 farm-decoration">
+                        <div class="login-header h-100 d-flex flex-column justify-content-center">
+                            <h1 style="margin-bottom: 0;"><i class="bi bi-flower1"></i> AgroGest</h1>
+                            <p class="mb-4 d-none d-lg-block">Gestión inteligente para el campo. Optimiza tus
+                                tratamientos, controla tus costes y mejora tus resultados.</p>
+                        </div>
+                    </div>
+
+                    <!-- Login form section -->
+                    <div class="col-lg-7">
+                        <div class="login-body">
+                            <div class="text-center">
+                                <h2 class="fs-2 fw-bold text-center">Iniciar sesión</h2>
+                            </div>
+
+                            {% if next and not form.errors %}
+                            <div class="alert alert-warning mb-2">
+                                {% if user.is_authenticated %}
+                                Tu cuenta no tiene acceso a esta página. Para seguir, inicia sesión con una cuenta que
+                                tenga acceso.
+                                {% else %}
+                                Por favor, inicie sesión para ver esta página.
+                                {% endif %}
+                            </div>
+                            {% endif %}
+
+                            {% if form.errors %}
+                            <div class="alert alert-danger mb-2">
+                                <i class="fas fa-exclamation-circle me-2"></i> Credenciales incorrectas. Por favor,
+                                inténtelo de nuevo.
+                            </div>
+                            {% endif %}
+
+                            <form action="{% url 'accounts:login' %}" method="post">
+                                {% csrf_token %}
+                                <input name="next" type="hidden" value="{{ next }}"/>
+
+                                <div class="mb-3">
+                                    <label class="form-label" for="username">Nombre de usuario</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                        <input class="form-control" id="username" name="username"
+                                               placeholder="Ingrese su usuario"
+                                               required type="text"
+                                               value="{{ form.username.value|default:'' }}">
+                                    </div>
+                                    {% if form.username.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.username.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label" for="password">Contraseña</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                        <input class="form-control" id="password" name="password"
+                                               placeholder="Ingrese su contraseña"
+                                               required type="password">
+                                    </div>
+                                    {% if form.password.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.password.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" id="remember" name="remember" type="checkbox">
+                                        <label class="form-check-label" for="remember">
+                                            Recordarme
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="d-grid gap-2 mb-4">
+                                    <button class="btn btn-primary" type="submit">
+                                        <i class="fas fa-sign-in-alt me-2"></i>Acceder
+                                    </button>
+                                </div>
+
+                                <p class="text-center register-link d-none">
+                                    ¿No tienes una cuenta? <a href="#">Regístrate aquí</a>
+                                </p>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

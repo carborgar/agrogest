@@ -175,3 +175,22 @@ footer {
 .product-type-item {
     margin-bottom: 10px;
 }
+
+.alert {
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    border-left: 4px solid;
+}
+
+.alert-danger {
+    background-color: #FEE2E2;
+    border-color: #F87171;
+    color: #B91C1C;
+}
+
+.alert-warning {
+    background-color: #FEF3C7;
+    border-color: #FBBF24;
+    color: #92400E;
+}

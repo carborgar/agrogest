@@ -9,7 +9,7 @@ from .models import Field, Machine, Product, Treatment, TreatmentProduct
 
 
 def get_fields(request):
-    fields = Field.objects.all()
+    fields = Field.ownership_objects.get_queryset_for_user(request.user)
     fields_data = [
         {
             'id': field.id,
@@ -23,7 +23,7 @@ def get_fields(request):
 
 
 def get_machines(request):
-    machines = Machine.objects.all()
+    machines = Machine.ownership_objects.get_queryset_for_user(request.user)
     machines_data = [
         {
             'id': machine.id,
@@ -37,7 +37,7 @@ def get_machines(request):
 
 
 def get_products(request, application_type):
-    products = Product.objects.all()
+    products = Product.ownership_objects.get_queryset_for_user(request.user)
     products = [p for p in products if p.supports_application_type(application_type)]
 
     products_data = [
@@ -65,7 +65,7 @@ def get_calendar_treatments(request):
     treatment_types = request.GET.get('types', '')
 
     # Consulta base
-    treatments = Treatment.objects.all()
+    treatments = Treatment.ownership_objects.get_queryset_for_user(request.user)
 
     # Filtrar por fecha
     if start_date:
@@ -106,8 +106,9 @@ def get_calendar_treatments(request):
 
 def treatment_detail(request, treatment_id):
     try:
-        treatment = Treatment.objects.select_related('field', 'machine').prefetch_related('treatmentproduct_set').get(
-            id=treatment_id)
+        treatment = (Treatment.ownership_objects.get_queryset_for_user(request.user).select_related('field', 'machine')
+                     .prefetch_related('treatmentproduct_set')
+                     .get(id=treatment_id))
         products = treatment.treatmentproduct_set.all()
 
         return JsonResponse({
@@ -156,7 +157,7 @@ def field_costs_data(request):
 
     # Obtener IDs de campos específicos o todos
     field_ids = request.GET.getlist('field_ids')
-    fields = Field.objects.all()
+    fields = Field.ownership_objects.get_queryset_for_user(request.user)
     if field_ids:
         fields = fields.filter(id__in=field_ids)
 
@@ -183,7 +184,7 @@ def field_costs_data(request):
     total_cost = sum(item['total_cost'] for item in field_costs)
 
     # Costes por tipo de producto (agregado)
-    product_type_costs = TreatmentProduct.objects.filter(
+    product_type_costs = TreatmentProduct.ownership_objects.get_queryset_for_user(request.user).filter(
         treatment__field__in=fields,
         treatment__date__gte=start_date,
         treatment__date__lte=end_date

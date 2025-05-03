@@ -22,7 +22,7 @@
                 <hr class="dropdown-divider">
             </li>
             {% endif %}
-            <li><a class="dropdown-item" href="{% url 'treatment-operator-instructions' treatment.id %}">
+            <li><a class="dropdown-item" href="{% url 'treatment-instructions' treatment.id %}">
                 <i class="fa fa-print me-2 text-primary"></i>Instrucciones para operador
             </a></li>
             <li>
@@ -480,7 +480,7 @@
 
     // Función para obtener el contenido HTML de las instrucciones para el operador
     function fetchExportContent(treatmentId) {
-        return fetch(`{% url 'treatment-operator-instructions' 0 %}`.replace('0', treatmentId), {
+        return fetch(`{% url 'treatment-instructions' 0 %}`.replace('0', treatmentId), {
             method: 'GET',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
