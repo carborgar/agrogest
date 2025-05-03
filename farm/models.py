@@ -201,10 +201,14 @@ class Treatment(OrganizationOwnedModel, SoftDeleteObject):
         ('fertigation', 'Fertirrigación'),
     ]
 
+    STATUS_PENDING = 'pending'
+    STATUS_COMPLETED = 'completed'
+    STATUS_DELAYED = 'delayed'
+
     STATUS_CHOICES = [
-        ('pending', 'Pendiente'),
-        ('completed', 'Completado'),
-        ('delayed', 'Atrasado'),
+        (STATUS_PENDING, 'Pendiente'),
+        (STATUS_COMPLETED, 'Completado'),
+        (STATUS_DELAYED, 'Atrasado'),
     ]
 
     name = models.CharField(max_length=100)

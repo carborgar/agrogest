@@ -89,7 +89,7 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
 
         field_ids = self.request.GET.getlist('field')
         type_filters = self.request.GET.getlist('type')
-        status_filters = self.request.GET.getlist('status')
+        status_filters = self.request.GET.getlist('status') or [Treatment.STATUS_PENDING, Treatment.STATUS_DELAYED]
         product_ids = self.request.GET.getlist('products')
         date_from = self.request.GET.get('date_from')
         date_to = self.request.GET.get('date_to')
@@ -110,7 +110,7 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
         if status_filters:
             queryset = queryset.filter(status__in=status_filters)
 
-        return queryset
+        return queryset.order_by(*self.ordering)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -121,7 +121,7 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
         context['status_choices'] = Treatment.STATUS_CHOICES
         context['selected_fields'] = self.request.GET.getlist('field')
         context['selected_types'] = self.request.GET.getlist('type')
-        context['selected_statuses'] = self.request.GET.getlist('status')
+        context['selected_statuses'] = self.request.GET.getlist('status') or [Treatment.STATUS_PENDING, Treatment.STATUS_DELAYED]
         context['selected_products'] = self.request.GET.getlist('products')
         context['date_from'] = self.request.GET.get('date_from')
         context['date_to'] = self.request.GET.get('date_to')
