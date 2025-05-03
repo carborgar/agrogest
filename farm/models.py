@@ -12,8 +12,10 @@ class OrganizationOwnedModel(models.Model):
     """
     Modelo base abstracto que implementa la relación con una organización.
     """
-    organization = models.ForeignKey('accounts.Organization', on_delete=models.CASCADE, related_name="%(class)ss", null=True) #TODO: obligatorio cuando se migren los datos de prod
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, #TODO: obligatorio cuando se migren los datos de prod
+    organization = models.ForeignKey('accounts.Organization', on_delete=models.CASCADE, related_name="%(class)ss",
+                                     null=True)  # TODO: obligatorio cuando se migren los datos de prod
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
+                                   # TODO: obligatorio cuando se migren los datos de prod
                                    related_name="created_%(class)ss")
     updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
                                    related_name="updated_%(class)ss")
@@ -143,7 +145,7 @@ class Product(OrganizationOwnedModel):
     ALL_DOSE_TYPE_CHOICES = SPRAYING_DOSE_TYPE_CHOICES + FERTIGATION_DOSE_TYPE_CHOICES
 
     name = models.CharField(max_length=100)
-    product_type = models.ForeignKey(ProductType, on_delete=models.CASCADE, null=True) #TODO: hacer obligatorio
+    product_type = models.ForeignKey(ProductType, on_delete=models.CASCADE, null=True)  # TODO: hacer obligatorio
 
     # Spraying-specific dose fields
     spraying_dose = models.FloatField(null=True, blank=True)
@@ -229,6 +231,8 @@ class Treatment(OrganizationOwnedModel, SoftDeleteObject):
         return f"{self.name} - {self.date}"
 
     def save(self, *args, **kwargs):
+        self.organization = self.field.organization  # Asignar la organización de la parcela
+
         # Determinamos si es un nuevo objeto o uno existente
         is_new = self.pk is None
 
@@ -457,6 +461,8 @@ class TreatmentProduct(OrganizationOwnedModel, SoftDeleteObject):
 
         # Calculamos los precios finales
         self.calculate_prices()
+
+        self.organization = self.treatment.organization
 
         super().save(*args, **kwargs)
 
