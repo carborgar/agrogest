@@ -286,6 +286,7 @@
     </div>
 
     <div class="loads-container">
+        {% if treatment.is_fertigation or load_info.full_loads > 0 %}
         <!-- Productos para máquina completa -->
         <div class="load-card">
             <div class="load-header full-load-header">
@@ -307,6 +308,7 @@
                 {% endfor %}
             </div>
         </div>
+        {% endif %}
 
         <!-- Productos para máquina parcial (si existe) -->
         {% if load_info.partial_load %}
