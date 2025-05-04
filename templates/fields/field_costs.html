@@ -5,6 +5,34 @@
 
 {% block header %}Resumen de gastos{% endblock %}
 
+{% block extra_head %}
+<style>
+    .product-details-toggle {
+        font-size: 0.8rem;
+        text-decoration: none;
+    }
+    .product-details-toggle:hover {
+        text-decoration: underline;
+    }
+    .product-type-header {
+        background-color: #f8f9fa;
+        padding: 10px 15px;
+        border-radius: 4px;
+        margin-bottom: 10px;
+    }
+    .product-item {
+        padding: 6px 10px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .product-item:last-child {
+        border-bottom: none;
+    }
+    .progress {
+        height: 8px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row d-flex align-items-stretch">
     <!-- Tarjeta de filtros -->
@@ -93,6 +121,44 @@
                 </div>
             </div>
         </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <i aria-controls="productTypeDetailsContent"
+                       aria-expanded="false"
+                       class="bi bi-chevron-down chevron-toggle me-2 transition"
+                       data-bs-target="#productTypeDetailsContent"
+                       data-bs-toggle="collapse"
+                       role="button"></i>
+                    <h5 aria-controls="productTypeDetailsContent"
+                        aria-expanded="false"
+                        class="card-title m-0"
+                        data-bs-target="#productTypeDetailsContent"
+                        data-bs-toggle="collapse"
+                        role="button"
+                        style="cursor: pointer;">
+                        Desglose detallado por tipo de producto
+                    </h5>
+                </div>
+
+                <div class="collapse mt-3" id="productTypeDetailsContent">
+                    <div class="row" id="productTypeDetails">
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                            <p class="mt-2">Cargando desglose de productos...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 

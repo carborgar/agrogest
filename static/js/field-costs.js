@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div class="mt-3">
                                 <h6 class="text-muted mb-2">Desglose por tipo de producto:</h6>
                                 <div class="product-type-breakdown">
-                                    ${renderProductTypeBreakdown(field.product_types)}
+                                    ${renderFieldProductBreakdown(field.product_breakdown)}
                                 </div>
                             </div>
                         </div>
@@ -145,7 +145,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Renderizar desglose de costes por tipo de producto
-    function renderProductTypeBreakdown(productTypes) {
+    function renderProductTypeBreakdown(productTypes, productDetails) {
         if (!productTypes || productTypes.length === 0) {
             return '<div class="text-muted small">No hay datos disponibles</div>';
         }
@@ -165,6 +165,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const percent = (type.total / total * 100).toFixed(1);
             const typeName = type.product__product_type__name || 'Sin categoría';
             const color = colors[index % colors.length];
+            const productList = productDetails[typeName] || [];
 
             html += `
                 <div class="product-type-item mb-2">
@@ -180,11 +181,123 @@ document.addEventListener('DOMContentLoaded', function() {
                              style="width: ${percent}%" aria-valuenow="${percent}"
                              aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
+                    <div class="mt-1">
+                        <button class="btn btn-link btn-sm p-0 text-${color} product-details-toggle"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#products-${typeName.replace(/\s+/g, '-')}-${index}-${field.id}">
+                            Ver productos <i class="fas fa-chevron-down fa-xs"></i>
+                        </button>
+                        <div class="collapse mt-2" id="products-${typeName.replace(/\s+/g, '-')}-${index}-${field.id}">
+                            <div class="card card-body p-2 bg-light">
+                                ${renderIndividualProducts(productList, type.total)}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             `;
         });
 
         html += '</div>';
+        return html;
+    }
+
+    function renderFieldProductBreakdown(productBreakdown) {
+        if (!productBreakdown || productBreakdown.length === 0) {
+            return '<div class="text-muted small">No hay datos disponibles</div>';
+        }
+
+        // Colores para cada tipo de producto
+        const colors = [
+            'primary', 'success', 'danger', 'warning',
+            'info', 'secondary', 'dark'
+        ];
+
+        let html = '<div class="product-type-bars">';
+
+        productBreakdown.forEach((type, index) => {
+            const color = colors[index % colors.length];
+            const uniqueId = `products-${type.type_name.replace(/\s+/g, '-')}-${index}-${Math.random().toString(36).substr(2, 5)}`;
+
+            html += `
+                <div class="product-type-item mb-2">
+                    <div class="d-flex justify-content-between mb-1 small">
+                        <span>${type.type_name}</span>
+                        <span>${type.total.toLocaleString('es-ES', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        })} € (${type.percentage.toFixed(1)}%)</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-${color}" role="progressbar"
+                             style="width: ${type.percentage}%" aria-valuenow="${type.percentage}"
+                             aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <div class="mt-1">
+                        <button class="btn btn-link btn-sm p-0 text-${color} product-details-toggle"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#${uniqueId}">
+                            Ver productos <i class="fas fa-chevron-down fa-xs"></i>
+                        </button>
+                        <div class="collapse mt-2" id="${uniqueId}">
+                            <div class="card card-body p-2 bg-light">
+                                ${renderProductList(type.products)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+        return html;
+    }
+
+    function renderProductList(products) {
+        if (!products || products.length === 0) {
+            return '<div class="text-muted small">No hay productos disponibles</div>';
+        }
+
+        let html = '<ul class="list-unstyled mb-0 small">';
+
+        products.forEach(product => {
+            html += `
+                <li class="d-flex justify-content-between align-items-center mb-1">
+                    <span>${product.name}</span>
+                    <span>${product.total.toLocaleString('es-ES', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    })} € (${product.percentage.toFixed(1)}%)</span>
+                </li>
+            `;
+        });
+
+        html += '</ul>';
+        return html;
+    }
+
+
+    // Renderizar productos individuales dentro de cada tipo
+    function renderIndividualProducts(products, typeTotal) {
+        if (!products || products.length === 0) {
+            return '<div class="text-muted small">No hay productos disponibles</div>';
+        }
+
+        let html = '<ul class="list-unstyled mb-0 small">';
+
+        products.forEach(product => {
+            const percent = (product.total / typeTotal * 100).toFixed(1);
+            html += `
+                <li class="d-flex justify-content-between align-items-center mb-1">
+                    <span>${product.product__name}</span>
+                    <span>${parseFloat(product.total).toLocaleString('es-ES', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    })} € (${percent}%)</span>
+                </li>
+            `;
+        });
+
+        html += '</ul>';
         return html;
     }
 
@@ -212,7 +325,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Actualizar gráficos
     function updateCharts(data) {
         // Preparar datos para gráficos
-        const productTypeData = prepareProductTypeChartData(data.product_type_costs);
+        const productTypeData = prepareProductTypeChartData(data.product_breakdown);
         const fieldCostData = prepareFieldCostChartData(data.fields);
 
         // Actualizar/crear gráfico de tipos de producto
@@ -278,12 +391,104 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }
+
+        // Actualizar la sección de detalles de productos
+        updateProductTypeDetails(data.product_breakdown);
+    }
+
+    // Función para actualizar el desglose detallado de productos
+    function updateProductTypeDetails(productBreakdown) {
+        const container = document.getElementById('productTypeDetails');
+        if (!container) return;
+
+        if (!productBreakdown || productBreakdown.length === 0) {
+            container.innerHTML = '<div class="alert alert-info">No hay datos disponibles para el período seleccionado.</div>';
+            return;
+        }
+
+        const colors = [
+            'primary', 'success', 'danger', 'warning',
+            'info', 'secondary', 'dark'
+        ];
+
+        let html = '';
+
+        productBreakdown.forEach((type, index) => {
+            const color = colors[index % colors.length];
+            const uniqueId = `details-${type.type_name.replace(/\s+/g, '-')}-${index}`;
+
+            html += `
+                <div class="product-type-section mb-4 col-12 col-md-4">
+                    <div class="product-type-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 text-${color}">
+                            <i class="fas fa-box me-2"></i> ${type.type_name}
+                        </h6>
+                        <div>
+                            <span class="badge bg-${color} me-2">${type.total.toLocaleString('es-ES', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                            })} €</span>
+                            <span class="badge bg-light text-dark">${type.percentage.toFixed(1)}%</span>
+                        </div>
+                    </div>
+
+                    <div class="progress mt-2 mb-3" style="height: 10px;">
+                        <div class="progress-bar bg-${color}" role="progressbar"
+                             style="width: ${type.percentage}%" aria-valuenow="${type.percentage}"
+                             aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+
+                    <div class="product-items px-2">
+                        ${type.products.map(product => `
+                            <div class="product-item d-flex justify-content-between align-items-center">
+                                <span>${product.name}</span>
+                                <div>
+                                    <span class="me-2">${product.total.toLocaleString('es-ES', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2
+                                    })} €</span>
+                                    <span class="text-muted small">(${product.percentage.toFixed(1)}%)</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    function renderProductItems(products, typeTotal, color) {
+        if (!products || products.length === 0) {
+            return '<div class="text-muted small">No hay productos disponibles</div>';
+        }
+
+        let html = '';
+
+        products.forEach(product => {
+            const percent = (product.total / typeTotal * 100).toFixed(1);
+            html += `
+                <div class="product-item d-flex justify-content-between align-items-center">
+                    <span>${product.product__name}</span>
+                    <div>
+                        <span class="me-2">${parseFloat(product.total).toLocaleString('es-ES', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        })} €</span>
+                        <span class="text-muted small">(${percent}%)</span>
+                    </div>
+                </div>
+            `;
+        });
+
+        return html;
     }
 
     // Preparar datos para gráfico de tipos de producto
-    function prepareProductTypeChartData(productTypes) {
-        const labels = productTypes.map(t => t.product__product_type__name || 'Sin categoría');
-        const values = productTypes.map(t => parseFloat(t.total));
+    function prepareProductTypeChartData(productBreakdown) {
+        const labels = productBreakdown.map(item => item.type_name);
+        const values = productBreakdown.map(item => item.total);
 
         // Generar colores para cada tipo
         const backgroundColors = [
