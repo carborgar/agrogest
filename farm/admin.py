@@ -9,6 +9,13 @@ class TreatmentAdmin(admin.ModelAdmin):
 
 class TreatmentProductAdmin(admin.ModelAdmin):
     list_per_page = 20
+    list_filter = ('treatment', 'product__name')
+    ordering = ['-created_at']
+
+    search_fields = ['product__name', 'treatment__name']
+    search_help_text = 'Buscar por nombre del producto o del tratamiento'
+
+    list_display = ('treatment', 'product', 'dose', 'dose_type')
 
 
 admin.site.register(Product)
