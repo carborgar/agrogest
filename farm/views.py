@@ -121,7 +121,8 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
         context['status_choices'] = Treatment.STATUS_CHOICES
         context['selected_fields'] = self.request.GET.getlist('field')
         context['selected_types'] = self.request.GET.getlist('type')
-        context['selected_statuses'] = self.request.GET.getlist('status') or [Treatment.STATUS_PENDING, Treatment.STATUS_DELAYED]
+        context['selected_statuses'] = self.request.GET.getlist('status') or [Treatment.STATUS_PENDING,
+                                                                              Treatment.STATUS_DELAYED]
         context['selected_products'] = self.request.GET.getlist('products')
         context['date_from'] = self.request.GET.get('date_from')
         context['date_to'] = self.request.GET.get('date_to')
@@ -173,10 +174,7 @@ class TreatmentFormView(BaseSecureViewMixin, SuccessMessageMixin, CreateView, Up
         return reverse('treatment-detail', kwargs={'pk': self.object.id})
 
     def get_success_message(self, cleaned_data):
-        if self.object.pk is None or not hasattr(self, 'object') or self.object is None:
-            return f"Tratamiento '{cleaned_data['name']}' creado exitosamente"
-        else:
-            return f"Tratamiento '{cleaned_data['name']}' actualizado exitosamente"
+        return f"Tratamiento '{cleaned_data['name']}' creado exitosamente"
 
     def get_object(self, queryset=None):
         if 'pk' in self.kwargs:

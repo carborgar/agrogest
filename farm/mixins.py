@@ -66,7 +66,8 @@ class AuditableMixin:
 
     def form_valid(self, form):
         obj = form.save()
-        form.save_m2m()
+        if hasattr(form, 'save_m2m'):
+            form.save_m2m()
 
         # Determinar si es creación o actualización
         action = 'create' if not hasattr(self, 'object') else 'update'
