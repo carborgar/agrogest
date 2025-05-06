@@ -196,28 +196,6 @@ def field_costs_data(request):
 
 
 def get_field_product_breakdown(user, fields_or_field, start_date, end_date):
-    """
-    Obtiene un desglose jerárquico completo de los costes por tipo de producto y productos individuales.
-    Funciona tanto para una parcela individual como para un conjunto de parcelas.
-
-    Retorna una estructura de datos optimizada:
-    [
-        {
-            'type_name': 'Nombre del tipo',
-            'total': 1234.56,
-            'percentage': 45.6,  # Porcentaje del total
-            'products': [
-                {
-                    'name': 'Nombre del producto',
-                    'total': 567.89,
-                    'percentage': 46.0  # Porcentaje del tipo
-                },
-                ...
-            ]
-        },
-        ...
-    ]
-    """
     # Preparar filtro de parcelas
     if hasattr(fields_or_field, '__iter__'):  # Es una colección de parcelas
         fields_filter = {'treatment__field__in': fields_or_field}
@@ -253,16 +231,20 @@ def get_field_product_breakdown(user, fields_or_field, start_date, end_date):
         products = product_query.filter(
             product__product_type__name=type_name if type_name != 'Sin categoría' else None
         ).values(
-            'product__name'
+            'product__name',
+            'total_dose_unit'
         ).annotate(
-            total=Sum('total_price')
+            total=Sum('total_price'),
+            total_dose=Sum('total_dose')
         ).order_by('-total')
 
         # Formatear productos con porcentajes relativos al tipo
         product_list = [
             {
                 'name': p['product__name'],
+                'unit': p['total_dose_unit'],
                 'total': float(p['total']),
+                'quantity': float(p['total_dose']),
                 'percentage': float((p['total'] / type_total * 100) if type_total else 0)
             }
             for p in products

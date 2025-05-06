@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const applyFilterBtn = document.getElementById('applyDateFilter');
     const fieldsContainer = document.getElementById('fieldsContainer');
     const fieldsInput = document.getElementById('fieldSelector');
+    const viewModeSelector = document.getElementById('viewMode');
 
     // Inicializar fechas (último año por defecto)
     const today = new Date();
@@ -13,6 +14,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     dateToInput.valueAsDate = today;
     dateFromInput.valueAsDate = lastYear;
+
+    let currentViewMode = localStorage.getItem('fieldCostsViewMode') || 'cost';
+    viewModeSelector.value = currentViewMode;
 
     // Charts
     let productTypeChart = null;
@@ -23,6 +27,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Event listeners
     applyFilterBtn.addEventListener('click', loadFieldCostsData);
+
+    viewModeSelector.addEventListener('change', function() {
+        currentViewMode = this.value;
+        localStorage.setItem('fieldCostsViewMode', currentViewMode);
+        loadFieldCostsData(); // Actualizar visualización
+    });
 
     // Función para cargar datos vía AJAX
     function loadFieldCostsData() {
@@ -206,7 +216,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return '<div class="text-muted small">No hay datos disponibles</div>';
         }
 
-        // Colores para cada tipo de producto
         const colors = [
             'primary', 'success', 'danger', 'warning',
             'info', 'secondary', 'dark'
@@ -218,14 +227,20 @@ document.addEventListener('DOMContentLoaded', function() {
             const color = colors[index % colors.length];
             const uniqueId = `products-${type.type_name.replace(/\s+/g, '-')}-${index}-${Math.random().toString(36).substr(2, 5)}`;
 
+            let valueDisplay = '';
+            if (currentViewMode === 'cost') {
+                valueDisplay = type.total.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+            } else {
+                const totalQuantity = type.products.reduce((sum, p) => sum + p.quantity, 0);
+                const unit = type.products[0]?.unit || '';
+                valueDisplay = `${totalQuantity.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${unit}`;
+            }
+
             html += `
                 <div class="product-type-item mb-2">
                     <div class="d-flex justify-content-between mb-1 small">
                         <span>${type.type_name}</span>
-                        <span>${type.total.toLocaleString('es-ES', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2
-                        })} € (${type.percentage.toFixed(1)}%)</span>
+                        <span>${valueDisplay} (${type.percentage.toFixed(1)}%)</span>
                     </div>
                     <div class="progress" style="height: 8px;">
                         <div class="progress-bar bg-${color}" role="progressbar"
@@ -240,7 +255,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </button>
                         <div class="collapse mt-2" id="${uniqueId}">
                             <div class="card card-body p-2 bg-light">
-                                ${renderProductList(type.products)}
+                                ${renderProductList(type.products, currentViewMode)}
                             </div>
                         </div>
                     </div>
@@ -252,7 +267,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return html;
     }
 
-    function renderProductList(products) {
+    function renderProductList(products, viewMode = 'cost') {
         if (!products || products.length === 0) {
             return '<div class="text-muted small">No hay productos disponibles</div>';
         }
@@ -260,13 +275,24 @@ document.addEventListener('DOMContentLoaded', function() {
         let html = '<ul class="list-unstyled mb-0 small">';
 
         products.forEach(product => {
+            // Determinar qué valor mostrar según el modo
+            let valueDisplay;
+            if (viewMode === 'cost') {
+                valueDisplay = `${product.total.toLocaleString('es-ES', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                })} €`;
+            } else {
+                valueDisplay = `${product.quantity.toLocaleString('es-ES', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                })} ${product.unit || ''}`;
+            }
+
             html += `
                 <li class="d-flex justify-content-between align-items-center mb-1">
                     <span>${product.name}</span>
-                    <span>${product.total.toLocaleString('es-ES', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                    })} € (${product.percentage.toFixed(1)}%)</span>
+                    <span>${valueDisplay} (${product.percentage.toFixed(1)}%)</span>
                 </li>
             `;
         });
@@ -350,11 +376,17 @@ document.addEventListener('DOMContentLoaded', function() {
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
-                                    const value = context.raw.toLocaleString('es-ES', {
+                                    const label = context.label;
+                                    const value = context.raw;
+                                    const unit = context.dataset.units?.[context.dataIndex] || '';
+                                    const formattedValue = value.toLocaleString('es-ES', {
                                         minimumFractionDigits: 2,
                                         maximumFractionDigits: 2
                                     });
-                                    return `${context.label}: ${value} €`;
+
+                                    return currentViewMode === 'cost'
+                                        ? `${label}: ${formattedValue} €`
+                                        : `${label}: ${formattedValue} ${unit}`;
                                 }
                             }
                         }
@@ -488,7 +520,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Preparar datos para gráfico de tipos de producto
     function prepareProductTypeChartData(productBreakdown) {
         const labels = productBreakdown.map(item => item.type_name);
-        const values = productBreakdown.map(item => item.total);
+        const values = currentViewMode === 'cost'
+        ? productBreakdown.map(item => item.total)
+        : productBreakdown.map(item => {
+            // Si estamos en modo cantidad, sumamos las cantidades de los productos
+            return item.products.reduce((sum, product) => sum + product.quantity, 0);
+        });
+        const units = productBreakdown.map(p => {
+            const firstProduct = p.products && p.products[0];
+            return firstProduct ? firstProduct.unit : '';
+        });
 
         // Generar colores para cada tipo
         const backgroundColors = [
@@ -503,7 +544,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 data: values,
                 backgroundColor: backgroundColors.slice(0, labels.length),
                 hoverBackgroundColor: backgroundColors.slice(0, labels.length).map(c => lightenDarkenColor(c, -20)),
-                borderWidth: 1
+                borderWidth: 1,
+                units
             }]
         };
     }

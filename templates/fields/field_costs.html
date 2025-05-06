@@ -5,6 +5,8 @@
 
 {% block header %}Resumen de gastos{% endblock %}
 
+{% block sub_header %}Estos son los gatos estimados de todos los tratamientos registrados{% endblock %}
+
 {% block extra_head %}
 <style>
     .product-details-toggle {
@@ -56,6 +58,13 @@
                         {% for f in fields %}
                         <option value="{{ f.id }}">{{ f.name }}</option>
                         {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small" for="viewMode">Mostrar valores en</label>
+                    <select class="form-select form-select-sm" id="viewMode">
+                        <option value="cost">Euros (€)</option>
+                        <option value="quantity">Cantidades (kg/L)</option>
                     </select>
                 </div>
                 <button class="btn btn-primary btn-sm w-100" id="applyDateFilter">Aplicar filtro</button>
@@ -115,7 +124,7 @@
     <div class="col-md-6 mb-4">
         <div class="card h-100">
             <div class="card-body">
-                <h5 class="card-title">Gasto por parcela</h5>
+                <h5 class="card-title">Gasto total por parcela</h5>
                 <div class="chart-container" style="position: relative; height:250px;">
                     <canvas id="fieldCostChart"></canvas>
                 </div>
