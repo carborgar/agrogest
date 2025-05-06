@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
     dateToInput.valueAsDate = today;
     dateFromInput.valueAsDate = lastYear;
 
+    // Inicializar modo de vista desde localStorage
     let currentViewMode = localStorage.getItem('fieldCostsViewMode') || 'cost';
     viewModeSelector.value = currentViewMode;
 
@@ -22,16 +23,25 @@ document.addEventListener('DOMContentLoaded', function() {
     let productTypeChart = null;
     let fieldCostChart = null;
 
+    // Variable para almacenar los datos cargados
+    let currentData = null;
+
     // Cargar datos al inicio
     loadFieldCostsData();
 
     // Event listeners
     applyFilterBtn.addEventListener('click', loadFieldCostsData);
 
+    // Cambiar modo de visualización sin recargar datos
     viewModeSelector.addEventListener('change', function() {
         currentViewMode = this.value;
         localStorage.setItem('fieldCostsViewMode', currentViewMode);
-        loadFieldCostsData(); // Actualizar visualización
+
+        // Actualizar la visualización con los datos existentes
+        if (currentData) {
+            renderFieldCards(currentData.fields);
+            updateCharts(currentData);
+        }
     });
 
     // Función para cargar datos vía AJAX
@@ -60,6 +70,9 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch(`${API_URLS.fieldCosts}?${params.toString()}`)
             .then(response => response.json())
             .then(data => {
+                // Guardar datos para uso posterior
+                currentData = data;
+
                 updateDashboard(data);
                 renderFieldCards(data.fields);
                 updateCharts(data);
@@ -154,63 +167,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Renderizar desglose de costes por tipo de producto
-    function renderProductTypeBreakdown(productTypes, productDetails) {
-        if (!productTypes || productTypes.length === 0) {
-            return '<div class="text-muted small">No hay datos disponibles</div>';
-        }
-
-        // Calcular total para porcentajes
-        const total = productTypes.reduce((sum, type) => sum + parseFloat(type.total), 0);
-
-        // Colores para cada tipo de producto
-        const colors = [
-            'primary', 'success', 'danger', 'warning',
-            'info', 'secondary', 'dark'
-        ];
-
-        let html = '<div class="product-type-bars">';
-
-        productTypes.forEach((type, index) => {
-            const percent = (type.total / total * 100).toFixed(1);
-            const typeName = type.product__product_type__name || 'Sin categoría';
-            const color = colors[index % colors.length];
-            const productList = productDetails[typeName] || [];
-
-            html += `
-                <div class="product-type-item mb-2">
-                    <div class="d-flex justify-content-between mb-1 small">
-                        <span>${typeName}</span>
-                        <span>${parseFloat(type.total).toLocaleString('es-ES', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2
-                        })} € (${percent}%)</span>
-                    </div>
-                    <div class="progress" style="height: 8px;">
-                        <div class="progress-bar bg-${color}" role="progressbar"
-                             style="width: ${percent}%" aria-valuenow="${percent}"
-                             aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                    <div class="mt-1">
-                        <button class="btn btn-link btn-sm p-0 text-${color} product-details-toggle"
-                                data-bs-toggle="collapse"
-                                data-bs-target="#products-${typeName.replace(/\s+/g, '-')}-${index}-${field.id}">
-                            Ver productos <i class="fas fa-chevron-down fa-xs"></i>
-                        </button>
-                        <div class="collapse mt-2" id="products-${typeName.replace(/\s+/g, '-')}-${index}-${field.id}">
-                            <div class="card card-body p-2 bg-light">
-                                ${renderIndividualProducts(productList, type.total)}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-
-        html += '</div>';
-        return html;
-    }
-
     function renderFieldProductBreakdown(productBreakdown) {
         if (!productBreakdown || productBreakdown.length === 0) {
             return '<div class="text-muted small">No hay datos disponibles</div>';
@@ -293,32 +249,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 <li class="d-flex justify-content-between align-items-center mb-1">
                     <span>${product.name}</span>
                     <span>${valueDisplay} (${product.percentage.toFixed(1)}%)</span>
-                </li>
-            `;
-        });
-
-        html += '</ul>';
-        return html;
-    }
-
-
-    // Renderizar productos individuales dentro de cada tipo
-    function renderIndividualProducts(products, typeTotal) {
-        if (!products || products.length === 0) {
-            return '<div class="text-muted small">No hay productos disponibles</div>';
-        }
-
-        let html = '<ul class="list-unstyled mb-0 small">';
-
-        products.forEach(product => {
-            const percent = (product.total / typeTotal * 100).toFixed(1);
-            html += `
-                <li class="d-flex justify-content-between align-items-center mb-1">
-                    <span>${product.product__name}</span>
-                    <span>${parseFloat(product.total).toLocaleString('es-ES', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                    })} € (${percent}%)</span>
                 </li>
             `;
         });
@@ -449,6 +379,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const color = colors[index % colors.length];
             const uniqueId = `details-${type.type_name.replace(/\s+/g, '-')}-${index}`;
 
+            // Determinar qué valor mostrar según el modo
+            let valueDisplay = type.total.toLocaleString('es-ES', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }) + ' €';
+
             html += `
                 <div class="product-type-section mb-4 col-12 col-md-4">
                     <div class="product-type-header d-flex justify-content-between align-items-center">
@@ -456,10 +392,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <i class="fas fa-box me-2"></i> ${type.type_name}
                         </h6>
                         <div>
-                            <span class="badge bg-${color} me-2">${type.total.toLocaleString('es-ES', {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2
-                            })} €</span>
+                            <span class="badge bg-${color} me-2">${valueDisplay}</span>
                             <span class="badge bg-light text-dark">${type.percentage.toFixed(1)}%</span>
                         </div>
                     </div>
@@ -471,18 +404,31 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
 
                     <div class="product-items px-2">
-                        ${type.products.map(product => `
-                            <div class="product-item d-flex justify-content-between align-items-center">
-                                <span>${product.name}</span>
-                                <div>
-                                    <span class="me-2">${product.total.toLocaleString('es-ES', {
-                                        minimumFractionDigits: 2,
-                                        maximumFractionDigits: 2
-                                    })} €</span>
-                                    <span class="text-muted small">(${product.percentage.toFixed(1)}%)</span>
+                        ${type.products.map(product => {
+                            // Determinar qué valor mostrar según el modo
+                            let productValueDisplay;
+                            if (currentViewMode === 'cost') {
+                                productValueDisplay = `${product.total.toLocaleString('es-ES', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2
+                                })} €`;
+                            } else {
+                                productValueDisplay = `${product.quantity.toLocaleString('es-ES', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2
+                                })} ${product.unit || ''}`;
+                            }
+
+                            return `
+                                <div class="product-item d-flex justify-content-between align-items-center">
+                                    <span>${product.name}</span>
+                                    <div>
+                                        <span class="me-2">${productValueDisplay}</span>
+                                        <span class="text-muted small">(${product.percentage.toFixed(1)}%)</span>
+                                    </div>
                                 </div>
-                            </div>
-                        `).join('')}
+                            `;
+                        }).join('')}
                     </div>
                 </div>
             `;
@@ -491,45 +437,24 @@ document.addEventListener('DOMContentLoaded', function() {
         container.innerHTML = html;
     }
 
-    function renderProductItems(products, typeTotal, color) {
-        if (!products || products.length === 0) {
-            return '<div class="text-muted small">No hay productos disponibles</div>';
-        }
-
-        let html = '';
-
-        products.forEach(product => {
-            const percent = (product.total / typeTotal * 100).toFixed(1);
-            html += `
-                <div class="product-item d-flex justify-content-between align-items-center">
-                    <span>${product.product__name}</span>
-                    <div>
-                        <span class="me-2">${parseFloat(product.total).toLocaleString('es-ES', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2
-                        })} €</span>
-                        <span class="text-muted small">(${percent}%)</span>
-                    </div>
-                </div>
-            `;
-        });
-
-        return html;
-    }
-
     // Preparar datos para gráfico de tipos de producto
     function prepareProductTypeChartData(productBreakdown) {
         const labels = productBreakdown.map(item => item.type_name);
-        const values = currentViewMode === 'cost'
-        ? productBreakdown.map(item => item.total)
-        : productBreakdown.map(item => {
-            // Si estamos en modo cantidad, sumamos las cantidades de los productos
-            return item.products.reduce((sum, product) => sum + product.quantity, 0);
-        });
-        const units = productBreakdown.map(p => {
-            const firstProduct = p.products && p.products[0];
-            return firstProduct ? firstProduct.unit : '';
-        });
+        let values, units;
+
+        if (currentViewMode === 'cost') {
+            values = productBreakdown.map(item => item.total);
+            units = productBreakdown.map(() => '€');
+        } else {
+            values = productBreakdown.map(item => {
+                // Si estamos en modo cantidad, sumamos las cantidades de los productos
+                return item.products.reduce((sum, product) => sum + product.quantity, 0);
+            });
+            units = productBreakdown.map(p => {
+                const firstProduct = p.products && p.products[0];
+                return firstProduct ? firstProduct.unit : '';
+            });
+        }
 
         // Generar colores para cada tipo
         const backgroundColors = [

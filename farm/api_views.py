@@ -163,28 +163,40 @@ def field_costs_data(request):
 
     # Datos de costes por parcela
     field_costs = []
-    for field in fields:
-        total_cost = field.get_treatments_cost(start_date, end_date)
-        cost_per_ha = total_cost / Decimal(field.area) if field.area > 0 else 0
+    total_area = 0
+    total_cost = 0
 
-        # Obtener desglose por tipo de producto y productos individuales en una sola consulta
+    for field in fields:
+        # Obtener desglose por tipo de producto y productos individuales
         field_products = get_field_product_breakdown(request.user, field, start_date, end_date)
+
+        # Calcular coste total sumando los totales de los productos
+        # (evita una consulta adicional)
+        field_total_cost = sum(product_type['total'] for product_type in field_products)
+
+        # Calcular coste por hectárea
+        cost_per_ha = Decimal(field_total_cost) / Decimal(field.area) if field.area > 0 else 0
+
+        # Actualizar totales
+        total_area += field.area
+        total_cost += field_total_cost
 
         field_costs.append({
             'id': field.id,
             'name': field.name,
-            'total_cost': float(total_cost),
+            'total_cost': float(field_total_cost),
             'cost_per_ha': float(cost_per_ha),
             'product_breakdown': field_products,
             'area': field.area
         })
 
-    # Costes totales
-    total_area = sum(field.area for field in fields)
-    total_cost = sum(item['total_cost'] for item in field_costs)
-
-    # Obtener desglose general por tipo de producto y productos para todas las parcelas
-    general_product_breakdown = get_field_product_breakdown(request.user, fields, start_date, end_date)
+    # Obtener desglose general por tipo de producto para todas las parcelas
+    # Solo si tenemos múltiples campos
+    if len(fields) > 1:
+        general_product_breakdown = get_field_product_breakdown(request.user, fields, start_date, end_date)
+    else:
+        # Si solo hay un campo, reutilizamos su desglose de productos
+        general_product_breakdown = field_costs[0]['product_breakdown'] if field_costs else []
 
     return JsonResponse({
         'fields': field_costs,
@@ -197,9 +209,11 @@ def field_costs_data(request):
 
 def get_field_product_breakdown(user, fields_or_field, start_date, end_date):
     # Preparar filtro de parcelas
-    if hasattr(fields_or_field, '__iter__'):  # Es una colección de parcelas
+    if hasattr(fields_or_field, '__iter__') and not isinstance(fields_or_field, Field):
+        # Es una colección de parcelas
         fields_filter = {'treatment__field__in': fields_or_field}
-    else:  # Es una parcela individual
+    else:
+        # Es una parcela individual
         fields_filter = {'treatment__field': fields_or_field}
 
     # Obtener todos los productos agrupados por tipo
@@ -207,54 +221,66 @@ def get_field_product_breakdown(user, fields_or_field, start_date, end_date):
         treatment__date__gte=start_date,
         treatment__date__lte=end_date,
         **fields_filter
-    )
+    ).select_related('product', 'product__product_type')
 
     # Obtener el coste total para calcular porcentajes
     total_cost = product_query.aggregate(total=Sum('total_price'))['total'] or Decimal('0')
 
-    # Obtener los tipos de producto y su coste total
-    product_types = product_query.values(
-        'product__product_type__name'
-    ).annotate(
-        total=Sum('total_price')
-    ).order_by('-total')
+    # Agrupar productos por tipo
+    product_types = {}
+    for product in product_query:
+        type_name = product.product.product_type.name if product.product.product_type else 'Sin categoría'
 
-    # Construir estructura de datos jerárquica
+        if type_name not in product_types:
+            product_types[type_name] = {
+                'type_name': type_name,
+                'total': Decimal('0'),
+                'products': {}
+            }
+
+        # Actualizar total del tipo
+        product_types[type_name]['total'] += product.total_price
+
+        # Agrupar por producto
+        product_name = product.product.name
+        if product_name not in product_types[type_name]['products']:
+            product_types[type_name]['products'][product_name] = {
+                'name': product_name,
+                'unit': product.total_dose_unit,
+                'total': Decimal('0'),
+                'quantity': Decimal('0')
+            }
+
+        # Actualizar totales del producto
+        product_types[type_name]['products'][product_name]['total'] += product.total_price
+        product_types[type_name]['products'][product_name]['quantity'] += product.total_dose or Decimal('0')
+
+    # Convertir a lista y calcular porcentajes
     breakdown = []
-
-    for product_type in product_types:
-        type_name = product_type['product__product_type__name'] or 'Sin categoría'
-        type_total = product_type['total']
+    for type_name, type_data in product_types.items():
+        type_total = type_data['total']
         type_percentage = (type_total / total_cost * 100) if total_cost else 0
 
-        # Obtener productos individuales de este tipo
-        products = product_query.filter(
-            product__product_type__name=type_name if type_name != 'Sin categoría' else None
-        ).values(
-            'product__name',
-            'total_dose_unit'
-        ).annotate(
-            total=Sum('total_price'),
-            total_dose=Sum('total_dose')
-        ).order_by('-total')
+        # Convertir productos de diccionario a lista
+        products_list = list(type_data['products'].values())
 
-        # Formatear productos con porcentajes relativos al tipo
-        product_list = [
-            {
-                'name': p['product__name'],
-                'unit': p['total_dose_unit'],
-                'total': float(p['total']),
-                'quantity': float(p['total_dose']),
-                'percentage': float((p['total'] / type_total * 100) if type_total else 0)
-            }
-            for p in products
-        ]
+        # Calcular porcentajes para cada producto (relativo al tipo)
+        for product in products_list:
+            product['percentage'] = float((product['total'] / type_total * 100) if type_total else 0)
+            product['total'] = float(product['total'])
+            product['quantity'] = float(product['quantity'])
+
+        # Ordenar productos por total (descendente)
+        products_list.sort(key=lambda x: x['total'], reverse=True)
 
         breakdown.append({
             'type_name': type_name,
             'total': float(type_total),
             'percentage': float(type_percentage),
-            'products': product_list
+            'products': products_list
         })
+
+    # Ordenar tipos por total (descendente)
+    breakdown.sort(key=lambda x: x['total'], reverse=True)
 
     return breakdown
