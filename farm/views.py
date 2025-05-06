@@ -281,9 +281,8 @@ class ShoppingListView(BaseSecureViewMixin, ListView):
 
     def get_queryset(self):
         # Base queryset - get products from pending or delayed treatments
-        queryset = TreatmentProduct.objects.filter(
-            treatment__status__in=['pending', 'delayed'],
-            organization=self.request.user.organization
+        queryset = TreatmentProduct.ownership_objects.get_queryset_for_user(self.request.user).filter(
+            treatment__status__in=['pending', 'delayed']
         ).select_related('product', 'product__product_type', 'treatment', 'treatment__field')
 
         # Filter by field if specified
