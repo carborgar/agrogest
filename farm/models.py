@@ -245,6 +245,9 @@ class Treatment(OrganizationOwnedModel, SoftDeleteObject):
         else:
             needs_recalculation = True
 
+        if self.is_fertigation():
+            self.water_per_ha = self.real_water_per_ha = 0
+
         # Actualizamos el estado
         self.update_status()
 

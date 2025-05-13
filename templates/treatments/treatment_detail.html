@@ -259,6 +259,7 @@
     // Función para finalizar tratamiento
     function finishTreatment(treatmentId) {
         const fieldArea = parseFloat('{{ treatment.field.area }}'.replace(',', '.'));
+        const isFertigation = {{ treatment.is_fertigation|yesno:"true,false" }};
 
         Swal.fire({
             target: '#swal-container',
@@ -269,6 +270,7 @@
                   <label for="swalFinishDate" class="form-label">Fecha de finalización</label>
                   <input type="date" class="form-control" id="swalFinishDate" required>
                 </div>
+                ${!isFertigation ? `
                 <div class="mb-3">
                   <label for="swalFinalWater" class="form-label">Mojado final (litros/ha)</label>
                   <input type="number" class="form-control" id="swalFinalWater" value="{{ treatment.water_per_ha }}" min="1" step="1" required
@@ -279,6 +281,7 @@
                   <input type="number" class="form-control" id="swalTotalWater" value="{{ treatment.water_per_ha|mul:treatment.field.area }}" min="1" step="1" required
                     oninput="this.value = Math.round(this.value); document.getElementById('swalFinalWater').value = Math.round(this.value / ${fieldArea})">
                 </div>
+                ` : ''}
               </form>
             `,
             showCancelButton: true,
@@ -287,23 +290,29 @@
             confirmButtonColor: '#198754',
             preConfirm: () => {
                 const finishDate = document.getElementById('swalFinishDate').value;
-                const finalWater = parseFloat(document.getElementById('swalFinalWater').value);
-                const totalWater = parseFloat(document.getElementById('swalTotalWater').value);
 
                 if (!finishDate) {
                     Swal.showValidationMessage('Por favor, ingresa una fecha de finalización');
                     return false;
                 }
-                if (!finalWater || finalWater < 1 || !Number.isInteger(finalWater)) {
-                    Swal.showValidationMessage('El mojado final debe ser un número entero mayor que 0');
-                    return false;
-                }
-                if (!totalWater || totalWater < 1 || !Number.isInteger(totalWater)) {
-                    Swal.showValidationMessage('El total de litros debe ser un número entero mayor que 0');
-                    return false;
+
+                if (!isFertigation) {
+                    const finalWater = parseFloat(document.getElementById('swalFinalWater').value);
+                    const totalWater = parseFloat(document.getElementById('swalTotalWater').value);
+
+                    if (!finalWater || finalWater < 1 || !Number.isInteger(finalWater)) {
+                        Swal.showValidationMessage('El mojado final debe ser un número entero mayor que 0');
+                        return false;
+                    }
+                    if (!totalWater || totalWater < 1 || !Number.isInteger(totalWater)) {
+                        Swal.showValidationMessage('El total de litros debe ser un número entero mayor que 0');
+                        return false;
+                    }
+
+                    return { finishDate, finalWater };
                 }
 
-                return { finishDate, finalWater };
+                return { finishDate, finalWater: null };
             },
             heightAuto: false,
             didOpen: () => {
@@ -312,21 +321,30 @@
                 const formattedDate = today.toISOString().split('T')[0];
                 document.getElementById('swalFinishDate').value = formattedDate;
 
-                // Initialize total water calculation
-                const waterPerHa = {{ treatment.water_per_ha }};
-                document.getElementById('swalFinalWater').value = Math.round(waterPerHa);
-                document.getElementById('swalTotalWater').value = Math.round(waterPerHa * fieldArea);
+                // Initialize total water calculation only if not fertigation
+                if (!isFertigation) {
+                    const waterPerHa = {{ treatment.water_per_ha }};
+                    document.getElementById('swalFinalWater').value = Math.round(waterPerHa);
+                    document.getElementById('swalTotalWater').value = Math.round(waterPerHa * fieldArea);
+                }
             }
         }).then((result) => {
             if (result.isConfirmed) {
                 showLoading('Procesando...', 'Marcando como finalizado');
+
+                const formData = new URLSearchParams({
+                    finish_date: result.value.finishDate
+                });
+
+                // Only add water parameter if not fertigation
+                if (!isFertigation && result.value.finalWater) {
+                    formData.append('real_water_used', result.value.finalWater);
+                }
+
                 fetch(`{% url 'treatment-finish' 0 %}`.replace('0', treatmentId), {
                     method: 'POST',
                     headers: {'X-CSRFToken': '{{ csrf_token }}'},
-                    body: new URLSearchParams({
-                        finish_date: result.value.finishDate,
-                        real_water_used: result.value.finalWater
-                    })
+                    body: formData
                 })
                 .then(r => {
                     if (!r.ok) throw new Error();
