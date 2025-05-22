@@ -239,11 +239,25 @@
 </head>
 <body>
 <div class="container" id="export-container">
-    <div class="header">
-        <h1>
-            <span class="logo-placeholder"></span>
-            Instrucciones para Operador
-        </h1>
+    <!-- Update this part of your header -->
+    <div class="header d-flex justify-content-between">
+        <div class="d-flex align-items-center flex-grow-1">
+            <h1>
+                <span class="logo-placeholder"></span>
+                Instrucciones para operador
+            </h1>
+        </div>
+        <div class="d-flex gap-3 d-print-none">
+            <!-- View switcher -->
+            <div class="view-switcher">
+                <button class="btn view-btn active" id="cardViewBtn" type="button">
+                    <i class="fa fa-th"></i> Tarjetas
+                </button>
+                <button class="btn view-btn" id="listViewBtn" type="button">
+                    <i class="fa fa-list"></i> Lista
+                </button>
+            </div>
+        </div>
     </div>
 
     <div class="treatment-info">
@@ -296,7 +310,7 @@
                 <i class="fa fa-tractor"></i> {{ load_info.full_loads }} máquinas completas con:
                 {% endif %}
             </div>
-            <div class="load-body full-load">
+            <div class="load-body full-load card-view-content">
                 {% for product in products %}
                 <div class="product-card">
                     <div class="product-title">{{ product.product.name }}</div>
@@ -307,16 +321,33 @@
                 </div>
                 {% endfor %}
             </div>
+            <div class="list-view-content d-none">
+                <table class="table table-stripped table-bordered table-responsive">
+                    <thead>
+                    <tr>
+                        <th scope="col">Producto</th>
+                        <th scope="col">Cantidad</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for product in products %}
+                    <tr>
+                        <th scope="row">{{ product.product.name }}</th>
+                        <td>{{ product.get_dose_per_load }}{{ product.total_dose_unit }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
         {% endif %}
 
-        <!-- Productos para máquina parcial (si existe) -->
         {% if load_info.partial_load %}
         <div class="load-card">
             <div class="load-header partial-load-header">
                 <i class="fa fa-fill-drip"></i> 1 máquina parcial ({{ load_info.partial_water }} L) con:
             </div>
-            <div class="load-body partial-load">
+            <div class="load-body partial-load card-view-content">
                 {% for product in products %}
                 <div class="product-card">
                     <div class="product-title">{{ product.product.name }}</div>
@@ -327,6 +358,27 @@
                     </div>
                 </div>
                 {% endfor %}
+            </div>
+            <div class="list-view-content d-none">
+                <table class="table table-stripped table-bordered table-responsive">
+                    <thead>
+                    <tr>
+                        <th scope="col">Producto</th>
+                        <th scope="col">Cantidad</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for product in products %}
+                    <tr>
+                        <th scope="row">{{ product.product.name }}</th>
+                        <td>
+                            {% load treatment_filters %}
+                            {{ product|partial_load_product:treatment }}{{ product.total_dose_unit }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
         {% endif %}
@@ -367,6 +419,7 @@
             const container = document.getElementById('export-container');
             const pdfButton = document.getElementById('export-pdf');
             const imageButton = document.getElementById('export-image');
+            const viewSwitcher = document.querySelector('.view-switcher');
 
             // Función para exportar como imagen PNG
             imageButton.addEventListener('click', function() {
@@ -374,11 +427,17 @@
                 this.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Generando...';
                 this.disabled = true;
 
+                // Hide view switcher before capture
+                viewSwitcher.classList.add('d-none');
+
                 html2canvas(container, {
                     scale: 2, // Mejor calidad
                     logging: false,
                     useCORS: true
                 }).then(canvas => {
+                    // Restore view switcher
+                    viewSwitcher.classList.remove('d-none');
+
                     // Crear enlace de descarga
                     const link = document.createElement('a');
                     link.download = 'instrucciones-tratamiento-{{ treatment.id }}.png';
@@ -396,11 +455,17 @@
                 this.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Generando...';
                 this.disabled = true;
 
+                // Hide view switcher before capture
+                viewSwitcher.classList.add('d-none');
+
                 html2canvas(container, {
                     scale: 2,
                     logging: false,
                     useCORS: true
                 }).then(canvas => {
+                    // Restore view switcher
+                    viewSwitcher.classList.remove('d-none');
+
                     const { jsPDF } = window.jspdf;
 
                     // Crear PDF con dimensiones A4
@@ -427,6 +492,49 @@
                 });
             });
         }, 500);
+    });
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get view elements
+        const cardViewBtn = document.getElementById('cardViewBtn');
+        const listViewBtn = document.getElementById('listViewBtn');
+
+        // Toggle between views
+        cardViewBtn.addEventListener('click', function() {
+            // Show all card views, hide all list views
+            document.querySelectorAll('.card-view-content').forEach(el => el.classList.remove('d-none'));
+            document.querySelectorAll('.list-view-content').forEach(el => el.classList.add('d-none'));
+
+            // Update button states
+            cardViewBtn.classList.add('active');
+            listViewBtn.classList.remove('active');
+
+            // Store preference in localStorage
+            localStorage.setItem('treatmentExportViewPreference', 'card');
+        });
+
+        listViewBtn.addEventListener('click', function() {
+            // Hide all card views, show all list views
+            document.querySelectorAll('.card-view-content').forEach(el => el.classList.add('d-none'));
+            document.querySelectorAll('.list-view-content').forEach(el => el.classList.remove('d-none'));
+
+            // Update button states
+            listViewBtn.classList.add('active');
+            cardViewBtn.classList.remove('active');
+
+            // Store preference in localStorage
+            localStorage.setItem('treatmentExportViewPreference', 'list');
+        });
+
+        // Check for stored preference and apply it
+        const storedPreference = localStorage.getItem('treatmentExportViewPreference');
+        if (storedPreference === 'list') {
+            document.querySelectorAll('.card-view-content').forEach(el => el.classList.add('d-none'));
+            document.querySelectorAll('.list-view-content').forEach(el => el.classList.remove('d-none'));
+            listViewBtn.classList.add('active');
+            cardViewBtn.classList.remove('active');
+        }
     });
 </script>
 </body>
