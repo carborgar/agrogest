@@ -108,7 +108,7 @@ class TreatmentProductModelTest(TestCase):
             total_dose=0,
             total_dose_unit="L"
         )
-        treatment_product.calculate_total_dose()
+        treatment_product.set_dose_units()
         return treatment_product
 
     def test_treatment_product_total_dose_calculation(self):
@@ -174,7 +174,7 @@ class TreatmentProductModelTest(TestCase):
             product.save()
 
             # Calculamos la dosis total
-            treatment_product.calculate_total_dose()
+            treatment_product.set_dose_units()
 
             # Comprobamos el resultado
             self.assertEqual(treatment_product.total_dose_unit, expected_unit)

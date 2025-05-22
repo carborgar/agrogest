@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load widget_tweaks %}
+{% load static %}
 {% load django_bootstrap5 %}
 
 {% block content %}
@@ -13,7 +14,7 @@
                 {% bootstrap_form_errors form %}
                 {% bootstrap_formset_errors products_formset %}
 
-                <form id="treatmentForm" method="post">
+                <form data-form-count="{{ products_formset.total_form_count }}" id="treatmentForm" method="post">
                     {% csrf_token %}
 
                     <!-- Indicador de progreso -->
@@ -118,9 +119,9 @@
                                         <thead class="table-light">
                                         <tr>
                                             <th>Producto</th>
-                                            <th>Dosis por defecto</th>
-                                            <th>Dosis a aplicar</th>
-                                            <th>Dosis Total Estimada</th>
+                                            <th>Dosis recomendada</th>
+                                            <th>Dosis</th>
+                                            <th>Total</th>
                                             <th class="text-center">Eliminar</th>
                                         </tr>
                                         </thead>
@@ -141,7 +142,12 @@
                                                     {{ form.dose|add_class:"form-control product-dose" }}
                                                 </div>
                                             </td>
-                                            <td class="estimated-dose fw-bold text-primary">-</td>
+                                            <td>
+                                                <div class="input-group">
+                                                    {{ form.total_dose|add_class:"form-control estimated-dose-input fw-bold" }}
+                                                    <span class="input-group-text estimated-dose-unit">-</span>
+                                                </div>
+                                            </td>
                                             <td class="text-center">
                                                 {% if form.instance.pk %}
                                                 <div class="form-check form-switch d-flex justify-content-center">
@@ -192,7 +198,9 @@
     document.addEventListener('DOMContentLoaded', async () => {
         // Variables globales
         let fields = {}, machines = {}, products = {};
-        let formCount = {{ products_formset.total_form_count }};
+        const formContainer = document.getElementById('treatmentForm');
+        let formCount = parseInt(formContainer.dataset.formCount);
+        let lastModifiedField = new Map(); // Para trackear el último campo modificado por fila
         const maxForms = parseInt('{{ products_formset.max_num }}');
 
         // Elementos del formulario
@@ -267,7 +275,8 @@
             const firstRow = document.querySelector('.product-form');
             if (firstRow) {
                 firstRow.querySelector('.product-dose').value = '';
-                firstRow.querySelector('.estimated-dose').textContent = '-';
+                firstRow.querySelector('.estimated-dose-input').value = '';
+                firstRow.querySelector('.estimated-dose-unit').textContent = '-';
                 firstRow.querySelector('#product-default-dose').value = '';
             }
             formCount = 1;
@@ -334,6 +343,8 @@
 
             const doseInputs = row.querySelectorAll('.product-dose');
             const defaultDoseLabel = row.querySelector('#product-default-dose');
+            const estimatedDoseInput = row.querySelector('.estimated-dose-input');
+            const estimatedDoseUnit = row.querySelector('.estimated-dose-unit');
 
             if (product) {
                 doseInputs.forEach(doseInput => {
@@ -342,11 +353,17 @@
                 });
 
                 defaultDoseLabel.value = product.dose + ' ' + product.dose_type_display;
+
+                // Limpiar dosis total estimada
+                estimatedDoseInput.value = '';
+                estimatedDoseUnit.textContent = product.dose_type.includes('kg') ? 'kg' : 'L';
             } else {
                 doseInputs.forEach(doseInput => {
                     doseInput.value = '';
                 });
                 defaultDoseLabel.value = '';
+                estimatedDoseInput.value = '';
+                estimatedDoseUnit.textContent = '-';
             }
 
             calculateTotalDoses();
@@ -381,24 +398,33 @@
         // Función para calcular dosis totales
         function calculateTotalDoses() {
             const field = fields[elements.fieldSelect.value];
-            const machine = machines[elements.machineSelect.value];
             const waterPerHa = parseFloat(elements.waterPerHaInput.value) || 0;
 
             if (!field) return;
 
-            document.querySelectorAll('.product-form').forEach(row => {
+            document.querySelectorAll('.product-form').forEach((row, index) => {
                 const doseInput = row.querySelector('.product-dose');
-                const estimatedDoseCell = row.querySelector('.estimated-dose');
+                const estimatedDoseInput = row.querySelector('.estimated-dose-input');
+                const estimatedDoseUnit = row.querySelector('.estimated-dose-unit');
                 const productInput = row.querySelector('.product-select');
 
                 const productId = productInput.value;
                 if (!productId || !products[productId]) {
-                    estimatedDoseCell.textContent = '-';
+                    estimatedDoseInput.value = '';
                     return;
                 }
 
                 const dose = parseFloat(doseInput.value) || 0;
-                if (!dose) return (estimatedDoseCell.textContent = '-');
+
+                // Si el campo "total" fue el último modificado, no recalcular
+                if (lastModifiedField.get(index) === 'total' && estimatedDoseInput.value) {
+                    return;
+                }
+
+                if (!dose) {
+                    estimatedDoseInput.value = '';
+                    return;
+                }
 
                 const doseType = products[productId].dose_type;
                 const totalWater = field.area * waterPerHa;
@@ -413,8 +439,56 @@
                     totalDose = (dose / 2000) * totalWater;
                 }
 
-                estimatedDoseCell.textContent = `${totalDose.toFixed(2)} ${unit}`;
+                estimatedDoseInput.value = totalDose.toFixed(2);
+                estimatedDoseUnit.textContent = unit;
             });
+        }
+
+        function calculateDoseFromTotal(event) {
+            const row = event.target.closest('.product-form');
+            const rowIndex = Array.from(document.querySelectorAll('.product-form')).indexOf(row);
+
+            // Marcar que el campo "total" fue el último modificado
+            lastModifiedField.set(rowIndex, 'total');
+
+            const doseInput = row.querySelector('.product-dose');
+            const estimatedDoseInput = row.querySelector('.estimated-dose-input');
+            const productInput = row.querySelector('.product-select');
+            const field = fields[elements.fieldSelect.value];
+            const waterPerHa = parseFloat(elements.waterPerHaInput.value) || 0;
+
+            const productId = productInput.value;
+            if (!productId || !products[productId] || !field) return;
+
+            const totalDose = parseFloat(estimatedDoseInput.value) || 0;
+            if (!totalDose) {
+                doseInput.value = '';
+                return;
+            }
+
+            const doseType = products[productId].dose_type;
+            const totalWater = field.area * waterPerHa;
+            let dosePerHa = 0;
+
+            if (doseType.includes('_per_ha')) {
+                dosePerHa = totalDose / field.area;
+            } else if (doseType.includes('_per_1000l')) {
+                dosePerHa = (totalDose * 1000) / totalWater;
+            } else if (doseType.includes('_per_2000l')) {
+                dosePerHa = (totalDose * 2000) / totalWater;
+            }
+
+            doseInput.value = dosePerHa.toFixed(2);
+        }
+
+        function handleDoseChange(event) {
+            const row = event.target.closest('.product-form');
+            const rowIndex = Array.from(document.querySelectorAll('.product-form')).indexOf(row);
+
+            // Marcar que el campo "dosis" fue el último modificado
+            lastModifiedField.set(rowIndex, 'dose');
+
+            calculateTotalDoses();
         }
 
         function limitDecimalPlaces(event) {
@@ -443,6 +517,7 @@
 
             // Clonar la fila sin eventos previos
             const newRow = elements.productsTable.querySelector('.product-form').cloneNode(true);
+            const newRowIndex = formCount;
 
             // Actualizar atributos name e id de los elementos internos
             newRow.querySelectorAll('[name]').forEach((input) => {
@@ -459,8 +534,12 @@
 
             // Resetear valores en los nuevos inputs
             newRow.querySelector('.product-dose').value = '';
-            newRow.querySelector('.estimated-dose').textContent = '-';
+            newRow.querySelector('.estimated-dose-input').value = '';
+            newRow.querySelector('.estimated-dose-unit').textContent = '-';
             newRow.querySelector('#product-default-dose').value = '';
+
+            // Resetear el tracking para esta nueva fila
+            lastModifiedField.set(newRowIndex, null);
 
             // Actualizar el select con los productos filtrados disponibles
             const productSelect = newRow.querySelector('.product-select');
@@ -482,8 +561,12 @@
                 updateFormIndexes();
             });
 
-            // Evento para calcular dosis
-            newRow.querySelector('.product-dose').addEventListener('input', calculateTotalDoses);
+            // Eventos modificados para usar las nuevas funciones
+            newRow.querySelector('.product-dose').addEventListener('input', handleDoseChange);
+            newRow.querySelector('.product-dose').addEventListener('input', limitDecimalPlaces);
+
+            newRow.querySelector('.estimated-dose-input').addEventListener('input', calculateDoseFromTotal);
+            newRow.querySelector('.estimated-dose-input').addEventListener('input', limitDecimalPlaces);
 
             // Agregar la nueva fila a la tabla
             elements.productsTable.appendChild(newRow);
@@ -703,8 +786,17 @@
         }));
 
         // Eventos para calcular dosis
-        document.querySelectorAll('.product-dose').forEach(el => el.addEventListener('input', calculateTotalDoses));
+        document.querySelectorAll('.product-dose').forEach((el, index) => {
+            el.addEventListener('input', handleDoseChange);
+            // Inicializar el tracking para las filas existentes
+            lastModifiedField.set(index, null);
+        });
+
         document.querySelectorAll('.product-select').forEach(select => select.addEventListener('change', updateProductInfo));
+        document.querySelectorAll('.estimated-dose-input').forEach(input => {
+            input.addEventListener('input', calculateDoseFromTotal);
+            input.addEventListener('input', limitDecimalPlaces);
+        });
 
         // Validación en envío del formulario
         document.getElementById('treatmentForm').addEventListener('submit', validateForm);

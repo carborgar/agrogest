@@ -54,9 +54,10 @@ class TreatmentForm(forms.ModelForm):
 class TreatmentProductForm(forms.ModelForm):
     class Meta:
         model = TreatmentProduct
-        fields = ['product', 'dose']
+        fields = ['product', 'dose', 'total_dose']
         widgets = {
             'dose': forms.NumberInput(attrs={'step': '0.01'}),
+            'total_dose': forms.NumberInput(attrs={'step': '0.01'}),
         }
 
     def clean_dose(self):

@@ -1,7 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
 
-from django.conf import settings
 from django.db import models
 from softdelete.models import SoftDeleteObject
 
@@ -393,8 +392,7 @@ class TreatmentProduct(OrganizationOwnedModel, SoftDeleteObject):
     def __str__(self):
         return f"{self.product.name} en {self.treatment} - {self.dose}"
 
-    def calculate_total_dose(self):
-        """Calcula la dosis total basada en el tipo de dosis y los parámetros del tratamiento"""
+    def set_dose_units(self):
         # Get the appropriate dose and dose type for the treatment's application method
         treatment_type = self.treatment.type
         product_dose_type = self.product.get_dose_for_application(treatment_type)
@@ -407,23 +405,6 @@ class TreatmentProduct(OrganizationOwnedModel, SoftDeleteObject):
             self.total_dose_unit = 'kg'
         else:
             self.total_dose_unit = 'L'
-
-        # Obtener datos necesarios
-        field_area = self.treatment.field.area
-        water_per_ha = self.treatment.actual_water_per_ha()
-
-        # Calcular la dosis total según el tipo de dosis
-        if self.dose_type in ['kg_per_1000l', 'l_per_1000l']:
-            total_water = water_per_ha * field_area  # Total litros
-            self.total_dose = (self.dose * Decimal(total_water)) / 1000
-
-        elif self.dose_type in ['kg_per_ha', 'l_per_ha']:
-            self.total_dose = self.dose * Decimal(field_area)
-
-        elif self.dose_type == 'pct':
-            total_water = water_per_ha * field_area
-            self.total_dose = (self.dose / Decimal(100)) * total_water
-            self.total_dose_unit = 'L'  # Siempre litros para porcentaje
 
     def get_dose_per_load(self):
         """
@@ -458,7 +439,7 @@ class TreatmentProduct(OrganizationOwnedModel, SoftDeleteObject):
 
     def save(self, *args, **kwargs):
         # Calculamos la dosis total antes de guardar
-        self.calculate_total_dose()
+        self.set_dose_units()
 
         # Calculamos los precios finales
         self.calculate_prices()
