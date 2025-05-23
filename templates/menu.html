@@ -1,204 +1,224 @@
-<!-- Sidebar menu para escritorio -->
-<div class="desktop-sidebar d-none d-lg-flex {% if sidebar_collapsed %}compact{% endif %} d-print-none">
-    <div class="sidebar-content">
-        <div class="sidebar-logo">
-            <a class="logo-link disabled" href="#">
-                <i class="bi bi-flower1"></i>
-            </a>
-            <span class="logo-text">AgroGest</span>
+<!-- Mobile Navbar -->
+<nav class="navbar mobile-navbar d-md-none">
+    <div class="container-fluid">
+        <button class="btn btn-outline-primary" data-bs-target="#sidebarOffcanvas" data-bs-toggle="offcanvas"
+                type="button">
+            <i class="fas fa-bars"></i>
+        </button>
+        <span class="navbar-brand mb-0">AgroGest</span>
+        <!-- User menu button for mobile -->
+        <div class="dropdown">
+            <button class="btn btn-outline-primary" data-bs-toggle="dropdown" type="button">
+                <i class="fas fa-user"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><h6 class="dropdown-header">{{ user.first_name|default:user.username }}</h6></li>
+                {% comment %}
+                <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Mi Perfil</a></li>
+                <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Configuración</a></li>
+                <li>
+                    <hr class="dropdown-divider">
+                </li>
+                {% endcomment %}
+                <li>
+                    <form action="{% url 'accounts:logout' %}" method="post">
+                        {% csrf_token %}
+                        <button class="dropdown-item text-danger" type="submit">
+                            <i class="fas fa-sign-out-alt me-2"></i>Cerrar sesión
+                        </button>
+                    </form>
+                </li>
+            </ul>
         </div>
+    </div>
+</nav>
 
-        {% with request.resolver_match.url_name as current_url %}
-        {% with home_menus='field_list' %}
-        {% with treatments_menus='treatment-list treatment-create treatment-detail' %}
-        {% with calendar_menus='treatment-calendar' %}
-        {% with field_costs_menus='field_costs' %}
+{% with request.resolver_match.url_name as current_url %}
+{% with home_menus='field_list' %}
+{% with treatments_menus='treatment-list treatment-create treatment-detail' %}
+{% with calendar_menus='treatment-calendar' %}
+{% with field_costs_menus='field_costs' %}
 
-        <ul class="sidebar-nav">
-            <li class="sidebar-item">
-                <a class="sidebar-link {% if current_url in home_menus %}active{% endif %}"
-                   href="{% url 'field_list' %}">
-                    <i class="fa fa-house"></i>
-                    <span class="link-text">Inicio</span>
-                </a>
-            </li>
-            <li class="sidebar-item">
-                <a class="sidebar-link {% if current_url in treatments_menus %}active{% endif %}"
-                   href="{% url 'treatment-list' %}">
-                    <i class="fa fa-droplet"></i>
-                    <span class="link-text">Tratamientos</span>
-                </a>
-            </li>
-            <li class="sidebar-item">
-                <a class="sidebar-link {% if current_url in calendar_menus %}active{% endif %}"
-                   href="{% url 'treatment-calendar' %}">
-                    <i class="fa fa-calendar-days"></i>
-                    <span class="link-text">Calendario</span>
-                </a>
-            </li>
-            <li class="sidebar-item">
-                <a class="sidebar-link {% if current_url in field_costs_menus %}active{% endif %}"
-                   href="{% url 'field_costs' %}">
-                    <i class="fa fa-coins"></i>
-                    <span class="link-text">Gastos</span>
-                </a>
-            </li>
-            <li class="sidebar-item">
-                <a class="sidebar-link {% if request.resolver_match.url_name == 'treatment-shopping-list' %}active{% endif %}"
-                   href="{% url 'treatment-shopping-list' %}">
-                    <i class="fa fa-shopping-cart"></i>
-                    <span class="link-text">Compras</span>
-                </a>
-            </li>
+<!-- Desktop Sidebar -->
+<div class="sidebar-desktop d-none d-md-block">
+    <div class="sidebar-content">
+        <!-- Brand -->
+        <a class="brand" href="#">
+            <div class="brand-icon">
+                <i class="bi bi-flower1"></i>
+            </div>
+            <h4 class="brand-text">AgroGest</h4>
+        </a>
 
-            <li class="sidebar-item mt-auto toggle-btn-container">
-                <button class="toggle-sidebar-btn" id="sidebar-collapse-btn">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-            </li>
-
-        </ul>
-
-        <div class="sidebar-footer">
-            <div class="user-menu dropup">
-                <a class="dropdown-toggle" data-bs-toggle="dropdown" href="#">
-                    <div class="user-avatar">
-                        <i class="fa fa-user"></i>
-                    </div>
-                    <div class="user-info">
-                        <span class="user-name">{{ user.username }}</span>
-                    </div>
-                </a>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    {% comment %}
-                    <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Perfil</a></li>
-                    <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Configuración</a></li>
-                    <li>
-                        <hr class="dropdown-divider">
+        <!-- Navigation Container -->
+        <div class="nav-container">
+            <!-- Main Navigation -->
+            <div class="nav-section">
+                <!-- <div class="nav-title">Principal</div>-->
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if current_url in home_menus %}active{% endif %}"
+                           href="{% url 'field_list' %}">
+                            <i class="fas fa-house"></i>Inicio
+                        </a>
                     </li>
-                    {% endcomment %}
-                    <li>
-                        <form action="{% url 'accounts:logout' %}" method="post">
-                            {% csrf_token %}
-                            <button class="dropdown-item" type="submit"><i class="bi bi-box-arrow-right me-2"></i>Cerrar
-                                sesión
-                            </button>
-                        </form>
+                    <li class="nav-item">
+                        <a class="nav-link {% if current_url in treatments_menus %}active{% endif %}"
+                           href="{% url 'treatment-list' %}">
+                            <i class="fas fa-droplet"></i>Tratamientos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if current_url in calendar_menus %}active{% endif %}"
+                           href="{% url 'treatment-calendar' %}">
+                            <i class="fas fa-calendar-days"></i>Calendario
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if current_url in field_costs_menus %}active{% endif %}"
+                           href="{% url 'field_costs' %}">
+                            <i class="fa fa-coins"></i>Gastos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'treatment-shopping-list' %}active{% endif %}"
+                           href="{% url 'treatment-shopping-list' %}">
+                            <i class="fa fa-shopping-cart"></i>Compras
+                        </a>
                     </li>
                 </ul>
             </div>
+
+            {% comment %}
+            <!-- Gestión -->
+            <div class="nav-section">
+                <div class="nav-title">Gestión</div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">
+                            <i class="fas fa-calendar-alt"></i>
+                            Calendario
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a aria-expanded="false" class="nav-link" data-bs-target="#reportesMenu"
+                           data-bs-toggle="collapse" href="#">
+                            <i class="fas fa-chart-bar"></i>
+                            Reportes
+                            <i class="fas fa-chevron-down chevron"></i>
+                        </a>
+                        <div class="collapse nav-submenu" id="reportesMenu">
+                            <ul class="nav flex-column">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#">Costos</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#">Productividad</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#">Comparativas</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">
+                            <i class="fas fa-warehouse"></i>
+                            Inventario
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            {% endcomment %}
+        </div>
+
+        <!-- User Menu -->
+        <div class="user-menu">
+            <a class="user-profile" data-bs-toggle="dropdown" href="#">
+                <div class="user-avatar"><i class="fa fa-user"></i></div>
+                <div class="user-info">
+                    <h6>{{ user.first_name|default:user.username }}</h6>
+                    <small>Usuario</small>
+                </div>
+                <i class="fas fa-ellipsis-v ms-auto"></i>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+                {% comment %}
+                <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Mi Perfil</a></li>
+                <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Configuración</a></li>
+                <li>
+                    <hr class="dropdown-divider">
+                </li>
+                {% endcomment %}
+                <li>
+                    <form action="{% url 'accounts:logout' %}" method="post">
+                        {% csrf_token %}
+                        <button class="dropdown-item text-danger" type="submit">
+                            <i class="fas fa-sign-out-alt me-2"></i>Cerrar sesión
+                        </button>
+                    </form>
+                </li>
+            </ul>
         </div>
     </div>
 </div>
 
-<!-- Botón flotante de menú -->
-<button class="floating-menu-btn d-print-none" id="fullMenuToggle">
-    <i class="bi bi-grid-3x3-gap-fill fs-4"></i>
-</button>
-
-<!-- Menú Completo -->
-<div class="full-menu d-print-none" id="fullMenu">
-    <div class="menu-grid container">
-        <div class="row g-4 mt-3">
-            <div class="col-4 text-center text-truncate">
-                <a class="text-decoration-none text-dark"
-                   href="{% url 'field_list' %}">
-                    <div class="p-3 bg-light rounded-3 full-menu-item {% if current_url in home_menus %}active{% endif %}">
-                        <i class="fa fa-house fs-2"></i>
-                        <p class="mt-2">Inicio</p>
-                    </div>
-                </a>
+<!-- Mobile Offcanvas -->
+<div class="offcanvas offcanvas-start" id="sidebarOffcanvas" tabindex="-1">
+    <div class="offcanvas-header">
+        <div class="d-flex align-items-center">
+            <div class="brand-icon me-2">
+                <i class="fas fa-seedling"></i>
             </div>
-
-            <div class="col-4 text-center text-truncate">
-                <a class="text-decoration-none text-dark"
-                   href="{% url 'treatment-list' %}">
-                    <div class="p-3 bg-light rounded-3 full-menu-item {% if current_url in treatments_menus %}active{% endif %}">
-                        <i class="fa fa-droplet fs-2"></i>
-                        <p class="mt-2">Tratamientos</p>
-                    </div>
-                </a>
-            </div>
-
-            <div class="col-4 text-center text-truncate">
-                <a class="text-decoration-none text-dark"
-                   href="{% url 'treatment-calendar' %}">
-                    <div class="p-3 bg-light rounded-3 full-menu-item {% if current_url in calendar_menus %}active{% endif %}">
-                        <i class="fa fa-calendar-days fs-2"></i>
-                        <p class="mt-2">Calendario</p>
-                    </div>
-                </a>
-            </div>
-
-            <div class="col-4 text-center text-truncate">
-                <a class="text-decoration-none text-dark"
-                   href="{% url 'field_costs' %}">
-                    <div class="p-3 bg-light rounded-3 full-menu-item {% if current_url in field_costs_menus %}active{% endif %}">
-                        <i class="fa fa-coins fs-2"></i>
-                        <p class="mt-2">Gastos</p>
-                    </div>
-                </a>
-            </div>
-
-            <div class="col-4 text-center text-truncate">
-                <a class="text-decoration-none text-dark"
-                   href="{% url 'treatment-shopping-list' %}">
-                    <div class="p-3 bg-light rounded-3 full-menu-item {% if request.resolver_match.url_name == 'treatment-shopping-list' %}active{% endif %}">
-                        <i class="fa fa-shopping-cart fs-2"></i>
-                        <p class="mt-2">Compras</p>
-                    </div>
-                </a>
-            </div>
-
-            <div class="col-4 text-center text-truncate">
-                <div class="p-3 bg-light rounded-3 full-menu-item">
-                    <a class="text-decoration-none text-dark user-menu-mobile" data-bs-target="#userModal"
-                       data-bs-toggle="modal"
-                       href="#">
-                        <i class="fa fa-user fs-2"></i>
-                        <p class="mt-2">{{ user.first_name|default:user.username }}</p>
-                    </a>
+            <h5 class="offcanvas-title mb-0">AgroGest</h5>
+        </div>
+        <button class="btn-close btn-close-white" data-bs-dismiss="offcanvas" type="button"></button>
+    </div>
+    <div class="offcanvas-body">
+        <div class="sidebar-content">
+            <div class="nav-container">
+                <!-- Main Navigation -->
+                <div class="nav-section">
+                    <!--<div class="nav-title">Principal</div>-->
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link {% if current_url in home_menus %}active{% endif %}"
+                               href="{% url 'field_list' %}">
+                                <i class="fas fa-house"></i>Inicio
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if current_url in treatments_menus %}active{% endif %}"
+                               href="{% url 'treatment-list' %}">
+                                <i class="fas fa-droplet"></i>Tratamientos
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if current_url in calendar_menus %}active{% endif %}"
+                               href="{% url 'treatment-calendar' %}">
+                                <i class="fas fa-calendar-days"></i>Calendario
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if current_url in field_costs_menus %}active{% endif %}"
+                               href="{% url 'field_costs' %}">
+                                <i class="fa fa-coins"></i>Gastos
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'treatment-shopping-list' %}active{% endif %}"
+                               href="{% url 'treatment-shopping-list' %}">
+                                <i class="fa fa-shopping-cart"></i>Compras
+                            </a>
+                        </li>
+                    </ul>
                 </div>
             </div>
         </div>
     </div>
-
-
-    {% endwith %}
-    {% endwith %}
-    {% endwith %}
-    {% endwith %}
-    {% endwith %}
-
-    <!-- Modal de usuario -->
-    <div aria-hidden="true" aria-labelledby="userModalLabel" class="modal fade" id="userModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="userModalLabel">Usuario: {{ user.username }}</h5>
-                    <button aria-label="Cerrar" class="btn-close" data-bs-dismiss="modal" type="button"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="list-group">
-                        <form action="{% url 'accounts:logout' %}" class="list-group-item list-group-item-action"
-                              method="post">
-                            {% csrf_token %}
-                            <button class="btn btn-link text-decoration-none text-danger w-100 text-start p-2"
-                                    type="submit">
-                                <i class="bi bi-box-arrow-right me-2"></i>Cerrar sesión
-                            </button>
-                        </form>
-                        <!-- Aquí puedes añadir más opciones en el futuro -->
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="full-menu-close-container">
-        <button class="bottom-close-btn" id="fullMenuClose">
-            <i class="bi bi-x-lg"></i>
-        </button>
-    </div>
-
 </div>
+{% endwith %}
+{% endwith %}
+{% endwith %}
+{% endwith %}
+{% endwith %}
