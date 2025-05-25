@@ -376,9 +376,9 @@ class Treatment(OrganizationOwnedModel, SoftDeleteObject):
 class TreatmentProduct(OrganizationOwnedModel, SoftDeleteObject):
     treatment = models.ForeignKey("Treatment", on_delete=models.CASCADE)
     product = models.ForeignKey("Product", on_delete=models.RESTRICT)
-    dose = models.DecimalField(max_digits=10, decimal_places=2)
+    dose = models.DecimalField(max_digits=10, decimal_places=1)
     dose_type = models.CharField(max_length=20)
-    total_dose = models.DecimalField(max_digits=10, decimal_places=2)
+    total_dose = models.DecimalField(max_digits=10, decimal_places=1)
     total_dose_unit = models.CharField(max_length=10, choices=[('L', 'Litros'), ('kg', 'Kilogramos')])
 
     # Nuevos campos de precio
@@ -482,31 +482,39 @@ class TreatmentProduct(OrganizationOwnedModel, SoftDeleteObject):
 
     def calculate_total_dose(self):
         """Calcula la dosis total basada en el tipo de dosis y los parámetros del tratamiento"""
-        field_area = self.treatment.field.area
-        water_per_ha = self.treatment.actual_water_per_ha()
+        field_area = Decimal(self.treatment.field.area)
+        water_per_ha = Decimal(self.treatment.actual_water_per_ha())
 
         if self.dose_type in ['kg_per_1000l', 'l_per_1000l']:
-            total_water = water_per_ha * field_area  # Total litros
-            self.total_dose = (self.dose * Decimal(total_water)) / 1000
+            total_water = water_per_ha * field_area
+            result = (self.dose * total_water) / 1000
         elif self.dose_type in ['kg_per_ha', 'l_per_ha']:
-            self.total_dose = self.dose * Decimal(field_area)
+            result = self.dose * field_area
         elif self.dose_type == 'pct':
             total_water = water_per_ha * field_area
-            self.total_dose = (self.dose / Decimal(100)) * total_water
+            result = (self.dose / Decimal(100)) * total_water
+        else:
+            result = Decimal(0)
+
+        self.total_dose = round(result, 1)
 
     def calculate_dose_from_total(self):
         """Calcula la dosis basada en la dosis total y los parámetros del tratamiento"""
-        field_area = self.treatment.field.area
-        water_per_ha = self.treatment.actual_water_per_ha()
+        field_area = Decimal(self.treatment.field.area)
+        water_per_ha = Decimal(self.treatment.actual_water_per_ha())
 
         if self.dose_type in ['kg_per_1000l', 'l_per_1000l']:
-            total_water = water_per_ha * field_area  # Total litros
-            self.dose = (self.total_dose * 1000) / Decimal(total_water)
+            total_water = water_per_ha * field_area
+            result = (self.total_dose * 1000) / total_water
         elif self.dose_type in ['kg_per_ha', 'l_per_ha']:
-            self.dose = self.total_dose / Decimal(field_area)
+            result = self.total_dose / field_area
         elif self.dose_type == 'pct':
             total_water = water_per_ha * field_area
-            self.dose = (self.total_dose * Decimal(100)) / Decimal(total_water)
+            result = (self.total_dose * Decimal(100)) / total_water
+        else:
+            result = Decimal(0)
+
+        self.dose = round(result, 1)
 
 
 class Harvest(OrganizationOwnedModel):

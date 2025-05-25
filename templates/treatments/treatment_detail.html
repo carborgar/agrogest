@@ -112,7 +112,7 @@
                     <strong>{{ treatment.field.name }}</strong>
                     {% if total_cost %}
                     <br>
-                    <i class="fa fa-euro-sign me-2"></i>Coste total: <strong>{{ total_cost|floatformat:2 }}€</strong>
+                    <i class="fa fa-euro-sign me-2"></i>Coste total: <strong>{{ total_cost }}€</strong>
                     ({{ cost_per_ha|floatformat:2 }} €/ha)
                     {% endif %}
                 </div>
@@ -131,7 +131,7 @@
                                     <span class="dose-unit">{{ product.dose_type|dose_type }}</span>
                                 </p>
                                 <p class="card-text mb-0">
-                                    Total: <span class="dose-amount">{{ product.total_dose|floatformat:2 }}</span>
+                                    Total: <span class="dose-amount">{{ product.total_dose }}</span>
                                     <span class="dose-unit">{{ product.total_dose_unit }}</span>
                                 </p>
 
@@ -139,9 +139,9 @@
                                 {% if product.unit_price > 0 %}
                                 <div class="price-container">
                                     <small class="price-tag">
-                                        <i class="fa fa-tag me-1"></i>{{ product.unit_price|floatformat:2 }}€/ud ·
-                                        <strong>{{ product.total_price|floatformat:2 }}€</strong>
-                                        <span class="text-muted">({{ product.price_per_ha|floatformat:2 }}€/ha)</span>
+                                        <i class="fa fa-tag me-1"></i>{{ product.unit_price }}€/ud ·
+                                        <strong>{{ product.total_price }}€</strong>
+                                        <span class="text-muted">({{ product.price_per_ha }}€/ha)</span>
                                     </small>
                                 </div>
                                 {% endif %}

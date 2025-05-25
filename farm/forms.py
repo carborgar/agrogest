@@ -56,15 +56,15 @@ class TreatmentProductForm(forms.ModelForm):
         model = TreatmentProduct
         fields = ['product', 'dose', 'total_dose']
         widgets = {
-            'dose': forms.NumberInput(attrs={'step': '0.01'}),
-            'total_dose': forms.NumberInput(attrs={'step': '0.01'}),
+            'dose': forms.NumberInput(attrs={'step': '0.1'}),
+            'total_dose': forms.NumberInput(attrs={'step': '0.1'}),
         }
 
     def clean_dose(self):
         dose = self.cleaned_data.get('dose')
         if dose is not None:
-            # Redondear a 2 decimales para evitar valores no permitidos
-            dose = dose.quantize(Decimal('0.01'), rounding=ROUND_UP)
+            # Redondear a 1 decimal
+            dose = dose.quantize(Decimal('0.1'), rounding=ROUND_UP)
         return dose
 
 
