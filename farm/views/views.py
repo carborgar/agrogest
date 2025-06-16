@@ -16,11 +16,11 @@ from django.views.generic import ListView, DetailView
 from django.views.generic import TemplateView
 from django.views.generic.edit import CreateView, UpdateView
 
-from .forms import TreatmentForm, TreatmentProductFormSet
-from .mixins import OwnershipRequiredMixin, QuerysetFilterMixin, AuditableMixin
-from .models import Field, ProductType, TreatmentProduct
-from .models import Product
-from .models import Treatment
+from farm.forms import TreatmentForm, TreatmentProductFormSet
+from farm.mixins import OwnershipRequiredMixin, QuerysetFilterMixin, AuditableMixin
+from farm.models import Field, ProductType, TreatmentProduct
+from farm.models import Product
+from farm.models import Treatment
 
 logger = logging.getLogger(__name__)
 
@@ -30,9 +30,9 @@ class BaseSecureViewMixin(OwnershipRequiredMixin, QuerysetFilterMixin, Auditable
     pass
 
 
-class FieldListView(BaseSecureViewMixin, ListView):
+class FieldDashboardView(BaseSecureViewMixin, ListView):
     model = Field
-    template_name = "fields/field_list.html"
+    template_name = "fields/field_dashboard.html"
     context_object_name = "fields"
 
     def get_queryset(self):
@@ -238,11 +238,7 @@ class FinishTreatmentView(BaseSecureViewMixin, View):
         if not finish_date:
             return JsonResponse({'success': False}, status=400)
 
-        if real_water_used:
-            treatment.real_water_per_ha = int(real_water_used)
-
-        treatment.finish_date = finish_date
-        treatment.save()
+        treatment.finish_treatment(finish_date, real_water_used)
 
         return JsonResponse({'success': True})
 

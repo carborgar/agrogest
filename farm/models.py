@@ -102,6 +102,9 @@ class Field(OrganizationOwnedModel):
 
         return cost_by_type
 
+    def can_be_deleted(self):
+        return not Treatment.objects.filter(field=self).exists()
+
 
 class Machine(OrganizationOwnedModel):
     name = models.CharField(max_length=100)
@@ -372,6 +375,21 @@ class Treatment(OrganizationOwnedModel, SoftDeleteObject):
         """
         return self.real_water_per_ha if self.real_water_per_ha else self.water_per_ha
 
+    def water_per_ha_changed(self):
+        return self.water_per_ha != self.actual_water_per_ha()
+
+    def finish_treatment(self, finish_date, real_water_per_ha=None):
+        """
+        Finaliza el tratamiento actualizando todos los campos relacionados.
+        Domain logic: aquí está toda la lógica de negocio.
+        """
+        self.finish_date = finish_date
+
+        if real_water_per_ha is not None:
+            self.real_water_per_ha = int(real_water_per_ha)
+
+        self.save()
+
 
 class TreatmentProduct(OrganizationOwnedModel, SoftDeleteObject):
     treatment = models.ForeignKey("Treatment", on_delete=models.CASCADE)
@@ -444,7 +462,10 @@ class TreatmentProduct(OrganizationOwnedModel, SoftDeleteObject):
         # Detectar si es una actualización o creación
         is_new = self.pk is None
 
-        if not is_new:
+        if is_new:
+            # Para objetos nuevos, calcular dosis desde total
+            self.calculate_dose_from_total()
+        else:
             # Obtener el objeto original de la BD
             old_obj = TreatmentProduct.objects.get(pk=self.pk)
 
@@ -452,19 +473,16 @@ class TreatmentProduct(OrganizationOwnedModel, SoftDeleteObject):
             dose_changed = old_obj.dose != self.dose
             total_dose_changed = old_obj.total_dose != self.total_dose
 
-            if dose_changed and total_dose_changed:
-                # Si ambos cambiaron, asumimos que es admin y no cambiamos nada
-                pass
-            elif dose_changed and not total_dose_changed:
+            # Cuando un tratamiento cambia el mojado, hay que recalcular la dosis total y de ahí los precios
+            if (self.treatment.water_per_ha_changed()):
+                self.calculate_total_dose()
+
+            if dose_changed and not total_dose_changed:
                 # Solo cambió la dosis, recalcular total
                 self.calculate_total_dose()
-            elif total_dose_changed and not dose_changed:
-                # Solo cambió el total, recalcular dosis
+            else:
+                # En cualquier otro caso, recalcular dosis desde total
                 self.calculate_dose_from_total()
-            # Si ninguno cambió, no hacer nada
-        else:
-            # Para objetos nuevos, calcular dosis desde total
-            self.calculate_dose_from_total()
 
         # Calculamos los precios finales
         self.calculate_prices()

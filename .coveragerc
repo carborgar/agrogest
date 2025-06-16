@@ -1,0 +1,35 @@
+[run]
+source = farm, accounts
+omit = 
+    */migrations/*
+    */venv/*
+    */.venv/*
+    */env/*
+    manage.py
+    */settings/*
+    */wsgi.py
+    */asgi.py
+    */urls.py
+    */tests/*
+    */test_*.py
+    */__pycache__/*
+    */static/*
+    */media/*
+    */locale/*
+    */admin.py
+    */apps.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    def __str__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    class Meta:
+
+[html]
+directory = htmlcov
+skip_covered = True
+skip_empty = True

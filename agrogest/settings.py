@@ -159,6 +159,18 @@ LOGGING = {
             "class": "logging.StreamHandler",
         },
     },
+    "loggers": {
+        'faker': {
+            "level": 'WARNING',
+            "handlers": ["console"],
+            "propagate": False,
+        },
+        'factory': {
+            "level": 'WARNING',
+            "handlers": ["console"],
+            "propagate": False,
+        },
+    },
     "root": {
         "handlers": ["console"],
         "level": "DEBUG",

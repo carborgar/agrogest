@@ -1,89 +1,102 @@
-{% extends 'base.html' %}
-{% load custom_filters %}
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
 {% load static %}
 
-{% block title %}Panel de control{% endblock %}
+{% block header %}Parcelas{% endblock %}
 
-{% block header %}Bienvenido, {{ user.first_name|default:user.username }}{% endblock %}
+{% block actions %}
+<a class="btn btn-primary" href="{% url 'field-create' %}" type="button"><i class="fa fa-plus me-1"></i>Nueva
+    parcela</a>
+{% endblock %}
 
 {% block content %}
+<div class="row g-4">
+    <div class="col">
+        <div class="card-body">
+            {% if not fields %}
+            <div class="alert alert-info d-flex align-items-center" role="alert">
+                <i class="fa fa-info-circle me-3 fs-4"></i>
+                <div>No se encontraron parcelas.</div>
+            </div>
+            {% endif %}
 
-<!-- Stats Row -->
-<div class="row">
-    <div class="col-6 col-lg-3 mb-3">
-        <div class="card floating-card h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="me-3 p-3 rounded-circle text-center"
-                         style="background-color: {% if delayed_treatments_count == 0 %}rgba(46, 125, 50, 0.1){% else %}rgba(255, 25, 25, 0.1){% endif %};">
-                        <i class="fa {% if delayed_treatments_count == 0 %}fa-thumbs-up text-success{% else %}fa-triangle-exclamation text-danger{% endif %} fs-4"
-                           style="width: 24px; height: 24px;"></i>
-                    </div>
-                    <div>
-                        <div class="stat-value">{{ delayed_treatments_count }}</div>
-                        <div class="stat-label">Tratamientos atrasados</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-6 col-lg-3 mb-3">
-        <div class="card floating-card h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="me-3 p-3 rounded-circle text-center"
-                         style="background-color: {% if pending_treatments_count == 0 %}rgba(46, 125, 50, 0.1){% else %}rgba(245, 127, 23, 0.1){% endif %};">
-                        <i class="fa {% if pending_treatments_count == 0 %}fa-thumbs-up text-success{% else %}fa-calendar-check text-warning{% endif %} fs-4"
-                           style="width: 24px; height: 24px;"></i>
-                    </div>
-                    <div>
-                        <div class="stat-value">{{ pending_treatments_count }}</div>
-                        <div class="stat-label">Tratamientos pendientes</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-6 col-lg-3 mb-3">
-        <div class="card floating-card h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="me-3 p-3 rounded-circle text-center"
-                         style="background-color: rgba(46, 125, 50, 0.1);">
-                        <i class="fa fa-location-dot text-primary fs-4"
-                           style="width: 24px; height: 24px;"></i>
-                    </div>
-                    <div>
-                        <div class="stat-value">{{ fields.count }}</div>
-                        <div class="stat-label">Total parcelas</div>
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                {% for field in fields %}
+                <div class="col">
+                    <div class="card treatment-card position-relative">
+                        <div class="card-body ps-4 pt-3 pb-3">
+                            <div class="card-header-row">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="card-title mb-0 fw-bold">
+                                        <i class="fa fa-map text-default"></i> {{ field.name }}</h5>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">
+                                            <i class="fa fa-ellipsis-v"></i> Acciones
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item" href="{% url 'field-edit' field.id %}">
+                                                <i class="fa fa-edit me-2"></i>Editar</a></li>
+                                            {% if field.can_be_deleted %}
+                                            <li><a class="dropdown-item text-danger"
+                                                   data-url="{% url 'field-delete' field.id %}"
+                                                   href="#"
+                                                   onclick="confirmDelete(this)">
+                                                <i class="fa fa-trash me-2"></i>Eliminar</a></li>
+                                            {% endif %}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr class="my-3">
+
+                            <div class="treatment-property">
+                                <span class="property-icon"><i class="fa fa-wheat-awn"></i></span>
+                                <span>Cultivo: {{ field.crop }} ({{ field.area }} ha)</span>
+                            </div>
+
+                            <div class="treatment-property">
+                                <span class="property-icon"><i class="fa fa-location-dot"></i></span>
+                                <span>Ubicación: {{ field.location|default:"No disponible" }}</span>
+                            </div>
+
+                            <div class="treatment-property">
+                                <span class="property-icon"><i class="fa fa-calendar"></i></span>
+                                <span>Año de plantación: {{ field.planting_year|default:"No disponible" }}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
+                {% endfor %}
             </div>
-        </div>
-    </div>
-    <div class="col-6 col-lg-3 mb-3">
-        <div class="card floating-card h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="me-3 p-3 rounded-circle text-center"
-                         style="background-color: rgba(76, 175, 80, 0.1);">
-                        <i class="fa fa-up-right-and-down-left-from-center fs-4"
-                           style="width: 24px; height: 24px;"></i>
-                    </div>
-                    <div>
-                        <div class="stat-value">{{ total_area }}</div>
-                        <div class="stat-label">Hectáreas totales</div>
-                    </div>
-                </div>
+            {% if is_paginated %}
+            <div class="d-flex justify-content-center mt-3">
+                {% bootstrap_pagination page_obj %}
             </div>
+            {% endif %}
         </div>
     </div>
 </div>
 
-{% include 'treatments/calendar_fragment.html' %}
+<!-- Formulario oculto para las acciones de eliminación -->
+<form class="d-none" id="deleteForm" method="POST">
+    {% csrf_token %}
+</form>
 
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/treatment-calendar.js' %}"></script>
+<script>
+    function confirmDelete(button) {
+        const url = button.getAttribute('data-url');
+        showConfirm({
+            text: 'Esta acción eliminará la parcela de forma permanente y no se podrá deshacer.',
+            onConfirm: () => {
+                const form = document.getElementById('deleteForm');
+                form.action = url;
+                form.submit();
+            }
+        });
+    }
+</script>
 {% endblock %}

@@ -1,7 +1,9 @@
-from django.core.management.base import BaseCommand, CommandError
-from django.db.models import Q
 from decimal import Decimal
-from farm.models import Product, Treatment, TreatmentProduct
+
+from django.core.management.base import BaseCommand
+from django.db.models import Q
+
+from farm.models import TreatmentProduct
 
 
 class Command(BaseCommand):

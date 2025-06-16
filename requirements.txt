@@ -1,7 +1,6 @@
 Django~=5.1.8
 django-filter~=24.3
 django-bootstrap5~=24.3
-pytest~=8.3.4
 django-widget-tweaks~=1.5.0
 python-dotenv
 dj-database-url
@@ -9,8 +8,14 @@ psycopg2-binary
 gunicorn
 uvicorn
 whitenoise
+django-softdelete
+django-mathfilters
+
+# Dependencies for testing
 pytest
 pytest-django
 pytest-html
-django-softdelete
-django-mathfilters
+pytest-cov
+pytest-xdist
+pytest-sugar
+factory-boy

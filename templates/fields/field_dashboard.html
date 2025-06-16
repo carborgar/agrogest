@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+{% load static %}
+
+{% block title %}Panel de control{% endblock %}
+
+{% block header %}Bienvenido, {{ user.first_name|default:user.username }}{% endblock %}
+
+{% block content %}
+
+<!-- Stats Row -->
+<div class="row">
+    <div class="col-6 col-lg-3 mb-3">
+        <div class="card floating-card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3 p-3 rounded-circle text-center"
+                         style="background-color: {% if delayed_treatments_count == 0 %}rgba(46, 125, 50, 0.1){% else %}rgba(255, 25, 25, 0.1){% endif %};">
+                        <i class="fa {% if delayed_treatments_count == 0 %}fa-thumbs-up text-success{% else %}fa-triangle-exclamation text-danger{% endif %} fs-4"
+                           style="width: 24px; height: 24px;"></i>
+                    </div>
+                    <div>
+                        <div class="stat-value">{{ delayed_treatments_count }}</div>
+                        <div class="stat-label">Tratamientos atrasados</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3 mb-3">
+        <div class="card floating-card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3 p-3 rounded-circle text-center"
+                         style="background-color: {% if pending_treatments_count == 0 %}rgba(46, 125, 50, 0.1){% else %}rgba(245, 127, 23, 0.1){% endif %};">
+                        <i class="fa {% if pending_treatments_count == 0 %}fa-thumbs-up text-success{% else %}fa-calendar-check text-warning{% endif %} fs-4"
+                           style="width: 24px; height: 24px;"></i>
+                    </div>
+                    <div>
+                        <div class="stat-value">{{ pending_treatments_count }}</div>
+                        <div class="stat-label">Tratamientos pendientes</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3 mb-3">
+        <div class="card floating-card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3 p-3 rounded-circle text-center"
+                         style="background-color: rgba(46, 125, 50, 0.1);">
+                        <i class="fa fa-location-dot text-primary fs-4"
+                           style="width: 24px; height: 24px;"></i>
+                    </div>
+                    <div>
+                        <div class="stat-value">{{ fields.count }}</div>
+                        <div class="stat-label">Total parcelas</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3 mb-3">
+        <div class="card floating-card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3 p-3 rounded-circle text-center"
+                         style="background-color: rgba(76, 175, 80, 0.1);">
+                        <i class="fa fa-up-right-and-down-left-from-center fs-4"
+                           style="width: 24px; height: 24px;"></i>
+                    </div>
+                    <div>
+                        <div class="stat-value">{{ total_area }}</div>
+                        <div class="stat-label">Hectáreas totales</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'treatments/calendar_fragment.html' %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/treatment-calendar.js' %}"></script>
+{% endblock %}

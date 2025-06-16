@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col">
+        <div class="card shadow-sm border-0 rounded-lg">
+            <div class="card-header bg-primary text-white py-3">
+                <h2 class="mb-0 fs-3">{{ form.instance.pk|yesno:"Editar,Crear" }} parcela</h2>
+            </div>
+            <div class="card-body">
+                {% bootstrap_form_errors form %}
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="row row-cols-2">
+                        {% bootstrap_form form wrapper_class="mb-3 col" placeholder="" %}
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <a class="btn btn-secondary col-xs-12" href="{% url 'field-list' %}">
+                            <i class="fa fa-arrow-left"></i> Volver
+                        </a>
+                        <button class="btn btn-primary col-xs-12" type="submit">
+                            <i class="fa fa-save"></i> {{ submit_text|default:"Guardar" }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

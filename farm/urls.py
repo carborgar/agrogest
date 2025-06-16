@@ -1,13 +1,13 @@
 from django.urls import path
-
-from . import api_views
-from . import views
-from .views import *
 from django.views.generic import RedirectView
+
+from farm.views.views import *
+from . import api_views
+from .views.field_views import *
 
 urlpatterns = [
     path("", RedirectView.as_view(url="/parcelas/vistazo/", permanent=False), name="home"),
-    path("parcelas/vistazo/", FieldListView.as_view(), name="field_list"),
+    path("parcelas/vistazo/", FieldDashboardView.as_view(), name="field_list"),
     path("parcelas/gastos/", FieldCostView.as_view(), name="field_costs"),
     path('tratamientos/', TreatmentListView.as_view(), name='treatment-list'),
     path('tratamientos/<int:pk>', TreatmentDetailView.as_view(), name='treatment-detail'),
@@ -18,6 +18,11 @@ urlpatterns = [
     path('tratamientos/calendario/', TreatmentCalendarView.as_view(), name='treatment-calendar'),
     path('tratamientos/<int:pk>/operador/', TreatmentExportView.as_view(), name='treatment-instructions'),
     path('tratamientos/lista-compra/', ShoppingListView.as_view(), name='treatment-shopping-list'),
+
+    path('adm/field/', FieldListView.as_view(), name='field-list'),
+    path('adm/field/create/', FieldCreateView.as_view(), name='field-create'),
+    path('adm/field/<int:pk>/edit/', FieldUpdateView.as_view(), name='field-edit'),
+    path('adm/field/<int:pk>/delete/', FieldDeleteView.as_view(), name='field-delete'),
 
     # API Endpoints
     path('api/fields/', api_views.get_fields, name='api-fields'),
