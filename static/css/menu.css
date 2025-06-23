@@ -1,5 +1,5 @@
 :root {
-    --sidebar-width: 250px;
+    --sidebar-width: 16rem;
     --sidebar-bg: #2c3e50;
     --sidebar-bg-light: #34495e;
     --text-light: #ecf0f1;
@@ -55,12 +55,14 @@ body {
     }
     .main-content {
         margin-left: 0;
+        padding-left: 0;
+        padding-right: 0;
     }
 }
 
 /* Offcanvas customization */
 .offcanvas-start {
-    width: var(--sidebar-width);
+    width: var(--sidebar-width) !important;
     background-color: var(--sidebar-bg);
     color: var(--text-light);
 }

@@ -1,208 +1,129 @@
-.product-card {
-  transition: all 0.3s ease;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  height: 100%;
-  border: none;
-  overflow: hidden;
-}
-
-.product-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.product-card .card-body {
-  padding: 0.75rem;
-}
-
-.product-card .card-title {
-  font-size: 1rem;
-  font-weight: 600;
-  margin-bottom: 0.25rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding-bottom: 0.25rem;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.product-card .card-text {
-  font-size: 0.9rem;
-}
-
-.product-card .dose-amount {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #0d6efd;
-}
-
-.product-card .dose-unit {
-  font-size: 0.85rem;
-  font-weight: 500;
-}
-
-/* Estilos para máquina completa vs parcial */
-.full-machine .product-card {
-  background-color: #f8f9fa;
-  border-left: 4px solid #28a745;
-}
-
-.partial-machine .product-card {
-  background-color: #fff8e6;
-  border-left: 4px solid #ffc107;
-}
-
-/* Estilos para fertirrigación */
-.fertigation .product-card {
-  background-color: #f8f9fa;
-  border-left: 4px solid #20c997;
-}
-
-/* Mejoras para los encabezados de secciones */
-.machine-header {
-  padding: 0.75rem 1rem;
-  border-radius: 6px 6px 0 0;
-  font-weight: 500;
-}
-
-.machine-header i {
-  margin-right: 0.5rem;
-}
-
-.full-machine-header {
-  background-color: #d4edda;
-  color: #0f5132;
-  border-bottom: 2px solid #28a745;
-}
-
-.partial-machine-header {
-  background-color: #fff3cd;
-  color: #856404;
-  border-bottom: 2px solid #ffc107;
-}
-
-.fertigation-header {
-  background-color: #d1e7dd;
-  color: #0f5132;
-  border-bottom: 2px solid #20c997;
-}
-
-/* Totales y resumen */
-.treatment-summary {
-  background-color: #e9f2ff;
-  padding: 0.75rem;
-  border-radius: 6px;
-  margin-bottom: 1rem;
-  border-left: 4px solid #0d6efd;
-}
-
-.treatment-summary strong {
-  color: #0d6efd;
-}
-
-/* Nuevos estilos para los precios */
-.price-tag {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #198754;
-}
-
-.price-container {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  margin-top: 0.5rem;
-  padding-top: 0.5rem;
-  border-top: 1px dashed rgba(0, 0, 0, 0.1);
-}
-
-.price-item {
-  font-size: 0.8rem;
-  display: flex;
-  flex-direction: column;
-  margin-right: 0.5rem;
-}
-
-.price-label {
-  color: #6c757d;
-  font-size: 0.7rem;
-}
-
-.price-value {
-  font-weight: 600;
-  color: #198754;
-}
-
-/* Ajustes para móviles */
-@media (max-width: 767.98px) {
-  .product-card {
-    margin-bottom: 0.75rem;
-  }
-
-  .price-container {
-    flex-direction: column;
-  }
-
-  .price-item {
-    margin-bottom: 0.25rem;
-  }
-}
-
-/* Estilos para la columna de información vertical */
-.info-item-vertical {
-    padding: 0.75rem 1rem;
-}
-
-.info-item-vertical .info-label {
-    font-size: 0.75rem;
-    color: #6c757d;
+/* Badge de estado */
+.treatment-badge {
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 0.25rem;
+    letter-spacing: 0.025em;
+    border-radius: 9999px !important;
+    padding: 0.25rem 0.75rem !important;
 }
 
-.info-item-vertical .info-value {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: #212529;
+/* Títulos y texto */
+.accordion-button h5 {
+    font-size: 1.125rem !important;
+    font-weight: 600 !important;
+    color: var(--gray-900) !important;
+    margin-bottom: 0.25rem !important;
 }
 
-.info-item-vertical .info-subvalue {
-    font-size: 0.8rem;
-    color: #6c757d;
-    margin-top: 0.25rem;
+.accordion-button p {
+    color: var(--gray-600) !important;
+    font-size: 0.875rem !important;
+    margin: 0.25rem 0 !important;
 }
 
-/* Estilos para el estado */
-.info-item-vertical.status-success {
-    border-left: 4px solid #28a745;
+/* Tags de fecha */
+.d-flex.flex-wrap.mt-2 {
+    gap: 0.5rem;
+    margin-top: 1rem !important;
 }
 
-.info-item-vertical.status-warning {
-    border-left: 4px solid #ffc107;
+.d-flex.flex-wrap.mt-2 .badge {
+    background-color: white !important;
+    color: var(--gray-600) !important;
+    border: 1px solid var(--gray-200) !important;
+    border-radius: 0.5rem !important;
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.875rem !important;
+    font-weight: normal !important;
 }
 
-.info-item-vertical.status-danger {
-    border-left: 4px solid #dc3545;
+.d-flex.flex-wrap.mt-2 .badge i {
+    color: var(--gray-500) !important;
 }
 
-/* Estilos para los precios compactos */
-.price-tag {
-    font-size: 0.85rem;
-    color: #198754;
-    display: block;
+/* Body del accordion */
+.accordion-body {
+    padding: 1.5rem !important;
+    background-color: #f9fafb !important;
+    border-top: 1px solid var(--gray-200) !important;
 }
 
-.price-tag strong {
-    color: #198754;
+/* Grid de productos */
+.accordion-body .row {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+    gap: 1rem !important;
+    margin-top: 1rem !important;
 }
 
-.price-tag .text-muted {
-    font-size: 0.8rem;
+.accordion-body .row > div {
+    margin-bottom: 0 !important;
 }
 
-/* Estilos para el panel de filtros */
+/* Cards de productos */
+.product-card, .card.shadow-sm {
+    background: white !important;
+    border-radius: 0.5rem !important;
+    padding: 1rem !important;
+    border: 1px solid var(--gray-200) !important;
+    transition: all 0.2s ease !important;
+    box-shadow: none !important;
+}
+
+.product-card .card-body, .card.shadow-sm .card-body {
+    padding: 0 !important;
+}
+
+.product-card .card-title, .card.shadow-sm .card-title {
+    font-weight: 600 !important;
+    color: var(--gray-900) !important;
+    margin-bottom: 0.25rem !important;
+    font-size: 1rem !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+.product-card .card-text, .card.shadow-sm .card-text {
+    color: var(--gray-600) !important;
+    font-size: 0.875rem !important;
+    margin-top: 0.75rem !important;
+    padding-top: 0.75rem !important;
+    border-top: 1px solid var(--gray-200) !important;
+}
+
+.product-card .card-text strong, .card.shadow-sm .card-text strong {
+    color: var(--gray-500) !important;
+    font-size: 0.75rem !important;
+    text-transform: uppercase !important;
+    font-weight: 500 !important;
+    display: block !important;
+    margin-bottom: 0.25rem !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .accordion-button {
+        padding: 1rem !important;
+    }
+
+    .accordion-body {
+        padding: 1rem !important;
+    }
+
+    .accordion-body .row {
+        grid-template-columns: 1fr !important;
+    }
+
+    .d-flex.flex-wrap.mt-2 {
+        flex-direction: column !important;
+    }
+}
+
+/* Mantener todos los estilos originales de filtros */
 .filter-panel {
     border-radius: 12px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
@@ -295,41 +216,9 @@
     box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.25);
 }
 
-/* Estilos para la lista de resultados */
 .results-header {
     padding: 16px 20px;
     border-bottom: 1px solid rgba(0,0,0,0.05);
-}
-
-#results .treatment-card {
-    transition: transform 0.3s, box-shadow 0.3s;
-    height: 100%;
-    border-radius: 12px;
-    overflow: hidden;
-    border: none;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-
-#results .treatment-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 18px rgba(0,0,0,0.15);
-}
-
-#results .card-status {
-    width: 5px;
-    height: 100%;
-    position: absolute;
-    left: 0;
-    top: 0;
-}
-
-#results .card-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
 }
 
 .action-btn {
@@ -386,12 +275,6 @@
     margin-bottom: 8px;
 }
 
-.badge-status {
-    padding: 6px 12px;
-    font-weight: 500;
-    font-size: 0.75rem;
-}
-
 .treatment-date {
     font-size: 0.85rem;
     color: #6c757d;
@@ -403,28 +286,265 @@
     margin-right: 6px;
 }
 
-/* Nuevos estilos para evitar superposición */
-.card-title-container {
-    display: flex;
-    flex-direction: column;
-    width: calc(100% - 50px); /* Resta el ancho del icono */
-}
-
-.card-title {
-    white-space: nowrap;
+.treatment-card {
+    height: 100%;
+    border-radius: 12px;
     overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--gray-200);
 }
 
-.card-header-row {
+/* Contenedor principal de cada tratamiento */
+.treatment-item {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    border: 1px solid var(--gray-200);
+    margin-bottom: 1rem;
+    overflow: hidden;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+/* Barra de estado lateral */
+.treatment-status-bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    z-index: 1;
+}
+
+/* Header del tratamiento */
+.treatment-header {
+    padding: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+}
+
+.treatment-header[aria-expanded="true"] {
+    border-bottom: 1px solid var(--gray-200);
+}
+
+/* Información principal */
+.treatment-main-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    flex: 1;
+}
+
+.treatment-icon-wrapper {
+    flex-shrink: 0;
+}
+
+.treatment-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+/* Detalles del tratamiento */
+.treatment-details {
+    flex: 1;
+}
+
+.treatment-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin: 0 0 0.5rem 0;
+}
+
+.treatment-meta {
     display: flex;
     flex-direction: column;
-    margin-bottom: 3px;
+    gap: 0.25rem;
+    margin-bottom: 0.75rem;
 }
 
-.status-badge-row {
+.treatment-field,
+.treatment-crop,
+.treatment-type {
+    color: var(--gray-600);
+    font-size: 0.875rem;
+}
+
+/* Fechas */
+.treatment-dates {
     display: flex;
-    justify-content: flex-start;
-    margin-top: 8px;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-right: 1rem;
+}
+
+.treatment-date-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background-color: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    white-space: nowrap;
+}
+
+.treatment-date-item i {
+    color: var(--gray-500);
+}
+
+/* Icono de expansión */
+.treatment-expand-icon {
+    display: flex;
+    align-items: center;
+    color: var(--gray-500);
+    transition: transform 0.2s ease;
+}
+
+.treatment-header[aria-expanded="true"] .treatment-expand-icon {
+    transform: rotate(180deg);
+}
+
+/* Cuerpo del tratamiento */
+.treatment-body {
+    padding: 1.5rem;
+    background-color: #f9fafb;
+    border-top: 1px solid var(--gray-200);
+}
+
+.treatment-products-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin: 0 0 1rem 0;
+}
+
+/* Grid de productos */
+.treatment-products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+/* Cards de productos */
+.treatment-product-card {
+    background: white;
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid var(--gray-200);
+    transition: all 0.2s ease;
+}
+
+.treatment-product-card:hover {
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+}
+
+.product-header {
+    margin-bottom: 0.75rem;
+}
+
+.product-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin: 0 0 0.25rem 0;
+}
+
+.product-type {
+    font-size: 0.875rem;
+    color: var(--gray-500);
+    background-color: var(--gray-100);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+/* Dosis */
+.product-doses {
+    display: flex;
+    justify-content: space-between;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--gray-200);
+}
+
+.dose-item {
+    text-align: center;
+    flex: 1;
+}
+
+.dose-label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    margin-bottom: 0.25rem;
+}
+
+.dose-value {
+    font-weight: 600;
+    color: var(--gray-900);
+    font-size: 0.875rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .treatment-header {
+        padding: 1rem;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+
+    .treatment-main-info {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .treatment-dates {
+        flex-direction: row;
+        justify-content: space-between;
+    }
+
+    .treatment-expand-icon {
+        align-self: center;
+    }
+
+    .treatment-body {
+        padding: 1rem;
+    }
+
+    .treatment-products-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .product-doses {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .dose-item {
+        text-align: left;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .dose-label {
+        margin-bottom: 0;
+    }
 }

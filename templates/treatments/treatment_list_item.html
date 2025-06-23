@@ -1,60 +1,69 @@
 {% load custom_filters %}
 {% for treatment in treatment_list %}
-<div class="accordion-item">
-    <h2 class="accordion-header" id="heading{{ treatment.id }}">
-        <button aria-controls="collapse{{ treatment.id }}"
-                class="accordion-button {% if not forloop.first %}collapsed{% endif %}"
-                data-bs-target="#collapse{{ treatment.id }}" data-bs-toggle="collapse"
-                type="button">
-            <div class="d-flex flex-column align-items-center">
-                <!-- Icono del tipo de tratamiento -->
-                <div class="card-icon bg-light-{{ treatment.state_class }}">
+<div class="treatment-item">
+    <div class="treatment-status-bar bg-{{ treatment.state_class }}"></div>
+
+    <div aria-controls="collapse{{ treatment.id }}" aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
+         class="treatment-header"
+         data-bs-target="#collapse{{ treatment.id }}" data-bs-toggle="collapse">
+
+        <div class="treatment-main-info">
+            <div class="treatment-icon-wrapper">
+                <div class="treatment-icon bg-{{ treatment.state_class }} bg-opacity-10">
                     <i class="fa fa-{{ treatment.type_class }} text-{{ treatment.state_class }}"></i>
                 </div>
-                <!-- Label del tratamiento -->
+            </div>
+
+            <div class="treatment-details">
+                <h3 class="treatment-title">{{ treatment.name }}</h3>
+                <div class="treatment-meta">
+                    <span class="treatment-field">{{ treatment.field.name }}</span>
+                    <span class="treatment-crop">{{ treatment.field.crop }} ({{ treatment.field.area }} ha)</span>
+                    <span class="treatment-type">{{ treatment.get_type_display }}</span>
+                </div>
                 <span class="badge bg-{{ treatment.state_class }} treatment-badge">
                     {{ treatment.status_display }}
                 </span>
             </div>
-            <div class="ms-3">
-                <h5 class="mb-1">{{ treatment.name }}</h5>
-                <p class="mb-1">{{ treatment.field.name }}</p>
-                <p class="mb-1">{{ treatment.field.crop }} ({{ treatment.field.area }} ha)</p>
-                <p class="mb-1">{{ treatment.get_type_display }}</p>
-            </div>
-
-        </button>
-    </h2>
-
-    <div class="d-flex flex-wrap mt-2 ms-3">
-        <!-- Fecha de inicio -->
-        <div class="badge bg-secondary p-2 rounded-pill d-flex align-items-center me-2 mb-2">
-            <i class="fa fa-calendar-alt me-2"></i>
-            <span>{{ treatment.date|date:"d/m/Y" }}</span>
         </div>
 
-        <!-- Fecha de finalización -->
-        <div class="badge bg-primary p-2 rounded-pill d-flex align-items-center me-2 mb-2">
-            <i class="fa fa-calendar-check me-2"></i>
-            <span>{{ treatment.finish_date|date:"d/m/Y"|default:"Pendiente" }}</span>
+        <div class="treatment-dates">
+            <div class="treatment-date-item">
+                <i class="fa fa-calendar-alt"></i>
+                <span>{{ treatment.date|date:"d/m/Y" }}</span>
+            </div>
+            {% if treatment.finish_date %}
+            <div class="treatment-date-item">
+                <i class="fa fa-calendar-check"></i>
+                <span>{{ treatment.finish_date|date:"d/m/Y" }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="treatment-expand-icon">
+            <i class="fa fa-chevron-down"></i>
         </div>
     </div>
 
-    <div aria-labelledby="heading{{ treatment.id }}"
-         class="accordion-collapse collapse {% if forloop.first %}show{% endif %}"
-         data-bs-parent="#listView" id="collapse{{ treatment.id }}">
-        <div class="accordion-body">
-            <strong>Productos utilizados:</strong>
-            <div class="row mt-3">
+    <div class="collapse {% if forloop.first %}show{% endif %}" data-bs-parent="#listView"
+         id="collapse{{ treatment.id }}">
+        <div class="treatment-body">
+            <h4 class="treatment-products-title">Productos utilizados</h4>
+            <div class="treatment-products-grid">
                 {% for tp in treatment.treatmentproduct_set.all %}
-                <div class="col-12 col-md-6 col-lg-4 mb-3">
-                    <div class="card shadow-sm border-light">
-                        <div class="card-body">
-                            <h5 class="card-title">{{ tp.product.name }} ({{ tp.product.product_type.name }})</h5>
-                            <p class="card-text">
-                                <strong>Dosis:</strong> {{ tp.dose }} {{ tp.dose_type|dose_type }}<br>
-                                <strong>Dosis Total:</strong> {{ tp.total_dose }} {{ tp.total_dose_unit }}
-                            </p>
+                <div class="treatment-product-card">
+                    <div class="product-header">
+                        <h5 class="product-name">{{ tp.product.name }}</h5>
+                        <span class="product-type">{{ tp.product.product_type.name }}</span>
+                    </div>
+                    <div class="product-doses">
+                        <div class="dose-item">
+                            <span class="dose-label">Dosis</span>
+                            <span class="dose-value">{{ tp.dose }} {{ tp.dose_type|dose_type }}</span>
+                        </div>
+                        <div class="dose-item">
+                            <span class="dose-label">Total</span>
+                            <span class="dose-value">{{ tp.total_dose }} {{ tp.total_dose_unit }}</span>
                         </div>
                     </div>
                 </div>
