@@ -535,6 +535,38 @@ class TreatmentProduct(OrganizationOwnedModel, SoftDeleteObject):
         self.dose = round(result, 1)
 
 
+class Expense(OrganizationOwnedModel):
+    """
+    Modelo para gestionar gastos no relacionados con productos y tratamientos.
+    Incluye gastos como mano de obra, recibos de agua, cuota de comunidad de regantes, etc.
+    """
+    EXPENSE_TYPES = [
+        ('labor', 'Mano de obra'),
+        ('water', 'Recibo de agua'),
+        ('irrigation_fee', 'Cuota comunidad de regantes'),
+        ('machinery', 'Maquinaria'),
+        ('fuel', 'Combustible'),
+        ('maintenance', 'Mantenimiento'),
+        ('fertilizer', 'Abonos no registrados'),
+        ('seeds', 'Semillas'),
+        ('other', 'Otros'),
+    ]
+    
+    field = models.ForeignKey(Field, on_delete=models.RESTRICT, verbose_name="Parcela")
+    expense_type = models.CharField(max_length=20, choices=EXPENSE_TYPES, verbose_name="Tipo de gasto")
+    description = models.TextField(verbose_name="Descripción")
+    payment_date = models.DateField(verbose_name="Fecha de pago")
+    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Cantidad (€)")
+    
+    class Meta:
+        verbose_name = "Gasto"
+        verbose_name_plural = "Gastos"
+        ordering = ['-payment_date']
+    
+    def __str__(self):
+        return f"{self.get_expense_type_display()} - {self.field.name} - {self.amount}€"
+
+
 class Harvest(OrganizationOwnedModel):
     field = models.ForeignKey(Field, on_delete=models.RESTRICT)
     date = models.DateField()
