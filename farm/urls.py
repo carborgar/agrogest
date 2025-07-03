@@ -27,9 +27,15 @@ urlpatterns = [
 
     # Expense Management
     path('gastos/gestionar/', ExpenseListView.as_view(), name='expense-list'),
-    path('gastos/nuevo/', ExpenseCreateView.as_view(), name='expense-create'),
-    path('gastos/<int:pk>/editar/', ExpenseUpdateView.as_view(), name='expense-edit'),
+    path('gastos/nuevo/', ExpenseFormView.as_view(), name='expense-create'),
+    path('gastos/<int:pk>/editar/', ExpenseFormView.as_view(), name='expense-edit'),
     path('gastos/<int:pk>/eliminar/', ExpenseDeleteView.as_view(), name='expense-delete'),
+
+    # Expense Type Management
+    path('gastos/tipos/', ExpenseTypeListView.as_view(), name='expense-type-list'),
+    path('gastos/tipos/nuevo/', ExpenseTypeFormView.as_view(), name='expense-type-create'),
+    path('gastos/tipos/<int:pk>/editar/', ExpenseTypeFormView.as_view(), name='expense-type-edit'),
+    path('gastos/tipos/<int:pk>/eliminar/', ExpenseTypeDeleteView.as_view(), name='expense-type-delete'),
 
     # API Endpoints
     path('api/fields/', api_views.get_fields, name='api-fields'),

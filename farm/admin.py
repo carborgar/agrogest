@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from farm.models import Product, Field, Machine, Treatment, Harvest, TreatmentProduct, ProductType
+from farm.models import Product, Field, Machine, Treatment, Harvest, TreatmentProduct, ProductType, ExpenseType
 
 
 class TreatmentAdmin(admin.ModelAdmin):
@@ -25,3 +25,4 @@ admin.site.register(Treatment, TreatmentAdmin)
 admin.site.register(Harvest)
 admin.site.register(TreatmentProduct, TreatmentProductAdmin)
 admin.site.register(ProductType)
+admin.site.register(ExpenseType)

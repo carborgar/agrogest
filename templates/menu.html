@@ -86,12 +86,17 @@
                             <ul class="nav flex-column">
                                 <li class="nav-item">
                                     <a class="nav-link {% if current_url in field_costs_menus %}active{% endif %}" href="{% url 'field_costs' %}">
-                                        <i class="fa fa-chart-bar me-2"></i>Resumen de costes
+                                        <i class="fa fa-chart-bar"></i> Resumen de costes
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link {% if current_url in expense_menus %}active{% endif %}" href="{% url 'expense-list' %}">
-                                        <i class="fa fa-receipt me-2"></i>Gestionar gastos
+                                        <i class="fa fa-receipt"></i> Gestionar gastos
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link {% if current_url == 'expense-type-list' %}active{% endif %}" href="{% url 'expense-type-list' %}">
+                                        <i class="fa fa-tags"></i> Tipos de gasto
                                     </a>
                                 </li>
                             </ul>
@@ -227,12 +232,17 @@
                                 <ul class="nav flex-column">
                                     <li class="nav-item">
                                         <a class="nav-link {% if current_url in field_costs_menus %}active{% endif %}" href="{% url 'field_costs' %}">
-                                            <i class="fa fa-chart-bar me-2"></i>Resumen de costes
+                                            <i class="fa fa-chart-bar"></i> Resumen de costes
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a class="nav-link {% if current_url in expense_menus %}active{% endif %}" href="{% url 'expense-list' %}">
-                                            <i class="fa fa-receipt me-2"></i>Gestionar gastos
+                                            <i class="fa fa-receipt"></i> Gestionar gastos
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if current_url == 'expense-type-list' %}active{% endif %}" href="{% url 'expense-type-list' %}">
+                                            <i class="fa fa-tags"></i> Tipos de gasto
                                         </a>
                                     </li>
                                 </ul>

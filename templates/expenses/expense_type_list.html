@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block header %}Tipos de gasto{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm border-0 rounded-lg">
+                <div class="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
+                    <h2 class="mb-0 fs-3">Gestión de tipos de gasto</h2>
+                    <a class="btn btn-light" href="{% url 'expense-type-create' %}">
+                        <i class="fa fa-plus"></i> Nuevo tipo
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if expense_types %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Descripción</th>
+                                        <th width="150">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for expense_type in expense_types %}
+                                    <tr>
+                                        <td>{{ expense_type.name }}</td>
+                                        <td>
+                                            {% if expense_type.description %}
+                                                {% if expense_type.description|length > 100 %}
+                                                    <span title="{{ expense_type.description }}">
+                                                        {{ expense_type.description|truncatechars:100 }}
+                                                    </span>
+                                                {% else %}
+                                                    {{ expense_type.description }}
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <a class="btn btn-outline-primary" href="{% url 'expense-type-edit' expense_type.pk %}" title="Editar">
+                                                    <i class="fa fa-edit"></i>
+                                                </a>
+                                                <a class="btn btn-outline-danger" href="{% url 'expense-type-delete' expense_type.pk %}" title="Eliminar">
+                                                    <i class="fa fa-trash"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info text-center">
+                            <h5>No hay tipos de gasto definidos</h5>
+                            <p class="mb-3">Comience creando su primer tipo de gasto.</p>
+                            <a class="btn btn-primary" href="{% url 'expense-type-create' %}">
+                                <i class="fa fa-plus"></i> Crear primer tipo de gasto
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
