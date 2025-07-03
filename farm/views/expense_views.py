@@ -40,6 +40,11 @@ class ExpenseCreateView(BaseSecureExpenseViewMixin, SuccessMessageMixin, CreateV
         form.fields['field'].queryset = Field.ownership_objects.get_queryset_for_user(self.request.user)
         return form
 
+    def form_valid(self, form):
+        # Asignar la organización del usuario al gasto
+        form.instance.organization = self.request.user.organization
+        return super().form_valid(form)
+
 
 class ExpenseUpdateView(BaseSecureExpenseViewMixin, SuccessMessageMixin, UpdateView):
     model = Expense
