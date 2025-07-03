@@ -59,6 +59,12 @@ class ExpenseUpdateView(BaseSecureExpenseViewMixin, SuccessMessageMixin, UpdateV
         form.fields['field'].queryset = Field.ownership_objects.get_queryset_for_user(self.request.user)
         return form
 
+    def form_valid(self, form):
+        # Asegurar que la organización esté establecida (aunque debería existir)
+        if not form.instance.organization:
+            form.instance.organization = self.request.user.organization
+        return super().form_valid(form)
+
 
 class ExpenseDeleteView(BaseSecureExpenseViewMixin, DeleteView):
     model = Expense
