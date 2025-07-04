@@ -112,9 +112,12 @@ class ExpenseForm(forms.ModelForm):
             'payment_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
         }
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Only set initial date for new expenses (when instance has no pk)
+        # Solo establecer fecha inicial para nuevos gastos
         if not self.instance.pk:
             self.fields['payment_date'].initial = Datetime.today().strftime('%Y-%m-%d')
+        # Formatear correctamente la fecha para el widget HTML5 date input cuando se edita
+        elif self.instance.payment_date:
+            self.initial['payment_date'] = self.instance.payment_date.strftime('%Y-%m-%d')
