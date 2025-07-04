@@ -163,13 +163,8 @@ body {
 }
 
 .nav-submenu .nav-link {
-    padding-left: 3.5rem;
+    padding-left: 2.5rem;
     font-size: 0.9rem;
-}
-
-.nav-submenu .nav-link::before {
-    content: '•';
-    margin-right: 8px;
 }
 
 .nav-link[data-bs-toggle="collapse"] .chevron {
