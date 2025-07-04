@@ -134,6 +134,10 @@ class ExpenseType(OrganizationOwnedModel):
 
     def __str__(self):
         return self.name
+    
+    def can_be_deleted(self):
+        # Check if any expenses are using this expense type
+        return not Expense.objects.filter(expense_type=self).exists()
 
 
 class Product(OrganizationOwnedModel):
@@ -566,6 +570,11 @@ class Expense(OrganizationOwnedModel):
     
     def __str__(self):
         return f"{self.expense_type.name} - {self.field.name} - {self.amount}€"
+    
+    def can_be_deleted(self):
+        # For now, expenses can always be deleted
+        # This method follows the same pattern as Field.can_be_deleted()
+        return True
 
 
 class Harvest(OrganizationOwnedModel):

@@ -91,11 +91,13 @@
                                         <a class="btn btn-sm btn-outline-primary" href="{% url 'expense-edit' expense.id %}" title="Editar">
                                             <i class="fa fa-edit"></i>
                                         </a>
+                                        {% if expense.can_be_deleted %}
                                         <button class="btn btn-sm btn-outline-danger" 
                                                 data-url="{% url 'expense-delete' expense.id %}"
                                                 onclick="confirmDelete(this)" title="Eliminar">
                                             <i class="fa fa-trash"></i>
                                         </button>
+                                        {% endif %}
                                     </div>
                                 </td>
                             </tr>

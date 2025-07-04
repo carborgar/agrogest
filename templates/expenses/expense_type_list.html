@@ -46,9 +46,13 @@
                                                 <a class="btn btn-outline-primary" href="{% url 'expense-type-edit' expense_type.pk %}" title="Editar">
                                                     <i class="fa fa-edit"></i>
                                                 </a>
-                                                <a class="btn btn-outline-danger" href="{% url 'expense-type-delete' expense_type.pk %}" title="Eliminar">
+                                                {% if expense_type.can_be_deleted %}
+                                                <button class="btn btn-outline-danger" 
+                                                        data-url="{% url 'expense-type-delete' expense_type.pk %}"
+                                                        onclick="confirmDelete(this)" title="Eliminar">
                                                     <i class="fa fa-trash"></i>
-                                                </a>
+                                                </button>
+                                                {% endif %}
                                             </div>
                                         </td>
                                     </tr>
@@ -70,4 +74,25 @@
         </div>
     </div>
 </div>
+
+<!-- Formulario oculto para las acciones de eliminación -->
+<form class="d-none" id="deleteForm" method="POST">
+    {% csrf_token %}
+</form>
+
 {% endblock %}
+
+{% block extra_js %}
+<script>
+    function confirmDelete(button) {
+        const url = button.getAttribute('data-url');
+        showConfirm({
+            text: 'Esta acción eliminará el tipo de gasto de forma permanente y no se podrá deshacer.',
+            onConfirm: () => {
+                const form = document.getElementById('deleteForm');
+                form.action = url;
+                form.submit();
+            }
+        });
+    }
+</script>

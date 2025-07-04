@@ -8,8 +8,13 @@ from farm.mixins import OwnershipRequiredMixin, QuerysetFilterMixin, AuditableMi
 from farm.models import Expense, Field, ExpenseType
 
 
-class BaseSecureExpenseViewMixin(OwnershipRequiredMixin, QuerysetFilterMixin, AuditableMixin):
-    """Mixin base que aplica control de acceso, filtrado y auditoría para gastos."""
+class BaseSecureExpenseViewMixin(OwnershipRequiredMixin, QuerysetFilterMixin):
+    """Mixin base que aplica control de acceso y filtrado para gastos."""
+    pass
+
+
+class BaseSecureExpenseFormMixin(BaseSecureExpenseViewMixin, AuditableMixin):
+    """Mixin para vistas de formularios de gastos que incluye auditoría."""
     pass
 
 
@@ -27,7 +32,7 @@ class ExpenseListView(BaseSecureExpenseViewMixin, ListView):
         return context
 
 
-class ExpenseFormView(BaseSecureExpenseViewMixin, SuccessMessageMixin, UpdateView):
+class ExpenseFormView(BaseSecureExpenseFormMixin, SuccessMessageMixin, UpdateView):
     """Unified view for creating and editing expenses"""
     model = Expense
     form_class = ExpenseForm
@@ -60,7 +65,6 @@ class ExpenseFormView(BaseSecureExpenseViewMixin, SuccessMessageMixin, UpdateVie
 
 class ExpenseDeleteView(BaseSecureExpenseViewMixin, DeleteView):
     model = Expense
-    template_name = 'expenses/expense_confirm_delete.html'
     success_url = reverse_lazy('expense-list')
 
     def delete(self, request, *args, **kwargs):
@@ -76,7 +80,7 @@ class ExpenseTypeListView(BaseSecureExpenseViewMixin, ListView):
     ordering = ['name']
 
 
-class ExpenseTypeFormView(BaseSecureExpenseViewMixin, SuccessMessageMixin, UpdateView):
+class ExpenseTypeFormView(BaseSecureExpenseFormMixin, SuccessMessageMixin, UpdateView):
     """Unified view for creating and editing expense types"""
     model = ExpenseType
     template_name = 'expenses/expense_type_form.html'
@@ -102,7 +106,6 @@ class ExpenseTypeFormView(BaseSecureExpenseViewMixin, SuccessMessageMixin, Updat
 
 class ExpenseTypeDeleteView(BaseSecureExpenseViewMixin, DeleteView):
     model = ExpenseType
-    template_name = 'expenses/expense_type_confirm_delete.html'
     success_url = reverse_lazy('expense-type-list')
 
     def delete(self, request, *args, **kwargs):
