@@ -102,11 +102,6 @@ TreatmentProductFormSet = inlineformset_factory(
 
 
 class ExpenseForm(forms.ModelForm):
-    payment_date = forms.DateField(
-        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-        initial=Datetime.today().strftime('%Y-%m-%d')
-    )
-    
     class Meta:
         model = Expense
         fields = ['field', 'expense_type', 'description', 'payment_date', 'amount']
@@ -114,5 +109,12 @@ class ExpenseForm(forms.ModelForm):
             'field': forms.Select(attrs={'class': 'form-select'}),
             'expense_type': forms.Select(attrs={'class': 'form-select'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'payment_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only set initial date for new expenses (when instance has no pk)
+        if not self.instance.pk:
+            self.fields['payment_date'].initial = Datetime.today().strftime('%Y-%m-%d')
