@@ -37,6 +37,8 @@
 {% with home_menus='field_list' %}
 {% with treatments_menus='treatment-list treatment-create treatment-detail' %}
 {% with calendar_menus='treatment-calendar' %}
+{% with expense_menus='expense-list expense-create expense-edit' %}
+{% with expense_type_menus='expense-type-list expense-type-create expense-type-edit' %}
 {% with field_costs_menus='field_costs' %}
 
 <!-- Desktop Sidebar -->
@@ -75,10 +77,31 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if current_url in field_costs_menus %}active{% endif %}"
-                           href="{% url 'field_costs' %}">
-                            <i class="fa fa-coins"></i>Gastos
+                        <a aria-expanded="false" class="nav-link"
+                           data-bs-target="#gastosMenu" data-bs-toggle="collapse" href="#">
+                            <i class="fa fa-coins"></i>
+                            Gastos
+                            <i class="fas fa-chevron-down chevron"></i>
                         </a>
+                        <div class="collapse nav-submenu {% if current_url in field_costs_menus or current_url in expense_menus or current_url in expense_type_menus %}show{% endif %}" id="gastosMenu">
+                            <ul class="nav flex-column">
+                                <li class="nav-item">
+                                    <a class="nav-link {% if current_url in field_costs_menus %}active{% endif %}" href="{% url 'field_costs' %}">
+                                        <i class="fa fa-chart-bar"></i> Resumen de gastos
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link {% if current_url in expense_menus %}active{% endif %}" href="{% url 'expense-list' %}">
+                                        <i class="fa fa-receipt"></i> Gestionar gastos
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link {% if current_url == 'expense-type-list' %}active{% endif %}" href="{% url 'expense-type-list' %}">
+                                        <i class="fa fa-tags"></i> Tipos de gasto
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'treatment-shopping-list' %}active{% endif %}"
@@ -200,10 +223,31 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {% if current_url in field_costs_menus %}active{% endif %}"
-                               href="{% url 'field_costs' %}">
-                                <i class="fa fa-coins"></i>Gastos
+                            <a aria-expanded="false" class="nav-link {% if current_url in field_costs_menus or current_url in expense_menus %}active{% endif %}" 
+                               data-bs-target="#gastosMobileMenu" data-bs-toggle="collapse" href="#">
+                                <i class="fa fa-coins"></i>
+                                Gastos
+                                <i class="fas fa-chevron-down chevron"></i>
                             </a>
+                            <div class="collapse nav-submenu {% if current_url in field_costs_menus or current_url in expense_menus %}show{% endif %}" id="gastosMobileMenu">
+                                <ul class="nav flex-column">
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if current_url in field_costs_menus %}active{% endif %}" href="{% url 'field_costs' %}">
+                                            <i class="fa fa-chart-bar"></i> Resumen de costes
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if current_url in expense_menus %}active{% endif %}" href="{% url 'expense-list' %}">
+                                            <i class="fa fa-receipt"></i> Gestionar gastos
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if current_url in expense_type_menus %}active{% endif %}" href="{% url 'expense-type-list' %}">
+                                            <i class="fa fa-tags"></i> Tipos de gasto
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {% if request.resolver_match.url_name == 'treatment-shopping-list' %}active{% endif %}"
@@ -217,6 +261,8 @@
         </div>
     </div>
 </div>
+{% endwith %}
+{% endwith %}
 {% endwith %}
 {% endwith %}
 {% endwith %}

@@ -123,6 +123,23 @@ class ProductType(OrganizationOwnedModel):
         return self.name
 
 
+class ExpenseType(OrganizationOwnedModel):
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = "Tipo de gasto"
+        verbose_name_plural = "Tipos de gasto"
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+    
+    def can_be_deleted(self):
+        # Check if any expenses are using this expense type
+        return not Expense.objects.filter(expense_type=self).exists()
+
+
 class Product(OrganizationOwnedModel):
     # Separate choices for each application method
     SPRAYING_DOSE_TYPE_CHOICES = [
@@ -533,6 +550,31 @@ class TreatmentProduct(OrganizationOwnedModel, SoftDeleteObject):
             result = Decimal(0)
 
         self.dose = round(result, 1)
+
+
+class Expense(OrganizationOwnedModel):
+    """
+    Modelo para gestionar gastos no relacionados con productos y tratamientos.
+    Incluye gastos como mano de obra, recibos de agua, cuota de comunidad de regantes, etc.
+    """
+    field = models.ForeignKey(Field, on_delete=models.RESTRICT, verbose_name="Parcela")
+    expense_type = models.ForeignKey('ExpenseType', on_delete=models.RESTRICT, verbose_name="Tipo de gasto")
+    description = models.TextField(verbose_name="Descripción")
+    payment_date = models.DateField(verbose_name="Fecha de pago")
+    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Cantidad (€)")
+    
+    class Meta:
+        verbose_name = "Gasto"
+        verbose_name_plural = "Gastos"
+        ordering = ['-payment_date']
+    
+    def __str__(self):
+        return f"{self.expense_type.name} - {self.field.name} - {self.amount}€"
+    
+    def can_be_deleted(self):
+        # For now, expenses can always be deleted
+        # This method follows the same pattern as Field.can_be_deleted()
+        return True
 
 
 class Harvest(OrganizationOwnedModel):

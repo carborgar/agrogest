@@ -5,7 +5,7 @@ from django import forms
 from django.forms import BaseInlineFormSet
 from django.forms import inlineformset_factory
 
-from .models import Treatment, TreatmentProduct
+from .models import Treatment, TreatmentProduct, Expense
 
 
 class TreatmentForm(forms.ModelForm):
@@ -99,3 +99,25 @@ TreatmentProductFormSet = inlineformset_factory(
     extra=0,
     validate_min=True
 )
+
+
+class ExpenseForm(forms.ModelForm):
+    class Meta:
+        model = Expense
+        fields = ['field', 'expense_type', 'description', 'payment_date', 'amount']
+        widgets = {
+            'field': forms.Select(attrs={'class': 'form-select'}),
+            'expense_type': forms.Select(attrs={'class': 'form-select'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'payment_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Solo establecer fecha inicial para nuevos gastos
+        if not self.instance.pk:
+            self.fields['payment_date'].initial = Datetime.today().strftime('%Y-%m-%d')
+        # Formatear correctamente la fecha para el widget HTML5 date input cuando se edita
+        elif self.instance.payment_date:
+            self.initial['payment_date'] = self.instance.payment_date.strftime('%Y-%m-%d')

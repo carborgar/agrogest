@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+{% load static %}
+
+{% block header %}Gestión de gastos{% endblock %}
+
+{% block sub_header %}Añadir, editar y gestionar gastos no relacionados con tratamientos{% endblock %}
+
+{% block actions %}
+<a class="btn btn-primary" href="{% url 'expense-create' %}" type="button"><i class="fa fa-plus me-1"></i>Nuevo gasto</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col">
+        <div class="card">
+            <div class="card-body">
+                <!-- Filtros -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <label class="form-label small" for="fieldFilter">Parcela</label>
+                        <select class="form-select form-select-sm" id="fieldFilter">
+                            <option value="">Todas las parcelas</option>
+                            {% for field in fields %}
+                            <option value="{{ field.id }}">{{ field.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small" for="typeFilter">Tipo</label>
+                        <select class="form-select form-select-sm" id="typeFilter">
+                            <option value="">Todos los tipos</option>
+                            {% for expense_type in expense_types %}
+                            <option value="{{ expense_type.id }}">{{ expense_type.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small" for="dateFromFilter">Desde</label>
+                        <input class="form-control form-control-sm" id="dateFromFilter" type="date">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small" for="dateToFilter">Hasta</label>
+                        <input class="form-control form-control-sm" id="dateToFilter" type="date">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button class="btn btn-outline-primary btn-sm w-100" id="applyFilters">Filtrar</button>
+                    </div>
+                </div>
+
+                {% if not expenses %}
+                <div class="alert alert-info d-flex align-items-center" role="alert">
+                    <i class="fa fa-info-circle me-3 fs-4"></i>
+                    <div>No se encontraron gastos. <a href="{% url 'expense-create' %}">Añadir el primer gasto</a></div>
+                </div>
+                {% else %}
+                
+                <!-- Lista de gastos -->
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Parcela</th>
+                                <th>Tipo</th>
+                                <th>Descripción</th>
+                                <th class="text-end">Cantidad</th>
+                                <th class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="expenseTableBody">
+                            {% for expense in expenses %}
+                            <tr data-field="{{ expense.field.id }}" data-type="{{ expense.expense_type.id }}" data-date="{{ expense.payment_date|date:'Y-m-d' }}">
+                                <td>{{ expense.payment_date|date:"d/m/Y" }}</td>
+                                <td>
+                                    <span class="badge bg-light text-dark">{{ expense.field.name }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary">{{ expense.expense_type.name }}</span>
+                                </td>
+                                <td>
+                                    <div class="text-truncate" style="max-width: 300px;" title="{{ expense.description }}">
+                                        {{ expense.description|truncatechars:60 }}
+                                    </div>
+                                </td>
+                                <td class="text-end">
+                                    <strong>{{ expense.amount|floatformat:2 }}€</strong>
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group" role="group">
+                                        <a class="btn btn-sm btn-outline-primary" href="{% url 'expense-edit' expense.id %}" title="Editar">
+                                            <i class="fa fa-edit"></i>
+                                        </a>
+                                        {% if expense.can_be_deleted %}
+                                        <button class="btn btn-sm btn-outline-danger" 
+                                                data-url="{% url 'expense-delete' expense.id %}"
+                                                onclick="confirmDelete(this)" title="Eliminar">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if is_paginated %}
+                <div class="d-flex justify-content-center mt-3">
+                    {% bootstrap_pagination page_obj %}
+                </div>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Formulario oculto para las acciones de eliminación -->
+<form class="d-none" id="deleteForm" method="POST">
+    {% csrf_token %}
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function confirmDelete(button) {
+        const url = button.getAttribute('data-url');
+        showConfirm({
+            text: 'Esta acción eliminará el gasto de forma permanente y no se podrá deshacer.',
+            onConfirm: () => {
+                const form = document.getElementById('deleteForm');
+                form.action = url;
+                form.submit();
+            }
+        });
+    }
+
+    // Filtros
+    document.getElementById('applyFilters').addEventListener('click', function() {
+        const fieldFilter = document.getElementById('fieldFilter').value;
+        const typeFilter = document.getElementById('typeFilter').value;
+        const dateFromFilter = document.getElementById('dateFromFilter').value;
+        const dateToFilter = document.getElementById('dateToFilter').value;
+
+        const rows = document.querySelectorAll('#expenseTableBody tr');
+        
+        rows.forEach(row => {
+            let show = true;
+            
+            if (fieldFilter && row.dataset.field !== fieldFilter) {
+                show = false;
+            }
+            
+            if (typeFilter && row.dataset.type !== typeFilter) {
+                show = false;
+            }
+            
+            if (dateFromFilter && row.dataset.date < dateFromFilter) {
+                show = false;
+            }
+            
+            if (dateToFilter && row.dataset.date > dateToFilter) {
+                show = false;
+            }
+            
+            row.style.display = show ? '' : 'none';
+        });
+    });
+</script>
+{% endblock %}

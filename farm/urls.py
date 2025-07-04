@@ -4,6 +4,7 @@ from django.views.generic import RedirectView
 from farm.views.views import *
 from . import api_views
 from .views.field_views import *
+from .views.expense_views import *
 
 urlpatterns = [
     path("", RedirectView.as_view(url="/parcelas/vistazo/", permanent=False), name="home"),
@@ -23,6 +24,18 @@ urlpatterns = [
     path('adm/field/create/', FieldCreateView.as_view(), name='field-create'),
     path('adm/field/<int:pk>/edit/', FieldUpdateView.as_view(), name='field-edit'),
     path('adm/field/<int:pk>/delete/', FieldDeleteView.as_view(), name='field-delete'),
+
+    # Expense Management
+    path('gastos/gestionar/', ExpenseListView.as_view(), name='expense-list'),
+    path('gastos/nuevo/', ExpenseFormView.as_view(), name='expense-create'),
+    path('gastos/<int:pk>/editar/', ExpenseFormView.as_view(), name='expense-edit'),
+    path('gastos/<int:pk>/eliminar/', ExpenseDeleteView.as_view(), name='expense-delete'),
+
+    # Expense Type Management
+    path('gastos/tipos/', ExpenseTypeListView.as_view(), name='expense-type-list'),
+    path('gastos/tipos/nuevo/', ExpenseTypeFormView.as_view(), name='expense-type-create'),
+    path('gastos/tipos/<int:pk>/editar/', ExpenseTypeFormView.as_view(), name='expense-type-edit'),
+    path('gastos/tipos/<int:pk>/eliminar/', ExpenseTypeDeleteView.as_view(), name='expense-type-delete'),
 
     # API Endpoints
     path('api/fields/', api_views.get_fields, name='api-fields'),
