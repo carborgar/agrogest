@@ -7,7 +7,7 @@
 {% block sub_header %}Añadir, editar y gestionar gastos no relacionados con tratamientos{% endblock %}
 
 {% block actions %}
-<a class="btn btn-primary" href="{% url 'expense-create' %}" type="button"><i class="fa fa-plus me-1"></i>Nuevo gasto</a>
+<a class="btn btn-primary w-100 w-md-auto" href="{% url 'expense-create' %}" type="button"><i class="fa fa-plus me-1"></i>Nuevo gasto</a>
 {% endblock %}
 
 {% block content %}
@@ -70,7 +70,7 @@
                         </thead>
                         <tbody id="expenseTableBody">
                             {% for expense in expenses %}
-                            <tr data-field="{{ expense.field.id }}" data-type="{{ expense.expense_type.id }}" data-date="{{ expense.payment_date|date:'Y-m-d' }}">
+                            <tr data-date="{{ expense.payment_date|date:'Y-m-d' }}" data-field="{{ expense.field.id }}" data-type="{{ expense.expense_type.id }}">
                                 <td>{{ expense.payment_date|date:"d/m/Y" }}</td>
                                 <td>
                                     <span class="badge bg-light text-dark">{{ expense.field.name }}</span>

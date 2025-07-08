@@ -77,27 +77,26 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a aria-expanded="false" class="nav-link"
+                        <a aria-expanded="{% if current_url in field_costs_menus or current_url in expense_menus %}true{%else%}false{% endif %}"
+                           class="nav-link"
                            data-bs-target="#gastosMenu" data-bs-toggle="collapse" href="#">
                             <i class="fa fa-coins"></i>
                             Gastos
                             <i class="fas fa-chevron-down chevron"></i>
                         </a>
-                        <div class="collapse nav-submenu {% if current_url in field_costs_menus or current_url in expense_menus or current_url in expense_type_menus %}show{% endif %}" id="gastosMenu">
+                        <div class="collapse nav-submenu {% if current_url in field_costs_menus or current_url in expense_menus %}show{% endif %}"
+                             id="gastosMenu">
                             <ul class="nav flex-column">
                                 <li class="nav-item">
-                                    <a class="nav-link {% if current_url in field_costs_menus %}active{% endif %}" href="{% url 'field_costs' %}">
+                                    <a class="nav-link {% if current_url in field_costs_menus %}active{% endif %}"
+                                       href="{% url 'field_costs' %}">
                                         <i class="fa fa-chart-bar"></i> Resumen de gastos
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link {% if current_url in expense_menus %}active{% endif %}" href="{% url 'expense-list' %}">
+                                    <a class="nav-link {% if current_url in expense_menus %}active{% endif %}"
+                                       href="{% url 'expense-list' %}">
                                         <i class="fa fa-receipt"></i> Gestionar gastos
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link {% if current_url == 'expense-type-list' %}active{% endif %}" href="{% url 'expense-type-list' %}">
-                                        <i class="fa fa-tags"></i> Tipos de gasto
                                     </a>
                                 </li>
                             </ul>
@@ -112,17 +111,16 @@
                 </ul>
             </div>
 
-            {% comment %}
-            <!-- Gestión -->
             <div class="nav-section">
-                <div class="nav-title">Gestión</div>
+                <div class="nav-title">Administración</div>
                 <ul class="nav flex-column">
                     <li class="nav-item">
-                        <a class="nav-link" href="#">
-                            <i class="fas fa-calendar-alt"></i>
-                            Calendario
+                        <a class="nav-link {% if current_url in expense_type_menus %}active{% endif %}"
+                           href="{% url 'expense-type-list' %}">
+                            <i class="fa fa-tags"></i> Tipos de gasto
                         </a>
                     </li>
+                    {% comment %}
                     <li class="nav-item">
                         <a aria-expanded="false" class="nav-link" data-bs-target="#reportesMenu"
                            data-bs-toggle="collapse" href="#">
@@ -150,9 +148,9 @@
                             Inventario
                         </a>
                     </li>
+                    {% endcomment %}
                 </ul>
             </div>
-            {% endcomment %}
         </div>
 
         <!-- User Menu -->
@@ -223,27 +221,26 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a aria-expanded="false" class="nav-link {% if current_url in field_costs_menus or current_url in expense_menus %}active{% endif %}" 
+                            <a aria-expanded="false"
+                               class="nav-link {% if current_url in field_costs_menus or current_url in expense_menus %}active{% endif %}"
                                data-bs-target="#gastosMobileMenu" data-bs-toggle="collapse" href="#">
                                 <i class="fa fa-coins"></i>
                                 Gastos
                                 <i class="fas fa-chevron-down chevron"></i>
                             </a>
-                            <div class="collapse nav-submenu {% if current_url in field_costs_menus or current_url in expense_menus %}show{% endif %}" id="gastosMobileMenu">
+                            <div class="collapse nav-submenu {% if current_url in field_costs_menus or current_url in expense_menus %}show{% endif %}"
+                                 id="gastosMobileMenu">
                                 <ul class="nav flex-column">
                                     <li class="nav-item">
-                                        <a class="nav-link {% if current_url in field_costs_menus %}active{% endif %}" href="{% url 'field_costs' %}">
-                                            <i class="fa fa-chart-bar"></i> Resumen de costes
+                                        <a class="nav-link {% if current_url in field_costs_menus %}active{% endif %}"
+                                           href="{% url 'field_costs' %}">
+                                            <i class="fa fa-chart-bar"></i> Resumen de gastos
                                         </a>
                                     </li>
                                     <li class="nav-item">
-                                        <a class="nav-link {% if current_url in expense_menus %}active{% endif %}" href="{% url 'expense-list' %}">
+                                        <a class="nav-link {% if current_url in expense_menus %}active{% endif %}"
+                                           href="{% url 'expense-list' %}">
                                             <i class="fa fa-receipt"></i> Gestionar gastos
-                                        </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link {% if current_url in expense_type_menus %}active{% endif %}" href="{% url 'expense-type-list' %}">
-                                            <i class="fa fa-tags"></i> Tipos de gasto
                                         </a>
                                     </li>
                                 </ul>
@@ -253,6 +250,18 @@
                             <a class="nav-link {% if request.resolver_match.url_name == 'treatment-shopping-list' %}active{% endif %}"
                                href="{% url 'treatment-shopping-list' %}">
                                 <i class="fa fa-shopping-cart"></i>Compras
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-title">Administración</div>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link {% if current_url in expense_type_menus %}active{% endif %}"
+                               href="{% url 'expense-type-list' %}">
+                                <i class="fa fa-tags"></i> Tipos de gasto
                             </a>
                         </li>
                     </ul>

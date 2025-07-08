@@ -201,3 +201,9 @@ footer {
         width: 100% !important;
     }
 }
+
+@media (min-width: 768px) {
+  .w-md-auto {
+    width: auto !important;
+  }
+}
