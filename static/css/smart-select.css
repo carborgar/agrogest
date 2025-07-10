@@ -1,0 +1,178 @@
+/* SmartSelect Widget Styles */
+.smart-select-container {
+    position: relative;
+    width: 100%;
+}
+
+.smart-select-display {
+    position: relative;
+    min-height: 38px;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    background-color: #fff;
+    padding: 0.375rem 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.smart-select-display:focus-within {
+    border-color: var(--primary, #2E7D32);
+    box-shadow: 0 0 0 0.2rem rgba(46, 125, 50, 0.25);
+}
+
+.smart-select-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-right: 0.5rem;
+}
+
+.smart-select-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--primary, #2E7D32);
+    background-color: rgba(46, 125, 50, 0.1);
+    border: 1px solid rgba(46, 125, 50, 0.2);
+    border-radius: 1rem;
+    max-width: 200px;
+}
+
+.smart-select-pill .pill-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-right: 0.25rem;
+}
+
+.smart-select-pill .pill-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1rem;
+    height: 1rem;
+    margin-left: 0.25rem;
+    border: none;
+    background: none;
+    color: var(--primary, #2E7D32);
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 0.75rem;
+    line-height: 1;
+}
+
+.smart-select-pill .pill-remove:hover {
+    background-color: rgba(46, 125, 50, 0.2);
+}
+
+.smart-select-input-wrapper {
+    position: relative;
+    flex: 1;
+    min-width: 150px;
+}
+
+.smart-select-search {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0;
+    outline: none;
+    background: transparent;
+}
+
+.smart-select-search:focus {
+    box-shadow: none !important;
+    border: none !important;
+}
+
+.smart-select-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: #fff;
+    border: 1px solid #ced4da;
+    border-top: none;
+    border-radius: 0 0 0.375rem 0.375rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+}
+
+.smart-select-dropdown.show {
+    display: block;
+}
+
+.smart-select-options {
+    padding: 0;
+}
+
+.smart-select-option {
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f8f9fa;
+    transition: background-color 0.15s ease-in-out;
+}
+
+.smart-select-option:hover {
+    background-color: #f8f9fa;
+}
+
+.smart-select-option.highlighted {
+    background-color: rgba(46, 125, 50, 0.1);
+    color: var(--primary, #2E7D32);
+}
+
+.smart-select-option.selected {
+    background-color: rgba(46, 125, 50, 0.2);
+    color: var(--primary, #2E7D32);
+    font-weight: 500;
+}
+
+.smart-select-option:last-child {
+    border-bottom: none;
+}
+
+.smart-select-no-results {
+    padding: 0.75rem;
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+    .smart-select-pill {
+        max-width: 120px;
+        font-size: 0.8125rem;
+    }
+    
+    .smart-select-dropdown {
+        max-height: 150px;
+    }
+}
+
+/* Focus states */
+.smart-select-container:focus-within .smart-select-display {
+    border-color: var(--primary, #2E7D32);
+    box-shadow: 0 0 0 0.2rem rgba(46, 125, 50, 0.25);
+}
+
+/* Loading state */
+.smart-select-loading .smart-select-search {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23666' class='bi bi-arrow-repeat' viewBox='0 0 16 16'%3E%3Cpath d='M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z'/%3E%3Cpath fill-rule='evenodd' d='M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+    animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
