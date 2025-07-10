@@ -27,7 +27,7 @@ class Field(OrganizationOwnedModel):
     area = models.FloatField()  # en hectáreas
     crop = models.CharField(max_length=100)
     planting_year = models.IntegerField()
-    location = models.CharField(max_length=255, blank=True, null=True)
+    location = models.CharField(max_length=255, blank=True)
 
     def __str__(self):
         return self.name
@@ -171,12 +171,11 @@ class Product(OrganizationOwnedModel):
 
     # Spraying-specific dose fields
     spraying_dose = models.FloatField(null=True, blank=True)
-    spraying_dose_type = models.CharField(max_length=20, choices=SPRAYING_DOSE_TYPE_CHOICES, null=True, blank=True)
+    spraying_dose_type = models.CharField(max_length=20, choices=SPRAYING_DOSE_TYPE_CHOICES, blank=True)
 
     # Fertigation-specific dose fields
     fertigation_dose = models.FloatField(null=True, blank=True)
-    fertigation_dose_type = models.CharField(max_length=20, choices=FERTIGATION_DOSE_TYPE_CHOICES, null=True,
-                                             blank=True)
+    fertigation_dose_type = models.CharField(max_length=20, choices=FERTIGATION_DOSE_TYPE_CHOICES, blank=True)
 
     comments = models.TextField(blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)

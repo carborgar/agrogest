@@ -1,10 +1,13 @@
 from django.urls import path
 from django.views.generic import RedirectView
 
-from farm.views.views import *
+from farm.views.views import FieldDashboardView, FieldCostView, TreatmentListView, TreatmentDetailView, \
+    TreatmentFormView, FinishTreatmentView, DeleteTreatmentView, TreatmentCalendarView, \
+    TreatmentExportView, ShoppingListView
 from . import api_views
-from .views.field_views import *
-from .views.expense_views import *
+from .views.expense_views import ExpenseListView, ExpenseFormView, ExpenseDeleteView, ExpenseTypeListView, \
+    ExpenseTypeFormView, ExpenseTypeDeleteView
+from .views.field_views import FieldListView, FieldCreateView, FieldUpdateView, FieldDeleteView
 
 urlpatterns = [
     path("", RedirectView.as_view(url="/parcelas/vistazo/", permanent=False), name="home"),

@@ -25,7 +25,7 @@ class FieldCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.organization = self.request.user.organization
-        messages.success(self.request, f'Parcela creada con éxito.')
+        messages.success(self.request, 'Parcela creada con éxito.')
         return super().form_valid(form)
 
 
@@ -36,7 +36,7 @@ class FieldUpdateView(LoginRequiredMixin, UpdateView):
     success_url = reverse_lazy('field-list')
 
     def form_valid(self, form):
-        messages.success(self.request, f'Parcela actualizado con éxito.')
+        messages.success(self.request, 'Parcela actualizada con éxito.')
         return super().form_valid(form)
 
 
@@ -48,5 +48,5 @@ class FieldDeleteView(LoginRequiredMixin, DeleteView):
         return Field.objects.all()
 
     def delete(self, request, *args, **kwargs):
-        messages.success(request, f'Parcela eliminada con éxito.')
+        messages.success(request, 'Parcela eliminada con éxito.')
         return super().delete(request, *args, **kwargs)

@@ -377,7 +377,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         productBreakdown.forEach((type, index) => {
             const color = colors[index % colors.length];
-            const uniqueId = `details-${type.type_name.replace(/\s+/g, '-')}-${index}`;
 
             // Determinar qué valor mostrar según el modo
             let valueDisplay = type.total.toLocaleString('es-ES', {
@@ -451,7 +450,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return item.products.reduce((sum, product) => sum + product.quantity, 0);
             });
             units = productBreakdown.map(p => {
-                const firstProduct = p.products && p.products[0];
+                const firstProduct = p.products?.[0];
                 return firstProduct ? firstProduct.unit : '';
             });
         }
