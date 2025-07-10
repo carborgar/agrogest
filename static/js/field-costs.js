@@ -181,7 +181,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         productBreakdown.forEach((type, index) => {
             const color = colors[index % colors.length];
-            const uniqueId = `products-${type.type_name.replace(/\s+/g, '-')}-${index}-${Math.random().toString(36).substr(2, 5)}`;
+            const uniqueId = `products-${type.type_name.replace(/\s+/g, '-')}-${index}-${Math.random().toString(36).slice(2, 7)}`;
 
             let valueDisplay = '';
             if (currentViewMode === 'cost') {
