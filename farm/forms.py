@@ -6,6 +6,7 @@ from django.forms import BaseInlineFormSet
 from django.forms import inlineformset_factory
 
 from .models import Treatment, TreatmentProduct, Expense
+from core.forms import SmartSelect
 
 
 class TreatmentForm(forms.ModelForm):
@@ -28,6 +29,10 @@ class TreatmentForm(forms.ModelForm):
     class Meta:
         model = Treatment
         fields = ['name', 'type', 'date', 'field', 'machine', 'water_per_ha', 'finish_date']
+        widgets = {
+            'field': SmartSelect(attrs={'class': 'form-select'}, threshold=10),
+            'machine': SmartSelect(attrs={'class': 'form-select'}, threshold=8),
+        }
 
     def clean(self):
         cleaned_data = super().clean()
@@ -56,6 +61,7 @@ class TreatmentProductForm(forms.ModelForm):
         model = TreatmentProduct
         fields = ['product', 'dose', 'total_dose']
         widgets = {
+            'product': SmartSelect(attrs={'class': 'form-select'}, threshold=5),
             'dose': forms.NumberInput(attrs={'step': '0.1'}),
             'total_dose': forms.NumberInput(attrs={'step': '0.1'}),
         }
@@ -106,8 +112,8 @@ class ExpenseForm(forms.ModelForm):
         model = Expense
         fields = ['field', 'expense_type', 'description', 'payment_date', 'amount']
         widgets = {
-            'field': forms.Select(attrs={'class': 'form-select'}),
-            'expense_type': forms.Select(attrs={'class': 'form-select'}),
+            'field': SmartSelect(attrs={'class': 'form-select'}, threshold=10),
+            'expense_type': SmartSelect(attrs={'class': 'form-select'}, threshold=8),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'payment_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
