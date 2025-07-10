@@ -5,7 +5,6 @@ from farm.views.views import *
 from . import api_views
 from .views.field_views import *
 from .views.expense_views import *
-from .test_views import test_smart_select
 
 urlpatterns = [
     path("", RedirectView.as_view(url="/parcelas/vistazo/", permanent=False), name="home"),
@@ -45,8 +44,5 @@ urlpatterns = [
     path('api/treatments/', api_views.get_calendar_treatments, name='api-calendar-treatments'),
     path('api/treatments/<int:treatment_id>/', api_views.treatment_detail, name='api-treatment-detail'),
     path('api/field-costs-data/', api_views.field_costs_data, name='api-field-costs-data'),
-
-    # Test SmartSelect widget
-    path('test/smart-select/', test_smart_select, name='test-smart-select'),
 
 ]

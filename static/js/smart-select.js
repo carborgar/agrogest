@@ -46,9 +46,6 @@ class SmartSelect {
     }
     
     init() {
-        console.log('SmartSelect initializing for:', this.widgetId);
-        console.log('Choices:', this.choices);
-        console.log('Selected:', this.selectedChoices);
         this.renderPills();
         this.renderOptions();
         this.bindEvents();

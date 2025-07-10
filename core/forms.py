@@ -45,10 +45,6 @@ class SmartSelect(Select):
         choices_data = []
         selected_choices = []
         
-        print(f"DEBUG: SmartSelect choices for {name}:")
-        print(f"  self.choices type: {type(self.choices)}")
-        print(f"  self.choices: {list(self.choices)[:5]}")  # Show first 5
-        
         for option_value, option_label in self.choices:
             choice_item = {
                 'value': str(option_value),
@@ -64,9 +60,6 @@ class SmartSelect(Select):
                 else:
                     if str(option_value) == str(value):
                         selected_choices.append(choice_item)
-        
-        print(f"  choices_data count: {len(choices_data)}")
-        print(f"  selected_choices count: {len(selected_choices)}")
         
         widget_id = attrs.get('id', f'id_{name}')
         
