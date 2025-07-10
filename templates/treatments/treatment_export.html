@@ -8,23 +8,15 @@
 
     <link href="{% static 'css/custom-bootstrap.min.css' %}" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
-    <link href="{% static 'css/treatment-styles.css' %}" rel="stylesheet">
+    <link href="{% static 'css/styles.css' %}" rel="stylesheet">
 
     <style>
         :root {
-            --primary-color: #198754;
-            --light-primary: #d4edda;
-            --warning-color: #ffc107;
-            --light-warning: #fff3cd;
             --border-color: #dee2e6;
         }
 
         body {
             line-height: 1.6;
-            color: #212529;
-            background-color: #f8f9fa;
-            margin: 0;
-            padding: 0;
         }
 
         .container {
@@ -37,23 +29,8 @@
         }
 
         .header {
-            background-color: var(--primary-color);
-            color: white;
             padding: 15px;
-            border-radius: 8px 8px 0 0;
             margin: -15px -15px 15px -15px;
-        }
-
-        .header h1 {
-            margin: 0;
-            font-size: 24px;
-            display: flex;
-            align-items: center;
-        }
-
-        .logo {
-            height: 30px;
-            margin-right: 10px;
         }
 
         .treatment-info {
@@ -87,94 +64,6 @@
             font-weight: 600;
         }
 
-        .summary {
-            background-color: #e9f2ff;
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            border-left: 4px solid var(--primary-color);
-        }
-
-        .summary i {
-            margin-right: 5px;
-        }
-
-        .load-card {
-            border-radius: 8px;
-            margin-bottom: 15px;
-            overflow: hidden;
-        }
-
-        .load-header {
-            padding: 12px 15px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-        }
-
-        .load-header i {
-            margin-right: 8px;
-        }
-
-        .full-load-header {
-            background-color: var(--light-primary);
-            color: #0f5132;
-            border-bottom: 2px solid var(--primary-color);
-        }
-
-        .partial-load-header {
-            background-color: var(--light-warning);
-            color: #856404;
-            border-bottom: 2px solid var(--warning-color);
-        }
-
-        .load-body {
-            padding-top: 15px;
-            background-color: white;
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 10px;
-        }
-
-        .product-card {
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 12px;
-            transition: all 0.3s ease;
-        }
-
-        .full-load .product-card {
-            background-color: #f8f9fa;
-            border-left: 4px solid var(--primary-color);
-        }
-
-        .partial-load .product-card {
-            background-color: #fff8e6;
-            border-left: 4px solid var(--warning-color);
-        }
-
-        .product-title {
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 5px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            padding-bottom: 5px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-        }
-
-        .product-dose {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--primary-color);
-        }
-
-        .product-unit {
-            font-size: 14px;
-            font-weight: 500;
-        }
-
         .footer {
             margin-top: 30px;
             padding-top: 15px;
@@ -190,62 +79,13 @@
             gap: 10px;
             margin: 20px 0;
         }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 8px 16px;
-            font-size: 14px;
-            font-weight: 500;
-            line-height: 1.5;
-            text-align: center;
-            white-space: nowrap;
-            vertical-align: middle;
-            cursor: pointer;
-            border: 1px solid transparent;
-            border-radius: 4px;
-            transition: all 0.15s ease-in-out;
-        }
-
-        .btn i {
-            margin-right: 6px;
-        }
-
-        .btn-primary {
-            color: #fff;
-            background-color: #198754;
-            border-color: #198754;
-        }
-
-        .btn-danger {
-            color: #fff;
-            background-color: #dc3545;
-            border-color: #dc3545;
-        }
-
-        .btn-success {
-            color: #fff;
-            background-color: #198754;
-            border-color: #198754;
-        }
-
-        .btn-secondary {
-            color: #fff;
-            background-color: #6c757d;
-            border-color: #6c757d;
-        }
     </style>
 </head>
 <body>
-<div class="container" id="export-container">
-    <!-- Update this part of your header -->
-    <div class="header d-flex justify-content-between">
+<div class="card container mb-3" id="export-container">
+    <div class="card-header header bg-primary text-white d-flex justify-content-between">
         <div class="d-flex align-items-center flex-grow-1">
-            <h1>
-                <span class="logo-placeholder"></span>
-                Instrucciones para operador
-            </h1>
+            <h3>Instrucciones</h3>
         </div>
         <div class="d-flex gap-3 d-print-none">
             <!-- View switcher -->
@@ -259,142 +99,121 @@
             </div>
         </div>
     </div>
-
-    <div class="treatment-info">
-        <div class="info-card">
-            <div class="info-label"><i class="fa fa-clipboard-check"></i> Tratamiento</div>
-            <div class="info-value">{{ treatment.name }}</div>
-        </div>
-
-        <div class="info-card">
-            <div class="info-label"><i class="fa fa-map-marked-alt"></i> Parcela</div>
-            <div class="info-value">{{ treatment.field.name }}</div>
-            <div>{{ treatment.field.crop }}, {{ treatment.field.area }} ha</div>
-        </div>
-
-        {% if treatment.machine %}
-        <div class="info-card">
-            <div class="info-label"><i class="fa fa-fill-drip"></i> Mojado</div>
-            <div class="info-value">
-                {% if treatment.real_water_per_ha and treatment.real_water_per_ha != treatment.water_per_ha %}
-                <del class="text-muted">{{ treatment.water_per_ha }} L/ha</del>
-                <br>
-                {% endif %}
-                {{ treatment.actual_water_per_ha }} L/ha
-
+    <div class="card-body p-0">
+        <div class="treatment-info">
+            <div class="info-card">
+                <div class="info-label"><i class="fa fa-clipboard-check"></i> Tratamiento</div>
+                <div class="info-value">{{ treatment.name }}</div>
             </div>
-        </div>
-        {% endif %}
-    </div>
 
-    {% with load_info=treatment.calculate_machine_loads %}
-    <div class="summary">
-        <i class="fa fa-info-circle"></i>
-        {% if treatment.is_spraying and treatment.machine %}
-        Total: <strong>{{ load_info.total_water }} litros</strong> de agua
-        para <strong>{{ treatment.field.area }} ha</strong> a <strong>{{ treatment.actual_water_per_ha }} l/ha</strong>
-        {% elif treatment.is_fertigation %}
-        Aplicación de fertirrigación para <strong>{{ treatment.field.area }} ha</strong> en <strong>
-        {{ treatment.field.name }}</strong>
-        {% endif %}
-    </div>
-
-    <div class="loads-container">
-        {% if treatment.is_fertigation or load_info.full_loads > 0 %}
-        <!-- Productos para máquina completa -->
-        <div class="load-card">
-            <div class="load-header full-load-header">
-                {% if treatment.is_fertigation %}
-                <i class="fa fa-droplet me-2"></i>Dosis a aplicar:
-                {% elif treatment.is_spraying %}
-                <i class="fa fa-tractor"></i> {{ load_info.full_loads }} máquinas completas con:
-                {% endif %}
+            <div class="info-card">
+                <div class="info-label"><i class="fa fa-map-marked-alt"></i> Parcela</div>
+                <div class="info-value">{{ treatment.field.name }}</div>
+                <div>{{ treatment.field.crop }}, {{ treatment.field.area }} ha</div>
             </div>
-            <div class="load-body full-load card-view-content">
-                {% for product in products %}
-                <div class="product-card">
-                    <div class="product-title">{{ product.product.name }}</div>
-                    <div>
-                        <span class="product-dose">{{ product.get_dose_per_load }}</span>
-                        <span class="product-unit">{{ product.total_dose_unit }}</span>
-                    </div>
+
+            {% if treatment.machine %}
+            <div class="info-card">
+                <div class="info-label"><i class="fa fa-fill-drip"></i> Mojado</div>
+                <div class="info-value">
+                    {% if treatment.real_water_per_ha and treatment.real_water_per_ha != treatment.water_per_ha %}
+                    <del class="text-muted">{{ treatment.water_per_ha }} L/ha</del>
+                    <br>
+                    {% endif %}
+                    {{ treatment.actual_water_per_ha }} L/ha
+
                 </div>
-                {% endfor %}
             </div>
-            <div class="list-view-content d-none">
-                <table class="table table-stripped table-bordered table-responsive">
-                    <thead>
-                    <tr>
-                        <th scope="col">Producto</th>
-                        <th scope="col">Cantidad</th>
-                    </tr>
-                    </thead>
-                    <tbody>
+            {% endif %}
+        </div>
+
+        <div class="alert alert-info mb-3">
+            <i class="fa fa-info-circle me-2"></i>
+            {% if treatment.is_spraying and treatment.machine %}
+            {% with load_info=treatment.calculate_machine_loads %}
+            Total: <strong>{{ load_info.total_water }} litros</strong> de agua
+            para <strong>{{ treatment.field.area }} ha</strong> a <strong>{{ treatment.actual_water_per_ha }}
+            l/ha</strong>
+            {% endwith %}
+            {% elif treatment.is_fertigation %}
+            Aplicación de fertirrigación para <strong>{{ treatment.field.area }} ha</strong> en <strong>
+            {{ treatment.field.name }}</strong>
+            {% endif %}
+        </div>
+
+        {% with load_info=treatment.calculate_machine_loads %}
+        {% if treatment.is_fertigation or load_info.full_loads > 0 %}
+        <div class="card mb-3">
+            <div class="card-header bg-success-subtle border-bottom border-success border-2">
+                {% if treatment.is_fertigation %}
+                <h5 class="mb-0"><i class="fa fa-droplet me-2"></i>Dosis a aplicar:</h5>
+                {% elif treatment.is_spraying %}
+                <h5 class="mb-0"><i class="fa fa-tractor"></i> {{ load_info.full_loads }} máquinas completas con:
+                </h5>
+                {% endif %}
+            </div>
+            <div class="card-body full-machine">
+                <div class="row">
                     {% for product in products %}
-                    <tr>
-                        <th scope="row">{{ product.product.name }}</th>
-                        <td>{{ product.get_dose_per_load }}{{ product.total_dose_unit }}</td>
-                    </tr>
+                    <div class="col-6 col-sm-3 mb-2">
+                        <div class="treatment-product-card">
+                            <div class="product-header">
+                                <h5 class="product-name">{{ product.product.name }}</h5>
+                            </div>
+                            <div class="product-doses">
+                                <div class="dose-item">
+                                    <span class="dose-value">{{ product.get_dose_per_load }} {{ product.total_dose_unit }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     {% endfor %}
-                    </tbody>
-                </table>
+                </div>
             </div>
         </div>
         {% endif %}
 
         {% if load_info.partial_load %}
-        <div class="load-card">
-            <div class="load-header partial-load-header">
-                <i class="fa fa-fill-drip"></i> 1 máquina parcial ({{ load_info.partial_water }} L) con:
+        <!-- Productos para máquina parcial -->
+        <div class="card mb-3">
+            <div class="card-header bg-warning-subtle border-bottom border-warning border-2">
+                <h5 class="mb-0"><i class="fa fa-fill-drip"></i> 1 máquina parcial
+                    ({{ load_info.partial_water }} L) con:</h5>
             </div>
-            <div class="load-body partial-load card-view-content">
-                {% for product in products %}
-                <div class="product-card">
-                    <div class="product-title">{{ product.product.name }}</div>
-                    <div>
-                        {% load treatment_filters %}
-                        <span class="product-dose">{{ product|partial_load_product:treatment }}</span>
-                        <span class="product-unit">{{ product.total_dose_unit }}</span>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-            <div class="list-view-content d-none">
-                <table class="table table-stripped table-bordered table-responsive">
-                    <thead>
-                    <tr>
-                        <th scope="col">Producto</th>
-                        <th scope="col">Cantidad</th>
-                    </tr>
-                    </thead>
-                    <tbody>
+            <div class="card-body partial-machine">
+                <div class="row">
                     {% for product in products %}
-                    <tr>
-                        <th scope="row">{{ product.product.name }}</th>
-                        <td>
-                            {% load treatment_filters %}
-                            {{ product|partial_load_product:treatment }}{{ product.total_dose_unit }}
-                        </td>
-                    </tr>
+                    <div class="col-6 col-sm-3 mb-2">
+                        <div class="treatment-product-card">
+                            <div class="product-header">
+                                <h5 class="product-name">{{ product.product.name }}</h5>
+                            </div>
+                            <div class="product-doses">
+                                <div class="dose-item">
+                                    <span class="dose-value">{{ product.get_dose_per_load }} {{ product.total_dose_unit }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     {% endfor %}
-                    </tbody>
-                </table>
+                </div>
             </div>
         </div>
         {% endif %}
-    </div>
-    {% endwith %}
+        {% endwith %}
 
-    <div class="alert alert-info">
-        <i class="fa fa-circle-info me-2"></i>
-        <strong>Nota:</strong>
-        Asegúrese de aplicar los productos en el orden indicado.
-    </div>
+        <div class="alert alert-info">
+            <i class="fa fa-circle-info me-2"></i>
+            <strong>Nota:</strong>
+            Asegúrese de aplicar los productos en el orden indicado.
+        </div>
 
-    <div class="footer">
-        Generado por AgroGest el {{ now|date:"d/m/Y H:i" }}
+        <div class="footer">
+            Generado por AgroGest el {{ now|date:"d/m/Y H:i" }}
+        </div>
     </div>
 </div>
+
 
 <div class="export-buttons">
     <button class="btn btn-danger" id="export-pdf">

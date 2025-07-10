@@ -2,10 +2,6 @@
 {% load django_bootstrap5 %}
 {% load static %}
 
-{% block extra_head %}
-<link href="{% static 'css/treatment-styles.css' %}" rel="stylesheet">
-{% endblock %}
-
 {% block header %}Lista de tratamientos{% endblock %}
 
 {% block content %}
@@ -233,7 +229,7 @@
                 </div>
             </div>
 
-            <div class="card-body p-4" id="results">
+            <div class="card-body" id="results">
                 {% if not treatments %}
                 <div class="alert alert-info d-flex align-items-center" role="alert">
                     <i class="fa fa-info-circle me-3 fs-4"></i>

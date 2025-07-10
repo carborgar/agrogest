@@ -149,6 +149,13 @@
   }
 }
 
+
+
+
+
+
+
+
 /* Estilos para la columna de información vertical */
 .info-item-vertical {
     padding: 0.75rem 1rem;
@@ -187,6 +194,13 @@
     border-left: 4px solid #dc3545;
 }
 
+
+
+
+
+
+
+
 /* Estilos para los precios compactos */
 .price-tag {
     font-size: 0.85rem;
@@ -202,176 +216,10 @@
     font-size: 0.8rem;
 }
 
-/* Estilos para el panel de filtros */
-.filter-panel {
-    border-radius: 12px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-    overflow: hidden;
-    margin-bottom: 18px;
-    border: none;
-    transition: all 0.2s ease;
-}
 
-.filter-panel:hover {
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
-}
 
-.filter-header {
-    background-color: white;
-    transition: all 0.3s ease;
-    border: none;
-}
 
-.filter-btn {
-    width: 100%;
-    text-align: left;
-    padding: 14px 20px;
-    font-weight: 600;
-    color: #212529;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border: none;
-}
 
-.filter-btn:focus {
-    box-shadow: none;
-}
-
-.filter-btn:not(.collapsed) {
-    background-color: #CBD2D9;
-    color: var(--bs-primary);
-}
-
-.filter-btn .filter-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    margin-right: 12px;
-    color: var(--bs-dark);
-    transition: all 0.3s ease;
-}
-
-.filter-btn:not(.collapsed) .filter-icon {
-    background-color: var(--bs-primary);
-    color: white;
-}
-
-.filter-btn .toggle-icon {
-    transition: transform 0.3s ease;
-}
-
-.filter-btn:not(.collapsed) .toggle-icon {
-    transform: rotate(180deg);
-}
-
-.filter-body {
-    padding: 20px;
-    background-color: #ffffff;
-    border-top: 1px solid rgba(0,0,0,0.05);
-}
-
-.form-check-input:checked {
-    background-color: var(--bs-primary);
-    border-color: var(--bs-primary);
-}
-
-.form-check-label {
-    cursor: pointer;
-    transition: color 0.2s;
-}
-
-.date-filter .form-control {
-    border-radius: 8px;
-    padding: 10px 12px;
-    border: 1px solid #dee2e6;
-}
-
-.date-filter .form-control:focus {
-    border-color: var(--bs-primary);
-    box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.25);
-}
-
-/* Estilos para la lista de resultados */
-.results-header {
-    padding: 16px 20px;
-    border-bottom: 1px solid rgba(0,0,0,0.05);
-}
-
-#results .treatment-card {
-    transition: transform 0.3s, box-shadow 0.3s;
-    height: 100%;
-    border-radius: 12px;
-    overflow: hidden;
-    border: none;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-
-#results .treatment-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 18px rgba(0,0,0,0.15);
-}
-
-#results .card-status {
-    width: 5px;
-    height: 100%;
-    position: absolute;
-    left: 0;
-    top: 0;
-}
-
-#results .card-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-}
-
-.action-btn {
-    border-radius: 8px;
-    padding: 8px 16px;
-    font-weight: 500;
-    transition: all 0.3s ease;
-}
-
-.action-btn i {
-    margin-right: 6px;
-}
-
-.filter-actions {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 20px;
-}
-
-.filter-actions .apply-btn {
-    padding: 8px 18px;
-    border-radius: 8px;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-}
-
-.filter-actions .apply-btn i {
-    margin-right: 8px;
-}
-
-.clear-filters {
-    display: flex;
-    align-items: center;
-    color: #6c757d;
-    text-decoration: none;
-    transition: color 0.2s;
-}
-
-.clear-filters i {
-    margin-right: 6px;
-}
 
 .property-icon {
     width: 16px;

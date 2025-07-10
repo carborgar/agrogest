@@ -46,6 +46,7 @@
             <div class="card-body p-0">
                 <!-- Estado -->
                 <div class="info-item-vertical status-{{ treatment.state_class }} bg-{{ treatment.state_class }} bg-opacity-25 border-bottom">
+                    <div class="treatment-status-bar bg-{{ treatment.state_class }}"></div>
                     <div class="info-label"><i class="fa fa-clipboard-check me-2"></i>Estado</div>
                     <div class="info-value">{{ treatment.status_display }}</div>
                 </div>
@@ -107,8 +108,9 @@
                 <h3 class="mb-0">Productos, dosis y precios</h3>
             </div>
             <div class="card-body">
-                <div class="treatment-summary">
-                    <i class="fa fa-leaf me-2"></i>Total: <strong>{{ products|length }}</strong> productos aplicados en
+                <div class="alert alert-info mb-3">
+                    <i class="fa fa-leaf me-2"></i>Total: <strong>{{ products|length }}</strong> productos aplicados
+                    en
                     <strong>{{ treatment.field.name }}</strong>
                     {% if total_cost %}
                     <br>
@@ -119,33 +121,37 @@
                 <div class="row">
                     {% for product in products %}
                     <div class="col-md-4 mb-3">
-                        <div class="card product-card"
-                             style="background-color: #f8f9fa; border-left: 4px solid #28a745;">
-                            <div class="card-body">
-                                <h6 class="card-title">{{ product.product.name }}</h6>
-                                <p class="card-text mb-1">
-                                    <small>{{ product.product.product_type.name }}</small>
-                                </p>
-                                <p class="card-text mb-0">
-                                    <span class="dose-amount">{{ product.dose }}</span>
-                                    <span class="dose-unit">{{ product.dose_type|dose_type }}</span>
-                                </p>
-                                <p class="card-text mb-0">
-                                    Total: <span class="dose-amount">{{ product.total_dose }}</span>
-                                    <span class="dose-unit">{{ product.total_dose_unit }}</span>
-                                </p>
-
-                                <!-- Información de precios -->
-                                {% if product.unit_price > 0 %}
-                                <div class="price-container">
-                                    <small class="price-tag">
-                                        <i class="fa fa-tag me-1"></i>{{ product.unit_price }}€/ud ·
-                                        <strong>{{ product.total_price }}€</strong>
-                                        <span class="text-muted">({{ product.price_per_ha }}€/ha)</span>
-                                    </small>
-                                </div>
-                                {% endif %}
+                        <div class="treatment-product-card h-100">
+                            <div class="product-header">
+                                <h5 class="product-name">{{ product.product.name }}</h5>
+                                <span class="product-type">{{ product.product.product_type.name }}</span>
                             </div>
+                            <div class="product-doses">
+                                <div class="dose-item">
+                                    <span class="dose-label">Dosis</span>
+                                    <span class="dose-value">{{ product.dose }} {{ product.dose_type|dose_type }}</span>
+                                </div>
+                                <div class="dose-item">
+                                    <span class="dose-label">Total</span>
+                                    <span class="dose-value">{{ product.total_dose }} {{ product.total_dose_unit }}</span>
+                                </div>
+                            </div>
+                            {% if product.unit_price > 0 %}
+                            <div class="product-doses mt-1">
+                                <div class="dose-item">
+                                    <span class="dose-label">€/ud</span>
+                                    <span class="dose-value">{{ product.unit_price }}€</span>
+                                </div>
+                                <div class="dose-item">
+                                    <span class="dose-label">€/ha</span>
+                                    <span class="dose-value">{{ product.price_per_ha }}€</span>
+                                </div>
+                                <div class="dose-item">
+                                    <span class="dose-label">Total</span>
+                                    <span class="dose-value">{{ product.total_price }}€</span>
+                                </div>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                     {% endfor %}
@@ -160,7 +166,8 @@
         <h3 class="mb-0">Instrucciones para operador</h3>
     </div>
     <div class="card-body">
-        <div class="treatment-summary">
+
+        <div class="alert alert-info mb-3">
             <i class="fa fa-info-circle me-2"></i>
             {% if treatment.is_spraying and treatment.machine %}
             {% with load_info=treatment.calculate_machine_loads %}
@@ -177,11 +184,11 @@
         {% with load_info=treatment.calculate_machine_loads %}
         {% if treatment.is_fertigation or load_info.full_loads > 0 %}
         <div class="card mb-3">
-            <div class="card-header machine-header full-machine-header">
+            <div class="card-header bg-success-subtle border-bottom border-success border-2">
                 {% if treatment.is_fertigation %}
                 <h5 class="mb-0"><i class="fa fa-droplet me-2"></i>Dosis a aplicar:</h5>
                 {% elif treatment.is_spraying %}
-                <h5 class="mb-0"><i class="fa fa-tractor"></i>{{ load_info.full_loads }} máquinas completas con:
+                <h5 class="mb-0"><i class="fa fa-tractor"></i> {{ load_info.full_loads }} máquinas completas con:
                 </h5>
                 {% endif %}
             </div>
@@ -189,13 +196,14 @@
                 <div class="row">
                     {% for product in products %}
                     <div class="col-6 col-sm-3 mb-2">
-                        <div class="card product-card">
-                            <div class="card-body">
-                                <h6 class="card-title">{{ product.product.name }}</h6>
-                                <p class="card-text mb-0">
-                                    <span class="dose-amount">{{ product.get_dose_per_load }}</span>
-                                    <span class="dose-unit">{{ product.total_dose_unit }}</span>
-                                </p>
+                        <div class="treatment-product-card">
+                            <div class="product-header">
+                                <h5 class="product-name">{{ product.product.name }}</h5>
+                            </div>
+                            <div class="product-doses">
+                                <div class="dose-item">
+                                    <span class="dose-value">{{ product.get_dose_per_load }} {{ product.total_dose_unit }}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -207,23 +215,23 @@
 
         {% if load_info.partial_load %}
         <!-- Productos para máquina parcial -->
-        <div class="card">
-            <div class="card-header machine-header partial-machine-header">
-                <h5 class="mb-0"><i class="fa fa-fill-drip"></i>1 máquina parcial
+        <div class="card mb-3">
+            <div class="card-header bg-warning-subtle border-bottom border-warning border-2">
+                <h5 class="mb-0"><i class="fa fa-fill-drip"></i> 1 máquina parcial
                     ({{ load_info.partial_water }} L) con:</h5>
             </div>
             <div class="card-body partial-machine">
                 <div class="row">
                     {% for product in products %}
                     <div class="col-6 col-sm-3 mb-2">
-                        <div class="card product-card">
-                            <div class="card-body">
-                                <h6 class="card-title">{{ product.product.name }}</h6>
-                                <p class="card-text mb-0">
-                                    {% load treatment_filters %}
-                                    <span class="dose-amount">{{ product|partial_load_product:treatment }}</span>
-                                    <span class="dose-unit">{{ product.total_dose_unit }}</span>
-                                </p>
+                        <div class="treatment-product-card">
+                            <div class="product-header">
+                                <h5 class="product-name">{{ product.product.name }}</h5>
+                            </div>
+                            <div class="product-doses">
+                                <div class="dose-item">
+                                    <span class="dose-value">{{ product.get_dose_per_load }} {{ product.total_dose_unit }}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -373,145 +381,6 @@
         showConfirm({
             text: 'Esta acción eliminará el tratamiento de forma permanente y no se podrá deshacer.',
             onConfirm: () => document.getElementById('deleteForm').submit()
-        });
-    }
-</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script>
-    function exportTreatmentPDF(treatmentId, treatmentName) {
-        showLoading('Generando PDF...', 'Preparando la descarga');
-
-        fetchExportContent(treatmentId)
-            .then(html => {
-                const iframe = document.createElement('iframe');
-                iframe.style.position = 'absolute';
-                iframe.style.left = '-9999px';
-                iframe.style.top = '-9999px';
-                document.body.appendChild(iframe);
-
-                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                iframeDoc.open();
-                iframeDoc.write(html);
-                iframeDoc.close();
-
-                setTimeout(() => {
-                    const container = iframeDoc.getElementById('export-container');
-
-                    html2canvas(container, {
-                        scale: 2,
-                        logging: false,
-                        useCORS: true
-                    }).then(canvas => {
-                        const { jsPDF } = window.jspdf;
-                        const imgData = canvas.toDataURL('image/png');
-                        const pdf = new jsPDF('p', 'mm', 'a4');
-
-                        const pdfWidth = pdf.internal.pageSize.getWidth();
-                        const pdfHeight = pdf.internal.pageSize.getHeight();
-
-                        const imgWidth = canvas.width;
-                        const imgHeight = canvas.height;
-                        const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-
-                        const imgX = (pdfWidth - imgWidth * ratio) / 2;
-                        const imgY = 10;
-
-                        pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
-
-                        // Aquí cambias el nombre:
-                        const cleanName = treatmentName.replace(/\s+/g, '-').toLowerCase();
-                        pdf.save(`instrucciones-${cleanName}-${treatmentId}.pdf`);
-
-                        document.body.removeChild(iframe);
-                        hideLoading();
-
-                        showNotification({
-                            icon: 'success',
-                            title: '¡Éxito!',
-                            text: 'PDF generado correctamente'
-                        });
-                    });
-                }, 1000);
-            })
-            .catch(error => {
-                console.error('Error al generar PDF:', error);
-                hideLoading();
-                showNotification({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'No se pudo generar el PDF. Intente de nuevo.'
-                });
-            });
-    }
-
-    // Función para exportar como imagen
-    function exportTreatmentImage(treatmentId, treatmentName) {
-        showLoading('Generando imagen...', 'Preparando la descarga');
-
-        fetchExportContent(treatmentId)
-            .then(html => {
-                const iframe = document.createElement('iframe');
-                iframe.style.position = 'absolute';
-                iframe.style.left = '-9999px';
-                iframe.style.top = '-9999px';
-                document.body.appendChild(iframe);
-
-                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                iframeDoc.open();
-                iframeDoc.write(html);
-                iframeDoc.close();
-
-                setTimeout(() => {
-                    const container = iframeDoc.getElementById('export-container');
-
-                    html2canvas(container, {
-                        scale: 2,
-                        logging: false,
-                        useCORS: true
-                    }).then(canvas => {
-                        // Crear enlace de descarga
-                        const link = document.createElement('a');
-                        const cleanName = treatmentName.replace(/\s+/g, '-').toLowerCase();
-                        link.download = `instrucciones-${cleanName}-${treatmentId}.png`;
-                        link.href = canvas.toDataURL('image/png');
-                        link.click();
-
-                        document.body.removeChild(iframe);
-                        hideLoading();
-
-                        showNotification({
-                            icon: 'success',
-                            title: '¡Éxito!',
-                            text: 'Imagen generada correctamente'
-                        });
-                    });
-                }, 1000);
-            })
-            .catch(error => {
-                console.error('Error al generar imagen:', error);
-                hideLoading();
-                showNotification({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'No se pudo generar la imagen. Intente de nuevo.'
-                });
-            });
-    }
-
-    // Función para obtener el contenido HTML de las instrucciones para el operador
-    function fetchExportContent(treatmentId) {
-        return fetch(`{% url 'treatment-instructions' 0 %}`.replace('0', treatmentId), {
-            method: 'GET',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Error al obtener contenido');
-            }
-            return response.text();
         });
     }
 </script>

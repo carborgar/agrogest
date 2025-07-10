@@ -5,7 +5,8 @@
 {% block sub_header %}Define y gestiona los tipos de gasto que puedes usar al registrar un gasto general (no vinculado a tratamientos).{% endblock %}
 
 {% block actions %}
-<a class="btn btn-primary w-100 w-md-auto" href="{% url 'expense-type-create' %}" type="button"><i class="fa fa-plus me-1"></i>Nuevo
+<a class="btn btn-primary w-100 w-md-auto" href="{% url 'expense-type-create' %}" type="button"><i
+        class="fa fa-plus me-1"></i>Nuevo
     tipo</a>
 {% endblock %}
 
@@ -28,22 +29,18 @@
 <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4">
     {% for expense_type in expense_types %}
     <div class="col">
-        <div class="card h-100 border-0 shadow-sm hover-shadow transition-all pb-3">
-            <div class="card-body">
-                <div class="justify-content-between align-items-start mb-3">
-                    <div class="flex-grow-1">
-                        <h5 class="card-title mb-1 fw-bold text-wrap"
-                            title="{{ expense_type.name }}">
-                            {{ expense_type.name }}
-                        </h5>
-                        <div class="text-muted small">
-                            <span>{{ expense_type.description|truncatechars:80 }}</span>
-                        </div>
+        <div class="card treatment-product-card h-100">
+            <div class="product-header">
+                <h5 class="product-name"> {{ expense_type.name }}</h5>
+            </div>
+            <div class="card-body product-doses">
+                <div class="dose-item text-start">
+                    <div class="text-muted small">
+                        <span>{{ expense_type.description|truncatechars:80 }}</span>
                     </div>
                 </div>
             </div>
-
-            <div class="card-footer bg-transparent border-0 pt-0">
+            <div class="card-footer product-card-footer pt-3">
                 <div class="d-flex gap-2">
                     <a class="btn btn-outline-primary btn-sm flex-fill"
                        href="{% url 'expense-type-edit' expense_type.pk %}">

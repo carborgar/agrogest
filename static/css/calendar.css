@@ -129,21 +129,17 @@
     background-color: #f8f9fa;
 }
 
-/* Mejoras en los eventos */
-
-
-/* Estilos de estado de tratamientos */
 .treatment-pending {
-    background-color: #ffc107 !important;
-    color: #212529;
+    background-color: #ffc107;
+    border-color: #ffc107;
 }
 
 .treatment-completed {
-    background-color: #28a745 !important;
-    color: white;
+    background-color: #198754;
+    border-color: #198754;
 }
 
 .treatment-delayed {
-    background-color: #dc3545 !important;
-    color: white;
+    background-color: #dc3545;
+    border-color: #dc3545;
 }
