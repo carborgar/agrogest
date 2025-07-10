@@ -1,163 +1,274 @@
-.product-card {
-  transition: all 0.3s ease;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  height: 100%;
-  border: none;
-  overflow: hidden;
+/**
+ESTILOS PARA CARDS
+*/
+.treatment-card {
+    height: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--gray-200);
+}
+.treatment-status-bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    z-index: 1;
+}
+.treatment-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+.treatment-badge {
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    border-radius: 9999px !important;
+    padding: 0.25rem 0.75rem !important;
+}
+.treatment-property {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+.property-icon {
+    width: 16px;
+    text-align: center;
+    margin-right: 8px;
+    color: #6c757d;
 }
 
-.product-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+/**
+ESTILOS PARA LISTA
+*/
+.treatment-item {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    border: 1px solid var(--gray-200);
+    margin-bottom: 1rem;
+    overflow: hidden;
+    position: relative;
+    transition: all 0.2s ease;
 }
-
-.product-card .card-body {
-  padding: 0.75rem;
+.treatment-main-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    flex: 1;
 }
-
-.product-card .card-title {
-  font-size: 1rem;
-  font-weight: 600;
-  margin-bottom: 0.25rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding-bottom: 0.25rem;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+.treatment-icon-wrapper {
+    flex-shrink: 0;
 }
-
-.product-card .card-text {
-  font-size: 0.9rem;
+.treatment-details {
+    flex: 1;
 }
-
-.product-card .dose-amount {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #0d6efd;
+.treatment-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin: 0 0 0.5rem 0;
 }
-
-.product-card .dose-unit {
-  font-size: 0.85rem;
-  font-weight: 500;
-}
-
-/* Estilos para máquina completa vs parcial */
-.full-machine .product-card {
-  background-color: #f8f9fa;
-  border-left: 4px solid #28a745;
-}
-
-.partial-machine .product-card {
-  background-color: #fff8e6;
-  border-left: 4px solid #ffc107;
-}
-
-/* Estilos para fertirrigación */
-.fertigation .product-card {
-  background-color: #f8f9fa;
-  border-left: 4px solid #20c997;
-}
-
-/* Mejoras para los encabezados de secciones */
-.machine-header {
-  padding: 0.75rem 1rem;
-  border-radius: 6px 6px 0 0;
-  font-weight: 500;
-}
-
-.machine-header i {
-  margin-right: 0.5rem;
-}
-
-.full-machine-header {
-  background-color: #d4edda;
-  color: #0f5132;
-  border-bottom: 2px solid #28a745;
-}
-
-.partial-machine-header {
-  background-color: #fff3cd;
-  color: #856404;
-  border-bottom: 2px solid #ffc107;
-}
-
-.fertigation-header {
-  background-color: #d1e7dd;
-  color: #0f5132;
-  border-bottom: 2px solid #20c997;
-}
-
-/* Totales y resumen */
-.treatment-summary {
-  background-color: #e9f2ff;
-  padding: 0.75rem;
-  border-radius: 6px;
-  margin-bottom: 1rem;
-  border-left: 4px solid #0d6efd;
-}
-
-.treatment-summary strong {
-  color: #0d6efd;
-}
-
-/* Nuevos estilos para los precios */
-.price-tag {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #198754;
-}
-
-.price-container {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  margin-top: 0.5rem;
-  padding-top: 0.5rem;
-  border-top: 1px dashed rgba(0, 0, 0, 0.1);
-}
-
-.price-item {
-  font-size: 0.8rem;
-  display: flex;
-  flex-direction: column;
-  margin-right: 0.5rem;
-}
-
-.price-label {
-  color: #6c757d;
-  font-size: 0.7rem;
-}
-
-.price-value {
-  font-weight: 600;
-  color: #198754;
-}
-
-/* Ajustes para móviles */
-@media (max-width: 767.98px) {
-  .product-card {
-    margin-bottom: 0.75rem;
-  }
-
-  .price-container {
+.treatment-meta {
+    display: flex;
     flex-direction: column;
-  }
-
-  .price-item {
-    margin-bottom: 0.25rem;
-  }
+    gap: 0.25rem;
+    margin-bottom: 0.75rem;
+}
+.treatment-meta-item {
+    color: var(--gray-600);
+    font-size: 0.875rem;
+}
+.treatment-dates {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-right: 1rem;
+}
+.treatment-date-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background-color: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    white-space: nowrap;
 }
 
+.treatment-date-item i {
+    color: var(--gray-500);
+}
+.treatment-expand-icon {
+    display: flex;
+    align-items: center;
+    color: var(--gray-500);
+    transition: transform 0.2s ease;
+}
 
+.treatment-header {
+    padding: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+}
 
+.treatment-header[aria-expanded="true"] .treatment-expand-icon {
+    transform: rotate(180deg);
+}
+.treatment-body {
+    padding: 1.5rem;
+    background-color: #f9fafb;
+    border-top: 1px solid var(--gray-200);
+}
+.treatment-products-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin: 0 0 1rem 0;
+}
 
+/* Grid de productos */
+.treatment-products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+}
 
+/* Cards de productos */
+.treatment-product-card {
+    background: white;
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid var(--gray-200);
+    transition: all 0.2s ease;
+}
 
+.treatment-product-card:hover {
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+}
 
+.product-header {
+    margin-bottom: 0.75rem;
+}
 
+.product-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin: 0 0 0.25rem 0;
+}
+
+.product-type {
+    font-size: 0.875rem;
+    color: var(--gray-500);
+    background-color: var(--gray-100);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    display: inline-block;
+}
+.product-doses {
+    display: flex;
+    justify-content: space-between;
+    padding-top: 0.75rem;
+    padding-left: 0;
+    padding-right: 0;
+    border-top: 1px solid var(--gray-200);
+}
+
+.dose-item {
+    text-align: center;
+    flex: 1;
+}
+
+.dose-label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    margin-bottom: 0.25rem;
+}
+
+.dose-value {
+    font-weight: 600;
+    color: var(--gray-900);
+    font-size: 0.875rem;
+}
+
+.product-card-footer {
+    background-color: inherit;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+@media (max-width: 768px) {
+    .treatment-header {
+        padding: 1rem;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+
+    .treatment-main-info {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .treatment-dates {
+        flex-direction: row;
+        justify-content: space-between;
+    }
+
+    .treatment-expand-icon {
+        align-self: center;
+    }
+
+    .treatment-body {
+        padding: 1rem;
+    }
+
+    .treatment-products-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .product-doses {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .dose-item {
+        text-align: left;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .dose-label {
+        margin-bottom: 0;
+    }
+}
+
+/**
+ESTILOS PARA DETALLES
+*/
 /* Estilos para la columna de información vertical */
 .info-item-vertical {
+    position: relative;
     padding: 0.75rem 1rem;
 }
 
@@ -179,100 +290,4 @@
     font-size: 0.8rem;
     color: #6c757d;
     margin-top: 0.25rem;
-}
-
-/* Estilos para el estado */
-.info-item-vertical.status-success {
-    border-left: 4px solid #28a745;
-}
-
-.info-item-vertical.status-warning {
-    border-left: 4px solid #ffc107;
-}
-
-.info-item-vertical.status-danger {
-    border-left: 4px solid #dc3545;
-}
-
-
-
-
-
-
-
-
-/* Estilos para los precios compactos */
-.price-tag {
-    font-size: 0.85rem;
-    color: #198754;
-    display: block;
-}
-
-.price-tag strong {
-    color: #198754;
-}
-
-.price-tag .text-muted {
-    font-size: 0.8rem;
-}
-
-
-
-
-
-
-.property-icon {
-    width: 16px;
-    text-align: center;
-    margin-right: 8px;
-    color: #6c757d;
-}
-
-.treatment-property {
-    display: flex;
-    align-items: center;
-    margin-bottom: 8px;
-}
-
-.badge-status {
-    padding: 6px 12px;
-    font-weight: 500;
-    font-size: 0.75rem;
-}
-
-.treatment-date {
-    font-size: 0.85rem;
-    color: #6c757d;
-    display: flex;
-    align-items: center;
-}
-
-.treatment-date i {
-    margin-right: 6px;
-}
-
-/* Nuevos estilos para evitar superposición */
-.card-title-container {
-    display: flex;
-    flex-direction: column;
-    width: calc(100% - 50px); /* Resta el ancho del icono */
-}
-
-.card-title {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-}
-
-.card-header-row {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 3px;
-}
-
-.status-badge-row {
-    display: flex;
-    justify-content: flex-start;
-    margin-top: 8px;
 }
