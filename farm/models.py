@@ -32,6 +32,9 @@ class Field(OrganizationOwnedModel):
     def __str__(self):
         return self.name
 
+    class Meta:
+        ordering = ['name']
+
     def pending_treatments_count(self):
         # Cuenta los tratamientos pendientes para este campo
         objs = Treatment.objects.filter(field=self, status='pending')
@@ -114,6 +117,9 @@ class Machine(OrganizationOwnedModel):
     def __str__(self):
         return f"{self.name}"
 
+    class Meta:
+        ordering = ['name']
+
 
 class ProductType(OrganizationOwnedModel):
     name = models.CharField(max_length=100)
@@ -121,6 +127,9 @@ class ProductType(OrganizationOwnedModel):
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        ordering = ['name']
 
 
 class ExpenseType(OrganizationOwnedModel):
@@ -134,7 +143,7 @@ class ExpenseType(OrganizationOwnedModel):
 
     def __str__(self):
         return self.name
-    
+
     def can_be_deleted(self):
         # Check if any expenses are using this expense type
         return not Expense.objects.filter(expense_type=self).exists()
@@ -171,6 +180,9 @@ class Product(OrganizationOwnedModel):
 
     comments = models.TextField(blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    class Meta:
+        ordering = ['name']
 
     def get_dose_for_application(self, application_type):
         if application_type == 'spraying':
@@ -216,8 +228,8 @@ class Product(OrganizationOwnedModel):
 
 class Treatment(OrganizationOwnedModel, SoftDeleteObject):
     TYPE_CHOICES = [
-        ('spraying', 'Pulverización'),
         ('fertigation', 'Fertirrigación'),
+        ('spraying', 'Pulverización'),
     ]
 
     STATUS_PENDING = 'pending'
@@ -562,15 +574,15 @@ class Expense(OrganizationOwnedModel):
     description = models.TextField(verbose_name="Descripción")
     payment_date = models.DateField(verbose_name="Fecha de pago")
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Cantidad (€)")
-    
+
     class Meta:
         verbose_name = "Gasto"
         verbose_name_plural = "Gastos"
         ordering = ['-payment_date']
-    
+
     def __str__(self):
         return f"{self.expense_type.name} - {self.field.name} - {self.amount}€"
-    
+
     def can_be_deleted(self):
         # For now, expenses can always be deleted
         # This method follows the same pattern as Field.can_be_deleted()
