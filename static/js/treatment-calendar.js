@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', function () {
         buttonText: { today: 'Hoy', month: 'Mes', list: 'Lista' },
         events: fetchEvents,
         eventClick: (info) => loadTreatmentDetail(info.event),
-        eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false }
+        displayEventTime: false
     });
 
     calendar.render();
