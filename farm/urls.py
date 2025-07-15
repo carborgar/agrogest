@@ -12,7 +12,7 @@ from .views.field_views import FieldListView, FieldCreateView, FieldUpdateView, 
 urlpatterns = [
     path("", RedirectView.as_view(url="/parcelas/vistazo/", permanent=False), name="home"),
     path("parcelas/vistazo/", FieldDashboardView.as_view(), name="field_list"),
-    path("parcelas/gastos/", FieldCostView.as_view(), name="field_costs"),
+    path("parcelas/gastos/", FieldCostView.as_view(), name="field-costs"),
     path('tratamientos/', TreatmentListView.as_view(), name='treatment-list'),
     path('tratamientos/<int:pk>', TreatmentDetailView.as_view(), name='treatment-detail'),
     path('tratamientos/nuevo/', TreatmentFormView.as_view(), name='treatment-create'),

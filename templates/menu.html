@@ -39,7 +39,7 @@
 {% with calendar_menus='treatment-calendar' %}
 {% with expense_menus='expense-list expense-create expense-edit' %}
 {% with expense_type_menus='expense-type-list expense-type-create expense-type-edit' %}
-{% with field_costs_menus='field_costs' %}
+{% with field_costs_menus='field-costs' %}
 
 <!-- Desktop Sidebar -->
 <div class="sidebar-desktop d-none d-md-block">
@@ -88,7 +88,7 @@
                             <ul class="nav flex-column">
                                 <li class="nav-item">
                                     <a class="nav-link {% if current_url in field_costs_menus %}active{% endif %}"
-                                       href="{% url 'field_costs' %}">
+                                       href="{% url 'field-costs' %}">
                                         <i class="fa fa-chart-bar"></i> Resumen de gastos
                                     </a>
                                 </li>
@@ -231,7 +231,7 @@
                                 <ul class="nav flex-column">
                                     <li class="nav-item">
                                         <a class="nav-link {% if current_url in field_costs_menus %}active{% endif %}"
-                                           href="{% url 'field_costs' %}">
+                                           href="{% url 'field-costs' %}">
                                             <i class="fa fa-chart-bar"></i> Resumen de gastos
                                         </a>
                                     </li>
