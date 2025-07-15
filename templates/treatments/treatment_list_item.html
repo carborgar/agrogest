@@ -17,9 +17,7 @@
             <div class="treatment-details">
                 <h3 class="treatment-title">{{ treatment.name }}</h3>
                 <div class="treatment-meta">
-                    <span class="treatment-meta-item">{{ treatment.field.name }}</span>
-                    <span class="treatment-meta-item">{{ treatment.field.crop }} ({{ treatment.field.area }} ha)</span>
-                    <span class="treatment-meta-item">{{ treatment.get_type_display }}</span>
+                    <span class="treatment-meta-item">{{ treatment.field.name }} • {{ treatment.field.crop }} ({{ treatment.field.area }} ha) • {{ treatment.get_type_display }}</span>
                 </div>
                 <span class="badge bg-{{ treatment.state_class }} treatment-badge">
                     {{ treatment.status_display }}
@@ -38,6 +36,14 @@
                 <span>{{ treatment.finish_date|date:"d/m/Y" }}</span>
             </div>
             {% endif %}
+        </div>
+
+        <div class="treatment-actions">
+            <a class="btn btn-outline-primary btn-sm treatment-detail-btn"
+               href="{% url 'treatment-detail' treatment.id %}">
+                <i class="fa fa-eye"></i>
+                Ver detalles
+            </a>
         </div>
 
         <div class="treatment-expand-icon">

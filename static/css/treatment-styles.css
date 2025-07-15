@@ -108,6 +108,32 @@ ESTILOS PARA LISTA
 .treatment-date-item i {
     color: var(--gray-500);
 }
+
+.treatment-actions {
+    display: flex;
+    align-items: center;
+    margin-right: 1rem;
+}
+
+.treatment-detail-btn {
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.treatment-detail-btn:hover {
+    text-decoration: none;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
 .treatment-expand-icon {
     display: flex;
     align-items: center;
@@ -232,6 +258,14 @@ ESTILOS PARA LISTA
     .treatment-dates {
         flex-direction: row;
         justify-content: space-between;
+        margin-right: 0;
+        margin-bottom: 1rem;
+    }
+
+    .treatment-actions {
+        justify-content: center;
+        margin-right: 0;
+        margin-bottom: 1rem;
     }
 
     .treatment-expand-icon {
