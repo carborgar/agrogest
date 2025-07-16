@@ -2,7 +2,8 @@ from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models.aggregates import Sum
 from django.urls import reverse_lazy
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+from django.utils.dateparse import parse_date
+from django.views.generic import ListView, UpdateView, DeleteView
 
 from farm.forms import ExpenseForm
 from farm.mixins import OwnershipRequiredMixin, QuerysetFilterMixin, AuditableMixin
@@ -26,15 +27,37 @@ class ExpenseListView(BaseSecureExpenseViewMixin, ListView):
     paginate_by = 20
     ordering = ['-payment_date']
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+
+        field_id = self.request.GET.get('field')  # <select name="field">
+        type_id = self.request.GET.get('type')  # <select name="type">
+        date_from = self.request.GET.get('date_from')  # <input name="date_from">
+        date_to = self.request.GET.get('date_to')  # <input name="date_to">
+
+        if field_id:
+            qs = qs.filter(field_id=field_id)
+        if type_id:
+            qs = qs.filter(expense_type_id=type_id)
+        if date_from:
+            qs = qs.filter(payment_date__gte=parse_date(date_from))
+        if date_to:
+            qs = qs.filter(payment_date__lte=parse_date(date_to))
+
+        return qs
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+
+        queryset = context['expenses']  # ya filtrado
+        context['total_amount'] = queryset.aggregate(total=Sum('amount'))['total'] or 0
+
+        # listas para los combos
         context['fields'] = Field.ownership_objects.get_queryset_for_user(self.request.user)
         context['expense_types'] = ExpenseType.ownership_objects.get_queryset_for_user(self.request.user)
 
-        context['total_amount'] = (
-                self.get_queryset()
-                .aggregate(total=Sum('amount'))['total'] or 0
-        )
+        # mantener los filtros marcados
+        context['filter_params'] = self.request.GET.dict()
 
         return context
 

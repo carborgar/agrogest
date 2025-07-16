@@ -16,43 +16,69 @@
     <div class="col">
         <div class="card">
             <div class="card-body">
-                <!-- Filtros -->
-                <div class="row mb-4">
-                    <div class="col-md-3">
-                        <label class="form-label small" for="fieldFilter">Parcela</label>
-                        <select class="form-select form-select-sm" id="fieldFilter">
-                            <option value="">Todas las parcelas</option>
-                            {% for field in fields %}
-                            <option value="{{ field.id }}">{{ field.name }}</option>
-                            {% endfor %}
-                        </select>
+                <form method="get" class="mb-4">
+                    <div class="row">
+                        <!-- Parcela -->
+                        <div class="col-md-3">
+                            <label class="form-label small" for="fieldFilter">Parcela</label>
+                            <select class="form-select form-select-sm" id="fieldFilter" name="field">
+                                <option value="">Todas las parcelas</option>
+                                {% for field in fields %}
+                                <option value="{{ field.id }}"
+                                        {% if filter_params.field|default:'' == field.id|stringformat:"s" %}selected{% endif %}>
+                                {{ field.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Tipo -->
+                        <div class="col-md-3">
+                            <label class="form-label small" for="typeFilter">Tipo</label>
+                            <select class="form-select form-select-sm"
+                                    id="typeFilter"
+                                    name="type">
+                                <option value="">Todos los tipos</option>
+                                {% for expense_type in expense_types %}
+                                <option value="{{ expense_type.id }}"
+                                        {% if filter_params.type|default:"" == expense_type.id|stringformat:"s" %}selected{% endif %}>
+                                {{ expense_type.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Fechas -->
+                        <div class="col-md-2">
+                            <label class="form-label small" for="dateFromFilter">Desde</label>
+                            <input class="form-control form-control-sm"
+                                   id="dateFromFilter"
+                                   name="date_from"
+                                   type="date"
+                                   value="{{ filter_params.date_from|default:'' }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small" for="dateToFilter">Hasta</label>
+                            <input class="form-control form-control-sm"
+                                   id="dateToFilter"
+                                   name="date_to"
+                                   type="date"
+                                   value="{{ filter_params.date_to|default:'' }}">
+                        </div>
+
+                        <!-- Botón -->
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button class="btn btn-outline-primary btn-sm w-100" type="submit">
+                                Filtrar
+                            </button>
+                        </div>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label small" for="typeFilter">Tipo</label>
-                        <select class="form-select form-select-sm" id="typeFilter">
-                            <option value="">Todos los tipos</option>
-                            {% for expense_type in expense_types %}
-                            <option value="{{ expense_type.id }}">{{ expense_type.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label small" for="dateFromFilter">Desde</label>
-                        <input class="form-control form-control-sm" id="dateFromFilter" type="date">
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label small" for="dateToFilter">Hasta</label>
-                        <input class="form-control form-control-sm" id="dateToFilter" type="date">
-                    </div>
-                    <div class="col-md-2 d-flex align-items-end">
-                        <button class="btn btn-outline-primary btn-sm w-100" id="applyFilters">Filtrar</button>
-                    </div>
-                </div>
+                </form>
 
                 {% if not expenses %}
                 <div class="alert alert-info d-flex align-items-center" role="alert">
                     <i class="fa fa-info-circle me-3 fs-4"></i>
-                    <div>No se encontraron gastos. <a href="{% url 'expense-create' %}">Añadir el primer gasto</a></div>
+                    <div>No se encontraron gastos</div>
                 </div>
                 {% else %}
 
@@ -152,37 +178,5 @@
             }
         });
     }
-
-    // Filtros
-    document.getElementById('applyFilters').addEventListener('click', function() {
-        const fieldFilter = document.getElementById('fieldFilter').value;
-        const typeFilter = document.getElementById('typeFilter').value;
-        const dateFromFilter = document.getElementById('dateFromFilter').value;
-        const dateToFilter = document.getElementById('dateToFilter').value;
-
-        const rows = document.querySelectorAll('#expenseTableBody tr');
-        
-        rows.forEach(row => {
-            let show = true;
-            
-            if (fieldFilter && row.dataset.field !== fieldFilter) {
-                show = false;
-            }
-            
-            if (typeFilter && row.dataset.type !== typeFilter) {
-                show = false;
-            }
-            
-            if (dateFromFilter && row.dataset.date < dateFromFilter) {
-                show = false;
-            }
-            
-            if (dateToFilter && row.dataset.date > dateToFilter) {
-                show = false;
-            }
-            
-            row.style.display = show ? '' : 'none';
-        });
-    });
 </script>
 {% endblock %}
