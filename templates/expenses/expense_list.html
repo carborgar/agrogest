@@ -7,7 +7,8 @@
 {% block sub_header %}Añadir, editar y gestionar gastos no relacionados con tratamientos{% endblock %}
 
 {% block actions %}
-<a class="btn btn-primary w-100 w-md-auto" href="{% url 'expense-create' %}" type="button"><i class="fa fa-plus me-1"></i>Nuevo gasto</a>
+<a class="btn btn-primary w-100 w-md-auto" href="{% url 'expense-create' %}" type="button"><i
+        class="fa fa-plus me-1"></i>Nuevo gasto</a>
 {% endblock %}
 
 {% block content %}
@@ -54,11 +55,12 @@
                     <div>No se encontraron gastos. <a href="{% url 'expense-create' %}">Añadir el primer gasto</a></div>
                 </div>
                 {% else %}
-                
+
                 <!-- Lista de gastos -->
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead class="table-light">
+                <div class="table-container white-over-white">
+                    <div class="table-responsive">
+                        <table class="table modern-table mb-0">
+                            <thead>
                             <tr>
                                 <th>Fecha</th>
                                 <th>Parcela</th>
@@ -67,10 +69,11 @@
                                 <th class="text-end">Cantidad</th>
                                 <th class="text-center">Acciones</th>
                             </tr>
-                        </thead>
-                        <tbody id="expenseTableBody">
+                            </thead>
+                            <tbody id="expenseTableBody">
                             {% for expense in expenses %}
-                            <tr data-date="{{ expense.payment_date|date:'Y-m-d' }}" data-field="{{ expense.field.id }}" data-type="{{ expense.expense_type.id }}">
+                            <tr data-date="{{ expense.payment_date|date:'Y-m-d' }}" data-field="{{ expense.field.id }}"
+                                data-type="{{ expense.expense_type.id }}">
                                 <td>{{ expense.payment_date|date:"d/m/Y" }}</td>
                                 <td>
                                     <span class="badge bg-light text-dark">{{ expense.field.name }}</span>
@@ -79,7 +82,8 @@
                                     <span class="badge bg-primary">{{ expense.expense_type.name }}</span>
                                 </td>
                                 <td>
-                                    <div class="text-truncate" style="max-width: 300px;" title="{{ expense.description }}">
+                                    <div class="text-truncate" style="max-width: 300px;"
+                                         title="{{ expense.description }}">
                                         {{ expense.description|truncatechars:60 }}
                                     </div>
                                 </td>
@@ -88,11 +92,12 @@
                                 </td>
                                 <td class="text-center">
                                     <div class="btn-group" role="group">
-                                        <a class="btn btn-sm btn-outline-primary" href="{% url 'expense-edit' expense.id %}" title="Editar">
+                                        <a class="btn btn-sm btn-outline-primary"
+                                           href="{% url 'expense-edit' expense.id %}" title="Editar">
                                             <i class="fa fa-edit"></i>
                                         </a>
                                         {% if expense.can_be_deleted %}
-                                        <button class="btn btn-sm btn-outline-danger" 
+                                        <button class="btn btn-sm btn-outline-danger"
                                                 data-url="{% url 'expense-delete' expense.id %}"
                                                 onclick="confirmDelete(this)" title="Eliminar">
                                             <i class="fa fa-trash"></i>
@@ -102,8 +107,18 @@
                                 </td>
                             </tr>
                             {% endfor %}
-                        </tbody>
-                    </table>
+                            </tbody>
+                            <tfoot>
+                            <tr>
+                                <td class="text-end fw-bold" colspan="4">
+                                    <i class="bi bi-calculator me-2"></i>
+                                    TOTAL:
+                                </td>
+                                <td class="fw-bold fs-5 text-end ">{{ total_amount|floatformat:2 }} €</td>
+                            </tr>
+                            </tfoot>
+                        </table>
+                    </div>
                 </div>
 
                 {% if is_paginated %}

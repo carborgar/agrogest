@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
+from django.db.models.aggregates import Sum
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 
@@ -29,6 +30,12 @@ class ExpenseListView(BaseSecureExpenseViewMixin, ListView):
         context = super().get_context_data(**kwargs)
         context['fields'] = Field.ownership_objects.get_queryset_for_user(self.request.user)
         context['expense_types'] = ExpenseType.ownership_objects.get_queryset_for_user(self.request.user)
+
+        context['total_amount'] = (
+                self.get_queryset()
+                .aggregate(total=Sum('amount'))['total'] or 0
+        )
+
         return context
 
 
