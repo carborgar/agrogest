@@ -3,15 +3,15 @@
 
 {% block title %}Error del servidor{% endblock %}
 
-{% block content %}
+{% block base_content %}
 <div class="container min-vh-100 d-flex align-items-center justify-content-center">
     <div class="row">
         <div class="col-md-6 mb-4 mb-md-0">
             <div class="text-center text-md-start">
                 <h1 class="display-1 fw-bold text-danger">500</h1>
                 <h2 class="mb-4">Error del servidor</h2>
-                <p class="lead mb-4">Lo sentimos, estamos experimentando problemas técnicos. Nuestro equipo ha sido
-                    notificado y estamos trabajando para solucionarlo.</p>
+                <p class="lead mb-4">Lo sentimos, ha habido un problema técnicos. Se ha reportado y estamos trabajando
+                    para solucionarlo.</p>
                 <a class="btn btn-primary btn-lg" href="{% url 'home' %}">Volver al inicio</a>
             </div>
         </div>
