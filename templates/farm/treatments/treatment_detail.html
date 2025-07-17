@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load custom_filters %}
+{% load treatment_filters %}
 {% load mathfilters %}
 
 {% block title %}{{ treatment.name }}{% endblock %}
@@ -230,7 +231,7 @@
                             </div>
                             <div class="product-doses">
                                 <div class="dose-item">
-                                    <span class="dose-value">{{ product.get_dose_per_load }} {{ product.total_dose_unit }}</span>
+                                    <span class="dose-value">{{ product|partial_load_product:treatment }} {{ product.total_dose_unit }}</span>
                                 </div>
                             </div>
                         </div>

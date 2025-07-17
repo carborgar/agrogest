@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
     {% load static %}
+    {% load treatment_filters %}
     <meta charset="UTF-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>Instrucciones para operador - {{ treatment.name }}</title>
@@ -9,6 +10,7 @@
     <link href="{% static 'css/custom-bootstrap.min.css' %}" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
     <link href="{% static 'css/styles.css' %}" rel="stylesheet">
+    <link href="{% static 'css/treatment-styles.css' %}" rel="stylesheet">
 
     <style>
         :root {
@@ -190,7 +192,7 @@
                             </div>
                             <div class="product-doses">
                                 <div class="dose-item">
-                                    <span class="dose-value">{{ product.get_dose_per_load }} {{ product.total_dose_unit }}</span>
+                                    <span class="dose-value">{{ product|partial_load_product:treatment }} {{ product.total_dose_unit }}</span>
                                 </div>
                             </div>
                         </div>
