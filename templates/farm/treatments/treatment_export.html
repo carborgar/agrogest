@@ -154,7 +154,7 @@
                 </h5>
                 {% endif %}
             </div>
-            <div class="card-body full-machine">
+            <div class="card-body full-machine card-view-content">
                 <div class="row">
                     {% for product in products %}
                     <div class="col-6 col-sm-3 mb-2">
@@ -172,6 +172,24 @@
                     {% endfor %}
                 </div>
             </div>
+            <div class="list-view-content d-none">
+                <table class="table table-stripped table-bordered table-responsive">
+                    <thead>
+                    <tr>
+                        <th scope="col">Producto</th>
+                        <th scope="col">Cantidad</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for product in products %}
+                    <tr>
+                        <th scope="row">{{ product.product.name }}</th>
+                        <td>{{ product.get_dose_per_load }}{{ product.total_dose_unit }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
         {% endif %}
 
@@ -182,7 +200,7 @@
                 <h5 class="mb-0"><i class="fa fa-fill-drip"></i> 1 máquina parcial
                     ({{ load_info.partial_water }} L) con:</h5>
             </div>
-            <div class="card-body partial-machine">
+            <div class="card-body partial-machine card-view-content">
                 <div class="row">
                     {% for product in products %}
                     <div class="col-6 col-sm-3 mb-2">
@@ -199,6 +217,24 @@
                     </div>
                     {% endfor %}
                 </div>
+            </div>
+            <div class="list-view-content d-none">
+                <table class="table table-stripped table-bordered table-responsive">
+                    <thead>
+                    <tr>
+                        <th scope="col">Producto</th>
+                        <th scope="col">Cantidad</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for product in products %}
+                    <tr>
+                        <th scope="row">{{ product.product.name }}</th>
+                        <td>{{ product|partial_load_product:treatment }}{{ product.total_dose_unit }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
         {% endif %}
