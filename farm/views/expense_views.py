@@ -22,7 +22,7 @@ class BaseSecureExpenseFormMixin(BaseSecureExpenseViewMixin, AuditableMixin):
 
 class ExpenseListView(BaseSecureExpenseViewMixin, ListView):
     model = Expense
-    template_name = 'expenses/expense_list.html'
+    template_name = 'farm/expenses/expense_list.html'
     context_object_name = 'expenses'
     paginate_by = 20
     ordering = ['-payment_date']
@@ -66,7 +66,7 @@ class ExpenseFormView(BaseSecureExpenseFormMixin, SuccessMessageMixin, UpdateVie
     """Unified view for creating and editing expenses"""
     model = Expense
     form_class = ExpenseForm
-    template_name = 'expenses/expense_form.html'
+    template_name = 'farm/expenses/expense_form.html'
     success_url = reverse_lazy('expense-list')
 
     def get_object(self, queryset=None):
@@ -105,7 +105,7 @@ class ExpenseDeleteView(BaseSecureExpenseViewMixin, DeleteView):
 # ExpenseType CRUD Views
 class ExpenseTypeListView(BaseSecureExpenseViewMixin, ListView):
     model = ExpenseType
-    template_name = 'expenses/expense_type_list.html'
+    template_name = 'farm/expenses/expense_type_list.html'
     context_object_name = 'expense_types'
     ordering = ['name']
 
@@ -113,7 +113,7 @@ class ExpenseTypeListView(BaseSecureExpenseViewMixin, ListView):
 class ExpenseTypeFormView(BaseSecureExpenseFormMixin, SuccessMessageMixin, UpdateView):
     """Unified view for creating and editing expense types"""
     model = ExpenseType
-    template_name = 'expenses/expense_type_form.html'
+    template_name = 'farm/expenses/expense_type_form.html'
     fields = ['name', 'description']
     success_url = reverse_lazy('expense-type-list')
 

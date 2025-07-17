@@ -9,7 +9,7 @@ from farm.views.field_forms import FieldForm
 
 class FieldListView(LoginRequiredMixin, ListView):
     model = Field
-    template_name = 'fields/field_list.html'
+    template_name = 'farm/fields/field_list.html'
     context_object_name = 'fields'
     paginate_by = 20
 
@@ -20,7 +20,7 @@ class FieldListView(LoginRequiredMixin, ListView):
 class FieldCreateView(LoginRequiredMixin, CreateView):
     model = Field
     form_class = FieldForm
-    template_name = 'fields/field_form.html'
+    template_name = 'farm/fields/field_form.html'
     success_url = reverse_lazy('field-list')
 
     def form_valid(self, form):
@@ -32,7 +32,7 @@ class FieldCreateView(LoginRequiredMixin, CreateView):
 class FieldUpdateView(LoginRequiredMixin, UpdateView):
     model = Field
     form_class = FieldForm
-    template_name = 'fields/field_form.html'
+    template_name = 'farm/fields/field_form.html'
     success_url = reverse_lazy('field-list')
 
     def form_valid(self, form):

@@ -239,12 +239,12 @@
 
                 <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="cardView">
                     {% for treatment in treatments %}
-                    {% include 'treatments/treatment_card.html' with treatment=treatment %}
+                    {% include 'farm/treatments/treatment_card.html' with treatment=treatment %}
                     {% endfor %}
                 </div>
 
                 <div id="listView" class="accordion d-none">
-                    {% include 'treatments/treatment_list_item.html' with treatment_list=treatments %}
+                    {% include 'farm/treatments/treatment_list_item.html' with treatment_list=treatments %}
                 </div>
 
                 {% if page_obj.has_other_pages %}

@@ -32,7 +32,7 @@ class BaseSecureViewMixin(OwnershipRequiredMixin, QuerysetFilterMixin, Auditable
 
 class FieldDashboardView(BaseSecureViewMixin, ListView):
     model = Field
-    template_name = "fields/field_dashboard.html"
+    template_name = "farm/fields/field_dashboard.html"
     context_object_name = "fields"
 
     def get_queryset(self):
@@ -70,7 +70,7 @@ class FieldDashboardView(BaseSecureViewMixin, ListView):
 
 class FieldCostView(BaseSecureViewMixin, ListView):
     model = Field
-    template_name = "fields/field_costs.html"
+    template_name = "farm/fields/field_costs.html"
     context_object_name = "fields"
 
     def get_queryset(self):
@@ -79,7 +79,7 @@ class FieldCostView(BaseSecureViewMixin, ListView):
 
 class TreatmentListView(BaseSecureViewMixin, ListView):
     model = Treatment
-    template_name = 'treatments/treatment_list.html'
+    template_name = 'farm/treatments/treatment_list.html'
     context_object_name = 'treatments'
     paginate_by = 6
     ordering = ['-date']
@@ -140,7 +140,7 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
 
 class TreatmentDetailView(BaseSecureViewMixin, DetailView):
     model = Treatment
-    template_name = 'treatments/treatment_detail.html'
+    template_name = 'farm/treatments/treatment_detail.html'
     context_object_name = 'treatment'
 
     def get_context_data(self, **kwargs):
@@ -168,7 +168,7 @@ class TreatmentDetailView(BaseSecureViewMixin, DetailView):
 class TreatmentFormView(BaseSecureViewMixin, SuccessMessageMixin, CreateView, UpdateView):
     model = Treatment
     form_class = TreatmentForm
-    template_name = 'treatments/treatment_form.html'
+    template_name = 'farm/treatments/treatment_form.html'
 
     def get_success_url(self):
         return reverse('treatment-detail', kwargs={'pk': self.object.id})
@@ -215,7 +215,7 @@ class TreatmentFormView(BaseSecureViewMixin, SuccessMessageMixin, CreateView, Up
 
 
 class TreatmentCalendarView(BaseSecureViewMixin, TemplateView):
-    template_name = 'treatments/calendar.html'
+    template_name = 'farm/treatments/calendar.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -254,7 +254,7 @@ class DeleteTreatmentView(BaseSecureViewMixin, View):
 
 class TreatmentExportView(BaseSecureViewMixin, DetailView):
     model = Treatment
-    template_name = 'treatments/treatment_export.html'
+    template_name = 'farm/treatments/treatment_export.html'
     context_object_name = 'treatment'
 
     def get_context_data(self, **kwargs):
@@ -270,7 +270,7 @@ class TreatmentExportView(BaseSecureViewMixin, DetailView):
 
 
 class ShoppingListView(BaseSecureViewMixin, ListView):
-    template_name = 'treatments/shopping_list.html'
+    template_name = 'farm/treatments/shopping_list.html'
     context_object_name = 'product_items'
 
     def get_queryset(self):
