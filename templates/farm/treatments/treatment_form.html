@@ -251,7 +251,7 @@
                 return;
             }
 
-            products = Object.fromEntries((await fetchData(API_URLS.productsByTreatmentType(treatmentType))).map(product => [product.id, product]));
+            products = new Map((await fetchData(API_URLS.productsByTreatmentType(treatmentType))).map(product => [product.id, product]));
 
             updateProductsTableOptions();
         }
@@ -260,13 +260,14 @@
             document.querySelectorAll('.product-select').forEach(productSelect => {
                 const currentValue = productSelect.value;
                 productSelect.innerHTML = '<option value="">Seleccione un producto</option>';
-                Object.values(products).forEach(product => {
+                for (const product of products.values()) {
                     const option = document.createElement('option');
                     option.value = product.id;
                     option.textContent = product.name;
                     if (product.id.toString() === currentValue) option.selected = true;
                     productSelect.appendChild(option);
-                });
+                }
+
             });
         }
 
@@ -297,18 +298,17 @@
                 productSelect.innerHTML = '<option value="">Seleccione un producto</option>';
 
                 // Añadir las opciones según los productos filtrados
-                Object.values(products).forEach(product => {
+                for (const product of products.values()) {
                     const option = document.createElement('option');
                     option.value = product.id;
                     option.textContent = product.name;
 
-                    // Si este era el producto seleccionado anteriormente, mantenerlo seleccionado
                     if (product.id.toString() === currentValue) {
                         option.selected = true;
                     }
 
                     productSelect.appendChild(option);
-                });
+                }
 
                 // Si el valor anterior ya no existe en las nuevas opciones, limpiar los campos relacionados
                 if (productSelect.value !== currentValue) {
@@ -546,12 +546,12 @@
             productSelect.innerHTML = '<option value="">Seleccione un producto</option>';
 
             // Añadir las opciones según los productos filtrados
-            Object.values(products).forEach(product => {
+            for (const product of products.values()) {
                 const option = document.createElement('option');
                 option.value = product.id;
                 option.textContent = product.name;
                 productSelect.appendChild(option);
-            });
+            }
 
             productSelect.addEventListener('change', updateProductInfo);
 
