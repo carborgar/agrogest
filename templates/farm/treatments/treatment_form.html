@@ -337,9 +337,13 @@
             checkStep1Completion();
         }
 
+        function getProduct(productId) {
+            return products.get(Number(productId)) || null;
+        }
+
         function updateProductInfo(event) {
             const row = event.target.closest('.product-form');
-            const product = products[event.target.value];
+            const product = getProduct(event.target.value);
 
             const doseInputs = row.querySelectorAll('.product-dose');
             const defaultDoseLabel = row.querySelector('#product-default-dose');
@@ -409,7 +413,7 @@
                 const productInput = row.querySelector('.product-select');
 
                 const productId = productInput.value;
-                if (!productId || !products[productId]) {
+                if (!productId || !getProduct(productId)) {
                     estimatedDoseInput.value = '';
                     return;
                 }
@@ -426,7 +430,7 @@
                     return;
                 }
 
-                const doseType = products[productId].dose_type;
+                const doseType = getProduct(productId).dose_type;
                 const totalWater = field.area * waterPerHa;
                 const unit = doseType.includes('kg') ? 'kg' : 'L';
                 let totalDose = 0;
@@ -458,7 +462,7 @@
             const waterPerHa = parseFloat(elements.waterPerHaInput.value) || 0;
 
             const productId = productInput.value;
-            if (!productId || !products[productId] || !field) return;
+            if (!productId || !getProduct(productId) || !field) return;
 
             const totalDose = parseFloat(estimatedDoseInput.value) || 0;
             if (!totalDose) {
@@ -466,7 +470,7 @@
                 return;
             }
 
-            const doseType = products[productId].dose_type;
+            const doseType = getProduct(productId).dose_type;
             const totalWater = field.area * waterPerHa;
             let dosePerHa = 0;
 
