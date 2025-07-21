@@ -1,21 +1,26 @@
+import json
 import logging
 from decimal import Decimal
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db import transaction
 from django.db.models import Sum
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views import View
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_http_methods
 from django.views.generic import ListView, DetailView
 from django.views.generic import TemplateView
 from django.views.generic.edit import CreateView, UpdateView
 
+from farm.ai_queries import FarmFlowProcessor
 from farm.forms import TreatmentForm, TreatmentProductFormSet
 from farm.mixins import OwnershipRequiredMixin, QuerysetFilterMixin, AuditableMixin
 from farm.models import Field, ProductType, TreatmentProduct
@@ -342,3 +347,36 @@ class ShoppingListView(BaseSecureViewMixin, ListView):
         context['total_count'] = len(self.object_list)
 
         return context
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+@login_required
+def ai_query(request):
+    """
+    Endpoint para procesar pasos del flujo conversacional
+    """
+    try:
+        data = json.loads(request.body)
+
+        # Procesar paso usando el usuario autenticado
+        processor = FarmFlowProcessor(request.user)
+        response = processor.process_step(data)
+
+        return JsonResponse(response)
+
+    except Exception as e:
+        return JsonResponse({
+            'type': 'error',
+            'message': f'Error interno: {str(e)}',
+            'show_menu': True
+        }, status=500)
+
+
+@login_required
+def ai_assistant_view(request):
+    """Vista para mostrar la interfaz del asistente"""
+    return render(request, 'farm/ai_assistant.html', {
+        'user': request.user,
+        'organization': request.user.organization
+    })

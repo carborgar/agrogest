@@ -8,6 +8,7 @@ from . import api_views
 from .views.expense_views import ExpenseListView, ExpenseFormView, ExpenseDeleteView, ExpenseTypeListView, \
     ExpenseTypeFormView, ExpenseTypeDeleteView
 from .views.field_views import FieldListView, FieldCreateView, FieldUpdateView, FieldDeleteView
+from .views.views import ai_assistant_view, ai_query
 
 urlpatterns = [
     path("", RedirectView.as_view(url="/parcelas/vistazo/", permanent=False), name="home"),
@@ -47,5 +48,8 @@ urlpatterns = [
     path('api/treatments/', api_views.get_calendar_treatments, name='api-calendar-treatments'),
     path('api/treatments/<int:treatment_id>/', api_views.treatment_detail, name='api-treatment-detail'),
     path('api/field-costs-data/', api_views.field_costs_data, name='api-field-costs-data'),
+
+    path('farm/asistente/', ai_query, name='ai_query'),
+    path('asistente-interfaz/', ai_assistant_view, name='ai_assistant'),
 
 ]

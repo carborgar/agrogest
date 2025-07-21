@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Asistente Agrícola - Consultas Paso a Paso</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .assistant-container {
+            width: 100%;
+            max-width: 900px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            min-height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 0.95rem;
+        }
+
+        .content {
+            flex: 1;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            min-height: 500px;
+        }
+
+        .step-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .step-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .step-message {
+            color: #7f8c8d;
+            margin-bottom: 25px;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        .options-grid {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .option-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-card:hover {
+            border-color: #3498db;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(52, 152, 219, 0.1);
+        }
+
+        .option-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+
+        .option-description {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .search-container {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 16px 12px 45px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .search-input:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .product-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .product-card:hover {
+            border-color: #3498db;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(52, 152, 219, 0.1);
+        }
+
+        .product-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+
+        .product-type {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+
+        .product-price {
+            color: #27ae60;
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+
+        .product-applications {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+
+        .application-badge {
+            background: #3498db;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .field-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .field-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .field-card:hover {
+            border-color: #3498db;
+            transform: translateY(-1px);
+        }
+
+        .field-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #2c3e50;
+        }
+
+        .field-details {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .result-container {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .result-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .result-info {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .calculation-item {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #3498db;
+        }
+
+        .calc-type {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+
+        .calc-formula {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+
+        .calc-result {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #27ae60;
+            margin-bottom: 5px;
+        }
+
+        .calc-cost {
+            color: #e74c3c;
+            font-weight: 500;
+        }
+
+        .price-list {
+            display: grid;
+            gap: 20px;
+        }
+
+        .price-category {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #e9ecef;
+        }
+
+        .price-category-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 8px;
+        }
+
+        .price-items {
+            display: grid;
+            gap: 8px;
+        }
+
+        .price-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+        }
+
+        .price-name {
+            color: #2c3e50;
+        }
+
+        .price-value {
+            font-weight: 600;
+            color: #27ae60;
+        }
+
+        .treatment-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .treatment-item {
+            background: white;
+            border-radius: 10px;
+            padding: 18px;
+            border: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+
+        .treatment-item:hover {
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .treatment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .treatment-name {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .treatment-date {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .treatment-type {
+            background: #3498db;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .treatment-products {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        .cost-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .cost-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid #e9ecef;
+        }
+
+        .cost-value {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #e74c3c;
+            margin-bottom: 5px;
+        }
+
+        .cost-label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .cost-breakdown {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #e9ecef;
+        }
+
+        .breakdown-title {
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #f8f9fa;
+        }
+
+        .breakdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: auto;
+            padding-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #219a52;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .help-text {
+            background: #e8f4fd;
+            color: #0c5460;
+            border: 1px solid #b8daff;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+
+        .no-results {
+            text-align: center;
+            color: #7f8c8d;
+            padding: 40px 20px;
+            font-style: italic;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .assistant-container {
+                margin: 0;
+                border-radius: 15px;
+                min-height: calc(100vh - 20px);
+                max-height: calc(100vh - 20px);
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 1.4rem;
+            }
+
+            .content {
+                padding: 20px 15px;
+            }
+
+            .product-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .field-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .cost-summary {
+                grid-template-columns: 1fr;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+                padding: 14px 24px;
+                font-size: 1rem;
+            }
+
+            .step-title {
+                font-size: 1.2rem;
+            }
+
+            .options-grid {
+                gap: 12px;
+            }
+
+            .option-card {
+                padding: 16px;
+            }
+
+            .product-card {
+                padding: 15px;
+            }
+
+            .search-input {
+                font-size: 16px; /* Evita zoom en iOS */
+            }
+        }
+
+        @media (max-width: 480px) {
+            .assistant-container {
+                border-radius: 0;
+                min-height: 100vh;
+                max-height: 100vh;
+            }
+
+            .header h1 {
+                font-size: 1.2rem;
+            }
+
+            .header p {
+                font-size: 0.85rem;
+            }
+
+            .content {
+                padding: 15px 10px;
+            }
+
+            .result-container {
+                padding: 20px 15px;
+            }
+
+            .calculation-item {
+                padding: 15px;
+                margin-bottom: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="assistant-container">
+        <div class="header">
+            <h1>🌾 Asistente Agrícola</h1>
+            <p>Consulta información sobre productos, tratamientos y costes paso a paso</p>
+        </div>
+
+        <div class="content">
+            <div class="step-container fade-in" id="stepContainer">
+                <!-- El contenido se carga dinámicamente aquí -->
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-secondary" id="backBtn" onclick="goBack()" style="display: none;">
+                    ← Atrás
+                </button>
+                <button class="btn btn-primary" id="menuBtn" onclick="showMainMenu()" style="display: none;">
+                    🏠 Menú Principal
+                </button>
+                <button class="btn btn-success" id="newCalculationBtn" onclick="startNewCalculation()" style="display: none;">
+                    🔄 Nueva Consulta
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentFlow = null;
+        let currentStep = 1;
+        let flowData = { data: {}, selection: null };
+        let stepHistory = [];
+
+        // Inicializar la aplicación
+        document.addEventListener('DOMContentLoaded', function() {
+            showMainMenu();
+        });
+
+        function showMainMenu() {
+            currentFlow = 'menu';
+            currentStep = 1;
+            flowData = { data: {}, selection: null };
+            stepHistory = [];
+            hideAllActionButtons();
+            processStep();
+        }
+
+        function startNewCalculation() {
+            if (currentFlow) {
+                currentStep = 1;
+                flowData = { data: {}, selection: null };
+                processStep();
+            }
+        }
+
+        function goBack() {
+            if (stepHistory.length > 0) {
+                const previousState = stepHistory.pop();
+                currentFlow = previousState.flow;
+                currentStep = previousState.step;
+                flowData.data = previousState.data;
+                flowData.selection = previousState.selection;
+                processStep();
+            }
+        }
+
+        function hideAllActionButtons() {
+            document.getElementById('backBtn').style.display = 'none';
+            document.getElementById('menuBtn').style.display = 'none';
+            document.getElementById('newCalculationBtn').style.display = 'none';
+        }
+
+        function showActionButtons(showMenu = false, showNewCalculation = false, showBack = false) {
+            document.getElementById('menuBtn').style.display = showMenu ? 'block' : 'none';
+            document.getElementById('newCalculationBtn').style.display = showNewCalculation ? 'block' : 'none';
+            document.getElementById('backBtn').style.display = showBack ? 'block' : 'none';
+        }
+
+        function saveCurrentState() {
+            stepHistory.push({
+                flow: currentFlow,
+                step: currentStep,
+                data: JSON.parse(JSON.stringify(flowData.data || {})),
+                selection: flowData.selection
+            });
+        }
+
+        async function processStep() {
+            showLoading();
+
+            const requestData = {
+                flow: currentFlow,
+                step: currentStep,
+                data: flowData.data || {},
+                selection: flowData.selection
+            };
+
+            console.log('Sending request:', requestData);
+
+            try {
+                const response = await fetch('/farm/asistente/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log('Received response:', data);
+                displayStep(data);
+
+            } catch (error) {
+                console.error('Error:', error);
+                displayError('Error al procesar la consulta. Por favor, inténtalo de nuevo.');
+            }
+        }
+
+        function displayStep(data) {
+            const container = document.getElementById('stepContainer');
+            container.className = 'step-container fade-in';
+
+            // Actualizar los datos del flujo si vienen en la respuesta
+            if (data.data) {
+                flowData.data = data.data;
+            }
+
+            switch (data.type) {
+                case 'menu':
+                    displayMainMenu(data);
+                    break;
+                case 'product_selection':
+                    displayProductSelection(data);
+                    break;
+                case 'dose_options':
+                    displayDoseOptions(data);
+                    break;
+                case 'number_input':
+                    displayNumberInput(data);
+                    break;
+                case 'field_selection':
+                    displayFieldSelection(data);
+                    break;
+                case 'machine_input':
+                    displayMachineInput(data);
+                    break;
+                case 'dose_result':
+                    displayDoseResult(data);
+                    break;
+                case 'price_list':
+                    displayPriceList(data);
+                    break;
+                case 'treatment_history':
+                    displayTreatmentHistory(data);
+                    break;
+                case 'cost_analysis':
+                    displayCostAnalysis(data);
+                    break;
+                case 'error':
+                    displayError(data.message);
+                    break;
+                default:
+                    displayError('Tipo de respuesta no reconocido');
+            }
+
+            // Configurar botones de acción
+            const showMenu = data.show_menu || false;
+            const showNewCalculation = data.show_new_calculation || false;
+            const showBack = stepHistory.length > 0 && !showMenu;
+
+            showActionButtons(showMenu, showNewCalculation, showBack);
+        }
+
+        function displayMainMenu(data) {
+            const html = `
+                <div class="step-title">${data.title}</div>
+                <div class="step-message">${data.message}</div>
+                <div class="options-grid">
+                    ${data.options.map(option => `
+                        <div class="option-card" onclick="selectMainOption('${option.id}')">
+                            <div class="option-title">${option.text}</div>
+                            <div class="option-description">${option.description}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            document.getElementById('stepContainer').innerHTML = html;
+        }
+
+        function displayProductSelection(data) {
+            let html = `
+                <div class="step-title">${data.title}</div>
+                <div class="step-message">${data.message}</div>
+                <div class="help-text">
+                    💡 Selecciona un producto para ver sus dosis configuradas y opciones de cálculo
+                </div>
+            `;
+
+            // Agregar buscador si hay muchos productos
+            if (data.searchable) {
+                html += `
+                    <div class="search-container">
+                        <div class="search-icon">🔍</div>
+                        <input type="text"
+                               id="productSearch"
+                               class="search-input"
+                               placeholder="Buscar productos..."
+                               oninput="filterProducts()">
+                    </div>
+                `;
+            }
+
+            html += `<div class="product-grid" id="productGrid">`;
+
+            data.products.forEach(product => {
+                html += `
+                    <div class="product-card" onclick="selectProduct(${product.id})" data-name="${product.name.toLowerCase()}" data-type="${product.type.toLowerCase()}">
+                        <div class="product-name">${product.name}</div>
+                        <div class="product-type">${product.type}</div>
+                        <div class="product-price">${product.price > 0 ? product.price.toFixed(2) + '€' : 'Sin precio'}</div>
+                        <div class="product-applications">
+                            ${product.applications.map(app => `<span class="application-badge">${app}</span>`).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `</div>`;
+
+            // Mensaje si no hay resultados (inicialmente oculto)
+            html += `<div class="no-results" id="noResults" style="display: none;">No se encontraron productos</div>`;
+
+            document.getElementById('stepContainer').innerHTML = html;
+        }
+
+        function displayDoseOptions(data) {
+            const doseInfoHtml = data.dose_info.map(info => `
+                <div class="calculation-item">
+                    <div class="calc-type">${info.label}</div>
+                    <div class="calc-result">${info.dose} ${info.dose_display}</div>
+                </div>
+            `).join('');
+
+            const html = `
+                <div class="step-title">${data.title}</div>
+                <div class="result-container">
+                    <div class="result-header">
+                        <div class="result-title">Dosis configuradas</div>
+                        <div class="result-info">${data.product.price > 0 ? data.product.price + '€ por L/kg' : ''}</div>
+                    </div>
+                    ${doseInfoHtml}
+                </div>
+                <div class="step-message">¿Cómo quieres calcular la cantidad necesaria?</div>
+                <div class="options-grid">
+                    ${data.options.map(option => `
+                        <div class="option-card" onclick="selectDoseOption('${option.id}')">
+                            <div class="option-title">${option.text}</div>
+                            <div class="option-description">${option.description}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            document.getElementById('stepContainer').innerHTML = html;
+        }
+
+        function displayNumberInput(data) {
+            const html = `
+                <div class="step-title">${data.title}</div>
+                <div class="step-message">${data.message}</div>
+                <div class="input-group">
+                    <label class="input-label">Cantidad</label>
+                    <input type="number"
+                           id="numberInput"
+                           class="input-field"
+                           placeholder="${data.placeholder}"
+                           min="${data.min || 0}"
+                           step="${data.step || 1}"
+                           onkeypress="handleNumberInputEnter(event)">
+                </div>
+                <button class="btn btn-primary" onclick="submitNumberInput()">
+                    Calcular
+                </button>
+            `;
+            document.getElementById('stepContainer').innerHTML = html;
+            document.getElementById('numberInput').focus();
+        }
+
+        function displayFieldSelection(data) {
+            let html = `
+                <div class="step-title">${data.title}</div>
+                <div class="step-message">${data.message}</div>
+            `;
+
+            // Agregar buscador si hay muchas parcelas
+            if (data.searchable) {
+                html += `
+                    <div class="search-container">
+                        <div class="search-icon">🔍</div>
+                        <input type="text"
+                               id="fieldSearch"
+                               class="search-input"
+                               placeholder="Buscar parcelas..."
+                               oninput="filterFields()">
+                    </div>
+                `;
+            }
+
+            html += `<div class="field-grid" id="fieldGrid">`;
+
+            data.fields.forEach(field => {
+                html += `
+                    <div class="field-card" onclick="selectField(${field.id})" data-name="${field.name.toLowerCase()}" data-crop="${field.crop.toLowerCase()}" data-location="${(field.location || '').toLowerCase()}">
+                        <div class="field-name">${field.name}</div>
+                        <div class="field-details">
+                            ${field.area} ha • ${field.crop}
+                            ${field.location ? `• ${field.location}` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `</div>`;
+
+            // Mensaje si no hay resultados (inicialmente oculto)
+            html += `<div class="no-results" id="noResults" style="display: none;">No se encontraron parcelas</div>`;
+
+            document.getElementById('stepContainer').innerHTML = html;
+        }
+
+        function displayMachineInput(data) {
+            const html = `
+                <div class="step-title">${data.title}</div>
+                <div class="step-message">${data.message}</div>
+                <div class="help-text">
+                    💡 Introduce la capacidad de tu máquina para calcular la cantidad exacta de producto por carga
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Capacidad (Litros)</label>
+                    <input type="number"
+                           id="machineInput"
+                           class="input-field"
+                           placeholder="${data.placeholder}"
+                           min="${data.min || 100}"
+                           step="${data.step || 100}"
+                           onkeypress="handleMachineInputEnter(event)">
+                </div>
+                <button class="btn btn-primary" onclick="submitMachineInput()">
+                    Calcular
+                </button>
+            `;
+            document.getElementById('stepContainer').innerHTML = html;
+            document.getElementById('machineInput').focus();
+        }
+
+        function displayDoseResult(data) {
+            const resultsHtml = data.results.map(result => `
+                <div class="calculation-item">
+                    <div class="calc-type">${result.type}</div>
+                    <div class="calc-formula">${result.calculation}</div>
+                    <div class="calc-result">${result.result}</div>
+                    ${result.cost > 0 ? `<div class="calc-cost">Coste: ${result.cost.toFixed(2)}€</div>` : ''}
+                </div>
+            `).join('');
+
+            const html = `
+                <div class="step-title">${data.title}</div>
+                <div class="result-container">
+                    <div class="result-header">
+                        <div class="result-title">Resultado del cálculo</div>
+                        <div class="result-info">${data.area_info}</div>
+                    </div>
+                    ${resultsHtml}
+                </div>
+            `;
+            document.getElementById('stepContainer').innerHTML = html;
+        }
+
+        function displayPriceList(data) {
+            const categoriesHtml = Object.entries(data.products_by_type).map(([type, products]) => `
+                <div class="price-category">
+                    <div class="price-category-title">${type}</div>
+                    <div class="price-items">
+                        ${products.map(product => `
+                            <div class="price-item">
+                                <span class="price-name">${product.name}</span>
+                                <span class="price-value">${product.price.toFixed(2)}€</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+
+            const html = `
+                <div class="step-title">${data.title}</div>
+                <div class="price-list">
+                    ${categoriesHtml}
+                </div>
+            `;
+            document.getElementById('stepContainer').innerHTML = html;
+        }
+
+        function displayTreatmentHistory(data) {
+            if (data.treatments.length === 0) {
+                const html = `
+                    <div class="step-title">${data.title}</div>
+                    <div class="step-message">No hay tratamientos registrados para ${data.field}</div>
+                `;
+                document.getElementById('stepContainer').innerHTML = html;
+                return;
+            }
+
+            const treatmentsHtml = data.treatments.map(treatment => `
+                <div class="treatment-item">
+                    <div class="treatment-header">
+                        <div class="treatment-name">${treatment.name}</div>
+                        <div class="treatment-date">${treatment.date}</div>
+                    </div>
+                    <div class="treatment-type">${treatment.type}</div>
+                    <div class="treatment-products">
+                        Productos: ${treatment.products.join(', ') || 'Sin productos'}
+                    </div>
+                </div>
+            `).join('');
+
+            const html = `
+                <div class="step-title">${data.title}</div>
+                <div class="treatment-list">
+                    ${treatmentsHtml}
+                </div>
+            `;
+            document.getElementById('stepContainer').innerHTML = html;
+        }
+
+        function displayCostAnalysis(data) {
+            const costByTypeHtml = data.cost_by_type.map(item => `
+                <div class="breakdown-item">
+                    <span>${item.type}</span>
+                    <span>${item.cost.toFixed(2)}€</span>
+                </div>
+            `).join('');
+
+            const html = `
+                <div class="step-title">${data.title}</div>
+                <div class="cost-summary">
+                    <div class="cost-card">
+                        <div class="cost-value">${data.total_cost.toFixed(0)}€</div>
+                        <div class="cost-label">Coste Total</div>
+                    </div>
+                    <div class="cost-card">
+                        <div class="cost-value">${data.cost_per_ha.toFixed(0)}€</div>
+                        <div class="cost-label">Por Hectárea</div>
+                    </div>
+                    <div class="cost-card">
+                        <div class="cost-value">${data.field.area} ha</div>
+                        <div class="cost-label">Superficie</div>
+                    </div>
+                </div>
+                ${data.cost_by_type.length > 0 ? `
+                    <div class="cost-breakdown">
+                        <div class="breakdown-title">Desglose por tipo de producto</div>
+                        ${costByTypeHtml}
+                    </div>
+                ` : ''}
+            `;
+            document.getElementById('stepContainer').innerHTML = html;
+        }
+
+        function displayError(message) {
+            const html = `
+                <div class="error-message">
+                    ⚠️ ${message}
+                </div>
+            `;
+            document.getElementById('stepContainer').innerHTML = html;
+            showActionButtons(true);
+        }
+
+        function showLoading() {
+            const html = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>Procesando...</div>
+                </div>
+            `;
+            document.getElementById('stepContainer').innerHTML = html;
+        }
+
+        // Event handlers
+        function selectMainOption(optionId) {
+            saveCurrentState();
+            currentFlow = optionId;
+            currentStep = 1;
+            flowData = { data: {}, selection: null };
+            processStep();
+        }
+
+        function selectProduct(productId) {
+            saveCurrentState();
+            currentStep++;
+            flowData.selection = productId;
+            processStep();
+        }
+
+        function selectDoseOption(optionId) {
+            saveCurrentState();
+            currentStep++;
+            flowData.selection = optionId;
+            processStep();
+        }
+
+        function selectField(fieldId) {
+            saveCurrentState();
+            currentStep++;
+            flowData.selection = fieldId;
+            processStep();
+        }
+
+        function handleNumberInputEnter(event) {
+            if (event.key === 'Enter') {
+                submitNumberInput();
+            }
+        }
+
+        function submitNumberInput() {
+            const value = document.getElementById('numberInput').value;
+            if (value && parseFloat(value) > 0) {
+                saveCurrentState();
+                currentStep++;
+                flowData.selection = value;
+                processStep();
+            }
+        }
+
+        function handleMachineInputEnter(event) {
+            if (event.key === 'Enter') {
+                submitMachineInput();
+            }
+        }
+
+        function submitMachineInput() {
+            const value = document.getElementById('machineInput').value;
+            if (value && parseInt(value) > 0) {
+                saveCurrentState();
+                currentStep++;
+                flowData.selection = value;
+                processStep();
+            }
+        }
+
+        // Funciones de filtrado para búsqueda
+        function filterProducts() {
+            const searchTerm = document.getElementById('productSearch').value.toLowerCase();
+            const products = document.querySelectorAll('.product-card');
+            let visibleCount = 0;
+
+            products.forEach(product => {
+                const name = product.dataset.name;
+                const type = product.dataset.type;
+
+                if (name.includes(searchTerm) || type.includes(searchTerm)) {
+                    product.style.display = 'block';
+                    visibleCount++;
+                } else {
+                    product.style.display = 'none';
+                }
+            });
+
+            // Mostrar/ocultar mensaje de "no hay resultados"
+            const noResults = document.getElementById('noResults');
+            if (visibleCount === 0) {
+                noResults.style.display = 'block';
+            } else {
+                noResults.style.display = 'none';
+            }
+        }
+
+        function filterFields() {
+            const searchTerm = document.getElementById('fieldSearch').value.toLowerCase();
+            const fields = document.querySelectorAll('.field-card');
+            let visibleCount = 0;
+
+            fields.forEach(field => {
+                const name = field.dataset.name;
+                const crop = field.dataset.crop;
+                const location = field.dataset.location;
+
+                if (name.includes(searchTerm) || crop.includes(searchTerm) || location.includes(searchTerm)) {
+                    field.style.display = 'block';
+                    visibleCount++;
+                } else {
+                    field.style.display = 'none';
+                }
+            });
+
+            // Mostrar/ocultar mensaje de "no hay resultados"
+            const noResults = document.getElementById('noResults');
+            if (visibleCount === 0) {
+                noResults.style.display = 'block';
+            } else {
+                noResults.style.display = 'none';
+            }
+        }
+
+        // Utility functions
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+</body>
+</html>
