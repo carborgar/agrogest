@@ -1,13 +1,18 @@
 {% extends "base.html" %}
 
+{% load django_bootstrap5 %}
+{% load custom_filters %}
+
 {% block header %}Producto{% endblock %}
 
 {% block sub_header %}Define y gestiona los productos que vas a usar en los tratamientos.{% endblock %}
 
+{% comment %}
 {% block actions %}
 <a class="btn btn-primary w-100 w-md-auto" href="{% url 'product-create' %}" type="button"><i
         class="fa fa-plus me-1"></i>Nuevo producto</a>
 {% endblock %}
+{% endcomment %}
 
 {% block content %}
 
@@ -17,28 +22,106 @@
         <i class="fa fa-receipt text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
     </div>
     <h4 class="text-muted mb-3">No hay productos</h4>
-    <p class="text-muted mb-4 lead">Comienza creando tu primer producto para organizar mejor
-        tus
-        finanzas.</p>
+    <p class="text-muted mb-4 lead">Comienza creando tu primer producto.</p>
     <a class="btn btn-primary btn-lg shadow-sm" href="{% url 'product-create' %}">
-        <i class="fa fa-plus me-2"></i>Crear Primer Tipo
+        <i class="fa fa-plus me-2"></i>Crear Primer Producto
     </a>
 </div>
 {% else %}
-<div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4">
+<!-- View switcher -->
+<div class="view-switcher mb-3">
+    <button class="btn view-btn active" id="cardViewBtn" type="button">
+        <i class="fa fa-th"></i> Tarjetas
+    </button>
+    <button class="btn view-btn" id="listViewBtn" type="button">
+        <i class="fa fa-list"></i> Lista
+    </button>
+</div>
+
+<div class="table-container white-over-white d-none" id="listView">
+    <div class="table-responsive">
+        <table class="table modern-table mb-0">
+            <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Tipo</th>
+                <th>Dosis pulverización</th>
+                <th>Dosis fertirrigación</th>
+                <th>Precio ud</th>
+                <th>Notas</th>
+<!--                <th class="text-center">Acciones</th>-->
+            </tr>
+            </thead>
+            <tbody>
+            {% for product in products %}
+            <tr>
+                <td>{{ product.name }}</td>
+                <td><span class="badge bg-primary">{{ product.product_type.name }}</span></td>
+                <td>{{ product.full_spraying_dose|default:"-" }}</td>
+                <td>{{ product.full_fertigation_dose|default:"-" }}</td>
+                <td>{% if product.price %} {{product.price}}€ {% else %} - {% endif%}</td>
+                <td>
+                    <div class="text-truncate" style="max-width: 300px;"
+                         title="{{ product.comments }}">
+                        {{ product.comments|truncatechars:60 }}
+                    </div>
+                </td>
+                {% comment %}
+                <td class="text-center">
+                    <div class="btn-group" role="group">
+                        <a class="btn btn-sm btn-outline-primary"
+                           href="{% url 'product-edit' product.id %}" title="Editar">
+                            <i class="fa fa-edit"></i>
+                        </a>
+                        {% if product.can_be_deleted %}
+                        <button class="btn btn-sm btn-outline-danger"
+                                data-url="{% url 'product-delete' product.id %}"
+                                onclick="confirmDelete(this)" title="Eliminar">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                </td>
+                {% endcomment %}
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4" id="cardView">
     {% for product in products %}
     <div class="col">
         <div class="card treatment-product-card h-100">
             <div class="product-header">
-                <h5 class="product-name"> {{ product.name }}</h5>
+                <h5 class="product-name">
+                    {% if product.comments %}
+                    <a data-bs-title="{{ product.comments }}" data-bs-toggle="tooltip" href="#"><i
+                            class="fa-solid fa-circle-info"></i></a>
+                    {% endif %}
+                    {{ product.name }}
+                </h5>
+                <span class="product-type">{{ product.product_type.name }}</span>
             </div>
             <div class="card-body product-doses">
-                <div class="dose-item text-start">
-                    <div class="text-muted small">
-                        <span>{{ product.description|truncatechars:80 }}</span>
-                    </div>
+                <div class="dose-item">
+                    <span class="dose-label">Dosis pulverización</span>
+                    <span class="dose-value">{{ product.full_spraying_dose|default:"-" }}</span>
+                </div>
+                <div class="dose-item">
+                    <span class="dose-label">Dosis fertirrigación</span>
+                    <span class="dose-value">{{ product.full_fertigation_dose|default:"-" }}</span>
                 </div>
             </div>
+            <div class="product-doses mt-1">
+                <div class="dose-item">
+                    <span class="dose-label">Precio ud</span>
+                    <span class="dose-value">{% if product.price %} {{product.price}}€ {% else %} - {% endif%}</span>
+                </div>
+            </div>
+            {% if product.price > 0 %}
+            {% endif %}
             <div class="card-footer product-card-footer pt-3">
                 <div class="d-flex gap-2">
                     <a class="btn btn-outline-primary btn-sm flex-fill"
@@ -58,6 +141,20 @@
     </div>
     {% endfor %}
 </div>
+{% endif %}
+
+{% if page_obj.has_other_pages %}
+<p class="text-muted pt-2 mb-0">
+    Mostrando {{ page_obj.start_index }} a {{ page_obj.end_index }} de {{ total_count }} tratamientos
+</p>
+{% endif %}
+
+{% if is_paginated %}
+{% with request.GET.urlencode as querystring %}
+<div class="d-flex justify-content-center mt-3">
+    {% bootstrap_pagination page_obj extra="&"|add:querystring %}
+</div>
+{% endwith %}
 {% endif %}
 
 <!-- Formulario oculto para las acciones de eliminación -->
@@ -80,5 +177,45 @@
             }
         });
     }
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get view elements
+        const cardView = document.getElementById('cardView');
+        const listView = document.getElementById('listView');
+        const cardViewBtn = document.getElementById('cardViewBtn');
+        const listViewBtn = document.getElementById('listViewBtn');
+
+        // Toggle between views
+        cardViewBtn.addEventListener('click', function() {
+            cardView.classList.remove('d-none');
+            listView.classList.add('d-none');
+            cardViewBtn.classList.add('active');
+            listViewBtn.classList.remove('active');
+
+            // Store preference in localStorage
+            localStorage.setItem('productListViewPreference', 'card');
+        });
+
+        listViewBtn.addEventListener('click', function() {
+            listView.classList.remove('d-none');
+            cardView.classList.add('d-none');
+            listViewBtn.classList.add('active');
+            cardViewBtn.classList.remove('active');
+
+            // Store preference in localStorage
+            localStorage.setItem('productListViewPreference', 'list');
+        });
+
+        // Check for stored preference and apply it
+        const storedPreference = localStorage.getItem('productListViewPreference');
+        if (storedPreference === 'list') {
+            listView.classList.remove('d-none');
+            cardView.classList.add('d-none');
+            listViewBtn.classList.add('active');
+            cardViewBtn.classList.remove('active');
+        }
+    });
 </script>
 {% endblock %}

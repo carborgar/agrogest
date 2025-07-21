@@ -41,6 +41,7 @@
 {% with expense_type_menus='expense-type-list expense-type-create expense-type-edit' %}
 {% with field_costs_menus='field-costs' %}
 {% with product_type_menus='product-type-list product-type-create product-type-edit' %}
+{% with product_menus='product-list product-create product-edit' %}
 
 <!-- Desktop Sidebar -->
 <div class="sidebar-desktop d-none d-md-block">
@@ -129,14 +130,12 @@
                         <div class="collapse nav-submenu {% if current_url in product_menus or current_url in product_type_menus %}show{% endif %}"
                              id="productosMenuDesktop">
                             <ul class="nav flex-column">
-                                {% comment %}
                                 <li class="nav-item">
                                     <a class="nav-link {% if current_url in product_menus %}active{% endif %}"
-                                       href="#">
+                                       href="{% url 'product-list' %}">
                                         <i class="fa fa-flask"></i> Productos
                                     </a>
                                 </li>
-                                {% endcomment %}
                                 <li class="nav-item">
                                     <a class="nav-link {% if current_url in product_type_menus %}active{% endif %}"
                                        href="{% url 'product-type-list' %}">
@@ -271,12 +270,12 @@
                             <div class="collapse nav-submenu {% if current_url in product_menus or current_url in product_type_menus %}show{% endif %}"
                                  id="productosMenu">
                                 <ul class="nav flex-column">
-<!--                                    <li class="nav-item">-->
-<!--                                        <a class="nav-link {% if current_url in product_menus %}active{% endif %}"-->
-<!--                                           href="#">-->
-<!--                                            <i class="fa fa-chart-bar"></i> Productos-->
-<!--                                        </a>-->
-<!--                                    </li>-->
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if current_url in product_menus %}active{% endif %}"
+                                           href="{% url 'product-list' %}">
+                                            <i class="fa fa-chart-bar"></i> Productos
+                                        </a>
+                                    </li>
                                     <li class="nav-item">
                                         <a class="nav-link {% if current_url in product_type_menus %}active{% endif %}"
                                            href="{% url 'product-type-list' %}">
@@ -292,6 +291,7 @@
         </div>
     </div>
 </div>
+{% endwith %}
 {% endwith %}
 {% endwith %}
 {% endwith %}

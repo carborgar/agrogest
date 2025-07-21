@@ -7,7 +7,8 @@ from farm.views.views import FieldDashboardView, FieldCostView, TreatmentListVie
 from . import api_views
 from .views.expense_views import ExpenseListView, ExpenseFormView, ExpenseDeleteView, ExpenseTypeListView, \
     ExpenseTypeFormView, ExpenseTypeDeleteView
-from .views.product_views import ProductTypeListView, ProductTypeFormView, ProductTypeDeleteView
+from .views.product_views import ProductTypeListView, ProductTypeFormView, ProductTypeDeleteView, ProductListView, \
+    ProductFormView, ProductDeleteView
 from .views.field_views import FieldListView, FieldCreateView, FieldUpdateView, FieldDeleteView
 
 urlpatterns = [
@@ -46,6 +47,12 @@ urlpatterns = [
     path('productos/tipos/nuevo/', ProductTypeFormView.as_view(), name='product-type-create'),
     path('productos/tipos/<int:pk>/editar/', ProductTypeFormView.as_view(), name='product-type-edit'),
     path('productos/tipos/<int:pk>/eliminar/', ProductTypeDeleteView.as_view(), name='product-type-delete'),
+
+    # Product Management
+    path('productos/', ProductListView.as_view(), name='product-list'),
+    path('productos/nuevo/', ProductFormView.as_view(), name='product-create'),
+    path('productos/<int:pk>/editar/', ProductFormView.as_view(), name='product-edit'),
+    path('productos/<int:pk>/eliminar/', ProductDeleteView.as_view(), name='product-delete'),
 
     # API Endpoints
     path('api/fields/', api_views.get_fields, name='api-fields'),

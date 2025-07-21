@@ -48,9 +48,6 @@ class ProductListView(BaseSecureProductViewMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        queryset = context['products']  # ya filtrado
-        context['total_amount'] = queryset.aggregate(total=Sum('amount'))['total'] or 0
-
         # listas para los combos
         context['fields'] = Field.ownership_objects.get_queryset_for_user(self.request.user)
         context['product_types'] = ProductType.ownership_objects.get_queryset_for_user(self.request.user)
@@ -61,35 +58,35 @@ class ProductListView(BaseSecureProductViewMixin, ListView):
         return context
 
 
-# class ProductFormView(BaseSecureProductFormMixin, SuccessMessageMixin, UpdateView):
-#     """Unified view for creating and editing products"""
-#     model = Product
-#     form_class = ProductForm
-#     template_name = 'farm/products/product_form.html'
-#     success_url = reverse_lazy('product-list')
-#
-#     def get_object(self, queryset=None):
-#         """Return existing object for edit, or None for create"""
-#         if 'pk' in self.kwargs:
-#             return super().get_object(queryset)
-#         return None
-#
-#     def get_success_message(self, cleaned_data):
-#         if self.object and self.object.pk:
-#             return 'Producto actualizado con éxito.'
-#         return 'Producto creado con éxito.'
-#
-#     def get_form(self, form_class=None):
-#         form = super().get_form(form_class)
-#         # Filtrar parcelas y tipos de producto por usuario
-#         form.fields['field'].queryset = Field.ownership_objects.get_queryset_for_user(self.request.user)
-#         form.fields['product_type'].queryset = ProductType.ownership_objects.get_queryset_for_user(self.request.user)
-#         return form
-#
-#     def form_valid(self, form):
-#         # Asignar la organización del usuario al producto
-#         form.instance.organization = self.request.user.organization
-#         return super().form_valid(form)
+class ProductFormView(BaseSecureProductFormMixin, SuccessMessageMixin, UpdateView):
+    """Unified view for creating and editing products"""
+    model = Product
+    # form_class = ProductForm
+    template_name = 'farm/products/product_form.html'
+    success_url = reverse_lazy('product-list')
+
+    def get_object(self, queryset=None):
+        """Return existing object for edit, or None for create"""
+        if 'pk' in self.kwargs:
+            return super().get_object(queryset)
+        return None
+
+    def get_success_message(self, cleaned_data):
+        if self.object and self.object.pk:
+            return 'Producto actualizado con éxito.'
+        return 'Producto creado con éxito.'
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        # Filtrar parcelas y tipos de producto por usuario
+        form.fields['field'].queryset = Field.ownership_objects.get_queryset_for_user(self.request.user)
+        form.fields['product_type'].queryset = ProductType.ownership_objects.get_queryset_for_user(self.request.user)
+        return form
+
+    def form_valid(self, form):
+        # Asignar la organización del usuario al producto
+        form.instance.organization = self.request.user.organization
+        return super().form_valid(form)
 
 
 class ProductDeleteView(BaseSecureProductViewMixin, DeleteView):

@@ -232,6 +232,16 @@ class Product(OrganizationOwnedModel):
         # Check if any treatment products are using this expense type
         return not TreatmentProduct.objects.filter(product=self).exists()
 
+    def full_spraying_dose(self):
+        if not self.supports_spraying:
+            return None
+        return f"{self.spraying_dose} {self.get_dose_type_name('spraying')}"
+
+    def full_fertigation_dose(self):
+        if not self.supports_fertigation:
+            return None
+        return f"{self.fertigation_dose} {self.get_dose_type_name('fertigation')}"
+
 
 class Treatment(OrganizationOwnedModel, SoftDeleteObject):
     TYPE_CHOICES = [
