@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block header %}Producto{% endblock %}
+
+{% block sub_header %}Define y gestiona los productos que vas a usar en los tratamientos.{% endblock %}
+
+{% block actions %}
+<a class="btn btn-primary w-100 w-md-auto" href="{% url 'product-create' %}" type="button"><i
+        class="fa fa-plus me-1"></i>Nuevo producto</a>
+{% endblock %}
+
+{% block content %}
+
+{% if not products %}
+<div class="text-center py-5">
+    <div class="mb-4">
+        <i class="fa fa-receipt text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+    </div>
+    <h4 class="text-muted mb-3">No hay productos</h4>
+    <p class="text-muted mb-4 lead">Comienza creando tu primer producto para organizar mejor
+        tus
+        finanzas.</p>
+    <a class="btn btn-primary btn-lg shadow-sm" href="{% url 'product-create' %}">
+        <i class="fa fa-plus me-2"></i>Crear Primer Tipo
+    </a>
+</div>
+{% else %}
+<div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4">
+    {% for product in products %}
+    <div class="col">
+        <div class="card treatment-product-card h-100">
+            <div class="product-header">
+                <h5 class="product-name"> {{ product.name }}</h5>
+            </div>
+            <div class="card-body product-doses">
+                <div class="dose-item text-start">
+                    <div class="text-muted small">
+                        <span>{{ product.description|truncatechars:80 }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer product-card-footer pt-3">
+                <div class="d-flex gap-2">
+                    <a class="btn btn-outline-primary btn-sm flex-fill"
+                       href="{% url 'product-edit' product.pk %}">
+                        <i class="fa fa-edit me-1"></i>Editar
+                    </a>
+                    {% if product.can_be_deleted %}
+                    <button class="btn btn-outline-danger btn-sm"
+                            data-url="{% url 'product-delete' product.pk %}"
+                            onclick="confirmDelete(this)">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Formulario oculto para las acciones de eliminación -->
+<form class="d-none" id="deleteForm" method="POST">
+    {% csrf_token %}
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function confirmDelete(button) {
+        const url = button.getAttribute('data-url');
+        showConfirm({
+            text: 'Esta acción eliminará el producto de forma permanente y no se podrá deshacer.',
+            onConfirm: () => {
+                const form = document.getElementById('deleteForm');
+                form.action = url;
+                form.submit();
+            }
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+
+{% block header %}{{ form.instance.pk|yesno:"Editar,Nuevo" }} tipo de producto{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm border-0 rounded-lg">
+            <div class="card-header bg-primary text-white py-3">
+                <h2 class="mb-0 fs-3">{{ form.instance.pk|yesno:"Editar,Añadir" }} tipo de producto</h2>
+            </div>
+            <div class="card-body">
+                {% bootstrap_form_errors form %}
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="row">
+                        <div class="col-12">
+                            {% bootstrap_field form.name wrapper_class="mb-3" %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12">
+                            {% bootstrap_field form.description wrapper_class="mb-3" %}
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <a class="btn btn-secondary" href="{% url 'product-type-list' %}">
+                            <i class="fa fa-arrow-left"></i> Volver
+                        </a>
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fa fa-save"></i> {{ form.instance.pk|yesno:"Actualizar,Guardar" }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

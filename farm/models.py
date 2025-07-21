@@ -131,6 +131,10 @@ class ProductType(OrganizationOwnedModel):
     class Meta:
         ordering = ['name']
 
+    def can_be_deleted(self):
+        # Check if any products are using this expense type
+        return not Product.objects.filter(product_type=self).exists()
+
 
 class ExpenseType(OrganizationOwnedModel):
     name = models.CharField(max_length=100)
@@ -223,6 +227,10 @@ class Product(OrganizationOwnedModel):
         elif application_type == 'fertigation':
             return self.fertigation_dose
         return None
+
+    def can_be_deleted(self):
+        # Check if any treatment products are using this expense type
+        return not TreatmentProduct.objects.filter(product=self).exists()
 
 
 class Treatment(OrganizationOwnedModel, SoftDeleteObject):

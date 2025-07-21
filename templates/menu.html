@@ -40,6 +40,7 @@
 {% with expense_menus='expense-list expense-create expense-edit' %}
 {% with expense_type_menus='expense-type-list expense-type-create expense-type-edit' %}
 {% with field_costs_menus='field-costs' %}
+{% with product_type_menus='product-type-list product-type-create product-type-edit' %}
 
 <!-- Desktop Sidebar -->
 <div class="sidebar-desktop d-none d-md-block">
@@ -119,35 +120,32 @@
                             <i class="fa fa-tags"></i> Tipos de gasto
                         </a>
                     </li>
-                    {% comment %}
                     <li class="nav-item">
-                        <a aria-expanded="false" class="nav-link" data-bs-target="#reportesMenu"
-                           data-bs-toggle="collapse" href="#">
-                            <i class="fas fa-chart-bar"></i>
-                            Reportes
-                            <i class="fas fa-chevron-down chevron"></i>
+                        <a aria-expanded="{% if current_url in product_menus or current_url in product_type_menus %}true{%else%}false{% endif %}"
+                           class="nav-link"
+                           data-bs-target="#productosMenuDesktop" data-bs-toggle="collapse" href="#">
+                            <i class="fa fa-box"></i> Productos<i class="fas fa-chevron-down chevron"></i>
                         </a>
-                        <div class="collapse nav-submenu" id="reportesMenu">
+                        <div class="collapse nav-submenu {% if current_url in product_menus or current_url in product_type_menus %}show{% endif %}"
+                             id="productosMenuDesktop">
                             <ul class="nav flex-column">
+                                {% comment %}
                                 <li class="nav-item">
-                                    <a class="nav-link" href="#">Costos</a>
+                                    <a class="nav-link {% if current_url in product_menus %}active{% endif %}"
+                                       href="#">
+                                        <i class="fa fa-flask"></i> Productos
+                                    </a>
                                 </li>
+                                {% endcomment %}
                                 <li class="nav-item">
-                                    <a class="nav-link" href="#">Productividad</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" href="#">Comparativas</a>
+                                    <a class="nav-link {% if current_url in product_type_menus %}active{% endif %}"
+                                       href="{% url 'product-type-list' %}">
+                                        <i class="fa fa-tags"></i> Tipos de producto
+                                    </a>
                                 </li>
                             </ul>
                         </div>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">
-                            <i class="fas fa-warehouse"></i>
-                            Inventario
-                        </a>
-                    </li>
-                    {% endcomment %}
                 </ul>
             </div>
         </div>
@@ -262,12 +260,39 @@
                                 <i class="fa fa-tags"></i> Tipos de gasto
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a aria-expanded="{% if current_url in product_menus or current_url in product_type_menus %}true{%else%}false{% endif %}"
+                               class="nav-link"
+                               data-bs-target="#productosMenu" data-bs-toggle="collapse" href="#">
+                                <i class="fa fa-coins"></i>
+                                Productos
+                                <i class="fas fa-chevron-down chevron"></i>
+                            </a>
+                            <div class="collapse nav-submenu {% if current_url in product_menus or current_url in product_type_menus %}show{% endif %}"
+                                 id="productosMenu">
+                                <ul class="nav flex-column">
+<!--                                    <li class="nav-item">-->
+<!--                                        <a class="nav-link {% if current_url in product_menus %}active{% endif %}"-->
+<!--                                           href="#">-->
+<!--                                            <i class="fa fa-chart-bar"></i> Productos-->
+<!--                                        </a>-->
+<!--                                    </li>-->
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if current_url in product_type_menus %}active{% endif %}"
+                                           href="{% url 'product-type-list' %}">
+                                            <i class="fa fa-receipt"></i> Tipos de producto
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
                     </ul>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endwith %}
 {% endwith %}
 {% endwith %}
 {% endwith %}
