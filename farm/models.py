@@ -198,11 +198,11 @@ class Product(OrganizationOwnedModel):
 
     @property
     def supports_spraying(self):
-        return self.spraying_dose is not None and self.spraying_dose_type is not None
+        return self.spraying_dose and bool(self.spraying_dose_type)
 
     @property
     def supports_fertigation(self):
-        return self.fertigation_dose is not None and self.fertigation_dose_type is not None
+        return self.fertigation_dose and bool(self.fertigation_dose_type)
 
     def __str__(self):
         return self.name
