@@ -169,10 +169,69 @@ ESTILOS PARA LISTA
 }
 
 /* Grid de productos */
-.treatment-products-grid {
+/*.treatment-products-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1rem;
+}*/
+
+/* Product cards (unified desktop/mobile) */
+.treatment-products-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.treatment-product-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 2px solid var(--gray-200);
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.treatment-product-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.product-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.product-number {
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.dose-info {
+    background: var(--gray-100);
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+    color: var(--gray-600);
+}
+
+@media (max-width: 768px) {
+    .dose-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .treatment-product-card {
+        padding: 1rem;
+    }
 }
 
 /* Cards de productos */
