@@ -174,11 +174,11 @@ class Product(OrganizationOwnedModel):
     product_type = models.ForeignKey(ProductType, on_delete=models.RESTRICT)
 
     # Spraying-specific dose fields
-    spraying_dose = models.FloatField(null=True, blank=True)
+    spraying_dose = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     spraying_dose_type = models.CharField(max_length=20, choices=SPRAYING_DOSE_TYPE_CHOICES, blank=True)
 
     # Fertigation-specific dose fields
-    fertigation_dose = models.FloatField(null=True, blank=True)
+    fertigation_dose = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     fertigation_dose_type = models.CharField(max_length=20, choices=FERTIGATION_DOSE_TYPE_CHOICES, blank=True)
 
     comments = models.TextField(blank=True)
@@ -440,7 +440,7 @@ class Treatment(OrganizationOwnedModel, SoftDeleteObject):
 class TreatmentProduct(OrganizationOwnedModel, SoftDeleteObject):
     treatment = models.ForeignKey("Treatment", on_delete=models.CASCADE)
     product = models.ForeignKey("Product", on_delete=models.RESTRICT)
-    dose = models.DecimalField(max_digits=10, decimal_places=1)
+    dose = models.DecimalField(max_digits=10, decimal_places=2)
     dose_type = models.CharField(max_length=20)
     total_dose = models.DecimalField(max_digits=10, decimal_places=1)
     total_dose_unit = models.CharField(max_length=10, choices=[('L', 'Litros'), ('kg', 'Kilogramos')])

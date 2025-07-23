@@ -443,7 +443,7 @@
                     totalDose = (dose / 2000) * totalWater;
                 }
 
-                estimatedDoseInput.value = totalDose.toFixed(1);
+                estimatedDoseInput.value = totalDose.toFixed(2);
                 estimatedDoseUnit.textContent = unit;
             });
         }
@@ -482,7 +482,7 @@
                 dosePerHa = (totalDose * 2000) / totalWater;
             }
 
-            doseInput.value = dosePerHa.toFixed(1);
+            doseInput.value = dosePerHa.toFixed(2);
         }
 
         function handleDoseChange(event) {
