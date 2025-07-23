@@ -93,7 +93,7 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
         product_ids = self.request.GET.getlist('products')
         date_from = self.request.GET.get('date_from')
         date_to = self.request.GET.get('date_to')
-        product_type_filters = self.request.GET.getlist('product_type')
+        product_type_filters = self.request.GET.getlist('product_types')
 
         if field_ids:
             queryset = queryset.filter(field__id__in=field_ids)
