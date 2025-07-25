@@ -26,19 +26,27 @@ body {
     z-index: 1000;
     overflow-y: auto;
     transition: all 0.3s ease;
+    overflow-y: auto;
 }
 
-.sidebar-desktop::-webkit-scrollbar {
-    width: 6px;
+.desktop-menu-nav-container::-webkit-scrollbar {
+    width: 8px;
 }
 
-.sidebar-desktop::-webkit-scrollbar-track {
-    background: var(--sidebar-bg);
+.desktop-menu-nav-container::-webkit-scrollbar-track {
+    -webkit-border-radius: 10px;
+    border-radius: 10px;
+    background: transparent;
 }
 
-.sidebar-desktop::-webkit-scrollbar-thumb {
-    background: var(--border-color);
-    border-radius: 3px;
+.desktop-menu-nav-container::-webkit-scrollbar-thumb {
+    -webkit-border-radius: 10px;
+    border-radius: 10px;
+    background: #ADADAD;
+}
+
+.desktop-menu-nav-container::-webkit-scrollbar-thumb:window-inactive {
+    background: #ADADAD;
 }
 
 /* Main content adjustment for desktop */
