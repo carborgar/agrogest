@@ -2,10 +2,12 @@ from datetime import date as Datetime
 from decimal import Decimal, ROUND_UP
 
 from django import forms
+from django.core.exceptions import ValidationError
 from django.forms import BaseInlineFormSet
 from django.forms import inlineformset_factory
 
-from .models import Treatment, TreatmentProduct, Expense
+from core.forms import NoPlaceholderModelForm
+from .models import Treatment, TreatmentProduct, Expense, Product
 
 
 class TreatmentForm(forms.ModelForm):
@@ -121,3 +123,102 @@ class ExpenseForm(forms.ModelForm):
         # Formatear correctamente la fecha para el widget HTML5 date input cuando se edita
         elif self.instance.payment_date:
             self.initial['payment_date'] = self.instance.payment_date.strftime('%Y-%m-%d')
+
+
+class ProductForm(NoPlaceholderModelForm):
+    class Meta:
+        model = Product
+        fields = [
+            'name', 'product_type', 'comments', 'price',
+            'spraying_dose', 'spraying_dose_type',
+            'fertigation_dose', 'fertigation_dose_type'
+        ]
+        labels = {
+            'name': 'Nombre del producto',
+            'product_type': 'Tipo de producto',
+            'comments': 'Comentarios y notas',
+            'price': 'Precio por unidad (€)',
+            'spraying_dose': 'Dosis',
+            'spraying_dose_type': 'Tipo de dosis',
+            'fertigation_dose': 'Dosis',
+            'fertigation_dose_type': 'Tipo de dosis',
+        }
+        help_texts = {
+            'comments': 'Información adicional sobre el producto (opcional)',
+            'price': 'Precio por litro o kilogramo según corresponda',
+            'spraying_dose': 'Cantidad recomendada para pulverización',
+            'fertigation_dose': 'Cantidad recomendada para fertirrigación',
+        }
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'product_type': forms.Select(attrs={'class': 'form-select'}),
+            'comments': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'spraying_dose': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'spraying_dose_type': forms.Select(attrs={'class': 'form-select'}),
+            'fertigation_dose': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'fertigation_dose_type': forms.Select(attrs={'class': 'form-select'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Configurar choices para los tipos de dosis
+        self.fields['spraying_dose_type'].choices = [('', '---------')] + Product.SPRAYING_DOSE_TYPE_CHOICES
+        self.fields['fertigation_dose_type'].choices = [('', '---------')] + Product.FERTIGATION_DOSE_TYPE_CHOICES
+
+        # Hacer campos condicionales opcionales inicialmente
+        self.fields['spraying_dose'].required = False
+        self.fields['spraying_dose_type'].required = False
+        self.fields['fertigation_dose'].required = False
+        self.fields['fertigation_dose_type'].required = False
+
+    def clean_spraying_dose(self):
+        dose = self.cleaned_data.get('spraying_dose')
+        if dose is not None and dose <= 0:
+            raise ValidationError('La dosis debe ser mayor que cero.')
+        return dose
+
+    def clean_fertigation_dose(self):
+        dose = self.cleaned_data.get('fertigation_dose')
+        if dose is not None and dose <= 0:
+            raise ValidationError('La dosis debe ser mayor que cero.')
+        return dose
+
+    def clean_price(self):
+        price = self.cleaned_data.get('price')
+        if price is not None and price < 0:
+            raise ValidationError('El precio no puede ser negativo.')
+        return price
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        spraying_dose = cleaned_data.get('spraying_dose')
+        spraying_dose_type = cleaned_data.get('spraying_dose_type')
+        fertigation_dose = cleaned_data.get('fertigation_dose')
+        fertigation_dose_type = cleaned_data.get('fertigation_dose_type')
+
+        # Validar que al menos uno de los métodos esté configurado
+        has_spraying = spraying_dose and spraying_dose_type
+        has_fertigation = fertigation_dose and fertigation_dose_type
+
+        if not has_spraying and not has_fertigation:
+            raise ValidationError(
+                'El producto debe tener al menos una configuración válida (pulverización o fertirrigación). '
+                'Complete la dosis y el tipo de dosis para al menos uno de los métodos.'
+            )
+
+        # Validar pulverización: si tiene dosis, debe tener tipo y viceversa
+        if spraying_dose and not spraying_dose_type:
+            self.add_error('spraying_dose_type', 'Debe seleccionar el tipo de dosis para pulverización.')
+        elif spraying_dose_type and not spraying_dose:
+            self.add_error('spraying_dose', 'Debe especificar la dosis para pulverización.')
+
+        # Validar fertirrigación: si tiene dosis, debe tener tipo y viceversa
+        if fertigation_dose and not fertigation_dose_type:
+            self.add_error('fertigation_dose_type', 'Debe seleccionar el tipo de dosis para fertirrigación.')
+        elif fertigation_dose_type and not fertigation_dose:
+            self.add_error('fertigation_dose', 'Debe especificar la dosis para fertirrigación.')
+
+        return cleaned_data

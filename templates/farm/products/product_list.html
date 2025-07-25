@@ -7,12 +7,10 @@
 
 {% block sub_header %}Define y gestiona los productos que vas a usar en los tratamientos.{% endblock %}
 
-{% comment %}
 {% block actions %}
 <a class="btn btn-primary w-100 w-md-auto" href="{% url 'product-create' %}" type="button"><i
         class="fa fa-plus me-1"></i>Nuevo producto</a>
 {% endblock %}
-{% endcomment %}
 
 {% block content %}
 
@@ -49,7 +47,7 @@
                 <th>Dosis fertirrigación</th>
                 <th>Precio ud</th>
                 <th>Notas</th>
-<!--                <th class="text-center">Acciones</th>-->
+                <th class="text-center">Acciones</th>
             </tr>
             </thead>
             <tbody>
@@ -66,7 +64,6 @@
                         {{ product.comments|truncatechars:60 }}
                     </div>
                 </td>
-                {% comment %}
                 <td class="text-center">
                     <div class="btn-group" role="group">
                         <a class="btn btn-sm btn-outline-primary"
@@ -82,7 +79,6 @@
                         {% endif %}
                     </div>
                 </td>
-                {% endcomment %}
             </tr>
             {% endfor %}
             </tbody>

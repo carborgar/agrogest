@@ -1,10 +1,10 @@
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db.models.aggregates import Sum
 from django.urls import reverse_lazy
 from django.utils.dateparse import parse_date
 from django.views.generic import ListView, UpdateView, DeleteView
 
+from farm.forms import ProductForm
 from farm.mixins import OwnershipRequiredMixin, QuerysetFilterMixin, AuditableMixin
 from farm.models import Product, Field, ProductType
 
@@ -61,9 +61,13 @@ class ProductListView(BaseSecureProductViewMixin, ListView):
 class ProductFormView(BaseSecureProductFormMixin, SuccessMessageMixin, UpdateView):
     """Unified view for creating and editing products"""
     model = Product
-    # form_class = ProductForm
+    form_class = ProductForm
     template_name = 'farm/products/product_form.html'
     success_url = reverse_lazy('product-list')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.creating = False
 
     def get_object(self, queryset=None):
         """Return existing object for edit, or None for create"""
@@ -72,19 +76,19 @@ class ProductFormView(BaseSecureProductFormMixin, SuccessMessageMixin, UpdateVie
         return None
 
     def get_success_message(self, cleaned_data):
-        if self.object and self.object.pk:
-            return 'Producto actualizado con éxito.'
-        return 'Producto creado con éxito.'
+        if self.object and self.creating:
+            return 'Producto creado con éxito.'
+        return 'Producto actualizado con éxito.'
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
-        # Filtrar parcelas y tipos de producto por usuario
-        form.fields['field'].queryset = Field.ownership_objects.get_queryset_for_user(self.request.user)
+        # Filtrar tipos de producto por usuario
         form.fields['product_type'].queryset = ProductType.ownership_objects.get_queryset_for_user(self.request.user)
         return form
 
     def form_valid(self, form):
         # Asignar la organización del usuario al producto
+        self.creating = not form.instance.pk
         form.instance.organization = self.request.user.organization
         return super().form_valid(form)
 
