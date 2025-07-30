@@ -106,12 +106,19 @@ TreatmentProductFormSet = inlineformset_factory(
 class ExpenseForm(forms.ModelForm):
     class Meta:
         model = Expense
-        fields = ['field', 'expense_type', 'description', 'payment_date', 'amount']
+        fields = [
+            'field', 'expense_type', 'description', 'payment_date',
+            'calculation_mode', 'quantity', 'unit_price', 'price_per_ha', 'amount'
+        ]
         widgets = {
             'field': forms.Select(attrs={'class': 'form-select'}),
             'expense_type': forms.Select(attrs={'class': 'form-select'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'payment_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'calculation_mode': forms.Select(attrs={'class': 'form-select', 'id': 'id_calculation_mode'}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'unit_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'price_per_ha': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
             'amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
         }
 
@@ -123,6 +130,99 @@ class ExpenseForm(forms.ModelForm):
         # Formatear correctamente la fecha para el widget HTML5 date input cuando se edita
         elif self.instance.payment_date:
             self.initial['payment_date'] = self.instance.payment_date.strftime('%Y-%m-%d')
+
+        # Hacer que los campos condicionales no sean obligatorios inicialmente
+        self.fields['quantity'].required = False
+        self.fields['unit_price'].required = False
+        self.fields['price_per_ha'].required = False
+        self.fields['amount'].required = False
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Solo establecer fecha inicial para nuevos gastos
+        if not self.instance.pk:
+            self.fields['payment_date'].initial = Datetime.today().strftime('%Y-%m-%d')
+        # Formatear correctamente la fecha para el widget HTML5 date input cuando se edita
+        elif self.instance.payment_date:
+            self.initial['payment_date'] = self.instance.payment_date.strftime('%Y-%m-%d')
+
+        # Hacer que los campos condicionales no sean obligatorios inicialmente
+        self.fields['quantity'].required = False
+        self.fields['unit_price'].required = False
+        self.fields['price_per_ha'].required = False
+        self.fields['amount'].required = False
+
+    def clean(self):
+        cleaned_data = super().clean()
+        calculation_mode = cleaned_data.get('calculation_mode', 'total')
+        quantity = cleaned_data.get('quantity')
+        unit_price = cleaned_data.get('unit_price')
+        price_per_ha = cleaned_data.get('price_per_ha')
+        amount = cleaned_data.get('amount')
+        field = cleaned_data.get('field')
+
+        # Validaciones según el modo de cálculo
+        if calculation_mode == 'quantity_price':
+            if not quantity:
+                self.add_error('quantity', 'La cantidad es obligatoria cuando se usa cantidad × precio.')
+            if not unit_price:
+                self.add_error('unit_price', 'El precio unitario es obligatorio cuando se usa cantidad × precio.')
+            if quantity and unit_price:
+                # Calcular el amount automáticamente redondeado a 2 decimales
+                cleaned_data['amount'] = round(quantity * unit_price, 2)
+            # Limpiar campos no utilizados
+            cleaned_data['price_per_ha'] = None
+
+        elif calculation_mode == 'price_per_ha':
+            if not price_per_ha:
+                self.add_error('price_per_ha', 'El precio por hectárea es obligatorio en este modo.')
+            if not field:
+                self.add_error('field', 'La parcela es obligatoria para calcular por hectárea.')
+            if price_per_ha and field:
+                from decimal import Decimal
+
+                field_area = Decimal(str(field.area))
+                cleaned_data['amount'] = round(price_per_ha * field_area, 2)
+
+                # Guardar el snapshot del área para futura referencia
+                cleaned_data['field_area_snapshot'] = field_area
+            # Limpiar campos no utilizados
+            cleaned_data['quantity'] = None
+            cleaned_data['unit_price'] = None
+
+        elif calculation_mode == 'total':
+            if not amount:
+                self.add_error('amount', 'El importe total es obligatorio en este modo.')
+            # Limpiar campos no utilizados
+            cleaned_data['quantity'] = None
+            cleaned_data['unit_price'] = None
+            cleaned_data['price_per_ha'] = None
+
+        return cleaned_data
+
+    def clean_quantity(self):
+        quantity = self.cleaned_data.get('quantity')
+        if quantity is not None and quantity <= 0:
+            raise ValidationError('La cantidad debe ser mayor que cero.')
+        return quantity
+
+    def clean_unit_price(self):
+        unit_price = self.cleaned_data.get('unit_price')
+        if unit_price is not None and unit_price < 0:
+            raise ValidationError('El precio unitario no puede ser negativo.')
+        return unit_price
+
+    def clean_price_per_ha(self):
+        price_per_ha = self.cleaned_data.get('price_per_ha')
+        if price_per_ha is not None and price_per_ha < 0:
+            raise ValidationError('El precio por hectárea no puede ser negativo.')
+        return price_per_ha
+
+    def clean_amount(self):
+        amount = self.cleaned_data.get('amount')
+        if amount is not None and amount < 0:
+            raise ValidationError('El importe no puede ser negativo.')
+        return amount
 
 
 class ProductForm(NoPlaceholderModelForm):

@@ -101,6 +101,10 @@ footer {
     }
 }
 
+.required {
+    font-weight: 600 !important;
+}
+
 .required:after {
     content: " *";
     color: red;

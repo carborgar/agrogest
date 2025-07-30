@@ -1,3 +1,5 @@
+import json
+
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models.aggregates import Sum
@@ -86,6 +88,16 @@ class ExpenseFormView(BaseSecureExpenseFormMixin, SuccessMessageMixin, UpdateVie
         form.fields['field'].queryset = Field.ownership_objects.get_queryset_for_user(self.request.user)
         form.fields['expense_type'].queryset = ExpenseType.ownership_objects.get_queryset_for_user(self.request.user)
         return form
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Pasar información de las hectáreas de las parcelas para JavaScript
+        fields = Field.ownership_objects.get_queryset_for_user(self.request.user)
+        field_areas = {str(field.id): str(field.area) for field in fields}
+        context['field_areas'] = json.dumps(field_areas)
+
+        return context
 
     def form_valid(self, form):
         # Asignar la organización del usuario al gasto

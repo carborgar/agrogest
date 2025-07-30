@@ -68,7 +68,7 @@
 
                         <!-- Botón -->
                         <div class="col-md-2 d-flex align-items-end">
-                            <button class="btn btn-outline-primary btn-sm w-100" type="submit">
+                            <button class="btn btn-outline-primary btn-sm w-100 mt-3" type="submit">
                                 Filtrar
                             </button>
                         </div>
@@ -92,6 +92,7 @@
                                 <th>Parcela</th>
                                 <th>Tipo</th>
                                 <th>Descripción</th>
+                                <th>Cálculo</th>
                                 <th class="text-end">Cantidad</th>
                                 <th class="text-center">Acciones</th>
                             </tr>
@@ -108,10 +109,13 @@
                                     <span class="badge bg-primary">{{ expense.expense_type.name }}</span>
                                 </td>
                                 <td>
-                                    <div class="text-truncate" style="max-width: 300px;"
+                                    <div class="text-truncate" style="max-width: 200px;"
                                          title="{{ expense.description }}">
-                                        {{ expense.description|truncatechars:60 }}
+                                        {{ expense.description|truncatechars:40 }}
                                     </div>
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ expense.calculation_details }}</small>
                                 </td>
                                 <td class="text-end">
                                     <strong>{{ expense.amount|floatformat:2 }}€</strong>
@@ -136,11 +140,12 @@
                             </tbody>
                             <tfoot>
                             <tr>
-                                <td class="text-end fw-bold" colspan="4">
+                                <td class="text-end fw-bold" colspan="5">
                                     <i class="bi bi-calculator me-2"></i>
                                     TOTAL:
                                 </td>
                                 <td class="fw-bold fs-5 text-end ">{{ total_amount|floatformat:2 }} €</td>
+                                <td></td>
                             </tr>
                             </tfoot>
                         </table>

@@ -586,10 +586,57 @@ class Expense(OrganizationOwnedModel):
     Modelo para gestionar gastos no relacionados con productos y tratamientos.
     Incluye gastos como mano de obra, recibos de agua, cuota de comunidad de regantes, etc.
     """
+
+    CALCULATION_MODE_CHOICES = [
+        ('total', 'Importe total'),
+        ('quantity_price', 'Cantidad × Precio unitario'),
+        ('price_per_ha', 'Precio por hectárea'),
+    ]
+
     field = models.ForeignKey(Field, on_delete=models.RESTRICT, verbose_name="Parcela")
     expense_type = models.ForeignKey('ExpenseType', on_delete=models.RESTRICT, verbose_name="Tipo de gasto")
     description = models.TextField(verbose_name="Descripción")
     payment_date = models.DateField(verbose_name="Fecha de pago")
+
+    # Campos para diferentes modos de cálculo
+    calculation_mode = models.CharField(
+        max_length=20,
+        choices=CALCULATION_MODE_CHOICES,
+        default='total',
+        verbose_name='Modo de cálculo'
+    )
+
+    # Campos condicionales según el modo
+    quantity = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name='Cantidad'
+    )
+    unit_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name='Precio unitario (€)'
+    )
+    price_per_ha = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name='Precio por hectárea (€/ha)'
+    )
+    field_area_snapshot = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name='Hectáreas (snapshot)'
+    )
+
+    # El campo amount ahora puede ser calculado o directo
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Cantidad (€)")
 
     class Meta:
@@ -600,10 +647,71 @@ class Expense(OrganizationOwnedModel):
     def __str__(self):
         return f"{self.expense_type.name} - {self.field.name} - {self.amount}€"
 
+    def clean(self):
+        """Validación del modelo según el modo de cálculo"""
+        from django.core.exceptions import ValidationError
+
+        if self.calculation_mode == 'quantity_price':
+            if not self.quantity or not self.unit_price:
+                raise ValidationError({
+                    'quantity': 'La cantidad es obligatoria cuando se usa cantidad × precio.',
+                    'unit_price': 'El precio unitario es obligatorio cuando se usa cantidad × precio.'
+                })
+            if self.price_per_ha:
+                raise ValidationError({
+                    'price_per_ha': 'No debe especificar precio por hectárea en este modo.'
+                })
+
+        elif self.calculation_mode == 'price_per_ha':
+            if not self.price_per_ha:
+                raise ValidationError({
+                    'price_per_ha': 'El precio por hectárea es obligatorio en este modo.'
+                })
+            if self.quantity or self.unit_price:
+                raise ValidationError({
+                    'quantity': 'No debe especificar cantidad en este modo.',
+                    'unit_price': 'No debe especificar precio unitario en este modo.'
+                })
+
+        elif self.calculation_mode == 'total':
+            if self.quantity or self.unit_price or self.price_per_ha:
+                raise ValidationError({
+                    'quantity': 'No debe especificar cantidad en este modo.',
+                    'unit_price': 'No debe especificar precio unitario en este modo.',
+                    'price_per_ha': 'No debe especificar precio por hectárea en este modo.'
+                })
+
+    def save(self, *args, **kwargs):
+        """Calcula el amount según el modo de cálculo antes de guardar"""
+        from decimal import Decimal
+
+        # Guardar snapshot de hectáreas para cálculos por hectárea
+        if self.calculation_mode == 'price_per_ha' and self.field:
+            self.field_area_snapshot = Decimal(str(self.field.area))
+
+        if self.calculation_mode == 'quantity_price' and self.quantity and self.unit_price:
+            self.amount = self.quantity * self.unit_price
+        elif self.calculation_mode == 'price_per_ha' and self.price_per_ha and self.field_area_snapshot:
+            self.amount = self.price_per_ha * self.field_area_snapshot
+        # Si es 'total', el amount ya viene establecido directamente
+
+        super().save(*args, **kwargs)
+
     def can_be_deleted(self):
         # For now, expenses can always be deleted
         # This method follows the same pattern as Field.can_be_deleted()
         return True
+
+    @property
+    def calculation_details(self):
+        """Devuelve los detalles del cálculo para mostrar en templates"""
+        if self.calculation_mode == 'quantity_price':
+            return f"{self.quantity} × {self.unit_price}€"
+        elif self.calculation_mode == 'price_per_ha':
+            area = self.field_area_snapshot or self.field.area
+            return f"{self.price_per_ha}€/ha × {area}ha"
+        else:
+            return "Importe directo"
 
 
 class Harvest(OrganizationOwnedModel):
