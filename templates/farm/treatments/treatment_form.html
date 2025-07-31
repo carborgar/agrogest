@@ -47,7 +47,7 @@
                     </div>
 
                     <!-- Step 1: Información General -->
-                    <div class="step d-none" id="step1">
+                    <div class="step" id="step1">
                         <div class="card border-0 shadow-sm">
                             <div class="card-header bg-light py-3">
                                 <h3 class="m-0 fs-4 text-primary"><i class="fa-solid fa-circle-info"></i> Información
@@ -124,11 +124,10 @@
                     </div>
 
                     <!-- Step 2: Productos -->
-                    <div class="step" id="step2">
+                    <div class="step d-none" id="step2">
                         <div class="card border-0 shadow-sm">
                             <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center">
                                 <h3 class="m-0 fs-4 text-primary"><i class="fa-solid fa-box"></i> Productos</h3>
-                                PONER EL CARD COMO UN TEMPLATE HTML Y CAMBIAR EL JS PARA QUE LO CARGUE DE AHI Y ACTUALICE LOS NUMEROS
                             </div>
                             <div class="card-body">
                                 {{ products_formset.management_form }}
@@ -200,6 +199,53 @@
         </div>
     </div>
 </div>
+
+<template id="productRowTemplate">
+    <div class="treatment-product-card product-form">
+        <div class="product-card-header">
+            <div class="product-number"></div>
+            <button class="btn btn-sm btn-outline-danger rounded-circle remove-row" type="button">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
+
+        <input id="id_treatmentproduct_set-INDEX-id" name="treatmentproduct_set-INDEX-id" type="hidden">
+
+        <div class="row">
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="form-floating mb-3">
+                    <select class="form-select product-select"
+                            id="id_treatmentproduct_set-INDEX-product"
+                            name="treatmentproduct_set-INDEX-product">
+                        <option value="">Seleccione un producto</option>
+                    </select>
+                    <label>Producto</label>
+                </div>
+
+                <div class="dose-info d-none">
+                    <strong>Dosis recomendada:</strong>
+                    <span class="recommended-dose">-</span>
+                </div>
+            </div>
+            <div class="col-6 col-lg-4">
+                <div class="form-floating">
+                    <input class="form-control product-dose" id="id_treatmentproduct_set-INDEX-dose" name="treatmentproduct_set-INDEX-dose"
+                           step="0.01"
+                           type="number">
+                    <label>Dosis</label>
+                </div>
+            </div>
+            <div class="col-6 col-lg-4">
+                <div class="form-floating">
+                    <input class="form-control total-dose-input" id="id_treatmentproduct_set-INDEX-total_dose" name="treatmentproduct_set-INDEX-total_dose"
+                           step="0.01"
+                           type="number">
+                    <label>Total</label>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
 {% endblock %}
 
 {% block extra_js %}
@@ -211,6 +257,7 @@
         let formCount = parseInt(formContainer.dataset.formCount);
         let lastModifiedField = new Map(); // Para trackear el último campo modificado por fila
         const maxForms = parseInt('{{ products_formset.max_num }}');
+        const productTemplate = document.getElementById('productRowTemplate');
 
         // Elementos del formulario
         const elements = {
@@ -281,20 +328,8 @@
         }
 
         function resetProductsContainer() {
-            const cards = elements.productsContainer.querySelectorAll('.product-form:not(:first-child)');
-            cards.forEach(card => card.remove());
-
-            const firstCard = elements.productsContainer.querySelector('.product-form');
-            if (firstCard) {
-                firstCard.querySelector('.product-dose').value = '';
-                firstCard.querySelector('.total-dose-input').value = '';
-                firstCard.querySelector('.total-unit').textContent = '-';
-                firstCard.querySelector('.recommended-dose').textContent = '-';
-                firstCard.querySelector('.dose-info').classList.add('d-none');
-            }
-
-            formCount = 1;
-            elements.totalFormsInput.value = formCount;
+            // Simplemente inicializar de nuevo
+            initializeFirstRow();
             populateProductSelects();
         }
 
@@ -368,13 +403,11 @@
                 doseInput.value = product.dose;
                 recommendedDoseSpan.textContent = product.dose + ' ' + product.dose_type_display;
                 doseInfo.classList.remove('d-none');
-                unitSpan.textContent = product.dose_type.includes('kg') ? 'kg' : 'L';
             } else {
                 doseInput.value = '';
                 recommendedDoseSpan.textContent = '-';
                 doseInfo.classList.add('d-none');
                 totalInput.value = '';
-                unitSpan.textContent = '-';
             }
 
             calculateTotalDoses();
@@ -421,7 +454,6 @@
                 const productId = productSelect.value;
                 if (!productId || !getProduct(productId)) {
                     totalInput.value = '';
-                    unitSpan.textContent = '-';
                     return;
                 }
 
@@ -434,7 +466,6 @@
 
                 if (!dose) {
                     totalInput.value = '';
-                    unitSpan.textContent = '-';
                     return;
                 }
 
@@ -452,8 +483,8 @@
                     totalDose = (dose / 2000) * totalWater;
                 }
 
-                totalInput.value = totalDose.toFixed(1);
-                unitSpan.textContent = unit;
+                totalInput.value = totalDose.toFixed(2);
+
             });
         }
 
@@ -465,7 +496,7 @@
             lastModifiedField.set(rowIndex, 'total');
 
             const doseInput = row.querySelector('.product-dose');
-            const estimatedDoseInput = row.querySelector('.estimated-dose-input');
+            const estimatedDoseInput = row.querySelector('.total-dose-input');
             const productInput = row.querySelector('.product-select');
             const field = fields[elements.fieldSelect.value];
             const waterPerHa = parseFloat(elements.waterPerHaInput.value) || 0;
@@ -491,7 +522,7 @@
                 dosePerHa = (totalDose * 2000) / totalWater;
             }
 
-            doseInput.value = dosePerHa.toFixed(1);
+            doseInput.value = dosePerHa.toFixed(2);
         }
 
         function handleDoseChange(event) {
@@ -524,101 +555,20 @@
             input.addEventListener('input', limitDecimalPlaces);
         });
 
-        // Manejo de productos
-        function addProductRow() {
-            if (formCount >= maxForms) return alert('No se pueden añadir más productos');
+        function createProductRowFromTemplate(index) {
+            const clone = productTemplate.content.cloneNode(true);
 
-            const newCard = document.createElement('div');
-            newCard.className = 'treatment-product-card product-form';
-            newCard.setAttribute('data-form-index', formCount);
-
-            newCard.innerHTML = `
-                <div class="product-card-header">
-                    <div class="product-number">${formCount + 1}</div>
-                    <button class="btn btn-sm btn-outline-danger rounded-circle remove-row"
-                            type="button">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </div>
-
-                {{ form.id }}
-
-                <div class="row">
-                    <div class="col-12 col-md-6 col-lg-4">
-                        <div class="form-floating mb-3">
-                            {{ form.product|add_class:"form-select product-select" }}
-                            <label>Producto</label>
-                        </div>
-
-                        <div class="dose-info d-none">
-                            <strong>Dosis recomendada:</strong>
-                            <span class="recommended-dose">-</span>
-                        </div>
-                    </div>
-                    <div class="col-6 col-lg-4">
-                        <div class="form-floating">
-                            {{ form.dose|add_class:"form-control product-dose" }}
-                            <label>Dosis</label>
-                        </div>
-                    </div>
-                    <div class="col-6 col-lg-4">
-                        <div class="form-floating">
-                            {{ form.total_dose|add_class:"form-control total-dose-input" }}
-                            <label>Total</label>
-                        </div>
-                    </div>
-                </div>
-
-
-                <input type="hidden" name="treatmentproduct_set-${formCount}-id" id="id_treatmentproduct_set-${formCount}-id">
-
-                <div class="form-floating mb-3">
-                    <select class="form-select product-select" name="treatmentproduct_set-${formCount}-product"
-                            id="id_treatmentproduct_set-${formCount}-product">
-                        <option value="">Seleccione un producto</option>
-                    </select>
-                    <label>Producto</label>
-                </div>
-
-                <div class="dose-info d-none">
-                    <strong>Dosis recomendada:</strong>
-                    <span class="recommended-dose">-</span>
-                </div>
-
-                <div class="dose-grid">
-                    <div class="form-floating">
-                        <input type="number" class="form-control product-dose" step="0.01"
-                               name="treatmentproduct_set-${formCount}-dose"
-                               id="id_treatmentproduct_set-${formCount}-dose">
-                        <label>Dosis</label>
-                    </div>
-
-                    <div class="form-floating">
-                        <input type="number" class="form-control total-dose-input" step="0.01"
-                               name="treatmentproduct_set-${formCount}-total_dose"
-                               id="id_treatmentproduct_set-${formCount}-total_dose">
-                        <label>Total</label>
-                    </div>
-
-                    <div class="d-flex align-items-center justify-content-center">
-                        <span class="badge bg-primary total-unit">-</span>
-                    </div>
-                </div>
-            `;
-
-            // Eventos
-            newCard.querySelector('.product-select').addEventListener('change', updateProductInfo);
-            newCard.querySelector('.product-dose').addEventListener('input', handleDoseChange);
-            newCard.querySelector('.product-dose').addEventListener('input', limitDecimalPlaces);
-            newCard.querySelector('.total-dose-input').addEventListener('input', calculateDoseFromTotal);
-            newCard.querySelector('.total-dose-input').addEventListener('input', limitDecimalPlaces);
-            newCard.querySelector('.remove-row').addEventListener('click', () => {
-                newCard.remove();
-                updateFormIndexes();
+            clone.querySelectorAll('[name*="INDEX"], [id*="INDEX"]').forEach(el => {
+                ['name', 'id', 'for'].forEach(attr => {
+                    if (el.hasAttribute(attr)) {
+                        el.setAttribute(attr, el.getAttribute(attr).replace(/INDEX/g, index));
+                    }
+                });
             });
 
-            // Poblar productos
-            const productSelect = newCard.querySelector('.product-select');
+            clone.querySelector('.product-number').textContent = index + 1;
+
+            const productSelect = clone.querySelector('.product-select');
             for (const product of products.values()) {
                 const option = document.createElement('option');
                 option.value = product.id;
@@ -626,7 +576,44 @@
                 productSelect.appendChild(option);
             }
 
-            elements.productsContainer.appendChild(newCard);
+            return clone.firstElementChild;
+        }
+
+
+        // Función para añadir eventos a una fila
+        function addEventListenersToRow(row, index) {
+            const productSelect = row.querySelector('.product-select');
+            const doseInput = row.querySelector('.product-dose');
+            const totalInput = row.querySelector('.total-dose-input');
+            const removeBtn = row.querySelector('.remove-row');
+
+            productSelect.addEventListener('change', updateProductInfo);
+            doseInput.addEventListener('input', handleDoseChange);
+            doseInput.addEventListener('input', limitDecimalPlaces);
+            totalInput.addEventListener('input', (e) => {
+                lastModifiedField.set(index, 'total');
+                calculateDoseFromTotal(e);
+            });
+            totalInput.addEventListener('input', limitDecimalPlaces);
+            removeBtn.addEventListener('click', () => {
+                row.remove();
+                updateFormIndexes();
+                updateProductsIndexes();
+            });
+        }
+
+        // Manejo de productos
+        function addProductRow() {
+            if (formCount >= maxForms) return alert('No se pueden añadir más productos');
+
+            const newRow = createProductRowFromTemplate(formCount);
+            const container = document.createElement('div');
+            container.appendChild(newRow);
+            const rowElement = container.firstChild;
+
+            addEventListenersToRow(rowElement, formCount);
+
+            elements.productsContainer.appendChild(rowElement);
             elements.totalFormsInput.value = ++formCount;
         }
 
@@ -641,6 +628,30 @@
                 });
             });
             elements.totalFormsInput.value = formCount = document.querySelectorAll('.product-form').length;
+        }
+
+        function updateProductsIndexes() {
+            // recalculate all product-number based on the form count
+            document.querySelectorAll('.product-number').forEach((el, index) => {
+                el.textContent = index + 1;
+            });
+        }
+
+        function initializeFirstRow() {
+            // Limpiar el contenedor
+            elements.productsContainer.innerHTML = '';
+
+            // Añadir primera fila
+            const firstRow = createProductRowFromTemplate(0);
+            const container = document.createElement('div');
+            container.appendChild(firstRow);
+            const rowElement = container.firstChild;
+
+            addEventListenersToRow(rowElement, 0);
+            elements.productsContainer.appendChild(rowElement);
+
+            formCount = 1;
+            elements.totalFormsInput.value = formCount;
         }
 
         // Funcionalidad Step Form
@@ -832,6 +843,7 @@
         document.querySelectorAll('.remove-row').forEach(button => button.addEventListener('click', function() {
             this.closest('.product-form').remove();
             updateFormIndexes();
+            updateProductsIndexes();
         }));
 
         // Eventos para calcular dosis
@@ -842,7 +854,7 @@
         });
 
         document.querySelectorAll('.product-select').forEach(select => select.addEventListener('change', updateProductInfo));
-        document.querySelectorAll('.estimated-dose-input').forEach(input => {
+        document.querySelectorAll('.total-dose-input').forEach(input => {
             input.addEventListener('input', calculateDoseFromTotal);
             input.addEventListener('input', limitDecimalPlaces);
         });
@@ -861,6 +873,7 @@
         await loadFieldsData();
         await loadMachinesData();
         handleTreatmentTypeChange();
+        initializeFirstRow(); // Crear primera fila desde template
         checkStep1Completion();
 
     });
