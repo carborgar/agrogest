@@ -53,11 +53,11 @@
 
     <div class="collapse {% if forloop.first %}show{% endif %}" data-bs-parent="#listView"
          id="collapse{{ treatment.id }}">
-        <div class="treatment-body">
+        <div class="treatment-body p-4">
             <h4 class="treatment-products-title">Productos utilizados</h4>
-            <div class="treatment-products-grid">
+            <div class="treatment-products-grid row row-cols-sm-3 row-cols-lg-4 row-cols6">
                 {% for tp in treatment.treatmentproduct_set.all %}
-                <div class="treatment-product-card">
+                <div class="treatment-product-card col">
                     <div class="product-header">
                         <h5 class="product-name">{{ tp.product.name }}</h5>
                         <span class="product-type">{{ tp.product.product_type.name }}</span>
