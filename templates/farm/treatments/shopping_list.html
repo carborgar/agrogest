@@ -152,8 +152,8 @@
 
                 {% if is_paginated %}
                 {% with request.GET.urlencode as querystring %}
-                <div class="d-flex justify-content-center mt-3">
-                    {% bootstrap_pagination page_obj extra="&"|add:querystring %}
+                <div class="mt-3">
+                    {% bootstrap_pagination page_obj pages_to_show="5" extra="&"|add:querystring %}
                 </div>
                 {% endwith %}
                 {% endif %}

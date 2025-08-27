@@ -3,10 +3,8 @@
 <div class="treatment-item">
     <div class="treatment-status-bar bg-{{ treatment.state_class }}"></div>
 
-    <div aria-controls="collapse{{ treatment.id }}" aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
-         class="treatment-header"
-         data-bs-target="#collapse{{ treatment.id }}" data-bs-toggle="collapse">
-
+    <!-- Header no clickeable -->
+    <div class="treatment-header-fixed">
         <div class="treatment-main-info">
             <div class="treatment-icon-wrapper">
                 <div class="treatment-icon bg-{{ treatment.state_class }} bg-opacity-10">
@@ -38,42 +36,79 @@
             {% endif %}
         </div>
 
-        <div class="treatment-actions">
-            <a class="btn btn-outline-primary btn-sm treatment-detail-btn"
-               href="{% url 'treatment-detail' treatment.id %}">
-                <i class="fa fa-eye"></i>
-                Ver detalles
-            </a>
-        </div>
+        <!-- Sección de acciones separada -->
+        <div class="treatment-header-actions">
+            <div class="treatment-actions">
+                <div class="dropdown">
+                    <button aria-expanded="false"
+                            class="btn btn-outline-primary btn-sm dropdown-toggle treatment-action-btn"
+                            data-bs-toggle="dropdown"
+                            type="button">
+                        <i class="fa fa-cog"></i>
+                        Acciones
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <a class="dropdown-item" href="{% url 'treatment-detail' treatment.id %}">
+                                <i class="fa fa-eye me-2"></i>Ver detalles
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="#" onclick="editTreatment({{ treatment.id }})">
+                                <i class="fa fa-edit me-2"></i>Editar
+                            </a>
+                        </li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li>
+                            <a class="dropdown-item text-danger" href="#" onclick="deleteTreatment({{ treatment.id }})">
+                                <i class="fa fa-trash me-2"></i>Eliminar
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
 
-        <div class="treatment-expand-icon">
-            <i class="fa fa-chevron-down"></i>
+            <!-- Botón de expandir separado -->
+            <button aria-controls="collapse{{ treatment.id }}"
+                    aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
+                    class="treatment-expand-btn"
+                    data-bs-target="#collapse{{ treatment.id }}"
+                    data-bs-toggle="collapse"
+                    type="button">
+                <i class="fa fa-chevron-down"></i>
+            </button>
         </div>
     </div>
 
-    <div class="collapse {% if forloop.first %}show{% endif %}" data-bs-parent="#listView"
+    <!-- Contenido colapsable -->
+    <div class="collapse {% if forloop.first %}show{% endif %}"
+         data-bs-parent="#listView"
          id="collapse{{ treatment.id }}">
-        <div class="treatment-body p-4">
+        <div class="treatment-body">
             <h4 class="treatment-products-title">Productos utilizados</h4>
-            <div class="treatment-products-grid row row-cols-sm-3 row-cols-lg-4 row-cols6">
-                {% for tp in treatment.treatmentproduct_set.all %}
-                <div class="treatment-product-card col">
-                    <div class="product-header">
-                        <h5 class="product-name">{{ tp.product.name }}</h5>
-                        <span class="product-type">{{ tp.product.product_type.name }}</span>
-                    </div>
-                    <div class="product-doses">
-                        <div class="dose-item">
-                            <span class="dose-label">Dosis</span>
-                            <span class="dose-value">{{ tp.dose }} {{ tp.dose_type|dose_type }}</span>
+            <div class="container">
+                <div class="treatment-products-grid row row-cols-12 row-cols-sm-3 row-cols-lg-4">
+                    {% for tp in treatment.treatmentproduct_set.all %}
+                    <div class="treatment-product-card">
+                        <div class="product-header">
+                            <h5 class="product-name">{{ tp.product.name }}</h5>
+                            <span class="product-type">{{ tp.product.product_type.name }}</span>
                         </div>
-                        <div class="dose-item">
-                            <span class="dose-label">Total</span>
-                            <span class="dose-value">{{ tp.total_dose }} {{ tp.total_dose_unit }}</span>
+                        <div class="product-doses">
+                            <div class="dose-item">
+                                <span class="dose-label">Dosis</span>
+                                <span class="dose-value">{{ tp.dose }} {{ tp.dose_type|dose_type }}</span>
+                            </div>
+                            <div class="dose-item">
+                                <span class="dose-label">Total</span>
+                                <span class="dose-value">{{ tp.total_dose }} {{ tp.total_dose_unit }}</span>
+                            </div>
                         </div>
                     </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
             </div>
         </div>
     </div>
