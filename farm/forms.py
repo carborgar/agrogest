@@ -55,9 +55,9 @@ class TreatmentForm(forms.ModelForm):
             self.fields['fields'].widget = forms.HiddenInput()
             self.fields['fields'].required = False
         else:
-            # For new treatments, make the single field optional and multiple fields required
+            # For new treatments, make both fields optional but require at least one in clean()
             self.fields['field'].required = False
-            self.fields['fields'].required = True
+            self.fields['fields'].required = False
 
     def clean(self):
         cleaned_data = super().clean()
@@ -73,6 +73,13 @@ class TreatmentForm(forms.ModelForm):
                 raise forms.ValidationError('Debe seleccionar al menos una parcela.')
             if field and fields:
                 raise forms.ValidationError('No puede seleccionar tanto una parcela individual como múltiples parcelas.')
+            
+            # If single field is selected, clear the multiple fields to avoid conflicts
+            if field:
+                cleaned_data['fields'] = None
+            # If multiple fields are selected, clear the single field
+            elif fields:
+                cleaned_data['field'] = None
 
         if treatment_type == 'spraying':
             if not machine:
