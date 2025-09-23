@@ -2,7 +2,7 @@ from django.urls import path
 from django.views.generic import RedirectView
 
 from farm.views.views import FieldDashboardView, FieldCostView, TreatmentListView, TreatmentDetailView, \
-    TreatmentFormView, FinishTreatmentView, DeleteTreatmentView, TreatmentCalendarView, \
+    TreatmentFormView, TreatmentMultipleSuccessView, FinishTreatmentView, DeleteTreatmentView, TreatmentCalendarView, \
     TreatmentExportView, ShoppingListView
 from . import api_views
 from .views.expense_views import ExpenseListView, ExpenseFormView, ExpenseDeleteView, ExpenseTypeListView, \
@@ -18,8 +18,10 @@ urlpatterns = [
     path('tratamientos/', TreatmentListView.as_view(), name='treatment-list'),
     path('tratamientos/<int:pk>', TreatmentDetailView.as_view(), name='treatment-detail'),
     path('tratamientos/nuevo/', TreatmentFormView.as_view(), name='treatment-create'),
+    path('tratamientos/varios/exitoso/', TreatmentMultipleSuccessView.as_view(), name='treatment-multiple-success'),
     # path('tratamientos/<int:pk>/editar/', TreatmentFormView.as_view(), name='treatment-update'),
     path('tratamientos/<int:pk>/finalizar', FinishTreatmentView.as_view(), name='treatment-finish'),
+    path('tratamientos/<int:pk>/clonar/', TreatmentFormView.as_view(), name='treatment-clone'),
     path('tratamientos/<int:pk>/eliminar/', DeleteTreatmentView.as_view(), name='treatment-delete'),
     path('tratamientos/calendario/', TreatmentCalendarView.as_view(), name='treatment-calendar'),
     path('tratamientos/<int:pk>/operador/', TreatmentExportView.as_view(), name='treatment-instructions'),

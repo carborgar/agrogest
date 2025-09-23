@@ -170,16 +170,49 @@ class TreatmentFormView(BaseSecureViewMixin, SuccessMessageMixin, CreateView, Up
     form_class = TreatmentForm
     template_name = 'farm/treatments/treatment_form.html'
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
     def get_success_url(self):
-        return reverse('treatment-detail', kwargs={'pk': self.object.id})
+        # If multiple treatments were created, redirect to a summary page
+        if hasattr(self, 'created_treatments') and len(self.created_treatments) > 1:
+            treatment_ids = ','.join(str(t.id) for t in self.created_treatments)
+            return reverse('treatment-multiple-success') + f'?treatments={treatment_ids}'
+        else:
+            return reverse('treatment-detail', kwargs={'pk': self.object.id})
 
     def get_success_message(self, cleaned_data):
-        return f"Tratamiento '{cleaned_data['name']}' creado exitosamente"
+        if hasattr(self, 'created_treatments') and len(self.created_treatments) > 1:
+            return f"Se han creado {len(self.created_treatments)} tratamientos exitosamente"
+        else:
+            return f"Tratamiento '{cleaned_data['name']}' creado exitosamente"
 
     def get_object(self, queryset=None):
         if 'pk' in self.kwargs:
-            return super().get_object(queryset)
+            # Check if this is a clone operation
+            if 'clonar' in self.request.path:
+                # Get the original object but return None so it's treated as a create operation
+                self.original_treatment = super().get_object(queryset)
+                return None
+            else:
+                return super().get_object(queryset)
         return None
+
+    def get_initial(self):
+        initial = super().get_initial()
+        
+        # If cloning, populate with original treatment data
+        if hasattr(self, 'original_treatment') and self.original_treatment:
+            initial.update({
+                'name': f"{self.original_treatment.name} (Copia)",
+                'type': self.original_treatment.type,
+                'machine': self.original_treatment.machine,
+                'water_per_ha': self.original_treatment.water_per_ha,
+            })
+        
+        return initial
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -195,7 +228,23 @@ class TreatmentFormView(BaseSecureViewMixin, SuccessMessageMixin, CreateView, Up
             if self.object:  # Update operation
                 context['products_formset'] = TreatmentProductFormSet(instance=self.object)
             else:  # Create operation
-                context['products_formset'] = TreatmentProductFormSet()
+                # Check if this is a clone operation
+                if hasattr(self, 'original_treatment') and self.original_treatment:
+                    # Create initial data for products from original treatment
+                    original_products = self.original_treatment.treatmentproduct_set.all()
+                    initial_data = []
+                    for product in original_products:
+                        initial_data.append({
+                            'product': product.product,
+                            'dose': product.dose,
+                            'total_dose': product.total_dose,
+                        })
+                    
+                    context['products_formset'] = TreatmentProductFormSet(initial=initial_data)
+                    context['is_clone'] = True
+                    context['original_treatment'] = self.original_treatment
+                else:
+                    context['products_formset'] = TreatmentProductFormSet()
 
         return context
 
@@ -203,15 +252,80 @@ class TreatmentFormView(BaseSecureViewMixin, SuccessMessageMixin, CreateView, Up
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         form = self.get_form()
-        treatment_product_formset = TreatmentProductFormSet(request.POST, instance=self.object)
-
-        if form.is_valid() and treatment_product_formset.is_valid():
-            self.object = form.save()
-            treatment_product_formset.instance = self.object
-            treatment_product_formset.save()
-            return self.form_valid(form)
+        
+        # For updates, use existing logic
+        if self.object:
+            treatment_product_formset = TreatmentProductFormSet(request.POST, instance=self.object)
+            if form.is_valid() and treatment_product_formset.is_valid():
+                self.object = form.save()
+                treatment_product_formset.instance = self.object
+                treatment_product_formset.save()
+                return self.form_valid(form)
+            else:
+                return self.form_invalid(form)
+        
+        # For new treatments, handle multiple field creation
         else:
-            return self.form_invalid(form)
+            if form.is_valid():
+                selected_fields = form.cleaned_data.get('fields') or []
+                single_field = form.cleaned_data.get('field')
+                
+                # Use single field if multiple fields not provided
+                if not selected_fields and single_field:
+                    selected_fields = [single_field]
+                
+                created_treatments = []
+                
+                for field in selected_fields:
+                    # Create a new treatment instance for each field
+                    treatment_data = form.cleaned_data.copy()
+                    treatment_data['field'] = field
+                    # Remove the 'fields' key as it's not part of the model
+                    treatment_data.pop('fields', None)
+                    
+                    treatment = Treatment(**treatment_data)
+                    treatment.save()
+                    
+                    # Create products for this treatment
+                    treatment_product_formset = TreatmentProductFormSet(request.POST, instance=treatment)
+                    if treatment_product_formset.is_valid():
+                        treatment_product_formset.save()
+                        created_treatments.append(treatment)
+                    else:
+                        # If product formset is invalid, we need to show errors
+                        # For now, we'll just use the first treatment for error display
+                        if not created_treatments:
+                            self.object = treatment
+                        return self.form_invalid(form)
+                
+                # Store created treatments for success handling
+                self.created_treatments = created_treatments
+                self.object = created_treatments[0] if created_treatments else None
+                
+                return self.form_valid(form)
+            else:
+                return self.form_invalid(form)
+
+
+class TreatmentMultipleSuccessView(BaseSecureViewMixin, TemplateView):
+    template_name = 'farm/treatments/multiple_success.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        treatment_ids = self.request.GET.get('treatments', '').split(',')
+        
+        treatments = []
+        if treatment_ids and treatment_ids[0]:  # Check if not empty
+            try:
+                treatment_ids = [int(tid) for tid in treatment_ids if tid.strip()]
+                treatments = Treatment.ownership_objects.get_queryset_for_user(
+                    self.request.user
+                ).filter(id__in=treatment_ids)
+            except ValueError:
+                pass
+        
+        context['treatments'] = treatments
+        return context
 
 
 class TreatmentCalendarView(BaseSecureViewMixin, TemplateView):
