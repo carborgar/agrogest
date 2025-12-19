@@ -10,6 +10,7 @@ uvicorn
 whitenoise
 django-softdelete
 django-mathfilters
+sentry-sdk[django]
 
 # Dependencies for testing
 pytest
