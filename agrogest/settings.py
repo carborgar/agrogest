@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'widget_tweaks',
     'whitenoise.runserver_nostatic',
     'mathfilters',
+    'django.contrib.humanize',
 
 ]
 

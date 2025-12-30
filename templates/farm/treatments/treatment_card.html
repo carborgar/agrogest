@@ -1,9 +1,13 @@
 {% load custom_filters %}
 {% with state_class=treatment.state_class treatment_type=treatment.type_class %}
+{% load humanize %}
+
 <div class="col">
     <div class="card treatment-card position-relative">
         <div class="treatment-status-bar bg-{{ state_class }}"></div>
-        <div class="card-body ps-4 pt-3 pb-3">
+        <span class="bg-{{ state_class }} text-uppercase text-center text-white fw-bold py-1">{{ treatment.status_display }}</span>
+
+        <div class="card-body p-3">
             <div class="d-flex align-items-center mb-3">
                 <div class="treatment-icon bg-{{ state_class }} bg-opacity-10 me-3">
                     <i class="fas fa-{{treatment_type}} text-{{ state_class }}"></i>
@@ -13,50 +17,50 @@
                 </h5>
             </div>
 
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="badge bg-{{ state_class }} treatment-badge">{{ treatment.status_display }}</span>
-                <small class="text-muted">
-                    <i class="fa fa-calendar-day me-1"></i>
-                    {{ treatment.date|date:"d/m/Y" }}
-                </small>
-            </div>
+            <div class="px-1">
 
-            <hr class="my-3">
+                <div class="treatment-property">
+                    <span class="property-icon"><i class="fa fa-calendar-day me-1"></i></span>
+                    <span class="fw-light">Prog. {{ treatment.date|date:"d/m/Y" }}</span>
+                </div>
 
-            <div class="treatment-property">
-                <span class="property-icon"><i class="fa fa-location-dot"></i></span>
-                <span class="fw-semibold">{{ treatment.field.name }}</span>
-            </div>
+                <div class="treatment-property">
+                    <span class="property-icon"><i class="fa fa-calendar-day me-1"></i></span>
+                    <span class="fw-semibold">{{ treatment.date_status_display }}</span>
+                </div>
 
-            <div class="treatment-property">
-                <span class="property-icon"><i class="fa fa-wheat-awn"></i></span>
-                <span>{{ treatment.field.crop }} ({{ treatment.field.area }} ha)</span>
-            </div>
+                <hr class="my-3">
 
-            <div class="treatment-property">
-                <span class="property-icon"><i class="fa fa-{{treatment_type}}"></i></span>
-                <span>{{ treatment.get_type_display }}</span>
-            </div>
+                <div class="treatment-property">
+                    <span class="property-icon"><i class="fa fa-location-dot"></i></span>
+                    <span>{{ treatment.field.name }} ({{ treatment.field.area }} has)</span>
+                </div>
 
-            <!-- Productos utilizados -->
-            {% if treatment.treatmentproduct_set.all %}
-            <div class="treatment-property">
-                <span class="property-icon"><i class="fa fa-flask"></i></span>
-                <span>{{ treatment.treatmentproduct_set.all|length }} producto{{ treatment.treatmentproduct_set.all|length|pluralize }}</span>
-                <button class="btn btn-link btn-sm p-0 ms-2 text-{{ state_class }}"
-                        data-bs-target="#productsModal{{ treatment.id }}"
-                        data-bs-toggle="modal"
-                        title="Ver productos utilizados">
-                    <i class="fa fa-eye"></i>
-                </button>
-            </div>
-            {% endif %}
+                <div class="treatment-property">
+                    <span class="property-icon"><i class="fa fa-{{treatment_type}}"></i></span>
+                    <span>{{ treatment.get_type_display }}</span>
+                </div>
 
-            <div class="mt-3 d-grid gap-2">
-                <a class="btn btn-{{ state_class }} action-btn"
-                   href="{% url 'treatment-detail' treatment.id %}">
-                    <i class="fa fa-eye me-2"></i>Ver detalles
-                </a>
+                <!-- Productos utilizados -->
+                {% if treatment.treatmentproduct_set.all %}
+                <div class="treatment-property">
+                    <span class="property-icon"><i class="fa fa-flask"></i></span>
+                    <span>{{ treatment.treatmentproduct_set.all|length }} producto{{ treatment.treatmentproduct_set.all|length|pluralize }}</span>
+                    <button class="btn btn-link btn-sm p-0 ms-2 text-primary"
+                            data-bs-target="#productsModal{{ treatment.id }}"
+                            data-bs-toggle="modal"
+                            title="Ver productos utilizados">
+                        <i class="fa fa-eye"></i>
+                    </button>
+                </div>
+                {% endif %}
+
+                <div class="mt-3 d-grid gap-2">
+                    <a class="btn btn-primary action-btn"
+                       href="{% url 'treatment-detail' treatment.id %}">
+                        <i class="fa fa-eye me-2"></i>Ver detalles
+                    </a>
+                </div>
             </div>
         </div>
     </div>

@@ -2,8 +2,10 @@ from datetime import datetime
 from decimal import Decimal
 
 from django.db import models
+from django.utils.timezone import now
 
 from .managers import OwnershipManager
+
 
 class OrganizationOwnedModel(models.Model):
     """
@@ -433,6 +435,20 @@ class Treatment(OrganizationOwnedModel):
             self.real_water_per_ha = int(real_water_per_ha)
 
         self.save()
+
+    @property
+    def date_status_display(self):
+        if self.is_completed():
+            return f"Comp. el {self.finish_date.strftime('%d/%m/%Y')}"
+
+        today = now().date()
+        delta = (self.date - today).days
+        if delta > 0:
+            return f"En {delta} días"
+        elif delta < 0:
+            return f"Atrasado {-delta} días"
+        else:
+            return "Hoy"
 
 
 class TreatmentProduct(OrganizationOwnedModel):
