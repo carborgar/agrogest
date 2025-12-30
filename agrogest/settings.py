@@ -48,7 +48,6 @@ INSTALLED_APPS = [
     'django_bootstrap5',
     'widget_tweaks',
     'whitenoise.runserver_nostatic',
-    'softdelete',
     'mathfilters',
 
 ]

@@ -2,10 +2,8 @@ from datetime import datetime
 from decimal import Decimal
 
 from django.db import models
-from softdelete.models import SoftDeleteObject
 
 from .managers import OwnershipManager
-
 
 class OrganizationOwnedModel(models.Model):
     """
@@ -243,7 +241,7 @@ class Product(OrganizationOwnedModel):
         return f"{self.fertigation_dose} {self.get_dose_type_name('fertigation')}"
 
 
-class Treatment(OrganizationOwnedModel, SoftDeleteObject):
+class Treatment(OrganizationOwnedModel):
     TYPE_CHOICES = [
         ('fertigation', 'Fertirrigación'),
         ('spraying', 'Pulverización'),
@@ -437,7 +435,7 @@ class Treatment(OrganizationOwnedModel, SoftDeleteObject):
         self.save()
 
 
-class TreatmentProduct(OrganizationOwnedModel, SoftDeleteObject):
+class TreatmentProduct(OrganizationOwnedModel):
     treatment = models.ForeignKey("Treatment", on_delete=models.CASCADE)
     product = models.ForeignKey("Product", on_delete=models.RESTRICT)
     dose = models.DecimalField(max_digits=10, decimal_places=2)
