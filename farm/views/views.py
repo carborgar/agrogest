@@ -4,6 +4,7 @@ from decimal import Decimal
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db import transaction
+from django.db.models import Count, Q
 from django.db.models import Sum
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
@@ -36,7 +37,22 @@ class FieldDashboardView(BaseSecureViewMixin, ListView):
     context_object_name = "fields"
 
     def get_queryset(self):
-        return Field.ownership_objects.get_queryset_for_user(self.request.user)
+        return (
+            Field.ownership_objects.get_queryset_for_user(self.request.user)
+            .annotate(
+                pending_treatments_count=Count(
+                    "treatment",
+                    filter=Q(treatment__status=Treatment.STATUS_PENDING)
+                ),
+                delayed_treatments_count=Count(
+                    "treatment",
+                    filter=Q(treatment__status=Treatment.STATUS_DELAYED)
+                ),
+            )
+        )
+
+    # def get_queryset(self):
+    #    return Field.ownership_objects.get_queryset_for_user(self.request.user)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -45,8 +61,8 @@ class FieldDashboardView(BaseSecureViewMixin, ListView):
         # Calcula el total de hectáreas
         total_area = fields.aggregate(Sum('area'))['area__sum']
 
-        total_pending_treatments = sum(field.pending_treatments_count() for field in fields)
-        total_delayed_treatments = sum(field.delayed_treatments_count() for field in fields)
+        total_pending_treatments = sum(f.pending_treatments_count for f in fields)
+        total_delayed_treatments = sum(f.delayed_treatments_count for f in fields)
 
         context['total_area'] = total_area
         context['pending_treatments_count'] = total_pending_treatments
