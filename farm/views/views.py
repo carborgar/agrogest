@@ -85,7 +85,16 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
     ordering = ['-date']
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = (
+            super()
+            .get_queryset()
+            .select_related(
+                "field",
+            )
+            .prefetch_related(
+                "treatmentproduct_set__product__product_type",
+            )
+        )
 
         field_ids = self.request.GET.getlist('field')
         type_filters = self.request.GET.getlist('type')
@@ -142,6 +151,19 @@ class TreatmentDetailView(BaseSecureViewMixin, DetailView):
     model = Treatment
     template_name = 'farm/treatments/treatment_detail.html'
     context_object_name = 'treatment'
+
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .select_related(
+                "field",
+                "machine",
+            )
+            .prefetch_related(
+                "treatmentproduct_set__product__product_type",
+            )
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

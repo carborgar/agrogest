@@ -10,6 +10,7 @@ uvicorn
 whitenoise
 django-mathfilters
 sentry-sdk[django]
+django-debug-toolbar
 
 # Dependencies for testing
 pytest
