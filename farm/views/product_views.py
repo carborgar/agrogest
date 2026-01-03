@@ -1,12 +1,13 @@
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
+from django.db.models import Exists, OuterRef
 from django.urls import reverse_lazy
 from django.utils.dateparse import parse_date
 from django.views.generic import ListView, UpdateView, DeleteView
 
 from farm.forms import ProductForm
 from farm.mixins import OwnershipRequiredMixin, QuerysetFilterMixin, AuditableMixin
-from farm.models import Product, Field, ProductType
+from farm.models import Product, Field, ProductType, TreatmentProduct
 
 
 class BaseSecureProductViewMixin(OwnershipRequiredMixin, QuerysetFilterMixin):
@@ -27,7 +28,13 @@ class ProductListView(BaseSecureProductViewMixin, ListView):
     ordering = ['-payment_date']
 
     def get_queryset(self):
-        qs = super().get_queryset()
+        qs = (
+            super().get_queryset()
+            .select_related("product_type")
+            .annotate(
+                has_treatments=Exists(TreatmentProduct.objects.filter(product=OuterRef('pk')))
+            )
+        )
 
         field_id = self.request.GET.get('field')  # <select name="field">
         type_id = self.request.GET.get('type')  # <select name="type">
@@ -108,6 +115,13 @@ class ProductTypeListView(BaseSecureProductViewMixin, ListView):
     template_name = 'farm/products/product_type_list.html'
     context_object_name = 'product_types'
     ordering = ['name']
+
+    def get_queryset(self):
+        qs = super().get_queryset().order_by("name")
+        qs = qs.annotate(
+            has_products=Exists(Product.objects.filter(product_type=OuterRef('pk')))
+        )
+        return qs
 
 
 class ProductTypeFormView(BaseSecureProductFormMixin, SuccessMessageMixin, UpdateView):

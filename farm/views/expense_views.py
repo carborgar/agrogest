@@ -2,6 +2,7 @@ import json
 
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
+from django.db.models import Exists, OuterRef
 from django.db.models.aggregates import Sum
 from django.urls import reverse_lazy
 from django.utils.dateparse import parse_date
@@ -120,6 +121,13 @@ class ExpenseTypeListView(BaseSecureExpenseViewMixin, ListView):
     template_name = 'farm/expenses/expense_type_list.html'
     context_object_name = 'expense_types'
     ordering = ['name']
+
+    def get_queryset(self):
+        qs = super().get_queryset().order_by("name")
+        qs = qs.annotate(
+            has_expenses=Exists(Expense.objects.filter(expense_type=OuterRef('pk')))
+        )
+        return qs
 
 
 class ExpenseTypeFormView(BaseSecureExpenseFormMixin, SuccessMessageMixin, UpdateView):

@@ -34,7 +34,7 @@
             <div class="card-body product-doses">
                 <div class="dose-item text-start">
                     <div class="text-muted small">
-                        <span>{{ product_type.description|truncatechars:80 }}</span>
+                        <span>{{ product_type.description|default:"Sin descripción"|truncatechars:80 }}</span>
                     </div>
                 </div>
             </div>
@@ -44,7 +44,7 @@
                        href="{% url 'product-type-edit' product_type.pk %}">
                         <i class="fa fa-edit me-1"></i>Editar
                     </a>
-                    {% if product_type.can_be_deleted %}
+                    {% if not product_type.has_products %}
                     <button class="btn btn-outline-danger btn-sm"
                             data-url="{% url 'product-type-delete' product_type.pk %}"
                             onclick="confirmDelete(this)">

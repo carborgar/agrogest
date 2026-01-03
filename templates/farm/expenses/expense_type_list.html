@@ -46,7 +46,7 @@
                        href="{% url 'expense-type-edit' expense_type.pk %}">
                         <i class="fa fa-edit me-1"></i>Editar
                     </a>
-                    {% if expense_type.can_be_deleted %}
+                    {% if not expense_type.has_expenses %}
                     <button class="btn btn-outline-danger btn-sm"
                             data-url="{% url 'expense-type-delete' expense_type.pk %}"
                             onclick="confirmDelete(this)">

@@ -70,7 +70,7 @@
                            href="{% url 'product-edit' product.id %}" title="Editar">
                             <i class="fa fa-edit"></i>
                         </a>
-                        {% if product.can_be_deleted %}
+                        {% if not product.has_treatments %}
                         <button class="btn btn-sm btn-outline-danger"
                                 data-url="{% url 'product-delete' product.id %}"
                                 onclick="confirmDelete(this)" title="Eliminar">
@@ -124,7 +124,7 @@
                        href="{% url 'product-edit' product.pk %}">
                         <i class="fa fa-edit me-1"></i>Editar
                     </a>
-                    {% if product.can_be_deleted %}
+                    {% if not product.has_treatments %}
                     <button class="btn btn-outline-danger btn-sm"
                             data-url="{% url 'product-delete' product.pk %}"
                             onclick="confirmDelete(this)">
