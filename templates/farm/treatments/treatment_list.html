@@ -8,6 +8,13 @@
 <div class="row g-4">
     <!-- Panel de filtros -->
     <div class="col-lg-3">
+
+        <div class="mb-3 d-grid gap-2">
+            <a class="btn btn-block btn-primary action-btn" href="{% url 'treatment-create' %}">
+                <i class="fa fa-plus-circle"></i>Nuevo tratamiento
+            </a>
+        </div>
+
         <form method="GET">
             <!-- Filtro por parcelas -->
             <div class="filter-panel">
@@ -200,11 +207,6 @@
             </div>
         </form>
 
-        <div class="mt-3 d-grid gap-2">
-            <a class="btn btn-block btn-primary action-btn" href="{% url 'treatment-create' %}">
-                <i class="fa fa-plus-circle"></i>Nuevo tratamiento
-            </a>
-        </div>
     </div>
 
     <!-- Results -->
