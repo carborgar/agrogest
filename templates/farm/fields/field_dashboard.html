@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load custom_filters %}
+{% load django_bootstrap5 %}
 {% load static %}
 
 {% block title %}Panel de control{% endblock %}
@@ -80,7 +81,67 @@
     </div>
 </div>
 
-{% include 'farm/treatments/calendar_fragment.html' %}
+<div class="row">
+    <div class="col-12 col-lg-6 mb-3">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center flex-nowrap">🔥 Tratamientos
+                atrasados
+                <a class="text-nowrap small text-decoration-none"
+                   href="{% url 'treatment-list' %}?status=delayed&date_from=&date_to=">
+                    Ver todos
+                </a>
+            </div>
+            <div class="card-body pb-1">
+                {% for treatment in delayed_treatments %}
+                {% include 'farm/fields/_treatment_alert.html' %}
+                {% empty %}
+                <p class="text-muted text-center py-3">
+                    <i class="fas fa-check-circle fa-2x mb-2 d-block"></i>
+                    No hay tratamientos atrasados
+                </p>
+                {% endfor %}
+
+                {% if delayed_treatments.has_other_pages %}
+                <div class="mt-3">
+                    {# @formatter:off #}
+                    {% bootstrap_pagination delayed_treatments parameter_name="delayed_page" pages_to_show="5" extra=upcoming_page_param %}
+                    {# @formatter:on #}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-6 mb-3">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center flex-nowrap">
+                <span class="text-nowrap">📅 Próximos {{ upcoming_days }} días</span>
+                <a class="text-nowrap small text-decoration-none"
+                   href="{% url 'treatment-list' %}?status=pending&date_from=&date_to=">
+                    Ver todos
+                </a>
+            </div>
+            <div class="card-body pb-1">
+                {% for treatment in upcoming_treatments %}
+                {% include 'farm/fields/_treatment_alert.html' %}
+                {% empty %}
+                <p class="text-muted text-center py-3">
+                    <i class="fas fa-check-circle fa-2x mb-2 d-block"></i>
+                    No hay tratamientos programados
+                </p>
+                {% endfor %}
+
+                {% if upcoming_treatments.has_other_pages %}
+                <div class="mt-3">
+                    {# @formatter:off #}
+                    {% bootstrap_pagination upcoming_treatments parameter_name="upcoming_page" pages_to_show="5" extra=upcoming_page_param %}
+                    {# @formatter:on #}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
 
 {% endblock %}
 

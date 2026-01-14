@@ -1,10 +1,11 @@
 import logging
+from datetime import timedelta
 from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
+from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Count, Q
 from django.db.models import Sum
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
@@ -36,23 +37,11 @@ class FieldDashboardView(BaseSecureViewMixin, ListView):
     template_name = "farm/fields/field_dashboard.html"
     context_object_name = "fields"
 
-    def get_queryset(self):
-        return (
-            Field.ownership_objects.get_queryset_for_user(self.request.user)
-            .annotate(
-                pending_treatments_count=Count(
-                    "treatment",
-                    filter=Q(treatment__status=Treatment.STATUS_PENDING)
-                ),
-                delayed_treatments_count=Count(
-                    "treatment",
-                    filter=Q(treatment__status=Treatment.STATUS_DELAYED)
-                ),
-            )
-        )
+    # Configuración de paginación para tratamientos
+    treatments_per_page = 5
 
-    # def get_queryset(self):
-    #    return Field.ownership_objects.get_queryset_for_user(self.request.user)
+    def get_queryset(self):
+        return Field.ownership_objects.get_queryset_for_user(self.request.user)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -61,12 +50,30 @@ class FieldDashboardView(BaseSecureViewMixin, ListView):
         # Calcula el total de hectáreas
         total_area = fields.aggregate(Sum('area'))['area__sum']
 
-        total_pending_treatments = sum(f.pending_treatments_count for f in fields)
-        total_delayed_treatments = sum(f.delayed_treatments_count for f in fields)
+        # Redondear a 2 decimales para evitar problemas de precisión flotante
+        context['total_area'] = round(total_area, 2) if total_area else 0
 
-        context['total_area'] = total_area
-        context['pending_treatments_count'] = total_pending_treatments
-        context['delayed_treatments_count'] = total_delayed_treatments
+        # Base queryset para tratamientos
+        base_treatments = Treatment.objects.filter(field__in=fields).select_related('field')
+
+        # Obtener tratamientos atrasados (ordenados por fecha, más antiguos primero)
+        delayed_treatments_qs = base_treatments.filter(
+            status=Treatment.STATUS_DELAYED
+        ).order_by('date')
+
+        # Obtener próximos tratamientos pendientes (ordenados por fecha, más próximos primero)
+        today = timezone.now().date()
+        upcoming_days = 15
+        upcoming_limit_date = today + timedelta(days=upcoming_days)
+
+        upcoming_treatments_qs = base_treatments.filter(
+            status=Treatment.STATUS_PENDING,
+            date__range=(today, upcoming_limit_date)
+        ).order_by('date')
+
+        # Contar totales de forma eficiente (una sola query para cada estado)
+        context['delayed_treatments_count'] = delayed_treatments_qs.count()
+        context['pending_treatments_count'] = upcoming_treatments_qs.count()
 
         treatment_types = Treatment.TYPE_CHOICES
 
@@ -79,7 +86,29 @@ class FieldDashboardView(BaseSecureViewMixin, ListView):
         context['treatment_types'] = treatment_types
         context['type_map'] = type_map
 
-        # TODO: esto no se debe hacer así. Es mejor incluir la carga de valores en el API y cargarlo por JS
+        # Paginación para tratamientos atrasados
+        delayed_page = self.request.GET.get('delayed_page', 1)
+        delayed_paginator = Paginator(delayed_treatments_qs, self.treatments_per_page)
+        delayed_page_obj = delayed_paginator.get_page(delayed_page)
+
+        # Paginación para próximos tratamientos
+        upcoming_page = self.request.GET.get('upcoming_page', 1)
+        upcoming_paginator = Paginator(upcoming_treatments_qs, self.treatments_per_page)
+        upcoming_page_obj = upcoming_paginator.get_page(upcoming_page)
+
+        context['delayed_treatments'] = delayed_page_obj
+        context['delayed_total'] = delayed_paginator.count
+        context['delayed_showing'] = len(delayed_page_obj)
+
+        context['upcoming_treatments'] = upcoming_page_obj
+        context['upcoming_total'] = upcoming_paginator.count
+        context['upcoming_showing'] = len(upcoming_page_obj)
+
+        # Parámetros para mantener ambas paginaciones en los links
+        context['delayed_page_param'] = f"delayed_page={delayed_page}" if delayed_page != '1' else ""
+        context['upcoming_page_param'] = f"upcoming_page={upcoming_page}" if upcoming_page != '1' else ""
+
+        context['upcoming_days'] = upcoming_days
 
         return context
 

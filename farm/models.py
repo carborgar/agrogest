@@ -450,6 +450,30 @@ class Treatment(OrganizationOwnedModel):
         else:
             return "Hoy"
 
+    @property
+    def days_delayed(self):
+        if self.status == self.STATUS_DELAYED:
+            return (datetime.now().date() - self.date).days
+        return 0
+
+    @property
+    def days_until(self):
+        if self.status == self.STATUS_PENDING:
+            return (self.date - datetime.now().date()).days
+        return 0
+
+    @property
+    def alert_level(self):
+        if self.status == self.STATUS_PENDING:
+            return 'info'
+        if self.status == self.STATUS_COMPLETED:
+            return 'success'
+        else:
+            if self.days_delayed <= 14:
+                return 'warning'
+            else:
+                return 'danger'
+
 
 class TreatmentProduct(OrganizationOwnedModel):
     treatment = models.ForeignKey("Treatment", on_delete=models.CASCADE)

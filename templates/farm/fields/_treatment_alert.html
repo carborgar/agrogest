@@ -1,0 +1,17 @@
+<div class="alert alert-{{ treatment.alert_level }} border-0 border-start border-4 border-{{ treatment.alert_level }} bg-{{ treatment.alert_level }}-subtle d-flex justify-content-between align-items-center"
+     role="alert">
+    <div>
+        <h5 class="alert-heading mb-1">{{ treatment.name }}</h5>
+        <small class="text-muted">
+            {{ treatment.date|date:"d/m/Y" }} ·
+            {{ treatment.date_status_display }} ·
+            {{ treatment.field.name }} ·
+            {{ treatment.field.area }} has
+        </small>
+    </div>
+
+    <a class="btn btn-sm btn-outline-{{ treatment.alert_level }}"
+       href="{% url 'treatment-detail' treatment.id %}">
+        Ver
+    </a>
+</div>
