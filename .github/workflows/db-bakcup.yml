@@ -1,0 +1,41 @@
+name: DB Backup
+
+on:
+  schedule:
+    - cron: "0 3 * * *"   # diario
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install postgres client
+        run: sudo apt-get install -y postgresql-client
+
+      - name: Install rclone
+        run: curl https://rclone.org/install.sh | sudo bash
+
+      - name: Create rclone config
+        run: |
+          mkdir -p ~/.config/rclone
+          cat > ~/.config/rclone/rclone.conf << EOF
+          [r2]
+          type = s3
+          provider = Cloudflare
+          access_key_id = ${{ secrets.R2_ACCESS_KEY_ID }}
+          secret_access_key = ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          endpoint = https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          EOF
+
+      - name: Backup database
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          set -e
+          FILE=backup_$(date +%F_%H-%M).sql.gz
+          pg_dump "$DATABASE_URL" --no-owner --no-acl | gzip > $FILE
+          rclone copy $FILE r2:$BUCKET/
+          # eliminar backups más antiguos de 30 días
+          rclone delete r2:$BUCKET --min-age 30d
