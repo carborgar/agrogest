@@ -27,15 +27,59 @@ class TreatmentForm(forms.ModelForm):
         required=False
     )
 
+    # New field for multiple field selection
+    fields = forms.ModelMultipleChoiceField(
+        queryset=None,  # Will be set in __init__
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
+        required=False,
+        label="Parcelas",
+        help_text="Seleccione una o más parcelas para aplicar este tratamiento"
+    )
+
     class Meta:
         model = Treatment
         fields = ['name', 'type', 'date', 'field', 'machine', 'water_per_ha', 'finish_date']
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        # Set queryset for fields based on user's organization
+        if user:
+            from .models import Field
+            self.fields['fields'].queryset = Field.ownership_objects.get_queryset_for_user(user)
+            self.fields['field'].queryset = Field.ownership_objects.get_queryset_for_user(user)
+        
+        # If this is an edit form, hide the multiple fields selector and keep the single field
+        if self.instance and self.instance.pk:
+            self.fields['fields'].widget = forms.HiddenInput()
+            self.fields['fields'].required = False
+        else:
+            # For new treatments, make both fields optional but require at least one in clean()
+            self.fields['field'].required = False
+            self.fields['fields'].required = False
 
     def clean(self):
         cleaned_data = super().clean()
         treatment_type = cleaned_data.get('type')
         machine = cleaned_data.get('machine')
         water_per_ha = cleaned_data.get('water_per_ha')
+        field = cleaned_data.get('field')
+        fields = cleaned_data.get('fields')
+
+        # For new treatments, validate that either single field or multiple fields are selected
+        if not self.instance or not self.instance.pk:
+            if not field and not fields:
+                raise forms.ValidationError('Debe seleccionar al menos una parcela.')
+            if field and fields:
+                raise forms.ValidationError('No puede seleccionar tanto una parcela individual como múltiples parcelas.')
+            
+            # If single field is selected, clear the multiple fields to avoid conflicts
+            if field:
+                cleaned_data['fields'] = None
+            # If multiple fields are selected, clear the single field
+            elif fields:
+                cleaned_data['field'] = None
 
         if treatment_type == 'spraying':
             if not machine:

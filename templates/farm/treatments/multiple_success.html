@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% load custom_filters %}
+
+{% block title %}Tratamientos Creados{% endblock %}
+
+{% block header %}Tratamientos Creados Exitosamente{% endblock %}
+{% block sub_header %}Se han creado {{ treatments|length }} tratamientos{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-success d-flex align-items-center" role="alert">
+            <i class="fa fa-check-circle me-3 fs-4"></i>
+            <div>
+                <h4 class="alert-heading">¡Éxito!</h4>
+                <p class="mb-0">Se han creado {{ treatments|length }} tratamientos exitosamente. Cada tratamiento se aplicará en su parcela correspondiente.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0"><i class="fa fa-list me-2"></i>Tratamientos Creados</h3>
+            </div>
+            <div class="card-body p-0">
+                {% if treatments %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Parcela</th>
+                                <th>Tipo</th>
+                                <th>Fecha</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for treatment in treatments %}
+                            <tr>
+                                <td>
+                                    <strong>{{ treatment.name }}</strong>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ treatment.field.name }}</span>
+                                    <small class="text-muted d-block">{{ treatment.field.area }} ha</small>
+                                </td>
+                                <td>
+                                    <i class="fa fa-{{ treatment.type_class }} me-1"></i>
+                                    {{ treatment.get_type_display }}
+                                </td>
+                                <td>{{ treatment.date|date:"d/m/Y" }}</td>
+                                <td>
+                                    <span class="badge bg-{{ treatment.state_class }}">
+                                        {{ treatment.status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{% url 'treatment-detail' treatment.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fa fa-eye me-1"></i>Ver Detalles
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="p-4 text-center text-muted">
+                    <i class="fa fa-exclamation-triangle fa-2x mb-3"></i>
+                    <p>No se encontraron tratamientos.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="d-flex gap-2">
+            <a href="{% url 'treatment-list' %}" class="btn btn-primary">
+                <i class="fa fa-list me-2"></i>Ver Todos los Tratamientos
+            </a>
+            <a href="{% url 'treatment-create' %}" class="btn btn-success">
+                <i class="fa fa-plus me-2"></i>Crear Otro Tratamiento
+            </a>
+            <a href="{% url 'field_list' %}" class="btn btn-outline-secondary">
+                <i class="fa fa-map me-2"></i>Volver a Parcelas
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
