@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+
+{% block header %}{% if form.instance.pk %}Editar cosecha{% else %}Registrar cosecha{% endif %}{% endblock %}
+
+{% block sub_header %}{% if form.instance.pk %}Modifica los datos del registro de cosecha.{% else %}Anota los kg recogidos hoy. El precio puedes añadirlo después.{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-md-8 col-lg-6">
+    <div class="card shadow-sm border-0 rounded-lg">
+      <div class="card-header bg-primary text-white py-3">
+        <h2 class="mb-0 fs-4">{% if form.instance.pk %}Editar cosecha{% else %}Nueva cosecha{% endif %}</h2>
+      </div>
+      <div class="card-body">
+        {% bootstrap_form_errors form %}
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          <div class="row g-3">
+            <div class="col-12">
+              {% bootstrap_field form.field wrapper_class="mb-0" %}
+            </div>
+            <div class="col-6">
+              {% bootstrap_field form.date wrapper_class="mb-0" %}
+            </div>
+            <div class="col-6">
+              {% bootstrap_field form.amount wrapper_class="mb-0" %}
+            </div>
+          </div>
+
+          <hr class="my-4">
+
+          {# Precio pendiente #}
+          <div class="d-flex align-items-center gap-3 p-3 rounded-3 border mb-3"
+               id="pendingToggleBox"
+               style="background: var(--bs-warning-bg-subtle, #fff3cd); border-color: var(--bs-warning-border-subtle, #ffc107) !important;">
+            <div class="form-check form-switch mb-0">
+              {{ form.price_pending }}
+            </div>
+            <div>
+              <label class="form-check-label fw-semibold mb-0" for="{{ form.price_pending.id_for_label }}">
+                Precio aún no conocido
+              </label>
+              <div class="small text-muted">Podrás añadirlo más adelante editando este registro</div>
+            </div>
+          </div>
+
+          <div id="priceInputWrap">
+            {% bootstrap_field form.sale_price_per_kg wrapper_class="mb-0" %}
+          </div>
+
+          <hr class="my-4">
+
+          {% bootstrap_field form.notes wrapper_class="mb-0" %}
+
+          <div class="d-flex justify-content-between mt-4">
+            <a class="btn btn-secondary" href="{% url 'harvest-summary' %}">
+              <i class="fa fa-arrow-left me-1"></i>Volver
+            </a>
+            <button class="btn btn-primary" type="submit">
+              <i class="fa fa-save me-1"></i>{% if form.instance.pk %}Guardar cambios{% else %}Registrar{% endif %}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const pricePending = document.getElementById('{{ form.price_pending.id_for_label }}');
+    const priceWrap    = document.getElementById('priceInputWrap');
+
+    function sync() {
+      if (!pricePending || !priceWrap) return;
+      priceWrap.style.display = pricePending.checked ? 'none' : '';
+      if (pricePending.checked) {
+        const inp = priceWrap.querySelector('input');
+        if (inp) inp.value = '';
+      }
+    }
+
+    if (pricePending) {
+      pricePending.addEventListener('change', sync);
+      sync();
+    }
+  });
+</script>
+{% endblock %}

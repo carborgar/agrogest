@@ -7,7 +7,7 @@ from django.forms import BaseInlineFormSet
 from django.forms import inlineformset_factory
 
 from core.forms import NoPlaceholderModelForm
-from .models import Treatment, TreatmentProduct, Expense, Product
+from .models import Treatment, TreatmentProduct, Expense, Product, Harvest, Field
 
 
 class TreatmentForm(forms.ModelForm):
@@ -322,3 +322,63 @@ class ProductForm(NoPlaceholderModelForm):
             self.add_error('fertigation_dose', 'Debe especificar la dosis para fertirrigación.')
 
         return cleaned_data
+
+
+class HarvestForm(NoPlaceholderModelForm):
+    class Meta:
+        model = Harvest
+        # No guardamos área por cosecha: solo kg. El kg/ha se calculará en el resumen por parcela.
+        fields = ['field', 'date', 'amount', 'sale_price_per_kg', 'price_pending', 'notes']
+        labels = {
+            'field': 'Parcela',
+            'date': 'Fecha',
+            'amount': 'Cantidad (kg)',
+            'sale_price_per_kg': 'Precio de venta (€/kg)',
+            'price_pending': 'Precio aún no conocido',
+            'notes': 'Notas',
+        }
+        widgets = {
+            'field': forms.Select(attrs={'class': 'form-select'}),
+            'date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '1', 'min': '0'}),
+            'sale_price_per_kg': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'price_pending': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.instance.pk:
+            self.fields['date'].initial = Datetime.today().strftime('%Y-%m-%d')
+        elif self.instance.date:
+            self.initial['date'] = self.instance.date.strftime('%Y-%m-%d')
+
+    def clean_amount(self):
+        amount = self.cleaned_data.get('amount')
+        if amount is None or amount < 0:
+            raise ValidationError('La cantidad recogida debe ser un número entero positivo')
+        return amount
+
+    def clean(self):
+        cleaned = super().clean()
+        price_pending = cleaned.get('price_pending')
+        price = cleaned.get('sale_price_per_kg')
+
+        if price_pending and price:
+            # Si el usuario marca pending, ignorar el precio y dejarlo vacío
+            cleaned['sale_price_per_kg'] = None
+
+        # Prevent future dates by default (keep consistent with other forms)
+        date = cleaned.get('date')
+        if date and date > Datetime.today():
+            self.add_error('date', 'La fecha de cosecha no puede ser en el futuro')
+
+        return cleaned
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        # organization asignada en model.save()
+        if commit:
+            obj.save()
+        return obj
+

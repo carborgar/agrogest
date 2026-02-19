@@ -10,6 +10,7 @@ from .views.expense_views import ExpenseListView, ExpenseFormView, ExpenseDelete
 from .views.product_views import ProductTypeListView, ProductTypeFormView, ProductTypeDeleteView, ProductListView, \
     ProductFormView, ProductDeleteView
 from .views.field_views import FieldListView, FieldCreateView, FieldUpdateView, FieldDeleteView
+from .views.harvest_views import HarvestFormView, HarvestSummaryView, HarvestDeleteView
 
 urlpatterns = [
     path("", RedirectView.as_view(url="/parcelas/vistazo/", permanent=False), name="home"),
@@ -24,6 +25,11 @@ urlpatterns = [
     path('tratamientos/calendario/', TreatmentCalendarView.as_view(), name='treatment-calendar'),
     path('tratamientos/<int:pk>/operador/', TreatmentExportView.as_view(), name='treatment-instructions'),
     path('tratamientos/lista-compra/', ShoppingListView.as_view(), name='treatment-shopping-list'),
+
+    path('cosechas/nuevo/', HarvestFormView.as_view(), name='harvest-create'),
+    path('cosechas/resumen/', HarvestSummaryView.as_view(), name='harvest-summary'),
+    path('cosechas/<int:pk>/editar/', HarvestFormView.as_view(), name='harvest-edit'),
+    path('cosechas/<int:pk>/eliminar/', HarvestDeleteView.as_view(), name='harvest-delete'),
 
     path('adm/field/', FieldListView.as_view(), name='field-list'),
     path('adm/field/create/', FieldCreateView.as_view(), name='field-create'),

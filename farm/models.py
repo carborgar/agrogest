@@ -175,11 +175,11 @@ class Product(OrganizationOwnedModel):
 
     # Spraying-specific dose fields
     spraying_dose = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    spraying_dose_type = models.CharField(max_length=20, choices=SPRAYING_DOSE_TYPE_CHOICES, blank=True)
+    spraying_dose_type = models.CharField(max_length=20, choices=SPRAYING_DOSE_TYPE_CHOICES, blank=True, null=True)
 
     # Fertigation-specific dose fields
     fertigation_dose = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    fertigation_dose_type = models.CharField(max_length=20, choices=FERTIGATION_DOSE_TYPE_CHOICES, blank=True)
+    fertigation_dose_type = models.CharField(max_length=20, choices=FERTIGATION_DOSE_TYPE_CHOICES, blank=True, null=True)
 
     comments = models.TextField(blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -755,4 +755,45 @@ class Expense(OrganizationOwnedModel):
 class Harvest(OrganizationOwnedModel):
     field = models.ForeignKey(Field, on_delete=models.RESTRICT)
     date = models.DateField()
-    amount = models.FloatField()  # kg o toneladas
+    amount = models.IntegerField()  # kg
+
+    # Precio de venta por kg — puede ser desconocido en el momento del registro
+    sale_price_per_kg = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True,
+                                            help_text='Precio de venta por kg (opcional)')
+    price_pending = models.BooleanField(default=False, help_text='Marcar si el precio de venta aún está pendiente')
+
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"Cosecha {self.field.name} {self.date} - {self.amount} kg"
+
+    def save(self, *args, **kwargs):
+        # Asignar la organización automáticamente
+        if self.field_id and (not getattr(self, 'organization', None)):
+            self.organization = self.field.organization
+
+        # Si price_pending está marcado, forzar sale_price_per_kg a None
+        if self.price_pending:
+            self.sale_price_per_kg = None
+
+        super().save(*args, **kwargs)
+
+    def income(self):
+        """Retorna el ingreso calculado para esta cosecha, o None si no hay precio."""
+        if self.sale_price_per_kg is None:
+            return None
+        return Decimal(str(self.sale_price_per_kg)) * Decimal(str(self.amount))
+
+    def kg_per_ha(self):
+        """Calcula kg/ha para este registro usando el área de la parcela asociada si está disponible."""
+        try:
+            area = Decimal(str(self.field.area))
+            if area and area > 0:
+                return (Decimal(str(self.amount)) / area)
+        except Exception:
+            return None
+        return None
+

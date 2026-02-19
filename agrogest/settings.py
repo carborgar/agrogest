@@ -50,7 +50,7 @@ INSTALLED_APPS = [
     'whitenoise.runserver_nostatic',
     'mathfilters',
     'django.contrib.humanize',
-    'debug_toolbar',
+    # debug_toolbar removed from static list; add conditionally below
 
 ]
 
@@ -66,7 +66,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'accounts.middleware.UserTrackingMiddleware',
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
+    # debug toolbar middleware added conditionally below
 
 ]
 
@@ -204,3 +204,10 @@ if not DEBUG:
         # run the profiler on when there is an active transaction
         profile_lifecycle="trace",
     )
+
+# Añadir debug_toolbar si está disponible y si estamos en DEBUG
+import importlib
+if DEBUG and importlib.util.find_spec('debug_toolbar') is not None:
+    INSTALLED_APPS.append('debug_toolbar')
+    # Insert middleware lo más arriba posible para que funcione correctamente
+    MIDDLEWARE.insert(0, 'debug_toolbar.middleware.DebugToolbarMiddleware')

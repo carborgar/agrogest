@@ -1,0 +1,396 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% load django_bootstrap5 %}
+
+{% block header %}Resumen de cosechas{% endblock %}
+
+{% block actions %}
+<a class="btn btn-primary w-100 w-md-auto" href="{% url 'harvest-create' %}">
+  <i class="fa fa-plus me-1"></i>Registrar cosecha
+</a>
+{% endblock %}
+
+{% block content %}
+
+{# ── FILTROS ─────────────────────────────────────────────────────── #}
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body py-3">
+    <form method="get">
+      <div class="row g-3 align-items-end">
+        <div class="col-12 col-md-5">
+          <label class="form-label small fw-semibold text-muted mb-1">Parcela(s)</label>
+          <select name="field" class="form-select choices-init" multiple aria-label="Filtrar por parcela">
+            {% for f in fields %}
+              <option value="{{ f.id }}" {% if f.id|stringformat:"s" in selected_field_ids %}selected{% endif %}>
+                {{ f.name }} ({{ f.area }} ha)
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small fw-semibold text-muted mb-1" for="date_from">Desde</label>
+          <input id="date_from" type="date" name="date_from" value="{{ active_date_from }}" class="form-control">
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small fw-semibold text-muted mb-1" for="date_to">Hasta</label>
+          <input id="date_to" type="date" name="date_to" value="{{ active_date_to }}" class="form-control">
+        </div>
+        <div class="col-6 col-md-2">
+          <button class="btn btn-primary w-100" type="submit">
+            <i class="fa fa-search me-1"></i>Filtrar
+          </button>
+        </div>
+        <div class="col-6 col-md-1">
+          <a class="btn btn-outline-secondary w-100" href="{% url 'harvest-summary' %}" title="Año actual">
+            <i class="fa fa-rotate-left"></i>
+          </a>
+        </div>
+      </div>
+      {# Accesos rápidos de año #}
+      <div class="d-flex flex-wrap gap-2 mt-3">
+        <span class="small text-muted align-self-center me-1">Año rápido:</span>
+        {% for y in quick_years %}
+        <button type="button" data-year="{{ y }}"
+                class="btn btn-sm quick-year-btn {% if active_date_from == y|stringformat:'s'|add:'-01-01' and active_date_to == y|stringformat:'s'|add:'-12-31' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+          {{ y }}
+        </button>
+        {% endfor %}
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ── MÉTRICAS ─────────────────────────────────────────────────────── #}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body d-flex align-items-center gap-3 py-3">
+        <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0" style="width:42px;height:42px">
+          <i class="fa fa-weight-hanging text-success"></i>
+        </div>
+        <div class="min-w-0">
+          <div class="small text-muted lh-1 mb-1">Total recogido</div>
+          <div class="fs-5 fw-bold lh-1">{{ total_kg|floatformat:0|intcomma }} <span class="fs-6 fw-normal text-muted">kg</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body d-flex align-items-center gap-3 py-3">
+        <div class="rounded-circle bg-info bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0" style="width:42px;height:42px">
+          <i class="fa fa-map text-info"></i>
+        </div>
+        <div class="min-w-0">
+          <div class="small text-muted lh-1 mb-1">Área total</div>
+          <div class="fs-5 fw-bold lh-1">{{ total_area }} <span class="fs-6 fw-normal text-muted">ha</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body d-flex align-items-center gap-3 py-3">
+        <div class="rounded-circle bg-warning bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0" style="width:42px;height:42px">
+          <i class="fa fa-chart-bar text-warning"></i>
+        </div>
+        <div class="min-w-0">
+          <div class="small text-muted lh-1 mb-1">Kg / Ha</div>
+          <div class="fs-5 fw-bold lh-1">
+            {% if kg_per_ha_overall %}{{ kg_per_ha_overall|floatformat:1 }}{% else %}—{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body d-flex align-items-center gap-3 py-3">
+        <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0" style="width:42px;height:42px">
+          <i class="fa fa-euro-sign text-primary"></i>
+        </div>
+        <div class="min-w-0">
+          <div class="small text-muted lh-1 mb-1">Ingresos estimados</div>
+          <div class="fs-5 fw-bold lh-1">{{ income|floatformat:2 }} <span class="fs-6 fw-normal text-muted">€</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ── DESGLOSE + REGISTROS ─────────────────────────────────────────── #}
+<div class="row g-3">
+
+  {# Desglose por parcela — oculto si solo hay una parcela seleccionada #}
+  {% if not single_field_selected %}
+  <div class="col-12 col-lg-4">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-transparent border-bottom py-2 px-3">
+        <span class="fw-semibold"><i class="fa fa-layer-group me-2 text-muted"></i>Por parcela</span>
+      </div>
+      <div class="card-body p-0">
+        {% for fg in field_groups %}
+        <div class="px-3 py-3 {% if not forloop.last %}border-bottom{% endif %}">
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <div class="min-w-0">
+              <div class="fw-semibold text-truncate">{{ fg.name }}</div>
+              <small class="text-muted">{{ fg.area }} ha</small>
+            </div>
+            <div class="text-end flex-shrink-0">
+              <div class="fw-bold">{{ fg.total_kg|floatformat:0|intcomma }} <span class="fw-normal text-muted small">kg</span></div>
+              {% if fg.kg_per_ha %}
+              <div class="text-success fw-semibold">{{ fg.kg_per_ha|floatformat:0 }} <span class="fw-normal text-muted small">kg/ha</span></div>
+              {% else %}
+              <div class="text-muted small">— kg/ha</div>
+              {% endif %}
+              {% if fg.income %}
+              <div class="text-muted small">€ {{ fg.income|floatformat:2 }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% empty %}
+        <div class="text-muted px-3 py-4 text-center">No hay datos</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {# Registros — único markup para todos los tamaños #}
+  <div class="col-12 {% if not single_field_selected %}col-lg-8{% endif %}">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-transparent border-bottom py-2 px-3 d-flex justify-content-between align-items-center">
+        <span class="fw-semibold"><i class="fa fa-list me-2 text-muted"></i>Registros</span>
+        <span class="badge bg-secondary" id="harvest-count">{{ harvests|length }}</span>
+      </div>
+      {# Cabecera de columnas — visible desde sm #}
+      <div class="d-none d-sm-flex align-items-center gap-2 px-3 py-1 border-bottom bg-light" style="font-size:.8rem">
+        <div class="flex-shrink-0 text-muted" style="min-width:40px">Fecha</div>
+        <div class="flex-grow-1 text-muted">Parcela / Nota</div>
+        <div class="flex-shrink-0 d-flex gap-3">
+          <div class="text-end text-muted" style="min-width:60px">Kg</div>
+          <div class="text-end text-muted" style="min-width:58px">€/kg</div>
+          <div class="text-end text-muted" style="min-width:68px">Ingreso</div>
+        </div>
+        <div class="flex-shrink-0 ms-1" style="min-width:38px"></div>
+      </div>
+
+      {# Lista unificada — funciona en móvil y desktop #}
+      <div id="harvest-list">
+        {% for h in harvests %}
+        <div class="harvest-row {% if not forloop.last %}border-bottom{% endif %}" data-index="{{ forloop.counter0 }}">
+          <div class="d-flex align-items-center gap-2 px-3 py-2">
+
+          {# Fecha #}
+          <div class="flex-shrink-0 text-center" style="min-width:40px">
+            <div class="fw-bold lh-1" style="font-size:.95rem">{{ h.date|date:"d" }}</div>
+            <div class="text-muted text-uppercase lh-1" style="font-size:.75rem">{{ h.date|date:"M" }}</div>
+          </div>
+
+          {# Parcela #}
+          <div class="flex-grow-1 min-w-0">
+            <div class="fw-semibold text-truncate lh-1">{{ h.field.name }}</div>
+            {% if h.notes %}
+            <div class="text-muted mt-1 lh-sm" style="font-size:.85rem">{{ h.notes|truncatechars:80 }}</div>
+            {% endif %}
+          </div>
+
+          {# Columnas de datos #}
+          <div class="flex-shrink-0 d-flex align-items-center gap-3">
+
+            {# kg #}
+            <div class="text-end" style="min-width:60px">
+              <div class="fw-semibold lh-1">{{ h.amount|floatformat:0|intcomma }}</div>
+              <div class="text-muted lh-1" style="font-size:.78rem">kg</div>
+            </div>
+
+            {# €/kg #}
+            <div class="text-end d-none d-sm-block" style="min-width:58px">
+              {% if h.sale_price_per_kg %}
+                <div class="lh-1">{{ h.sale_price_per_kg|floatformat:2 }}</div>
+                <div class="text-muted lh-1" style="font-size:.78rem">€/kg</div>
+              {% elif h.price_pending %}
+                <span class="badge bg-warning text-dark" style="font-size:.72rem">pendiente</span>
+              {% else %}
+                <div class="text-muted lh-1">—</div>
+                <div class="text-muted lh-1" style="font-size:.78rem">€/kg</div>
+              {% endif %}
+            </div>
+
+            {# Ingreso #}
+            <div class="text-end d-none d-sm-block" style="min-width:68px">
+              {% if h.income %}
+                <div class="text-success fw-semibold lh-1">{{ h.income|floatformat:2 }}</div>
+                <div class="text-muted lh-1" style="font-size:.78rem">€</div>
+              {% else %}
+                <div class="text-muted lh-1">—</div>
+                <div class="text-muted lh-1" style="font-size:.78rem">€</div>
+              {% endif %}
+            </div>
+
+          </div>
+
+            {# Acción — siempre a la derecha, centrado vertical #}
+            <div class="flex-shrink-0 ms-1 d-flex gap-1">
+              <a class="btn btn-sm btn-outline-primary" href="{% url 'harvest-edit' h.pk %}">
+                <i class="fa fa-pen"></i>
+              </a>
+              <button class="btn btn-sm btn-outline-danger"
+                      data-url="{% url 'harvest-delete' h.pk %}"
+                      onclick="confirmDelete(this)">
+                <i class="fa fa-trash"></i>
+              </button>
+            </div>
+
+          </div>
+          {# En móvil (< sm) mostramos precio e ingreso como badges debajo #}
+          {% if h.sale_price_per_kg or h.price_pending or h.income %}
+          <div class="d-flex d-sm-none flex-wrap gap-1 px-3 pb-2">
+            {% if h.sale_price_per_kg %}
+              <span class="badge bg-light text-dark border fw-normal">{{ h.sale_price_per_kg|floatformat:2 }} €/kg</span>
+            {% elif h.price_pending %}
+              <span class="badge bg-warning text-dark fw-normal">€ pendiente</span>
+            {% endif %}
+            {% if h.income %}
+              <span class="badge bg-success bg-opacity-10 text-success border border-success fw-semibold">€ {{ h.income|floatformat:2 }}</span>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+        {% empty %}
+        <div class="text-center text-muted py-5">
+          <i class="fa fa-inbox mb-2 d-block" style="font-size:2rem;opacity:.3"></i>
+          No hay registros para este período
+        </div>
+        {% endfor %}
+      </div>
+
+      {# Paginación front-end #}
+      <div class="card-footer bg-transparent border-top py-2 px-3" id="pagination-wrap" style="display:none!important">
+        <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+          <span class="small text-muted" id="page-info"></span>
+          <div class="d-flex gap-1">
+            <button class="btn btn-sm btn-outline-secondary" id="btn-prev" disabled>
+              <i class="fa fa-chevron-left"></i>
+            </button>
+            <div class="d-flex gap-1" id="page-numbers"></div>
+            <button class="btn btn-sm btn-outline-secondary" id="btn-next">
+              <i class="fa fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- Formulario oculto para eliminar -->
+<form class="d-none" id="deleteForm" method="POST">{% csrf_token %}</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function confirmDelete(button) {
+    const url = button.getAttribute('data-url');
+    showConfirm({
+      text: 'Esta acción eliminará el registro de cosecha de forma permanente y no se podrá deshacer.',
+      onConfirm: () => {
+        const form = document.getElementById('deleteForm');
+        form.action = url;
+        form.submit();
+      }
+    });
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+
+    // ── Choices.js ──────────────────────────────────────────────────
+    document.querySelectorAll('select.choices-init').forEach(sel => {
+      try {
+        if (!sel.dataset.choicesInitialized) {
+          new Choices(sel, {
+            removeItemButton: true,
+            placeholderValue: 'Todas las parcelas',
+            searchPlaceholderValue: 'Buscar...',
+            noResultsText: 'Sin resultados',
+            itemSelectText: '',
+          });
+          sel.dataset.choicesInitialized = 'true';
+        }
+      } catch (_) {}
+    });
+
+    // ── Botones año rápido ──────────────────────────────────────────
+    document.querySelectorAll('.quick-year-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const y = btn.dataset.year;
+        document.getElementById('date_from').value = `${y}-01-01`;
+        document.getElementById('date_to').value   = `${y}-12-31`;
+        btn.closest('form').submit();
+      });
+    });
+
+    // ── Paginación front-end ────────────────────────────────────────
+    const PER_PAGE = 10;
+    const rows = Array.from(document.querySelectorAll('.harvest-row'));
+    const total = rows.length;
+
+    if (total <= PER_PAGE) return; // no hace falta paginar
+
+    const wrap      = document.getElementById('pagination-wrap');
+    const info      = document.getElementById('page-info');
+    const pageNums  = document.getElementById('page-numbers');
+    const btnPrev   = document.getElementById('btn-prev');
+    const btnNext   = document.getElementById('btn-next');
+    const totalPages = Math.ceil(total / PER_PAGE);
+    let current = 1;
+
+    wrap.style.setProperty('display', 'block', 'important');
+
+    function render(page) {
+      current = page;
+      const start = (page - 1) * PER_PAGE;
+      const end   = start + PER_PAGE;
+
+      rows.forEach((r, i) => {
+        r.style.display = (i >= start && i < end) ? '' : 'none';
+        // fix last-child border: show border on all visible except the last visible
+        r.classList.remove('border-bottom');
+      });
+      // re-add border-bottom to all visible except the last
+      const visible = rows.filter((_, i) => i >= start && i < end);
+      visible.slice(0, -1).forEach(r => r.classList.add('border-bottom'));
+
+      btnPrev.disabled = page === 1;
+      btnNext.disabled = page === totalPages;
+
+      info.textContent = `${start + 1}–${Math.min(end, total)} de ${total}`;
+
+      // Botones de página (máx 5 visibles)
+      pageNums.innerHTML = '';
+      const delta = 2;
+      let lo = Math.max(1, page - delta);
+      let hi = Math.min(totalPages, page + delta);
+      if (hi - lo < delta * 2) {
+        lo = Math.max(1, hi - delta * 2);
+        hi = Math.min(totalPages, lo + delta * 2);
+      }
+      for (let p = lo; p <= hi; p++) {
+        const b = document.createElement('button');
+        b.className = `btn btn-sm ${p === page ? 'btn-primary' : 'btn-outline-secondary'}`;
+        b.textContent = p;
+        b.addEventListener('click', () => render(p));
+        pageNums.appendChild(b);
+      }
+    }
+
+    btnPrev.addEventListener('click', () => render(current - 1));
+    btnNext.addEventListener('click', () => render(current + 1));
+
+    render(1);
+  });
+</script>
+{% endblock %}

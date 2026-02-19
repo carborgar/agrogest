@@ -42,6 +42,7 @@
 {% with field_costs_menus='field-costs' %}
 {% with product_type_menus='product-type-list product-type-create product-type-edit' %}
 {% with product_menus='product-list product-create product-edit' %}
+{% with harvest_menus='harvest-summary harvest-create harvest-edit' %}
 
 <!-- Desktop Sidebar -->
 <div class="sidebar-desktop d-none d-md-block">
@@ -107,6 +108,12 @@
                         <a class="nav-link {% if request.resolver_match.url_name == 'treatment-shopping-list' %}active{% endif %}"
                            href="{% url 'treatment-shopping-list' %}">
                             <i class="fa fa-shopping-cart"></i>Compras
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if current_url in harvest_menus %}active{% endif %}"
+                           href="{% url 'harvest-summary' %}">
+                            <i class="fa fa-apple-whole"></i>Cosechas
                         </a>
                     </li>
                 </ul>
@@ -247,6 +254,12 @@
                                 <i class="fa fa-shopping-cart"></i>Compras
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if current_url in harvest_menus %}active{% endif %}"
+                               href="{% url 'harvest-summary' %}">
+                                <i class="fa fa-apple-whole"></i>Cosechas
+                            </a>
+                        </li>
                     </ul>
                 </div>
 
@@ -291,6 +304,7 @@
         </div>
     </div>
 </div>
+{% endwith %}
 {% endwith %}
 {% endwith %}
 {% endwith %}
