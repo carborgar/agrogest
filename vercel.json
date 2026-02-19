@@ -1,5 +1,5 @@
 {
-  "installCommand": "pip install -r requirements.txt && npm install",
+  "installCommand": "pip install -r requirements.txt --break-system-packages && npm install",
   "buildCommand": "npx sass scss/custom-bootstrap.scss static/css/custom-bootstrap.min.css --style=compressed && python3 manage.py collectstatic --noinput && python3 manage.py migrate --noinput",
   "outputDirectory": "staticfiles",
   "routes": [
