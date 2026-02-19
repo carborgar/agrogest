@@ -1,18 +1,17 @@
 {
   "builds": [
     {
-      "src": "agrogest/wsgi.py",
+      "src": "build.sh",
       "use": "@vercel/python",
       "config": {
-        "runtime": "python3.12",
-        "maxLambdaSize": "15mb"
+        "runtime": "python3.12"
       }
     }
   ],
   "routes": [
     {
       "src": "/static/(.*)",
-      "dest": "/static/$1"
+      "dest": "/staticfiles/$1"
     },
     {
       "src": "/(.*)",
