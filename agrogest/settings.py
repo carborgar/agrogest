@@ -50,7 +50,6 @@ INSTALLED_APPS = [
     'whitenoise.runserver_nostatic',
     'mathfilters',
     'django.contrib.humanize',
-    # debug_toolbar removed from static list; add conditionally below
 
 ]
 
@@ -207,6 +206,7 @@ if not DEBUG:
 
 # Añadir debug_toolbar si está disponible y si estamos en DEBUG
 import importlib
+
 if DEBUG and importlib.util.find_spec('debug_toolbar') is not None:
     INSTALLED_APPS.append('debug_toolbar')
     # Insert middleware lo más arriba posible para que funcione correctamente

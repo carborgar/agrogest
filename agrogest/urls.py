@@ -15,6 +15,7 @@ Including another URLconf
 """
 
 from debug_toolbar.toolbar import debug_toolbar_urls
+from django.conf import settings
 from django.contrib import admin
 from django.urls import path, include
 
@@ -32,4 +33,10 @@ urlpatterns = [
 
 ]
 
-urlpatterns += debug_toolbar_urls()
+if settings.DEBUG:
+    try:
+        import debug_toolbar
+
+        urlpatterns += debug_toolbar_urls()
+    except Exception:
+        pass
