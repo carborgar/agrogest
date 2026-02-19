@@ -1,0 +1,505 @@
+/**
+ESTILOS PARA CARDS
+*/
+.treatment-card {
+    height: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--gray-200);
+}
+.treatment-status-bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    z-index: 1;
+}
+.treatment-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+.treatment-badge {
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    border-radius: 9999px !important;
+    padding: 0.25rem 0.75rem !important;
+}
+.treatment-property {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+.property-icon {
+    width: 16px;
+    text-align: center;
+    margin-right: 8px;
+    color: #6c757d;
+}
+
+/**
+ESTILOS PARA LISTA
+*/
+.treatment-item {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    border: 1px solid var(--gray-200);
+    margin-bottom: 1rem;
+    overflow: hidden;
+    position: relative;
+    transition: all 0.2s ease;
+}
+.treatment-main-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    flex: 1;
+}
+.treatment-icon-wrapper {
+    flex-shrink: 0;
+}
+.treatment-details {
+    flex: 1;
+}
+.treatment-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin: 0 0 0.5rem 0;
+}
+.treatment-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-bottom: 0.75rem;
+}
+.treatment-meta-item {
+    color: var(--gray-600);
+    font-size: 0.875rem;
+}
+.treatment-dates {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-right: 1rem;
+}
+.treatment-date-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background-color: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    white-space: nowrap;
+}
+
+.treatment-date-item i {
+    color: var(--gray-500);
+}
+
+.treatment-actions {
+    display: flex;
+    align-items: center;
+    margin-right: 1rem;
+}
+
+.treatment-detail-btn {
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.treatment-detail-btn:hover {
+    text-decoration: none;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.treatment-expand-icon {
+    display: flex;
+    align-items: center;
+    color: var(--gray-500);
+    transition: transform 0.2s ease;
+}
+
+.treatment-header {
+    padding: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+}
+
+.treatment-header[aria-expanded="true"] .treatment-expand-icon {
+    transform: rotate(180deg);
+}
+.treatment-body {
+    padding: 1.5rem;
+    background-color: #f9fafb;
+    border-top: 1px solid var(--gray-200);
+}
+.treatment-products-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin: 0 0 1rem 0;
+}
+
+/* Grid de productos */
+/* Product cards (unified desktop/mobile) */
+.treatment-products-grid {
+    gap: 1rem;
+}
+
+.treatment-product-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 2px solid var(--gray-200);
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.treatment-product-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.product-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.product-number {
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.dose-info {
+    background: var(--gray-100);
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+    color: var(--gray-600);
+}
+
+@media (max-width: 768px) {
+    .dose-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .treatment-product-card {
+        padding: 1rem;
+    }
+}
+
+/* Cards de productos */
+.treatment-product-card {
+    background: white;
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid var(--gray-200);
+    transition: all 0.2s ease;
+}
+
+.treatment-product-card:hover {
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+}
+
+.product-header {
+    margin-bottom: 0.75rem;
+}
+
+.product-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin: 0 0 0.25rem 0;
+}
+
+.product-type {
+    font-size: 0.875rem;
+    color: var(--gray-500);
+    background-color: var(--gray-100);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    display: inline-block;
+}
+.product-doses {
+    display: flex;
+    justify-content: space-between;
+    padding-top: 0.75rem;
+    padding-left: 0;
+    padding-right: 0;
+    border-top: 1px solid var(--gray-200);
+}
+
+.dose-item {
+    text-align: center;
+    flex: 1;
+}
+
+.dose-label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    margin-bottom: 0.25rem;
+}
+
+.dose-value {
+    font-weight: 600;
+    color: var(--gray-900);
+    font-size: 0.875rem;
+}
+
+.product-card-footer {
+    background-color: inherit;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+@media (max-width: 768px) {
+    .treatment-header {
+        padding: 1rem;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+
+    .treatment-main-info {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .treatment-dates {
+        flex-direction: row;
+        justify-content: space-between;
+        margin-right: 0;
+        margin-bottom: 1rem;
+    }
+
+    .treatment-actions {
+        justify-content: center;
+        margin-right: 0;
+        margin-bottom: 1rem;
+    }
+
+    .treatment-expand-icon {
+        align-self: center;
+    }
+
+    .treatment-body {
+        padding: 1rem;
+    }
+
+    .treatment-products-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .product-doses {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .dose-item {
+        text-align: left;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .dose-label {
+        margin-bottom: 0;
+    }
+}
+
+/**
+ESTILOS PARA DETALLES
+*/
+/* Estilos para la columna de información vertical */
+.info-item-vertical {
+    position: relative;
+    padding: 0.75rem 1rem;
+}
+
+.info-item-vertical .info-label {
+    font-size: 0.75rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.25rem;
+}
+
+.info-item-vertical .info-value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #212529;
+}
+
+.info-item-vertical .info-subvalue {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+.treatment-header-fixed {
+    padding: 1.5rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+/* Sección de acciones en el header */
+.treatment-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+/* Botón de expandir separado */
+.treatment-expand-btn {
+    background: none;
+    border: none;
+    padding: 0.5rem;
+    color: var(--gray-500);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.treatment-expand-btn:hover {
+    background-color: var(--gray-100);
+    color: var(--gray-700);
+}
+
+.treatment-expand-btn[aria-expanded="true"] i {
+    transform: rotate(180deg);
+}
+
+/* Botón de acciones mejorado */
+.treatment-action-btn {
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.treatment-action-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Mobile responsivo */
+@media (max-width: 768px) {
+    .treatment-header-fixed {
+        padding: 1rem;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .treatment-main-info {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .treatment-dates {
+        flex-direction: row;
+        justify-content: space-between;
+    }
+
+    .treatment-header-actions {
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+    }
+}
+
+/* Botón de ver productos en la card */
+.treatment-property .btn-link {
+    font-size: 0.875rem;
+    text-decoration: none;
+    vertical-align: baseline;
+}
+
+.treatment-property .btn-link:hover {
+    text-decoration: none;
+    transform: scale(1.1);
+}
+
+/* Modal de productos */
+.modal-dialog.modal-lg {
+    max-width: 900px;
+}
+
+.modal-header .modal-title i {
+    font-size: 1.1rem;
+}
+
+/* Grid de productos en modal - más compacto */
+.modal-body .treatment-products-grid .treatment-product-card {
+    padding: 1rem;
+    margin-bottom: 0;
+}
+
+.modal-body .treatment-product-card .product-header {
+    margin-bottom: 0.5rem;
+}
+
+.modal-body .treatment-product-card .product-name {
+    font-size: 0.95rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Responsive para modal */
+@media (max-width: 768px) {
+    .modal-dialog.modal-lg {
+        max-width: 95vw;
+        margin: 1rem;
+    }
+
+    .modal-body .treatment-products-grid {
+        grid-template-columns: 1fr;
+    }
+}
