@@ -1,4 +1,6 @@
 {
+  "installCommand": "pip install -r requirements.txt && npm install",
+  "buildCommand": "npx sass scss/custom-bootstrap.scss static/css/custom-bootstrap.min.css --style=compressed && python3 manage.py collectstatic --noinput && python3 manage.py migrate --noinput",
   "builds": [
     {
       "src": "agrogest/wsgi.py",
@@ -6,13 +8,6 @@
       "config": {
         "maxLambdaSize": "15mb",
         "runtime": "python3.12"
-      }
-    },
-    {
-      "src": "build.sh",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "staticfiles"
       }
     }
   ],
