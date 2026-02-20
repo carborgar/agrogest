@@ -8,70 +8,223 @@
 {% block sub_header %}Define y gestiona los productos que vas a usar en los tratamientos.{% endblock %}
 
 {% block actions %}
-<a class="btn btn-primary w-100 w-md-auto" href="{% url 'product-create' %}" type="button"><i
-        class="fa fa-plus me-1"></i>Nuevo producto</a>
+<a class="btn btn-primary w-100 w-md-auto" href="{% url 'product-create' %}" type="button">
+    <i class="fa fa-plus me-1"></i>Nuevo producto
+</a>
 {% endblock %}
 
 {% block content %}
 
+<!-- Search & Filter Bar -->
+<form id="filterForm" method="get">
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body py-3">
+            <div class="row g-2 align-items-end">
+                <div class="col-12 col-md-4">
+                    <label class="form-label small text-muted mb-1" for="searchInput">
+                        <i class="fa fa-search me-1"></i>Buscar por nombre
+                    </label>
+                    <input class="form-control" id="searchInput" name="search"
+                           placeholder="Nombre del producto…"
+                           type="text" value="{{ search }}">
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label small text-muted mb-1" for="typeFilter">
+                        <i class="fa fa-tags me-1"></i>Tipo
+                    </label>
+                    <select class="form-select" id="typeFilter" name="type">
+                        <option value="">Todos los tipos</option>
+                        {% for pt in product_types %}
+                        <option value="{{ pt.pk }}" {% if selected_type == pt.pk|stringformat:"s" %}selected{% endif %}>
+                            {{ pt.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label small text-muted mb-1" for="appFilter">
+                        <i class="fa fa-spray-can me-1"></i>Aplicación
+                    </label>
+                    <select class="form-select" id="appFilter" name="application">
+                        <option value="">Todos</option>
+                        <option value="spraying" {% if selected_application == 'spraying' %}selected{% endif %}>Pulverización</option>
+                        <option value="fertigation" {% if selected_application == 'fertigation' %}selected{% endif %}>Fertirrigación</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-2 d-flex gap-2">
+                    <button class="btn btn-primary flex-fill" type="submit">
+                        <i class="fa fa-filter me-1"></i>Filtrar
+                    </button>
+                    {% if search or selected_type or selected_application %}
+                    <a class="btn btn-outline-secondary" href="{% url 'product-list' %}" title="Limpiar filtros">
+                        <i class="fa fa-times"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
 {% if not products %}
 <div class="text-center py-5">
     <div class="mb-4">
-        <i class="fa fa-receipt text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+        <i class="fa fa-box-open text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
     </div>
+    {% if search or selected_type or selected_application %}
+    <h4 class="text-muted mb-3">Sin resultados</h4>
+    <p class="text-muted mb-4">No hay productos que coincidan con los filtros aplicados.</p>
+    <a class="btn btn-outline-secondary" href="{% url 'product-list' %}">
+        <i class="fa fa-times me-1"></i>Quitar filtros
+    </a>
+    {% else %}
     <h4 class="text-muted mb-3">No hay productos</h4>
     <p class="text-muted mb-4 lead">Comienza creando tu primer producto.</p>
     <a class="btn btn-primary btn-lg shadow-sm" href="{% url 'product-create' %}">
         <i class="fa fa-plus me-2"></i>Crear Primer Producto
     </a>
+    {% endif %}
 </div>
 {% else %}
-<!-- View switcher -->
-<div class="view-switcher mb-3">
-    <button class="btn view-btn active" id="cardViewBtn" type="button">
-        <i class="fa fa-th"></i> Tarjetas
-    </button>
-    <button class="btn view-btn" id="listViewBtn" type="button">
-        <i class="fa fa-list"></i> Lista
-    </button>
+
+<!-- Results info + View switcher -->
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <span class="text-muted small">
+        {% if is_paginated %}
+            Mostrando {{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ paginator.count }} productos
+        {% else %}
+            {{ products|length }} producto{{ products|length|pluralize }}
+        {% endif %}
+    </span>
+    <div class="view-switcher">
+        <button class="btn view-btn active" id="cardViewBtn" title="Vista tarjetas" type="button">
+            <i class="fa fa-th-large"></i>
+        </button>
+        <button class="btn view-btn" id="listViewBtn" title="Vista lista" type="button">
+            <i class="fa fa-list"></i>
+        </button>
+    </div>
 </div>
 
-<div class="table-container white-over-white d-none" id="listView">
+<!-- Card View -->
+<div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3" id="cardView">
+    {% for product in products %}
+    <div class="col">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body pb-2">
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                    <div class="flex-fill min-width-0">
+                        <h6 class="fw-semibold mb-1 text-truncate" title="{{ product.name }}">{{ product.name }}</h6>
+                        <span class="badge bg-primary-subtle text-primary-emphasis rounded-pill">{{ product.product_type.name }}</span>
+                    </div>
+                    <div class="text-end flex-shrink-0">
+                        {% if product.price %}
+                        <span class="fw-bold text-dark">{{ product.price }}€</span>
+                        {% else %}
+                        <span class="text-muted small">Sin precio</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Application methods -->
+                <div class="d-flex gap-2 flex-wrap mt-2">
+                    {% if product.spraying_dose %}
+                    <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">
+                        <i class="fa fa-spray-can me-1"></i>{{ product.full_spraying_dose }}
+                    </span>
+                    {% endif %}
+                    {% if product.fertigation_dose %}
+                    <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">
+                        <i class="fa fa-droplet me-1"></i>{{ product.full_fertigation_dose }}
+                    </span>
+                    {% endif %}
+                    {% if not product.spraying_dose and not product.fertigation_dose %}
+                    <span class="text-muted small"><i class="fa fa-exclamation-triangle me-1"></i>Sin dosis configurada</span>
+                    {% endif %}
+                </div>
+
+                {% if product.comments %}
+                <p class="text-muted small mt-2 mb-0 text-truncate" title="{{ product.comments }}">
+                    <i class="fa fa-comment fa-xs me-1 opacity-50"></i>{{ product.comments }}
+                </p>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-transparent border-top-0 pt-0 pb-3 px-3">
+                <div class="d-flex gap-2">
+                    <a class="btn btn-outline-primary btn-sm flex-fill" href="{% url 'product-edit' product.pk %}">
+                        <i class="fa fa-edit me-1"></i>Editar
+                    </a>
+                    {% if not product.has_treatments %}
+                    <button class="btn btn-outline-danger btn-sm"
+                            data-url="{% url 'product-delete' product.pk %}"
+                            onclick="confirmDelete(this)" title="Eliminar">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- List View -->
+<div class="table-container d-none" id="listView">
     <div class="table-responsive">
         <table class="table modern-table mb-0">
             <thead>
             <tr>
                 <th>Nombre</th>
-                <th>Tipo</th>
-                <th>Dosis pulverización</th>
-                <th>Dosis fertirrigación</th>
-                <th>Precio ud</th>
-                <th>Notas</th>
-                <th class="text-center">Acciones</th>
+                <th class="d-none d-md-table-cell">Tipo</th>
+                <th class="d-none d-sm-table-cell">Pulverización</th>
+                <th class="d-none d-sm-table-cell">Fertirrigación</th>
+                <th class="d-none d-md-table-cell">Precio</th>
+                <th class="text-center" style="width:90px">Acciones</th>
             </tr>
             </thead>
             <tbody>
             {% for product in products %}
             <tr>
-                <td>{{ product.name }}</td>
-                <td><span class="badge bg-primary">{{ product.product_type.name }}</span></td>
-                <td>{{ product.full_spraying_dose|default:"-" }}</td>
-                <td>{{ product.full_fertigation_dose|default:"-" }}</td>
-                <td>{% if product.price %} {{product.price}}€ {% else %} - {% endif%}</td>
                 <td>
-                    <div class="text-truncate" style="max-width: 300px;"
-                         title="{{ product.comments }}">
+                    <div class="fw-semibold">{{ product.name }}</div>
+                    <span class="badge bg-primary-subtle text-primary-emphasis rounded-pill small d-md-none">{{ product.product_type.name }}</span>
+                    {% if product.comments %}
+                    <div class="text-muted small d-none d-lg-block text-truncate" style="max-width:220px" title="{{ product.comments }}">
                         {{ product.comments|truncatechars:60 }}
                     </div>
+                    {% endif %}
+                </td>
+                <td class="d-none d-md-table-cell">
+                    <span class="badge bg-primary-subtle text-primary-emphasis rounded-pill">{{ product.product_type.name }}</span>
+                </td>
+                <td class="d-none d-sm-table-cell">
+                    {% if product.spraying_dose %}
+                    <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">
+                        <i class="fa fa-spray-can me-1"></i>{{ product.full_spraying_dose }}
+                    </span>
+                    {% else %}
+                    <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
+                <td class="d-none d-sm-table-cell">
+                    {% if product.fertigation_dose %}
+                    <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">
+                        <i class="fa fa-droplet me-1"></i>{{ product.full_fertigation_dose }}
+                    </span>
+                    {% else %}
+                    <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
+                <td class="d-none d-md-table-cell">
+                    {% if product.price %}{{ product.price }}€{% else %}—{% endif %}
                 </td>
                 <td class="text-center">
-                    <div class="btn-group" role="group">
-                        <a class="btn btn-sm btn-outline-primary"
-                           href="{% url 'product-edit' product.id %}" title="Editar">
+                    <div class="btn-group btn-group-sm" role="group">
+                        <a class="btn btn-outline-primary" href="{% url 'product-edit' product.id %}" title="Editar">
                             <i class="fa fa-edit"></i>
                         </a>
                         {% if not product.has_treatments %}
-                        <button class="btn btn-sm btn-outline-danger"
+                        <button class="btn btn-outline-danger"
                                 data-url="{% url 'product-delete' product.id %}"
                                 onclick="confirmDelete(this)" title="Eliminar">
                             <i class="fa fa-trash"></i>
@@ -86,71 +239,14 @@
     </div>
 </div>
 
-<div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4" id="cardView">
-    {% for product in products %}
-    <div class="col">
-        <div class="card treatment-product-card h-100">
-            <div class="product-header">
-                <h5 class="product-name">
-                    {% if product.comments %}
-                    <a data-bs-title="{{ product.comments }}" data-bs-toggle="tooltip" href="#"><i
-                            class="fa-solid fa-circle-info"></i></a>
-                    {% endif %}
-                    {{ product.name }}
-                </h5>
-                <span class="product-type">{{ product.product_type.name }}</span>
-            </div>
-            <div class="card-body product-doses">
-                <div class="dose-item">
-                    <span class="dose-label">Dosis pulverización</span>
-                    <span class="dose-value">{{ product.full_spraying_dose|default:"-" }}</span>
-                </div>
-                <div class="dose-item">
-                    <span class="dose-label">Dosis fertirrigación</span>
-                    <span class="dose-value">{{ product.full_fertigation_dose|default:"-" }}</span>
-                </div>
-            </div>
-            <div class="product-doses mt-1">
-                <div class="dose-item">
-                    <span class="dose-label">Precio ud</span>
-                    <span class="dose-value">{% if product.price %} {{product.price}}€ {% else %} - {% endif%}</span>
-                </div>
-            </div>
-            {% if product.price > 0 %}
-            {% endif %}
-            <div class="card-footer product-card-footer pt-3">
-                <div class="d-flex gap-2">
-                    <a class="btn btn-outline-primary btn-sm flex-fill"
-                       href="{% url 'product-edit' product.pk %}">
-                        <i class="fa fa-edit me-1"></i>Editar
-                    </a>
-                    {% if not product.has_treatments %}
-                    <button class="btn btn-outline-danger btn-sm"
-                            data-url="{% url 'product-delete' product.pk %}"
-                            onclick="confirmDelete(this)">
-                        <i class="fa fa-trash"></i>
-                    </button>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endfor %}
-</div>
-{% endif %}
-
-{% if page_obj.has_other_pages %}
-<p class="text-muted pt-2 mb-0">
-    Mostrando {{ page_obj.start_index }} a {{ page_obj.end_index }} de {{ total_count }} tratamientos
-</p>
 {% endif %}
 
 {% if is_paginated %}
-{% with request.GET.urlencode as querystring %}
-<div class="mt-3">
+<div class="mt-4">
+    {% with request.GET.urlencode as querystring %}
     {% bootstrap_pagination page_obj pages_to_show="5" extra="&"|add:querystring %}
+    {% endwith %}
 </div>
-{% endwith %}
 {% endif %}
 
 <!-- Formulario oculto para las acciones de eliminación -->
@@ -174,44 +270,41 @@
         });
     }
 </script>
-
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Get view elements
+    document.addEventListener('DOMContentLoaded', function () {
         const cardView = document.getElementById('cardView');
         const listView = document.getElementById('listView');
         const cardViewBtn = document.getElementById('cardViewBtn');
         const listViewBtn = document.getElementById('listViewBtn');
 
-        // Toggle between views
-        cardViewBtn.addEventListener('click', function() {
-            cardView.classList.remove('d-none');
-            listView.classList.add('d-none');
-            cardViewBtn.classList.add('active');
-            listViewBtn.classList.remove('active');
-
-            // Store preference in localStorage
-            localStorage.setItem('productListViewPreference', 'card');
-        });
-
-        listViewBtn.addEventListener('click', function() {
-            listView.classList.remove('d-none');
-            cardView.classList.add('d-none');
-            listViewBtn.classList.add('active');
-            cardViewBtn.classList.remove('active');
-
-            // Store preference in localStorage
-            localStorage.setItem('productListViewPreference', 'list');
-        });
-
-        // Check for stored preference and apply it
-        const storedPreference = localStorage.getItem('productListViewPreference');
-        if (storedPreference === 'list') {
-            listView.classList.remove('d-none');
-            cardView.classList.add('d-none');
-            listViewBtn.classList.add('active');
-            cardViewBtn.classList.remove('active');
+        function setView(mode) {
+            if (mode === 'list') {
+                listView.classList.remove('d-none');
+                cardView.classList.add('d-none');
+                listViewBtn.classList.add('active');
+                cardViewBtn.classList.remove('active');
+            } else {
+                cardView.classList.remove('d-none');
+                listView.classList.add('d-none');
+                cardViewBtn.classList.add('active');
+                listViewBtn.classList.remove('active');
+            }
+            localStorage.setItem('productListView', mode);
         }
+
+        cardViewBtn.addEventListener('click', () => setView('card'));
+        listViewBtn.addEventListener('click', () => setView('list'));
+
+        const stored = localStorage.getItem('productListView');
+        if (stored === 'list') setView('list');
+
+        // Auto-submit on select change
+        document.getElementById('typeFilter').addEventListener('change', function () {
+            document.getElementById('filterForm').submit();
+        });
+        document.getElementById('appFilter').addEventListener('change', function () {
+            document.getElementById('filterForm').submit();
+        });
     });
 </script>
 {% endblock %}

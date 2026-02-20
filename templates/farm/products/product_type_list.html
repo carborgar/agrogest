@@ -2,12 +2,12 @@
 
 {% block header %}Tipos de producto{% endblock %}
 
-{% block sub_header %}Define y gestiona los tipos de producto que vas a usar en los tratamientos.{% endblock %}
+{% block sub_header %}Organiza los productos por categorías para filtrarlos y analizarlos fácilmente.{% endblock %}
 
 {% block actions %}
-<a class="btn btn-primary w-100 w-md-auto" href="{% url 'product-type-create' %}" type="button"><i
-        class="fa fa-plus me-1"></i>Nuevo
-    tipo</a>
+<a class="btn btn-primary w-100 w-md-auto" href="{% url 'product-type-create' %}" type="button">
+    <i class="fa fa-plus me-1"></i>Nuevo tipo
+</a>
 {% endblock %}
 
 {% block content %}
@@ -15,51 +15,70 @@
 {% if not product_types %}
 <div class="text-center py-5">
     <div class="mb-4">
-        <i class="fa fa-receipt text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+        <i class="fa fa-tags text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
     </div>
     <h4 class="text-muted mb-3">No hay tipos de producto</h4>
-    <p class="text-muted mb-4 lead">Comienza creando tu primer tipo de producto para organizar informes y gastos.</p>
+    <p class="text-muted mb-4 lead">Crea categorías para organizar tus productos (insecticidas, fungicidas, fertilizantes…).</p>
     <a class="btn btn-primary btn-lg shadow-sm" href="{% url 'product-type-create' %}">
         <i class="fa fa-plus me-2"></i>Crear Primer Tipo
     </a>
 </div>
 {% else %}
-<div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4">
-    {% for product_type in product_types %}
-    <div class="col">
-        <div class="card treatment-product-card h-100">
-            <div class="product-header">
-                <h5 class="product-name"> {{ product_type.name }}</h5>
-            </div>
-            <div class="card-body product-doses">
-                <div class="dose-item text-start">
-                    <div class="text-muted small">
-                        <span>{{ product_type.description|default:"Sin descripción"|truncatechars:80 }}</span>
-                    </div>
-                </div>
-            </div>
-            <div class="card-footer product-card-footer pt-3">
-                <div class="d-flex gap-2">
-                    <a class="btn btn-outline-primary btn-sm flex-fill"
-                       href="{% url 'product-type-edit' product_type.pk %}">
-                        <i class="fa fa-edit me-1"></i>Editar
-                    </a>
-                    {% if not product_type.has_products %}
-                    <button class="btn btn-outline-danger btn-sm"
-                            data-url="{% url 'product-type-delete' product_type.pk %}"
-                            onclick="confirmDelete(this)">
-                        <i class="fa fa-trash"></i>
-                    </button>
+
+<div class="table-container">
+    <div class="table-responsive">
+        <table class="table modern-table mb-0">
+            <thead>
+            <tr>
+                <th>Nombre</th>
+                <th class="d-none d-sm-table-cell">Descripción</th>
+                <th class="text-center" style="width: 110px">Productos</th>
+                <th class="text-center" style="width: 90px">Acciones</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for pt in product_types %}
+            <tr>
+                <td>
+                    <span class="fw-semibold">{{ pt.name }}</span>
+                    {% if pt.description %}
+                    <p class="text-muted small mb-0 d-sm-none mt-1">{{ pt.description|truncatechars:80 }}</p>
                     {% endif %}
-                </div>
-            </div>
-        </div>
+                </td>
+                <td class="d-none d-sm-table-cell text-muted small">
+                    {{ pt.description|default:"—"|truncatechars:100 }}
+                </td>
+                <td class="text-center">
+                    <a class="badge rounded-pill text-decoration-none
+                        {% if pt.product_count %}bg-primary-subtle text-primary-emphasis{% else %}bg-secondary-subtle text-secondary-emphasis{% endif %}"
+                       href="{% url 'product-list' %}?type={{ pt.pk }}"
+                       title="Ver productos de este tipo">
+                        {{ pt.product_count }} producto{{ pt.product_count|pluralize }}
+                    </a>
+                </td>
+                <td class="text-center">
+                    <div class="btn-group btn-group-sm" role="group">
+                        <a class="btn btn-outline-primary" href="{% url 'product-type-edit' pt.pk %}" title="Editar">
+                            <i class="fa fa-edit"></i>
+                        </a>
+                        {% if not pt.has_products %}
+                        <button class="btn btn-outline-danger"
+                                data-url="{% url 'product-type-delete' pt.pk %}"
+                                onclick="confirmDelete(this)" title="Eliminar">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
     </div>
-    {% endfor %}
 </div>
+
 {% endif %}
 
-<!-- Formulario oculto para las acciones de eliminación -->
 <form class="d-none" id="deleteForm" method="POST">
     {% csrf_token %}
 </form>

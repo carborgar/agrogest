@@ -1,13 +1,12 @@
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, OuterRef, Count
 from django.urls import reverse_lazy
-from django.utils.dateparse import parse_date
 from django.views.generic import ListView, UpdateView, DeleteView
 
 from farm.forms import ProductForm
 from farm.mixins import OwnershipRequiredMixin, QuerysetFilterMixin, AuditableMixin
-from farm.models import Product, Field, ProductType, TreatmentProduct
+from farm.models import Product, ProductType, TreatmentProduct
 
 
 class BaseSecureProductViewMixin(OwnershipRequiredMixin, QuerysetFilterMixin):
@@ -25,7 +24,7 @@ class ProductListView(BaseSecureProductViewMixin, ListView):
     template_name = 'farm/products/product_list.html'
     context_object_name = 'products'
     paginate_by = 20
-    ordering = ['-payment_date']
+    ordering = ['name']
 
     def get_queryset(self):
         qs = (
@@ -36,32 +35,28 @@ class ProductListView(BaseSecureProductViewMixin, ListView):
             )
         )
 
-        field_id = self.request.GET.get('field')  # <select name="field">
-        type_id = self.request.GET.get('type')  # <select name="type">
-        date_from = self.request.GET.get('date_from')  # <input name="date_from">
-        date_to = self.request.GET.get('date_to')  # <input name="date_to">
+        search = self.request.GET.get('search', '').strip()
+        type_id = self.request.GET.get('type')
+        application = self.request.GET.get('application')
 
-        if field_id:
-            qs = qs.filter(field_id=field_id)
+        if search:
+            qs = qs.filter(name__icontains=search)
         if type_id:
             qs = qs.filter(product_type_id=type_id)
-        if date_from:
-            qs = qs.filter(payment_date__gte=parse_date(date_from))
-        if date_to:
-            qs = qs.filter(payment_date__lte=parse_date(date_to))
+        if application == 'spraying':
+            qs = qs.filter(spraying_dose__isnull=False)
+        elif application == 'fertigation':
+            qs = qs.filter(fertigation_dose__isnull=False)
 
         return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
-        # listas para los combos
-        context['fields'] = Field.ownership_objects.get_queryset_for_user(self.request.user)
         context['product_types'] = ProductType.ownership_objects.get_queryset_for_user(self.request.user)
-
-        # mantener los filtros marcados
         context['filter_params'] = self.request.GET.dict()
-
+        context['search'] = self.request.GET.get('search', '')
+        context['selected_type'] = self.request.GET.get('type', '')
+        context['selected_application'] = self.request.GET.get('application', '')
         return context
 
 
@@ -99,6 +94,14 @@ class ProductFormView(BaseSecureProductFormMixin, SuccessMessageMixin, UpdateVie
         form.instance.organization = self.request.user.organization
         return super().form_valid(form)
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.object and self.object.pk:
+            context['object'].has_treatments = TreatmentProduct.objects.filter(
+                product=self.object
+            ).exists()
+        return context
+
 
 class ProductDeleteView(BaseSecureProductViewMixin, DeleteView):
     model = Product
@@ -119,7 +122,8 @@ class ProductTypeListView(BaseSecureProductViewMixin, ListView):
     def get_queryset(self):
         qs = super().get_queryset().order_by("name")
         qs = qs.annotate(
-            has_products=Exists(Product.objects.filter(product_type=OuterRef('pk')))
+            has_products=Exists(Product.objects.filter(product_type=OuterRef('pk'))),
+            product_count=Count('product'),
         )
         return qs
 
@@ -146,6 +150,14 @@ class ProductTypeFormView(BaseSecureProductFormMixin, SuccessMessageMixin, Updat
         # Asignar la organización del usuario al tipo de producto
         form.instance.organization = self.request.user.organization
         return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.object and self.object.pk:
+            context['object'].has_products = Product.objects.filter(
+                product_type=self.object
+            ).exists()
+        return context
 
 
 class ProductTypeDeleteView(BaseSecureProductViewMixin, DeleteView):
