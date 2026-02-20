@@ -87,72 +87,67 @@
 </div>
 {% else %}
 
-<!-- Results info + View switcher -->
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-    <span class="text-muted small">
-        {% if is_paginated %}
-            Mostrando {{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ paginator.count }} productos
-        {% else %}
-            {{ products|length }} producto{{ products|length|pluralize }}
-        {% endif %}
-    </span>
-    <div class="view-switcher">
-        <button class="btn view-btn active" id="cardViewBtn" title="Vista tarjetas" type="button">
-            <i class="fa fa-th-large"></i>
-        </button>
-        <button class="btn view-btn" id="listViewBtn" title="Vista lista" type="button">
-            <i class="fa fa-list"></i>
-        </button>
-    </div>
+<div class="text-muted small mb-2 ps-1">
+    {% if is_paginated %}
+        Mostrando {{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ paginator.count }} productos
+    {% else %}
+        {{ products|length }} producto{{ products|length|pluralize }}
+    {% endif %}
 </div>
 
-<!-- Card View -->
-<div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3" id="cardView">
-    {% for product in products %}
-    <div class="col">
-        <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body pb-2">
-                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-                    <div class="flex-fill min-width-0">
-                        <h6 class="fw-semibold mb-1 text-truncate" title="{{ product.name }}">{{ product.name }}</h6>
+<div class="card border-0 shadow-sm">
+    <ul class="list-group list-group-flush">
+        {% for product in products %}
+        <li class="list-group-item px-4 py-3">
+            <div class="d-flex align-items-center gap-3">
+
+                <!-- Icon -->
+                <div class="flex-shrink-0 text-primary opacity-75 d-none d-sm-block">
+                    <i class="fa fa-box fa-lg"></i>
+                </div>
+
+                <!-- Main info -->
+                <div class="flex-fill min-width-0">
+                    <div class="d-flex align-items-baseline gap-2 flex-wrap">
+                        <span class="fw-semibold text-truncate">{{ product.name }}</span>
                         <span class="badge bg-primary-subtle text-primary-emphasis rounded-pill">{{ product.product_type.name }}</span>
                     </div>
-                    <div class="text-end flex-shrink-0">
-                        {% if product.price %}
-                        <span class="fw-bold text-dark">{{ product.price }}€</span>
-                        {% else %}
-                        <span class="text-muted small">Sin precio</span>
+                    <!-- Dose badges -->
+                    <div class="d-flex gap-2 flex-wrap mt-1">
+                        {% if product.spraying_dose %}
+                        <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">
+                            <i class="fa fa-spray-can me-1"></i>{{ product.full_spraying_dose }}
+                        </span>
+                        {% endif %}
+                        {% if product.fertigation_dose %}
+                        <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">
+                            <i class="fa fa-droplet me-1"></i>{{ product.full_fertigation_dose }}
+                        </span>
+                        {% endif %}
+                        {% if not product.spraying_dose and not product.fertigation_dose %}
+                        <span class="text-warning small"><i class="fa fa-exclamation-triangle me-1"></i>Sin dosis</span>
                         {% endif %}
                     </div>
-                </div>
-
-                <!-- Application methods -->
-                <div class="d-flex gap-2 flex-wrap mt-2">
-                    {% if product.spraying_dose %}
-                    <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">
-                        <i class="fa fa-spray-can me-1"></i>{{ product.full_spraying_dose }}
-                    </span>
-                    {% endif %}
-                    {% if product.fertigation_dose %}
-                    <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">
-                        <i class="fa fa-droplet me-1"></i>{{ product.full_fertigation_dose }}
-                    </span>
-                    {% endif %}
-                    {% if not product.spraying_dose and not product.fertigation_dose %}
-                    <span class="text-muted small"><i class="fa fa-exclamation-triangle me-1"></i>Sin dosis configurada</span>
+                    {% if product.comments %}
+                    <div class="text-muted small mt-1 text-truncate" title="{{ product.comments }}">
+                        <i class="fa fa-comment fa-xs me-1 opacity-50"></i>{{ product.comments }}
+                    </div>
                     {% endif %}
                 </div>
 
-                {% if product.comments %}
-                <p class="text-muted small mt-2 mb-0 text-truncate" title="{{ product.comments }}">
-                    <i class="fa fa-comment fa-xs me-1 opacity-50"></i>{{ product.comments }}
-                </p>
-                {% endif %}
-            </div>
-            <div class="card-footer bg-transparent border-top-0 pt-0 pb-3 px-3">
-                <div class="d-flex gap-2">
-                    <a class="btn btn-outline-primary btn-sm flex-fill" href="{% url 'product-edit' product.pk %}">
-                        <i class="fa fa-edit me-1"></i>Editar
+                <!-- Price -->
+                <div class="flex-shrink-0 text-end d-none d-sm-block" style="min-width: 60px;">
+                    {% if product.price %}
+                    <span class="fw-semibold text-dark">{{ product.price }}€/ud</span>
+                    {% else %}
+                    <span class="text-muted">—</span>
+                    {% endif %}
+                </div>
+
+                <!-- Actions -->
+                <div class="flex-shrink-0 d-flex gap-2">
+                    <a class="btn btn-outline-primary btn-sm" href="{% url 'product-edit' product.pk %}" title="Editar">
+                        <i class="fa fa-edit"></i>
                     </a>
                     {% if not product.has_treatments %}
                     <button class="btn btn-outline-danger btn-sm"
@@ -162,81 +157,11 @@
                     </button>
                     {% endif %}
                 </div>
-            </div>
-        </div>
-    </div>
-    {% endfor %}
-</div>
 
-<!-- List View -->
-<div class="table-container d-none" id="listView">
-    <div class="table-responsive">
-        <table class="table modern-table mb-0">
-            <thead>
-            <tr>
-                <th>Nombre</th>
-                <th class="d-none d-md-table-cell">Tipo</th>
-                <th class="d-none d-sm-table-cell">Pulverización</th>
-                <th class="d-none d-sm-table-cell">Fertirrigación</th>
-                <th class="d-none d-md-table-cell">Precio</th>
-                <th class="text-center" style="width:90px">Acciones</th>
-            </tr>
-            </thead>
-            <tbody>
-            {% for product in products %}
-            <tr>
-                <td>
-                    <div class="fw-semibold">{{ product.name }}</div>
-                    <span class="badge bg-primary-subtle text-primary-emphasis rounded-pill small d-md-none">{{ product.product_type.name }}</span>
-                    {% if product.comments %}
-                    <div class="text-muted small d-none d-lg-block text-truncate" style="max-width:220px" title="{{ product.comments }}">
-                        {{ product.comments|truncatechars:60 }}
-                    </div>
-                    {% endif %}
-                </td>
-                <td class="d-none d-md-table-cell">
-                    <span class="badge bg-primary-subtle text-primary-emphasis rounded-pill">{{ product.product_type.name }}</span>
-                </td>
-                <td class="d-none d-sm-table-cell">
-                    {% if product.spraying_dose %}
-                    <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">
-                        <i class="fa fa-spray-can me-1"></i>{{ product.full_spraying_dose }}
-                    </span>
-                    {% else %}
-                    <span class="text-muted">—</span>
-                    {% endif %}
-                </td>
-                <td class="d-none d-sm-table-cell">
-                    {% if product.fertigation_dose %}
-                    <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">
-                        <i class="fa fa-droplet me-1"></i>{{ product.full_fertigation_dose }}
-                    </span>
-                    {% else %}
-                    <span class="text-muted">—</span>
-                    {% endif %}
-                </td>
-                <td class="d-none d-md-table-cell">
-                    {% if product.price %}{{ product.price }}€{% else %}—{% endif %}
-                </td>
-                <td class="text-center">
-                    <div class="btn-group btn-group-sm" role="group">
-                        <a class="btn btn-outline-primary" href="{% url 'product-edit' product.id %}" title="Editar">
-                            <i class="fa fa-edit"></i>
-                        </a>
-                        {% if not product.has_treatments %}
-                        <button class="btn btn-outline-danger"
-                                data-url="{% url 'product-delete' product.id %}"
-                                onclick="confirmDelete(this)" title="Eliminar">
-                            <i class="fa fa-trash"></i>
-                        </button>
-                        {% endif %}
-                    </div>
-                </td>
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-    </div>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
 </div>
 
 {% endif %}
@@ -269,36 +194,8 @@
             }
         });
     }
-</script>
-<script>
+
     document.addEventListener('DOMContentLoaded', function () {
-        const cardView = document.getElementById('cardView');
-        const listView = document.getElementById('listView');
-        const cardViewBtn = document.getElementById('cardViewBtn');
-        const listViewBtn = document.getElementById('listViewBtn');
-
-        function setView(mode) {
-            if (mode === 'list') {
-                listView.classList.remove('d-none');
-                cardView.classList.add('d-none');
-                listViewBtn.classList.add('active');
-                cardViewBtn.classList.remove('active');
-            } else {
-                cardView.classList.remove('d-none');
-                listView.classList.add('d-none');
-                cardViewBtn.classList.add('active');
-                listViewBtn.classList.remove('active');
-            }
-            localStorage.setItem('productListView', mode);
-        }
-
-        cardViewBtn.addEventListener('click', () => setView('card'));
-        listViewBtn.addEventListener('click', () => setView('list'));
-
-        const stored = localStorage.getItem('productListView');
-        if (stored === 'list') setView('list');
-
-        // Auto-submit on select change
         document.getElementById('typeFilter').addEventListener('change', function () {
             document.getElementById('filterForm').submit();
         });

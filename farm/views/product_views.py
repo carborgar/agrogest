@@ -4,7 +4,7 @@ from django.db.models import Exists, OuterRef, Count
 from django.urls import reverse_lazy
 from django.views.generic import ListView, UpdateView, DeleteView
 
-from farm.forms import ProductForm
+from farm.forms import ProductForm, ProductTypeForm
 from farm.mixins import OwnershipRequiredMixin, QuerysetFilterMixin, AuditableMixin
 from farm.models import Product, ProductType, TreatmentProduct
 
@@ -131,8 +131,8 @@ class ProductTypeListView(BaseSecureProductViewMixin, ListView):
 class ProductTypeFormView(BaseSecureProductFormMixin, SuccessMessageMixin, UpdateView):
     """Unified view for creating and editing product types"""
     model = ProductType
+    form_class = ProductTypeForm
     template_name = 'farm/products/product_type_form.html'
-    fields = ['name', 'description']
     success_url = reverse_lazy('product-type-list')
 
     def get_object(self, queryset=None):

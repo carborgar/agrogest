@@ -25,56 +25,46 @@
 </div>
 {% else %}
 
-<div class="table-container">
-    <div class="table-responsive">
-        <table class="table modern-table mb-0">
-            <thead>
-            <tr>
-                <th>Nombre</th>
-                <th class="d-none d-sm-table-cell">Descripción</th>
-                <th class="text-center" style="width: 110px">Productos</th>
-                <th class="text-center" style="width: 90px">Acciones</th>
-            </tr>
-            </thead>
-            <tbody>
-            {% for pt in product_types %}
-            <tr>
-                <td>
-                    <span class="fw-semibold">{{ pt.name }}</span>
+<div class="card border-0 shadow-sm">
+    <ul class="list-group list-group-flush">
+        {% for pt in product_types %}
+        <li class="list-group-item px-4 py-3">
+            <div class="d-flex align-items-center gap-3">
+                <!-- Icon -->
+                <div class="flex-shrink-0 text-primary opacity-75">
+                    <i class="fa fa-tag fa-lg"></i>
+                </div>
+                <!-- Name + description -->
+                <div class="flex-fill min-width-0">
+                    <div class="fw-semibold">{{ pt.name }}</div>
                     {% if pt.description %}
-                    <p class="text-muted small mb-0 d-sm-none mt-1">{{ pt.description|truncatechars:80 }}</p>
+                    <div class="text-muted small text-truncate" title="{{ pt.description }}">{{ pt.description|truncatechars:100 }}</div>
                     {% endif %}
-                </td>
-                <td class="d-none d-sm-table-cell text-muted small">
-                    {{ pt.description|default:"—"|truncatechars:100 }}
-                </td>
-                <td class="text-center">
-                    <a class="badge rounded-pill text-decoration-none
-                        {% if pt.product_count %}bg-primary-subtle text-primary-emphasis{% else %}bg-secondary-subtle text-secondary-emphasis{% endif %}"
-                       href="{% url 'product-list' %}?type={{ pt.pk }}"
-                       title="Ver productos de este tipo">
-                        {{ pt.product_count }} producto{{ pt.product_count|pluralize }}
+                </div>
+                <!-- Product count badge -->
+                <a class="badge rounded-pill text-decoration-none flex-shrink-0
+                    {% if pt.product_count %}bg-primary-subtle text-primary-emphasis{% else %}bg-secondary-subtle text-secondary-emphasis{% endif %}"
+                   href="{% url 'product-list' %}?type={{ pt.pk }}"
+                   title="Ver productos de este tipo">
+                    {{ pt.product_count }} producto{{ pt.product_count|pluralize }}
+                </a>
+                <!-- Actions -->
+                <div class="flex-shrink-0 d-flex gap-2">
+                    <a class="btn btn-outline-primary btn-sm" href="{% url 'product-type-edit' pt.pk %}" title="Editar">
+                        <i class="fa fa-edit"></i>
                     </a>
-                </td>
-                <td class="text-center">
-                    <div class="btn-group btn-group-sm" role="group">
-                        <a class="btn btn-outline-primary" href="{% url 'product-type-edit' pt.pk %}" title="Editar">
-                            <i class="fa fa-edit"></i>
-                        </a>
-                        {% if not pt.has_products %}
-                        <button class="btn btn-outline-danger"
-                                data-url="{% url 'product-type-delete' pt.pk %}"
-                                onclick="confirmDelete(this)" title="Eliminar">
-                            <i class="fa fa-trash"></i>
-                        </button>
-                        {% endif %}
-                    </div>
-                </td>
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-    </div>
+                    {% if not pt.has_products %}
+                    <button class="btn btn-outline-danger btn-sm"
+                            data-url="{% url 'product-type-delete' pt.pk %}"
+                            onclick="confirmDelete(this)" title="Eliminar">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
 </div>
 
 {% endif %}

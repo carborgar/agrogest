@@ -7,7 +7,7 @@ from django.forms import BaseInlineFormSet
 from django.forms import inlineformset_factory
 
 from core.forms import NoPlaceholderModelForm
-from .models import Treatment, TreatmentProduct, Expense, Product, Harvest, Field
+from .models import Treatment, TreatmentProduct, Expense, Product, Harvest, Field, ProductType
 
 
 class TreatmentForm(forms.ModelForm):
@@ -223,6 +223,23 @@ class ExpenseForm(forms.ModelForm):
         if amount is not None and amount < 0:
             raise ValidationError('El importe no puede ser negativo.')
         return amount
+
+
+class ProductTypeForm(NoPlaceholderModelForm):
+    class Meta:
+        model = ProductType
+        fields = ['name', 'description']
+        labels = {
+            'name': 'Nombre',
+            'description': 'Descripción',
+        }
+        help_texts = {
+            'description': 'Opcional. Breve descripción de los productos que incluye esta categoría.',
+        }
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
 
 
 class ProductForm(NoPlaceholderModelForm):
