@@ -332,30 +332,6 @@ class Treatment(OrganizationOwnedModel):
     def is_delayed(self):
         return self.status == 'delayed'
 
-    # métodos para mostrar en el template
-    def status_display(self):
-        # Devuelve el valor legible para el template
-        status_map = {
-            'pending': 'Pendiente',
-            'completed': 'Completado',
-            'delayed': 'Atrasado',
-        }
-        return status_map.get(self.status, 'Desconocido')
-
-    def state_class(self):
-        status_map = {
-            'pending': 'warning',
-            'completed': 'success',
-            'delayed': 'danger',
-        }
-        return status_map.get(self.status, 'secondary')  # 'secondary' como fallback
-
-    def type_class(self):
-        type_map = {
-            'spraying': 'spray-can-sparkles',
-            'fertigation': 'droplet',
-        }
-        return type_map.get(self.type, 'secondary')  # 'secondary' como fallback
 
     def calculate_machine_loads(self):
         """

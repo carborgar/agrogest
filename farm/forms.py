@@ -7,7 +7,7 @@ from django.forms import BaseInlineFormSet
 from django.forms import inlineformset_factory
 
 from core.forms import NoPlaceholderModelForm
-from .models import Treatment, TreatmentProduct, Expense, Product, Harvest, Field, ProductType
+from .models import Treatment, TreatmentProduct, Expense, Product, Harvest, ProductType
 
 
 class TreatmentForm(forms.ModelForm):
@@ -121,21 +121,6 @@ class ExpenseForm(forms.ModelForm):
             'price_per_ha': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
             'amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
         }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Solo establecer fecha inicial para nuevos gastos
-        if not self.instance.pk:
-            self.fields['payment_date'].initial = Datetime.today().strftime('%Y-%m-%d')
-        # Formatear correctamente la fecha para el widget HTML5 date input cuando se edita
-        elif self.instance.payment_date:
-            self.initial['payment_date'] = self.instance.payment_date.strftime('%Y-%m-%d')
-
-        # Hacer que los campos condicionales no sean obligatorios inicialmente
-        self.fields['quantity'].required = False
-        self.fields['unit_price'].required = False
-        self.fields['price_per_ha'].required = False
-        self.fields['amount'].required = False
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

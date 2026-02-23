@@ -5,7 +5,6 @@ from decimal import Decimal
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.paginator import Paginator
-from django.db import transaction
 from django.db.models import Sum
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
@@ -16,13 +15,14 @@ from django.views import View
 from django.views.decorators.http import require_POST
 from django.views.generic import ListView, DetailView
 from django.views.generic import TemplateView
-from django.views.generic.edit import CreateView, UpdateView
+from django.views.generic.edit import UpdateView
 
 from farm.forms import TreatmentForm, TreatmentProductFormSet
 from farm.mixins import OwnershipRequiredMixin, QuerysetFilterMixin, AuditableMixin
 from farm.models import Field, ProductType, TreatmentProduct
 from farm.models import Product
 from farm.models import Treatment
+from farm.services import save_treatment_with_products, get_shopping_list
 
 logger = logging.getLogger(__name__)
 
@@ -232,53 +232,47 @@ class TreatmentDetailView(BaseSecureViewMixin, DetailView):
         return context
 
 
-class TreatmentFormView(BaseSecureViewMixin, SuccessMessageMixin, CreateView, UpdateView):
+class TreatmentFormView(BaseSecureViewMixin, SuccessMessageMixin, UpdateView):
+    """
+    Vista para crear tratamientos.
+
+    Usa UpdateView como base porque sabe gestionar el ciclo form/object.
+    get_object() devuelve None cuando no hay pk, haciendo que el formulario
+    actúe como creación. Cuando añadamos edición, bastará con registrar la
+    URL con pk y el resto funciona solo.
+    """
     model = Treatment
     form_class = TreatmentForm
     template_name = 'farm/treatments/treatment_form.html'
+
+    def get_object(self, queryset=None):
+        # Sin pk en la URL → creación
+        if 'pk' not in self.kwargs:
+            return None
+        return super().get_object(queryset)
 
     def get_success_url(self):
         return reverse('treatment-detail', kwargs={'pk': self.object.id})
 
     def get_success_message(self, cleaned_data):
-        return f"Tratamiento '{cleaned_data['name']}' creado exitosamente"
-
-    def get_object(self, queryset=None):
-        if 'pk' in self.kwargs:
-            return super().get_object(queryset)
-        return None
+        return f"Tratamiento '{cleaned_data['name']}' guardado exitosamente"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
-        if self.request.POST:
-            if self.object:  # Update operation
-                context['products_formset'] = TreatmentProductFormSet(
-                    self.request.POST, instance=self.object
-                )
-            else:  # Create operation
-                context['products_formset'] = TreatmentProductFormSet(self.request.POST)
-        else:
-            if self.object:  # Update operation
-                context['products_formset'] = TreatmentProductFormSet(instance=self.object)
-            else:  # Create operation
-                context['products_formset'] = TreatmentProductFormSet()
-
+        context['products_formset'] = (
+            TreatmentProductFormSet(self.request.POST, instance=self.object) if self.request.POST
+            else TreatmentProductFormSet(instance=self.object)
+        )
         return context
 
-    @transaction.atomic
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         form = self.get_form()
-        treatment_product_formset = TreatmentProductFormSet(request.POST, instance=self.object)
-
-        if form.is_valid() and treatment_product_formset.is_valid():
-            self.object = form.save()
-            treatment_product_formset.instance = self.object
-            treatment_product_formset.save()
+        products_formset = TreatmentProductFormSet(request.POST, instance=self.object)
+        if form.is_valid() and products_formset.is_valid():
+            self.object = save_treatment_with_products(form, products_formset)
             return self.form_valid(form)
-        else:
-            return self.form_invalid(form)
+        return self.form_invalid(form)
 
 
 class TreatmentCalendarView(BaseSecureViewMixin, TemplateView):
@@ -288,10 +282,6 @@ class TreatmentCalendarView(BaseSecureViewMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         context['fields'] = Field.ownership_objects.get_queryset_for_user(self.request.user)
         context['treatment_types'] = Treatment.TYPE_CHOICES
-        context['type_map'] = {  # TODO: esto habría que hacerlo con los campos del modelo, o quitar el icono y listo
-            'spraying': 'spray-can-sparkles',
-            'fertigation': 'droplet',
-        }
         return context
 
 
@@ -306,7 +296,6 @@ class FinishTreatmentView(BaseSecureViewMixin, View):
             return JsonResponse({'success': False}, status=400)
 
         treatment.finish_treatment(finish_date, real_water_used)
-
         return JsonResponse({'success': True})
 
 
@@ -341,63 +330,11 @@ class ShoppingListView(BaseSecureViewMixin, ListView):
     context_object_name = 'product_items'
 
     def get_queryset(self):
-        # Base queryset - get products from pending or delayed treatments
-        queryset = TreatmentProduct.ownership_objects.get_queryset_for_user(self.request.user).filter(
-            treatment__status__in=['pending', 'delayed']
-        ).select_related('product', 'product__product_type', 'treatment', 'treatment__field')
-
-        # Filter by field if specified
         selected_fields = self.request.GET.getlist('field')
-        if selected_fields:
-            queryset = queryset.filter(treatment__field_id__in=selected_fields)
-
-        # Group by product, summing total_dose
-        # Get the product ID from the aggregation (which will be our group key)
-        product_totals = {}
-
-        # We need to process the queryset in Python to properly group by product
-        # and handle different units and fields
-        for product_item in queryset:
-            product_id = product_item.product_id
-
-            # Create a key that includes product and unit
-            key = (product_id, product_item.total_dose_unit)
-
-            if key not in product_totals:
-                product_totals[key] = {
-                    'product': product_item.product,
-                    'product_name': product_item.product.name,
-                    'product_type': product_item.product.product_type.name,
-                    'unit': product_item.total_dose_unit,
-                    'total_dose': 0,
-                    'total_price': 0,
-                    'treatment_count': 0,
-                    'fields': set(),  # Use a set to avoid duplicates
-                }
-
-            # Sum the dose and price
-            product_totals[key]['total_dose'] += float(product_item.total_dose)
-            product_totals[key]['total_price'] += float(product_item.total_price)
-            product_totals[key]['treatment_count'] += 1
-            product_totals[key]['fields'].add(product_item.treatment.field.name)
-
-        # Convert to a list and format the fields as a string
-        result = []
-        for key, data in product_totals.items():
-            data['fields'] = ", ".join(sorted(data['fields']))
-            data['total_dose'] = round(data['total_dose'], 2)
-            data['total_price'] = round(data['total_price'], 2)
-            result.append(data)
-
-        # Sort by product name
-        result.sort(key=lambda x: x['product_name'])
-
-        return result
+        return get_shopping_list(self.request.user, field_ids=selected_fields or None)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
-        # Add fields for filtering
         context['fields'] = Field.objects.filter(organization=self.request.user.organization)
 
         # Add selected filters to context

@@ -1,14 +1,15 @@
 {% load custom_filters %}
 {% for treatment in treatment_list %}
+{% with state_class=treatment|treatment_state_class type_icon=treatment|treatment_type_icon %}
 <div class="treatment-item">
-    <div class="treatment-status-bar bg-{{ treatment.state_class }}"></div>
+    <div class="treatment-status-bar bg-{{ state_class }}"></div>
 
     <!-- Header no clickeable -->
     <div class="treatment-header-fixed">
         <div class="treatment-main-info">
             <div class="treatment-icon-wrapper">
-                <div class="treatment-icon bg-{{ treatment.state_class }} bg-opacity-10">
-                    <i class="fa fa-{{ treatment.type_class }} text-{{ treatment.state_class }}"></i>
+                <div class="treatment-icon bg-{{ state_class }} bg-opacity-10">
+                    <i class="fa fa-{{ type_icon }} text-{{ state_class }}"></i>
                 </div>
             </div>
 
@@ -17,8 +18,8 @@
                 <div class="treatment-meta">
                     <span class="treatment-meta-item">{{ treatment.field.name }} • {{ treatment.field.crop }} ({{ treatment.field.area }} ha) • {{ treatment.get_type_display }}</span>
                 </div>
-                <span class="badge bg-{{ treatment.state_class }} treatment-badge">
-                    {{ treatment.status_display }}
+                <span class="badge bg-{{ state_class }} treatment-badge">
+                    {{ treatment.get_status_display }}
                 </span>
             </div>
         </div>
@@ -54,15 +55,11 @@
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item" href="#" onclick="editTreatment({{ treatment.id }})">
-                                <i class="fa fa-edit me-2"></i>Editar
-                            </a>
-                        </li>
-                        <li>
                             <hr class="dropdown-divider">
                         </li>
                         <li>
-                            <a class="dropdown-item text-danger" href="#" onclick="deleteTreatment({{ treatment.id }})">
+                            <a class="dropdown-item text-danger" href="#"
+                               onclick="confirmDeleteTreatment('{{ treatment.name }}', '{% url 'treatment-delete' treatment.id %}'); return false;">
                                 <i class="fa fa-trash me-2"></i>Eliminar
                             </a>
                         </li>
@@ -113,4 +110,23 @@
         </div>
     </div>
 </div>
+{% endwith %}
 {% endfor %}
+
+{# Hidden form used by confirmDeleteTreatment() — one shared form, URL set dynamically #}
+<form id="deleteTreatmentForm" method="POST" style="display:none;">
+    {% csrf_token %}
+</form>
+
+<script>
+    function confirmDeleteTreatment(name, url) {
+        showConfirm({
+            text: `Esto eliminará el tratamiento "${name}" de forma permanente.`,
+            onConfirm: () => {
+                const form = document.getElementById('deleteTreatmentForm');
+                form.action = url;
+                form.submit();
+            }
+        });
+    }
+</script>
