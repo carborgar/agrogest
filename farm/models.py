@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from django.db import models
+from django.db import models, transaction
 from django.utils.timezone import now
 
 from .managers import OwnershipManager
@@ -450,6 +450,36 @@ class Treatment(OrganizationOwnedModel):
             else:
                 return 'danger'
 
+    @transaction.atomic
+    def clone_to_field(self, target_field, new_date=None, new_name=None):
+        """
+        Clona este tratamiento a otra parcela, recalculando las dosis totales
+        según el área de la nueva parcela. Las dosis por unidad (dose) se
+        conservan; total_dose se recalcula en TreatmentProduct.save().
+        """
+        new_treatment = Treatment.objects.create(
+            organization=target_field.organization,
+            field=target_field,
+            name=new_name or self.name,
+            type=self.type,
+            date=new_date or self.date,
+            machine=self.machine,
+            water_per_ha=self.water_per_ha,
+        )
+        for tp in self.treatmentproduct_set.all():
+            TreatmentProduct.objects.create(
+                treatment=new_treatment,
+                product=tp.product,
+                dose=tp.dose,
+                dose_type=tp.dose_type,
+                total_dose=0,           # el save() recalculará desde dose
+                total_dose_unit=tp.total_dose_unit,
+                unit_price=tp.unit_price,
+                # total_overridden=False siempre: al clonar a otra parcela el total
+                # debe recalcularse según su área, aunque en el original fuera manual.
+            )
+        return new_treatment
+
 
 class TreatmentProduct(OrganizationOwnedModel):
     treatment = models.ForeignKey("Treatment", on_delete=models.CASCADE)
@@ -463,6 +493,10 @@ class TreatmentProduct(OrganizationOwnedModel):
     unit_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # Precio por L o kg
     total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # Precio total
     price_per_ha = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # Precio por hectárea
+
+    # Si True, el usuario sobreescribió el total manualmente; la dosis se deriva del total.
+    # Si False (defecto), la dosis es la fuente de verdad y el total se calcula desde ella.
+    total_overridden = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ('treatment', 'product')  # Evita duplicados
@@ -519,30 +553,20 @@ class TreatmentProduct(OrganizationOwnedModel):
         # Calculamos la dosis total antes de guardar
         self.set_dose_units()
 
-        # Detectar si es una actualización o creación
         is_new = self.pk is None
 
-        if is_new:
-            # Para objetos nuevos, calcular dosis desde total
-            self.calculate_dose_from_total()
+        if is_new or not self.total_overridden:
+            # Fuente de verdad: dose → calculamos total
+            self.calculate_total_dose()
         else:
-            # Obtener el objeto original de la BD
-            old_obj = TreatmentProduct.objects.get(pk=self.pk)
+            # El usuario sobreescribió el total → derivamos dose desde total
+            # (necesario para que get_dose_per_load y carga parcial sigan funcionando)
+            self.calculate_dose_from_total()
 
-            # Detectar qué campos han cambiado
-            dose_changed = old_obj.dose != self.dose
-            total_dose_changed = old_obj.total_dose != self.total_dose
-
-            # Cuando un tratamiento cambia el mojado, hay que recalcular la dosis total y de ahí los precios
-            if (self.treatment.water_per_ha_changed()):
-                self.calculate_total_dose()
-
-            if dose_changed and not total_dose_changed:
-                # Solo cambió la dosis, recalcular total
-                self.calculate_total_dose()
-            else:
-                # En cualquier otro caso, recalcular dosis desde total
-                self.calculate_dose_from_total()
+        # Cuando cambia el mojado hay que recalcular el total aunque no haya override
+        # (este caso llega desde Treatment.recalculate_product_doses)
+        if not is_new and self.treatment.water_per_ha_changed():
+            self.calculate_total_dose()
 
         # Calculamos los precios finales
         self.calculate_prices()

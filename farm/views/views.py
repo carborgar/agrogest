@@ -7,7 +7,7 @@ from django.contrib.messages.views import SuccessMessageMixin
 from django.core.paginator import Paginator
 from django.db.models import Sum
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -22,7 +22,7 @@ from farm.mixins import OwnershipRequiredMixin, QuerysetFilterMixin, AuditableMi
 from farm.models import Field, ProductType, TreatmentProduct
 from farm.models import Product
 from farm.models import Treatment
-from farm.services import save_treatment_with_products, get_shopping_list
+from farm.services import save_treatment_with_products, get_shopping_list, clone_treatment
 
 logger = logging.getLogger(__name__)
 
@@ -183,6 +183,7 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
         context['product_types'] = ProductType.ownership_objects.get_queryset_for_user(self.request.user)
         context['selected_product_types'] = self.request.GET.getlist('product_types')
         context['total_count'] = self.get_queryset().count()
+        context['available_fields'] = Field.ownership_objects.get_queryset_for_user(self.request.user)
 
         query_params = self.request.GET.copy()
         if 'page' in query_params:
@@ -228,6 +229,13 @@ class TreatmentDetailView(BaseSecureViewMixin, DetailView):
 
         context['total_cost'] = total_cost
         context['cost_per_ha'] = cost_per_ha
+
+        # Parcelas disponibles para clonar (todas excepto la actual)
+        context['available_fields'] = (
+            Field.ownership_objects
+            .get_queryset_for_user(self.request.user)
+            .exclude(pk=self.object.field_id)
+        )
 
         return context
 
@@ -306,6 +314,57 @@ class DeleteTreatmentView(BaseSecureViewMixin, View):
         treatment.delete()
         messages.success(request, f'Tratamiento "{treatment.name}" eliminado')
         return redirect('treatment-list')
+
+
+class CloneTreatmentView(BaseSecureViewMixin, View):
+    template_name = 'farm/treatments/treatment_clone.html'
+
+    def get_treatment(self, pk):
+        return get_object_or_404(Treatment, pk=pk)
+
+    def get(self, request, pk):
+        treatment = self.get_treatment(pk)
+        available_fields = (
+            Field.ownership_objects
+            .get_queryset_for_user(request.user)
+            .exclude(pk=treatment.field_id)
+        )
+        return render(request, self.template_name, {
+            'treatment': treatment,
+            'available_fields': available_fields,
+        })
+
+    def post(self, request, pk):
+        from datetime import date
+        treatment = self.get_treatment(pk)
+
+        field_ids = request.POST.getlist('field_id')
+        date_str = request.POST.get('date')  # fallback global (no usado en la nueva UI)
+
+        if not field_ids:
+            messages.error(request, 'Debes seleccionar al menos una parcela de destino.')
+            return redirect('treatment-clone', pk=pk)
+
+        cloned = []
+        for field_id in field_ids:
+            target_field = get_object_or_404(Field, pk=field_id, organization=request.user.organization)
+            new_name = request.POST.get(f'name_{field_id}', '').strip() or None
+            per_field_date = request.POST.get(f'date_{field_id}', '').strip()
+            try:
+                new_date = date.fromisoformat(per_field_date) if per_field_date else (
+                    date.fromisoformat(date_str) if date_str else None
+                )
+            except ValueError:
+                new_date = None
+            cloned.append(clone_treatment(treatment, target_field, new_date, new_name))
+
+        if len(cloned) == 1:
+            messages.success(request, f'Tratamiento clonado en {cloned[0].field.name}.')
+            return redirect('treatment-detail', pk=cloned[0].pk)
+        else:
+            field_names = ', '.join(t.field.name for t in cloned)
+            messages.success(request, f'Tratamiento clonado en: {field_names}.')
+            return redirect('treatment-list')
 
 
 class TreatmentExportView(BaseSecureViewMixin, DetailView):

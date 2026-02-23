@@ -9,32 +9,7 @@
 {% block sub_header %} {% endblock %}
 
 {% block actions %}
-
-<div class="dropdown">
-    <button aria-expanded="false" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown"
-            id="treatmentActionsDropdown" type="button">
-        <i class="fa fa-cog me-1"></i><span class="d-none d-sm-inline">Acciones</span>
-    </button>
-    <ul aria-labelledby="treatmentActionsDropdown" class="dropdown-menu dropdown-menu-end dropdown-menu-light">
-        {% if not treatment.is_completed %}
-        <li><a class="dropdown-item" href="#" onclick="finishTreatment({{ treatment.id }}); return false;">
-            <i class="fa fa-check-circle me-2 text-success"></i>Finalizar tratamiento
-        </a></li>
-        <li>
-            <hr class="dropdown-divider">
-        </li>
-        {% endif %}
-        <li><a class="dropdown-item" href="{% url 'treatment-instructions' treatment.id %}">
-            <i class="fa fa-print me-2 text-primary"></i>Instrucciones para operador
-        </a></li>
-        <li>
-            <hr class="dropdown-divider">
-        </li>
-        <li><a class="dropdown-item text-danger" href="#" onclick="confirmDelete(); return false;">
-            <i class="fa fa-trash me-2"></i>Eliminar
-        </a></li>
-    </ul>
-</div>
+{% include 'farm/treatments/_treatment_actions_dropdown.html' with treatment=treatment btn_class="btn-primary" hide_primary=True %}
 {% endblock %}
 
 {% block content %}
@@ -257,6 +232,8 @@
     {% csrf_token %}
 </form>
 
+{% include 'farm/treatments/_treatment_actions.html' with treatment=treatment %}
+
 <!-- Contenedor oculto para generar las instrucciones del operador -->
 <div id="export-container" style="position: absolute; left: -9999px; top: -9999px;">
     <!-- Este contenedor será llenado dinámicamente cuando se solicite la exportación -->
@@ -267,123 +244,16 @@
 
 {% block extra_js %}
 <script>
-    // Función para finalizar tratamiento
-    function finishTreatment(treatmentId) {
-        const fieldArea = parseFloat('{{ treatment.field.area }}'.replace(',', '.'));
-        const isFertigation = {{ treatment.is_fertigation|yesno:"true,false" }};
-
-        Swal.fire({
-            target: '#swal-container',
-            title: 'Finalizar tratamiento',
-            html: `
-              <form id="finishSwalForm" class="text-start">
-                <div class="mb-3">
-                  <label for="swalFinishDate" class="form-label">Fecha de finalización</label>
-                  <input type="date" class="form-control" id="swalFinishDate" required>
-                </div>
-                ${!isFertigation ? `
-                <div class="mb-3">
-                  <label for="swalFinalWater" class="form-label">Mojado final (litros/ha)</label>
-                  <input type="number" class="form-control" id="swalFinalWater" value="{{ treatment.water_per_ha }}" min="1" step="1" required
-                    oninput="this.value = Math.round(this.value); document.getElementById('swalTotalWater').value = Math.round(this.value * ${fieldArea})">
-                </div>
-                <div class="mb-3">
-                  <label for="swalTotalWater" class="form-label">Total agua utilizada (litros)</label>
-                  <input type="number" class="form-control" id="swalTotalWater" value="{{ treatment.water_per_ha|mul:treatment.field.area }}" min="1" step="1" required
-                    oninput="this.value = Math.round(this.value); document.getElementById('swalFinalWater').value = Math.round(this.value / ${fieldArea})">
-                </div>
-                ` : ''}
-              </form>
-            `,
-            showCancelButton: true,
-            confirmButtonText: 'Finalizar',
-            cancelButtonText: 'Cancelar',
-            confirmButtonColor: '#198754',
-            preConfirm: () => {
-                const finishDate = document.getElementById('swalFinishDate').value;
-
-                if (!finishDate) {
-                    Swal.showValidationMessage('Por favor, ingresa una fecha de finalización');
-                    return false;
-                }
-
-                if (!isFertigation) {
-                    const finalWater = parseFloat(document.getElementById('swalFinalWater').value);
-                    const totalWater = parseFloat(document.getElementById('swalTotalWater').value);
-
-                    if (!finalWater || finalWater < 1 || !Number.isInteger(finalWater)) {
-                        Swal.showValidationMessage('El mojado final debe ser un número entero mayor que 0');
-                        return false;
-                    }
-                    if (!totalWater || totalWater < 1 || !Number.isInteger(totalWater)) {
-                        Swal.showValidationMessage('El total de litros debe ser un número entero mayor que 0');
-                        return false;
-                    }
-
-                    return { finishDate, finalWater };
-                }
-
-                return { finishDate, finalWater: null };
-            },
-            heightAuto: false,
-            didOpen: () => {
-                // Set today's date as default
-                const today = new Date();
-                const formattedDate = today.toISOString().split('T')[0];
-                document.getElementById('swalFinishDate').value = formattedDate;
-
-                // Initialize total water calculation only if not fertigation
-                if (!isFertigation) {
-                    const waterPerHa = {{ treatment.water_per_ha }};
-                    document.getElementById('swalFinalWater').value = Math.round(waterPerHa);
-                    document.getElementById('swalTotalWater').value = Math.round(waterPerHa * fieldArea);
-                }
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                showLoading('Procesando...', 'Marcando como finalizado');
-
-                const formData = new URLSearchParams({
-                    finish_date: result.value.finishDate
-                });
-
-                // Only add water parameter if not fertigation
-                if (!isFertigation && result.value.finalWater) {
-                    formData.append('real_water_used', result.value.finalWater);
-                }
-
-                fetch(`{% url 'treatment-finish' 0 %}`.replace('0', treatmentId), {
-                    method: 'POST',
-                    headers: {'X-CSRFToken': '{{ csrf_token }}'},
-                    body: formData
-                })
-                .then(r => {
-                    if (!r.ok) throw new Error();
-                    return r.json();
-                })
-                .then(() => {
-                    showNotification({
-                        icon: 'success',
-                        title: '¡Éxito!',
-                        text: 'Tratamiento finalizado correctamente',
-                        reload: true
-                    });
-                })
-                .catch(() => {
-                    showNotification({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Hubo un problema. Verifica los datos e inténtalo de nuevo.'
-                    });
-                });
-            }
-        });
-    }
-
-    function confirmDelete() {
+    // En el detalle, el form de borrar ya está en el DOM con id="deleteForm".
+    // Conectamos confirmDeleteTreatment al form local para que el partial del dropdown funcione igual.
+    function confirmDeleteTreatment(name, url) {
         showConfirm({
-            text: 'Esta acción eliminará el tratamiento de forma permanente y no se podrá deshacer.',
-            onConfirm: () => document.getElementById('deleteForm').submit()
+            text: `Esta acción eliminará el tratamiento "${name}" de forma permanente y no se podrá deshacer.`,
+            onConfirm: () => {
+                const form = document.getElementById('deleteForm');
+                form.action = url;
+                form.submit();
+            }
         });
     }
 </script>

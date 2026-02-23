@@ -2,7 +2,7 @@ from django.urls import path
 from django.views.generic import RedirectView
 
 from farm.views.views import FieldDashboardView, FieldCostView, TreatmentListView, TreatmentDetailView, \
-    TreatmentFormView, FinishTreatmentView, DeleteTreatmentView, \
+    TreatmentFormView, FinishTreatmentView, DeleteTreatmentView, CloneTreatmentView, \
     TreatmentCalendarView, TreatmentExportView, ShoppingListView
 from . import api_views
 from .views.expense_views import ExpenseListView, ExpenseFormView, ExpenseDeleteView, ExpenseTypeListView, \
@@ -21,7 +21,7 @@ urlpatterns = [
     path('tratamientos/nuevo/', TreatmentFormView.as_view(), name='treatment-create'),
     path('tratamientos/<int:pk>/finalizar', FinishTreatmentView.as_view(), name='treatment-finish'),
     path('tratamientos/<int:pk>/eliminar/', DeleteTreatmentView.as_view(), name='treatment-delete'),
-    path('tratamientos/calendario/', TreatmentCalendarView.as_view(), name='treatment-calendar'),
+    path('tratamientos/<int:pk>/clonar/', CloneTreatmentView.as_view(), name='treatment-clone'),    path('tratamientos/calendario/', TreatmentCalendarView.as_view(), name='treatment-calendar'),
     path('tratamientos/<int:pk>/operador/', TreatmentExportView.as_view(), name='treatment-instructions'),
     path('tratamientos/lista-compra/', ShoppingListView.as_view(), name='treatment-shopping-list'),
 

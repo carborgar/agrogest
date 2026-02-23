@@ -5,7 +5,7 @@
 <div class="col">
     <div class="card treatment-card position-relative">
         <div class="treatment-status-bar bg-{{ state_class }}"></div>
-        <span class="bg-{{ state_class }} text-uppercase text-center text-white fw-bold py-1">{{ treatment.get_status_display }}</span>
+        <span class="treatment-status-badge bg-{{ state_class }} text-uppercase text-center text-white fw-bold py-1">{{ treatment.get_status_display }}</span>
 
         <div class="card-body p-3">
             <div class="d-flex align-items-center mb-3">
@@ -55,12 +55,7 @@
                 </div>
                 {% endif %}
 
-                <div class="mt-3 d-grid gap-2">
-                    <a class="btn btn-primary action-btn"
-                       href="{% url 'treatment-detail' treatment.id %}">
-                        <i class="fa fa-eye me-2"></i>Ver detalles
-                    </a>
-                </div>
+                {% include 'farm/treatments/_treatment_actions_dropdown.html' with treatment=treatment %}
             </div>
         </div>
     </div>
@@ -107,4 +102,5 @@
     </div>
 </div>
 {% endif %}
+{% include 'farm/treatments/_treatment_actions.html' with treatment=treatment %}
 {% endwith %}

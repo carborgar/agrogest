@@ -89,3 +89,23 @@ def get_shopping_list(user, field_ids=None):
     result.sort(key=lambda x: x['product_name'])
     return result
 
+
+def clone_treatment(treatment, target_field, new_date=None, new_name=None):
+    """
+    Clona un tratamiento a otra parcela recalculando las dosis totales
+    según el área de la nueva parcela.
+
+    Parámetros
+    ----------
+    treatment    : Treatment a clonar
+    target_field : Field de destino
+    new_date     : date opcional; si no se pasa, se conserva la fecha original
+    new_name     : str opcional; si no se pasa, se conserva el nombre original
+
+    Devuelve
+    --------
+    El nuevo Treatment creado.
+    """
+    return treatment.clone_to_field(target_field, new_date, new_name)
+
+

@@ -40,31 +40,7 @@
         <!-- Sección de acciones separada -->
         <div class="treatment-header-actions">
             <div class="treatment-actions">
-                <div class="dropdown">
-                    <button aria-expanded="false"
-                            class="btn btn-outline-primary btn-sm dropdown-toggle treatment-action-btn"
-                            data-bs-toggle="dropdown"
-                            type="button">
-                        <i class="fa fa-cog"></i>
-                        Acciones
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li>
-                            <a class="dropdown-item" href="{% url 'treatment-detail' treatment.id %}">
-                                <i class="fa fa-eye me-2"></i>Ver detalles
-                            </a>
-                        </li>
-                        <li>
-                            <hr class="dropdown-divider">
-                        </li>
-                        <li>
-                            <a class="dropdown-item text-danger" href="#"
-                               onclick="confirmDeleteTreatment('{{ treatment.name }}', '{% url 'treatment-delete' treatment.id %}'); return false;">
-                                <i class="fa fa-trash me-2"></i>Eliminar
-                            </a>
-                        </li>
-                    </ul>
-                </div>
+                {% include 'farm/treatments/_treatment_actions_dropdown.html' with treatment=treatment %}
             </div>
 
             <!-- Botón de expandir separado -->
@@ -110,23 +86,8 @@
         </div>
     </div>
 </div>
+{% include 'farm/treatments/_treatment_actions.html' with treatment=treatment %}
 {% endwith %}
 {% endfor %}
 
-{# Hidden form used by confirmDeleteTreatment() — one shared form, URL set dynamically #}
-<form id="deleteTreatmentForm" method="POST" style="display:none;">
-    {% csrf_token %}
-</form>
-
-<script>
-    function confirmDeleteTreatment(name, url) {
-        showConfirm({
-            text: `Esto eliminará el tratamiento "${name}" de forma permanente.`,
-            onConfirm: () => {
-                const form = document.getElementById('deleteTreatmentForm');
-                form.action = url;
-                form.submit();
-            }
-        });
-    }
-</script>
+{# El form #deleteTreatmentForm y confirmDeleteTreatment() los provee treatment_list.html #}

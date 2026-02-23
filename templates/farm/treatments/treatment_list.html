@@ -265,11 +265,35 @@
         </div>
     </div>
 </div>
+
+<form id="deleteTreatmentForm" method="POST" style="display:none;">{% csrf_token %}</form>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
+    function confirmDeleteTreatment(name, url) {
+        showConfirm({
+            text: `Esto eliminará el tratamiento "${name}" de forma permanente.`,
+            onConfirm: () => {
+                const form = document.getElementById('deleteTreatmentForm');
+                form.action = url;
+                form.submit();
+            }
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
+
+        // Elevar z-index del .col padre cuando el dropdown está abierto,
+        // para que no quede tapado por cards hermanas
+        document.querySelectorAll('.treatment-card [data-bs-toggle="dropdown"], .treatment-item [data-bs-toggle="dropdown"]').forEach(trigger => {
+            const col = trigger.closest('.col') || trigger.closest('.treatment-item');
+            if (!col) return;
+            trigger.addEventListener('show.bs.dropdown', () => col.style.zIndex = '100');
+            trigger.addEventListener('hide.bs.dropdown', () => col.style.zIndex = '');
+        });
+
         // Get view elements
         const cardView = document.getElementById('cardView');
         const listView = document.getElementById('listView');
