@@ -74,10 +74,34 @@
                                         </div>
                                     </div>
                                     <div class="col-md-6 col-lg-4">
+                                        <!-- Show single field selection for editing -->
+                                        {% if form.instance.pk %}
                                         <div class="form-floating mb-3">
                                             {{ form.field|add_class:"form-select" }}
                                             <label for="{{ form.field.id_for_label }}">Parcela</label>
                                         </div>
+                                        {% else %}
+                                        <!-- Show multiple field selection for new treatments -->
+                                        <div class="mb-3">
+                                            <label class="form-label">Parcelas <span class="text-danger">*</span></label>
+                                            <div class="border rounded p-3 bg-light" style="max-height: 200px; overflow-y: auto;">
+                                                {% for field in form.fields.field.queryset %}
+                                                <div class="form-check">
+                                                    <input class="form-check-input field-checkbox" type="checkbox" 
+                                                           name="fields" value="{{ field.id }}" id="field_{{ field.id }}">
+                                                    <label class="form-check-label" for="field_{{ field.id }}">
+                                                        <strong>{{ field.name }}</strong>
+                                                        <small class="text-muted">({{ field.area }} ha - {{ field.crop }})</small>
+                                                    </label>
+                                                </div>
+                                                {% empty %}
+                                                <div class="text-muted">No hay parcelas disponibles</div>
+                                                {% endfor %}
+                                            </div>
+                                            <div class="form-text">Seleccione una o más parcelas para aplicar este tratamiento</div>
+                                        </div>
+                                        {% endif %}
+                                        {{ form.field.as_hidden }}
                                         <div class="form-text text-primary fw-semibold" id="fieldAreaInfo"></div>
                                     </div>
                                     <div class="col-md-6 col-lg-4">
@@ -374,6 +398,37 @@
         function updateFieldInfo() {
             const field = fields[elements.fieldSelect.value];
             elements.fieldInfo.textContent = field ? `Área: ${field.area} ha - Cultivo: ${field.crop}` : '';
+            calculateTotalDoses();
+            checkStep1Completion();
+        }
+
+        function updateMultipleFieldInfo() {
+            const checkboxes = document.querySelectorAll('.field-checkbox:checked');
+            const selectedFields = Array.from(checkboxes).map(cb => parseInt(cb.value));
+            
+            if (selectedFields.length === 0) {
+                elements.fieldInfo.textContent = '';
+                return;
+            }
+            
+            let totalArea = 0;
+            let fieldNames = [];
+            
+            selectedFields.forEach(fieldId => {
+                const field = fields[fieldId];
+                if (field) {
+                    totalArea += parseFloat(field.area);
+                    fieldNames.push(field.name);
+                }
+            });
+            
+            if (selectedFields.length === 1) {
+                const field = fields[selectedFields[0]];
+                elements.fieldInfo.textContent = `Área: ${field.area} ha - Cultivo: ${field.crop}`;
+            } else {
+                elements.fieldInfo.textContent = `${selectedFields.length} parcelas seleccionadas - Área total: ${totalArea.toFixed(2)} ha`;
+            }
+            
             calculateTotalDoses();
             checkStep1Completion();
         }
@@ -675,9 +730,15 @@
             const completedDateValid = validateCompletedDate();
             const nameValue = elements.nameInput.value;
             const dateValue = elements.dateInput.value;
+            
+            // Check for multiple field selection if not editing
+            const multipleFieldsSelected = document.querySelectorAll('.field-checkbox:checked').length > 0;
+            const isEditMode = '{{ form.instance.pk }}' !== '';
+            
+            const fieldRequirementMet = isEditMode ? fieldSelected !== '' : (fieldSelected !== '' || multipleFieldsSelected);
 
             const requiredFieldsFilled =
-                fieldSelected !== '' &&
+                fieldRequirementMet &&
                 treatmentType !== '' &&
                 nameValue !== '' &&
                 dateValue !== '';
@@ -763,6 +824,23 @@
                 return false;
             }
 
+            // Validar selección de parcela(s)
+            const isEditMode = '{{ form.instance.pk }}' !== '';
+            const fieldSelected = elements.fieldSelect.value;
+            const multipleFieldsSelected = document.querySelectorAll('.field-checkbox:checked').length > 0;
+            
+            if (!isEditMode && !fieldSelected && !multipleFieldsSelected) {
+                event.preventDefault();
+                alert('Debe seleccionar al menos una parcela');
+                showStep(1);
+                return false;
+            } else if (isEditMode && !fieldSelected) {
+                event.preventDefault();
+                alert('Debe seleccionar una parcela');
+                showStep(1);
+                return false;
+            }
+
             if (selectedType === 'spraying') {
                 // Validar máquina seleccionada
                 if (!elements.machineSelect.value) {
@@ -821,6 +899,12 @@
         elements.completedDateInput.addEventListener('change', checkStep1Completion);
         elements.addProductBtn.addEventListener('click', addProductRow);
         elements.nameInput.addEventListener('input', checkStep1Completion);
+        
+        // Event listeners for multiple field selection
+        document.querySelectorAll('.field-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', updateMultipleFieldInfo);
+            checkbox.addEventListener('change', checkStep1Completion);
+        });
         elements.dateInput.addEventListener('change', checkStep1Completion);
 
         // Event listeners para cambio de paso
