@@ -203,8 +203,8 @@
                         {% elif treatment.is_spraying %}
                         <h5 class="mb-0">
                             <i class="fa fa-tractor me-2"></i>
-                            {{ load_info.full_loads }} depósito{{ load_info.full_loads|pluralize }} completo{{
-                            load_info.full_loads|pluralize }}
+                            {{ load_info.full_loads }} depósito{{ load_info.full_loads|pluralize }} completo
+                            {{ load_info.full_loads|pluralize }}
                         </h5>
                         {% endif %}
                     </div>
@@ -217,7 +217,7 @@
                                         <h5 class="product-name" style="font-size:0.85rem">{{ p.product.name }}</h5>
                                     </div>
                                     <div class="fw-bold text-primary" style="font-size:1.1rem">
-                                        {{ product.get_dose_per_load }} {{ product.total_dose_unit }}
+                                        {{ p.get_dose_per_load }} {{ p.total_dose_unit }}
                                     </div>
                                 </div>
                             </div>
