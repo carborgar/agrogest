@@ -1,87 +1,116 @@
 {% load custom_filters %}
 {% load humanize %}
 {% with state_class=treatment|treatment_state_class treatment_type=treatment|treatment_type_icon %}
+{% with products=treatment.treatmentproduct_set.all %}
 
 <div class="col">
-    <div class="card treatment-card position-relative">
-        <div class="treatment-status-bar bg-{{ state_class }}"></div>
-        <span class="treatment-status-badge bg-{{ state_class }} text-uppercase text-center text-white fw-bold py-1">{{ treatment.get_status_display }}</span>
+    <div class="card treatment-card position-relative h-100">
+        <!-- Top banner: status + urgency pill -->
+        <div class="treatment-card-top bg-{{ state_class }}">
+            <span class="treatment-status-badge text-uppercase text-white fw-bold">
+                <i class="fa fa-{{ treatment_type }} me-1"></i>{{ treatment.get_status_display }}
+            </span>
+            {% if treatment.status == 'pending' and treatment.days_until <= 3 and treatment.days_until >= 0 %}
+            <span class="urgency-pill bg-warning text-dark">
+                {% if treatment.days_until == 0 %}Hoy{% elif treatment.days_until == 1 %}Mañana{% else %}En {{ treatment.days_until }} días{% endif %}
+            </span>
+            {% elif treatment.status == 'delayed' %}
+            <span class="urgency-pill bg-white bg-opacity-25 text-white">
+                {{ treatment.days_delayed }}d tarde
+            </span>
+            {% endif %}
+        </div>
 
-        <div class="card-body p-3">
-            <div class="d-flex align-items-center mb-3">
-                <div class="treatment-icon bg-{{ state_class }} bg-opacity-10 me-3">
-                    <i class="fas fa-{{treatment_type}} text-{{ state_class }}"></i>
+        <div class="card-body p-3 d-flex flex-column">
+            <!-- Title -->
+            <div class="d-flex align-items-start mb-2 gap-2">
+                <div class="treatment-icon bg-{{ state_class }} bg-opacity-10 flex-shrink-0">
+                    <i class="fas fa-{{ treatment_type }} text-{{ state_class }}"></i>
                 </div>
-                <h5 class="card-title mb-0 fw-bold flex-grow-1" title="{{ treatment.name }}">
-                    {{ treatment.name }}
-                </h5>
+                <h5 class="card-title mb-0 fw-bold lh-sm" title="{{ treatment.name }}">{{ treatment.name }}</h5>
             </div>
 
-            <div class="px-1">
-
-                <div class="treatment-property">
-                    <span class="property-icon"><i class="fa fa-calendar-day me-1"></i></span>
-                    <span class="fw-light">Prog. {{ treatment.date|date:"d/m/Y" }}</span>
-                </div>
-
-                <div class="treatment-property">
-                    <span class="property-icon"><i class="fa fa-calendar-day me-1"></i></span>
-                    <span class="fw-semibold">{{ treatment.date_status_display }}</span>
-                </div>
-
-                <hr class="my-3">
-
+            <!-- Parcela + fecha -->
+            <div class="treatment-card-meta mb-2">
                 <div class="treatment-property">
                     <span class="property-icon"><i class="fa fa-location-dot"></i></span>
-                    <span>{{ treatment.field.name }} ({{ treatment.field.area }} has)</span>
+                    <span class="fw-semibold">{{ treatment.field.name }}</span>
+                    <span class="text-muted ms-1 small">{{ treatment.field.area }} ha</span>
                 </div>
-
-                <div class="treatment-property">
-                    <span class="property-icon"><i class="fa fa-{{treatment_type}}"></i></span>
-                    <span>{{ treatment.get_type_display }}</span>
+                <div class="treatment-property flex-column align-items-start">
+                    <div class="d-flex align-items-center gap-1">
+                        <span class="property-icon"><i class="fa fa-calendar-day"></i></span>
+                        <span>{{ treatment.date|date:"d/m/Y" }}</span>
+                    </div>
+                    <span class="treatment-date-status text-{{ state_class }} small fw-semibold ps-3">
+                        {{ treatment.date_status_display }}
+                    </span>
                 </div>
+            </div>
 
-                <!-- Productos utilizados -->
-                {% if treatment.treatmentproduct_set.all %}
-                <div class="treatment-property">
-                    <span class="property-icon"><i class="fa fa-flask"></i></span>
-                    <span>{{ treatment.treatmentproduct_set.all|length }} producto{{ treatment.treatmentproduct_set.all|length|pluralize }}</span>
-                    <button class="btn btn-link btn-sm p-0 ms-2 text-primary"
+            <!-- Productos: chips + botón ver todos -->
+            {% if products %}
+            <div class="mb-2">
+                <div class="treatment-product-chips mb-1">
+                    {% for tp in products|slice:":3" %}
+                    <span class="product-chip" title="{{ tp.product.name }} — {{ tp.dose }} {{ tp.dose_type|dose_type }}">
+                        <i class="fa fa-flask me-1 opacity-50"></i>{{ tp.product.name|truncatechars:16 }}
+                    </span>
+                    {% endfor %}
+                    {% if products|length > 3 %}
+                    <button class="product-chip product-chip-more border-0"
                             data-bs-target="#productsModal{{ treatment.id }}"
                             data-bs-toggle="modal"
-                            title="Ver productos utilizados">
-                        <i class="fa fa-eye"></i>
+                            title="Ver todos los productos">
+                        +{{ products|length|add:"-3" }} más
                     </button>
+                    {% endif %}
                 </div>
+                {% if products|length > 1 %}
+                <button class="btn btn-link btn-sm p-0 text-muted small"
+                        data-bs-target="#productsModal{{ treatment.id }}"
+                        data-bs-toggle="modal">
+                    <i class="fa fa-flask me-1"></i>Ver {{ products|length }} productos
+                </button>
                 {% endif %}
+            </div>
+            {% else %}
+            <div class="text-muted small mb-2">
+                <i class="fa fa-circle-info me-1"></i>Sin productos asignados
+            </div>
+            {% endif %}
 
+            <!-- Spacer + Actions pegado al fondo -->
+            <div class="mt-auto">
                 {% include 'farm/treatments/_treatment_actions_dropdown.html' with treatment=treatment %}
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal de productos -->
-{% if treatment.treatmentproduct_set.all %}
+<!-- Modal productos -->
+{% if products %}
 <div aria-hidden="true" aria-labelledby="productsModalLabel{{ treatment.id }}" class="modal fade"
      id="productsModal{{ treatment.id }}" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="productsModalLabel{{ treatment.id }}">
                     <i class="fa fa-flask me-2 text-{{ state_class }}"></i>
-                    Productos - {{ treatment.name }}
+                    Productos — {{ treatment.name }}
                 </h5>
                 <button aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"></button>
             </div>
             <div class="modal-body">
-                <div class="container">
-                    <div class="treatment-products-grid row row-cols-12 row-cols-sm-3 row-cols-lg-4">
-                        {% for tp in treatment.treatmentproduct_set.all %}
-                        <div class="treatment-product-card">
+                <div class="row g-3">
+                    {% for tp in products %}
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="treatment-product-card h-100">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <span class="product-type">{{ tp.product.product_type.name }}</span>
+                            </div>
                             <div class="product-header">
                                 <h5 class="product-name">{{ tp.product.name }}</h5>
-                                <span class="product-type">{{ tp.product.product_type.name }}</span>
                             </div>
                             <div class="product-doses">
                                 <div class="dose-item">
@@ -94,13 +123,22 @@
                                 </div>
                             </div>
                         </div>
-                        {% endfor %}
                     </div>
+                    {% endfor %}
                 </div>
+            </div>
+            <div class="modal-footer">
+                <a class="btn btn-primary btn-sm" href="{% url 'treatment-detail' treatment.id %}">
+                    <i class="fa fa-eye me-1"></i>Ver detalles completos
+                </a>
+                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal" type="button">Cerrar</button>
             </div>
         </div>
     </div>
 </div>
 {% endif %}
+
 {% include 'farm/treatments/_treatment_actions.html' with treatment=treatment %}
 {% endwith %}
+{% endwith %}
+

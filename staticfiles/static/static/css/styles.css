@@ -1,5 +1,70 @@
 html, body {
-    height: 100%; /* Asegura que el body ocupe toda la altura de la pantalla */
+    height: 100%;
+}
+
+/* ═══════════════════════════════════════════
+   PAGE HEADER (common to all pages)
+═══════════════════════════════════════════ */
+.page-header {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+}
+
+.page-header-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.page-header-text {
+    flex: 1;
+    min-width: 0; /* allow text to shrink/truncate */
+}
+
+.page-title {
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    line-height: 1.2;
+    /* truncate very long names on mobile */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* sub_header content: subtitle below the title */
+.page-subtitle {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-top: 0.2rem;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.page-subtitle:empty {
+    display: none;
+}
+
+.page-header-actions {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+@media (max-width: 575px) {
+    .page-header-main {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .page-header-actions {
+        width: 100%;
+    }
+    .page-title {
+        white-space: normal;
+    }
 }
 
 .wrapper {

@@ -6,246 +6,348 @@
 {% block title %}{{ treatment.name }}{% endblock %}
 
 {% block header %}{{ treatment.name }}{% endblock %}
-{% block sub_header %} {% endblock %}
+{% block sub_header %}
+<span class="badge bg-{{ treatment|treatment_state_class }} me-2">{{ treatment.get_status_display }}</span>
+{{ treatment.field.name }} · {{ treatment.get_type_display }}
+{% endblock %}
 
 {% block actions %}
 {% include 'farm/treatments/_treatment_actions_dropdown.html' with treatment=treatment btn_class="btn-primary" hide_primary=True %}
 {% endblock %}
 
 {% block content %}
-{% with state_class=treatment|treatment_state_class %}
-<div class="row">
-    <div class="col-md-3">
-        <div class="card mb-3">
-            <div class="card-header bg-primary text-white">
-                <h3 class="mb-0">Información</h3>
+{% with state_class=treatment|treatment_state_class type_icon=treatment|treatment_type_icon %}
+
+<!-- ═══════════════════════════════════════════════════════
+     HERO: stat cards row
+═══════════════════════════════════════════════════════ -->
+<div class="detail-hero mb-4">
+    <div class="row g-3">
+        <!-- Status card -->
+        <div class="col-6 col-md-3">
+            <div class="detail-stat-card border-{{ state_class }}">
+                <div class="detail-stat-icon bg-{{ state_class }} bg-opacity-10 text-{{ state_class }}">
+                    <i class="fa fa-clipboard-check"></i>
+                </div>
+                <div class="detail-stat-label">Estado</div>
+                <div class="detail-stat-value text-{{ state_class }}">{{ treatment.get_status_display }}</div>
+                <div class="detail-stat-sub">{{ treatment.date_status_display }}</div>
             </div>
-            <div class="card-body p-0">
-                <!-- Estado -->
-                <div class="info-item-vertical status-{{ state_class }} bg-{{ state_class }} bg-opacity-25 border-bottom">
-                    <div class="treatment-status-bar bg-{{ state_class }}"></div>
-                    <div class="info-label"><i class="fa fa-clipboard-check me-2"></i>Estado</div>
-                    <div class="info-value">{{ treatment.get_status_display }}</div>
-                </div>
+        </div>
 
-                <!-- Tipo -->
-                <div class="info-item-vertical border-bottom">
-                    <div class="info-label"><i class="fa fa-spray-can me-2"></i>Tipo</div>
-                    <div class="info-value">{{ treatment.get_type_display }}</div>
+        <!-- Date card -->
+        <div class="col-6 col-md-3">
+            <div class="detail-stat-card">
+                <div class="detail-stat-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="fa fa-calendar-alt"></i>
                 </div>
-
-                <!-- Fecha -->
-                <div class="info-item-vertical border-bottom">
-                    <div class="info-label"><i class="fa fa-calendar-alt me-2"></i>Fecha</div>
-                    <div class="info-value">{{ treatment.date|date:"d/m/Y" }}</div>
-                </div>
-
+                <div class="detail-stat-label">Fecha programada</div>
+                <div class="detail-stat-value">{{ treatment.date|date:"d/m/Y" }}</div>
                 {% if treatment.finish_date %}
-                <!-- Fecha finalización -->
-                <div class="info-item-vertical border-bottom">
-                    <div class="info-label"><i class="fa fa-calendar-check me-2"></i>Finalizado</div>
-                    <div class="info-value">{{ treatment.finish_date|date:"d/m/Y" }}</div>
+                <div class="detail-stat-sub text-success">
+                    <i class="fa fa-check me-1"></i>{{ treatment.finish_date|date:"d/m/Y" }}
                 </div>
                 {% endif %}
+            </div>
+        </div>
 
-                <!-- Parcela -->
-                <div class="info-item-vertical border-bottom">
-                    <div class="info-label"><i class="fa fa-map-marked-alt me-2"></i>Parcela</div>
-                    <div class="info-value">{{ treatment.field.name }}</div>
-                    <div class="info-subvalue">{{ treatment.field.crop }}, {{ treatment.field.area }} ha</div>
+        <!-- Field card -->
+        <div class="col-6 col-md-3">
+            <div class="detail-stat-card">
+                <div class="detail-stat-icon bg-success bg-opacity-10 text-success">
+                    <i class="fa fa-map-marked-alt"></i>
                 </div>
+                <div class="detail-stat-label">Parcela</div>
+                <div class="detail-stat-value">{{ treatment.field.name }}</div>
+                <div class="detail-stat-sub">{{ treatment.field.crop }} · {{ treatment.field.area }} ha</div>
+            </div>
+        </div>
 
+        <!-- Cost / products card -->
+        <div class="col-6 col-md-3">
+            <div class="detail-stat-card">
+                <div class="detail-stat-icon bg-warning bg-opacity-10 text-warning">
+                    <i class="fa fa-flask"></i>
+                </div>
+                <div class="detail-stat-label">Productos</div>
+                <div class="detail-stat-value">{{ products|length }}</div>
+                {% if total_cost %}
+                <div class="detail-stat-sub text-success fw-semibold">
+                    <i class="fa fa-euro-sign me-1"></i>{{ total_cost }}€ total
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MAIN CONTENT: productos (full width primero) + 2-col
+═══════════════════════════════════════════════════════ -->
+
+<div class="row g-4">
+
+    <!-- LEFT: info panel -->
+    <div class="col-md-4 col-lg-3">
+
+        <!-- Machine / water card -->
+        {% if treatment.machine or treatment.water_per_ha %}
+        <div class="card mb-3">
+            <div class="card-header d-flex align-items-center gap-2">
+                <i class="fa fa-tractor text-primary"></i>
+                <span class="fw-semibold">Maquinaria y mojado</span>
+            </div>
+            <div class="card-body p-0">
                 {% if treatment.machine %}
-                <!-- Maquinaria -->
                 <div class="info-item-vertical border-bottom">
                     <div class="info-label"><i class="fa fa-tractor me-2"></i>Maquinaria</div>
                     <div class="info-value">{{ treatment.machine.name }}</div>
-                    <div class="info-subvalue">{{ treatment.machine.capacity }} litros</div>
+                    <div class="info-subvalue">{{ treatment.machine.capacity }} litros/depósito</div>
                 </div>
-
-                <!-- Mojado -->
+                {% endif %}
+                {% if treatment.water_per_ha %}
                 <div class="info-item-vertical">
                     <div class="info-label"><i class="fa fa-fill-drip me-2"></i>Mojado</div>
                     <div class="info-value">
                         {% if treatment.real_water_per_ha and treatment.real_water_per_ha != treatment.water_per_ha %}
-                        <del class="info-subvalue">{{ treatment.water_per_ha }} L/ha</del>
-                        <br>
-                        {% endif %}
+                        <span class="text-decoration-line-through text-muted me-2">{{ treatment.water_per_ha }} L/ha</span>
+                        <span class="text-success fw-bold">{{ treatment.actual_water_per_ha }} L/ha</span>
+                        {% else %}
                         {{ treatment.actual_water_per_ha }} L/ha
+                        {% endif %}
                     </div>
                 </div>
                 {% endif %}
             </div>
         </div>
-    </div>
+        {% endif %}
 
-    <div class="col-md-9">
-        <div class="card mb-4 shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h3 class="mb-0">Productos, dosis y precios</h3>
+        <!-- Timeline -->
+        <div class="card mb-3">
+            <div class="card-header d-flex align-items-center gap-2">
+                <i class="fa fa-timeline text-primary"></i>
+                <span class="fw-semibold">Línea de tiempo</span>
             </div>
             <div class="card-body">
-                <div class="alert alert-info mb-3">
-                    <i class="fa fa-leaf me-2"></i>Total: <strong>{{ products|length }}</strong> productos aplicados
-                    en
-                    <strong>{{ treatment.field.name }}</strong>
-                    {% if total_cost %}
-                    <br>
-                    <i class="fa fa-euro-sign me-2"></i>Coste total: <strong>{{ total_cost }}€</strong>
-                    ({{ cost_per_ha|floatformat:2 }} €/ha)
+                <div class="treatment-timeline">
+                    <div class="timeline-item done">
+                        <div class="timeline-dot bg-primary"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-label">Programado</div>
+                            <div class="timeline-date">{{ treatment.date|date:"d/m/Y" }}</div>
+                        </div>
+                    </div>
+                    {% if treatment.finish_date %}
+                    <div class="timeline-item done">
+                        <div class="timeline-dot bg-success"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-label text-success">Finalizado</div>
+                            <div class="timeline-date">{{ treatment.finish_date|date:"d/m/Y" }}</div>
+                        </div>
+                    </div>
+                    {% elif treatment.status == 'delayed' %}
+                    <div class="timeline-item">
+                        <div class="timeline-dot bg-danger"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-label text-danger">Atrasado {{ treatment.days_delayed }} días</div>
+                            <div class="timeline-date text-muted">Pendiente de finalizar</div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="timeline-item">
+                        <div class="timeline-dot bg-warning"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-label text-warning">Pendiente</div>
+                            <div class="timeline-date text-muted">{{ treatment.date_status_display }}</div>
+                        </div>
+                    </div>
                     {% endif %}
                 </div>
-                <div class="row">
-                    {% for product in products %}
-                    <div class="col-md-4 mb-3">
-                        <div class="treatment-product-card h-100">
-                            <div class="product-header">
-                                <h5 class="product-name">{{ product.product.name }}</h5>
-                                <span class="product-type">{{ product.product.product_type.name }}</span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- RIGHT: instructions -->
+    <div class="col-md-8 col-lg-9">
+
+
+        <!-- Operator instructions card -->
+        <div class="card mb-4">
+            <div class="card-header d-flex align-items-center gap-2">
+                <i class="fa fa-clipboard-list text-primary"></i>
+                <span class="fw-semibold">Instrucciones para operador</span>
+            </div>
+            <div class="card-body">
+
+                <div class="alert alert-info mb-3">
+                    <i class="fa fa-info-circle me-2"></i>
+                    {% if treatment.is_spraying and treatment.machine %}
+                    {% with load_info=treatment.calculate_machine_loads %}
+                    Total: <strong>{{ load_info.total_water }} L</strong> de agua
+                    para <strong>{{ treatment.field.area }} ha</strong>
+                    a <strong>{{ treatment.actual_water_per_ha }} L/ha</strong>
+                    {% endwith %}
+                    {% elif treatment.is_fertigation %}
+                    Fertirrigación para <strong>{{ treatment.field.area }} ha</strong>
+                    en <strong>{{ treatment.field.name }}</strong>
+                    {% endif %}
+                </div>
+
+                {% with load_info=treatment.calculate_machine_loads %}
+                {% if treatment.is_fertigation or load_info.full_loads > 0 %}
+                <div class="card mb-3 border-success">
+                    <div class="card-header bg-success-subtle border-bottom border-success border-2">
+                        {% if treatment.is_fertigation %}
+                        <h5 class="mb-0"><i class="fa fa-droplet me-2"></i>Dosis a aplicar:</h5>
+                        {% elif treatment.is_spraying %}
+                        <h5 class="mb-0">
+                            <i class="fa fa-tractor me-2"></i>
+                            {{ load_info.full_loads }} depósito{{ load_info.full_loads|pluralize }} completo{{
+                            load_info.full_loads|pluralize }}
+                        </h5>
+                        {% endif %}
+                    </div>
+                    <div class="card-body full-machine">
+                        <div class="row g-2">
+                            {% for p in products %}
+                            <div class="col-6 col-sm-4 col-lg-3">
+                                <div class="treatment-product-card text-center">
+                                    <div class="product-header mb-1">
+                                        <h5 class="product-name" style="font-size:0.85rem">{{ p.product.name }}</h5>
+                                    </div>
+                                    <div class="fw-bold text-primary" style="font-size:1.1rem">
+                                        {{ product.get_dose_per_load }} {{ product.total_dose_unit }}
+                                    </div>
+                                </div>
                             </div>
-                            <div class="product-doses">
-                                <div class="dose-item">
-                                    <span class="dose-label">Dosis</span>
-                                    <span class="dose-value">{{ product.dose }} {{ product.dose_type|dose_type }}</span>
-                                </div>
-                                <div class="dose-item">
-                                    <span class="dose-label">Total</span>
-                                    <span class="dose-value">{{ product.total_dose }} {{ product.total_dose_unit }}</span>
-                                </div>
-                            </div>
-                            {% if product.unit_price > 0 %}
-                            <div class="product-doses mt-1">
-                                <div class="dose-item">
-                                    <span class="dose-label">€/ud</span>
-                                    <span class="dose-value">{{ product.unit_price }}€</span>
-                                </div>
-                                <div class="dose-item">
-                                    <span class="dose-label">€/ha</span>
-                                    <span class="dose-value">{{ product.price_per_ha }}€</span>
-                                </div>
-                                <div class="dose-item">
-                                    <span class="dose-label">Total</span>
-                                    <span class="dose-value">{{ product.total_price }}€</span>
-                                </div>
-                            </div>
-                            {% endif %}
+                            {% endfor %}
                         </div>
                     </div>
-                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% if load_info.partial_load %}
+                <div class="card mb-3 border-warning">
+                    <div class="card-header bg-warning-subtle border-bottom border-warning border-2">
+                        <h5 class="mb-0">
+                            <i class="fa fa-fill-drip me-2"></i>
+                            1 depósito parcial ({{ load_info.partial_water }} L)
+                        </h5>
+                    </div>
+                    <div class="card-body partial-machine">
+                        <div class="row g-2">
+                            {% for p in products %}
+                            <div class="col-6 col-sm-4 col-lg-3">
+                                <div class="treatment-product-card text-center">
+                                    <div class="product-header mb-1">
+                                        <h5 class="product-name" style="font-size:0.85rem">{{ p.product.name }}</h5>
+                                    </div>
+                                    <div class="fw-bold text-warning-emphasis" style="font-size:1.1rem">
+                                        {{ p|partial_load_product:treatment }} {{ p.total_dose_unit }}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                {% endwith %}
+
+                <div class="alert alert-light border d-flex align-items-start gap-2 mb-0">
+                    <i class="fa fa-circle-info text-muted mt-1"></i>
+                    <div>Asegúrese de aplicar los productos en el orden indicado y con el equipo de protección
+                        adecuado.
+                    </div>
                 </div>
             </div>
         </div>
+
     </div>
 </div>
 
-<div class="card mb-4 shadow-sm">
-    <div class="card-header bg-primary text-white">
-        <h3 class="mb-0">Instrucciones para operador</h3>
+<div class="card mb-4">
+    <div class="card-header d-flex align-items-center gap-2">
+        <i class="fa fa-flask text-primary"></i>
+        <span class="fw-semibold">Productos aplicados</span>
+        <span class="badge bg-primary rounded-pill">{{ products|length }}</span>
     </div>
     <div class="card-body">
-
-        <div class="alert alert-info mb-3">
-            <i class="fa fa-info-circle me-2"></i>
-            {% if treatment.is_spraying and treatment.machine %}
-            {% with load_info=treatment.calculate_machine_loads %}
-            Total: <strong>{{ load_info.total_water }} litros</strong> de agua
-            para <strong>{{ treatment.field.area }} ha</strong> a <strong>{{ treatment.actual_water_per_ha }}
-            l/ha</strong>
-            {% endwith %}
-            {% elif treatment.is_fertigation %}
-            Aplicación de fertirrigación para <strong>{{ treatment.field.area }} ha</strong> en <strong>
-            {{ treatment.field.name }}</strong>
-            {% endif %}
-        </div>
-
-        {% with load_info=treatment.calculate_machine_loads %}
-        {% if treatment.is_fertigation or load_info.full_loads > 0 %}
-        <div class="card mb-3">
-            <div class="card-header bg-success-subtle border-bottom border-success border-2">
-                {% if treatment.is_fertigation %}
-                <h5 class="mb-0"><i class="fa fa-droplet me-2"></i>Dosis a aplicar:</h5>
-                {% elif treatment.is_spraying %}
-                <h5 class="mb-0"><i class="fa fa-tractor"></i> {{ load_info.full_loads }} máquinas completas con:
-                </h5>
-                {% endif %}
-            </div>
-            <div class="card-body full-machine">
-                <div class="row">
-                    {% for product in products %}
-                    <div class="col-6 col-sm-3 mb-2">
-                        <div class="treatment-product-card">
-                            <div class="product-header">
-                                <h5 class="product-name">{{ product.product.name }}</h5>
-                            </div>
-                            <div class="product-doses">
-                                <div class="dose-item">
-                                    <span class="dose-value">{{ product.get_dose_per_load }} {{ product.total_dose_unit }}</span>
-                                </div>
-                            </div>
+        <div class="row g-3">
+            {% for product in products %}
+            <div class="col-12 col-sm-6 col-lg-4">
+                <div class="treatment-product-card h-100 product-detail-card">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <span class="product-type">{{ product.product.product_type.name }}</span>
+                        {% if product.total_overridden %}
+                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle"
+                              title="Dosis personalizada (sobreescrita manualmente)">
+                            <i class="fa fa-pen-to-square"></i>
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="product-header">
+                        <h5 class="product-name">{{ product.product.name }}</h5>
+                    </div>
+                    <!-- Dosis y total: info principal, siempre visible -->
+                    <div class="product-doses">
+                        <div class="dose-item">
+                            <span class="dose-label">Dosis</span>
+                            <span class="dose-value">{{ product.dose }} {{ product.dose_type|dose_type }}</span>
+                        </div>
+                        <div class="dose-item">
+                            <span class="dose-label">Total</span>
+                            <span class="dose-value">{{ product.total_dose }} {{ product.total_dose_unit }}</span>
                         </div>
                     </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        {% if load_info.partial_load %}
-        <!-- Productos para máquina parcial -->
-        <div class="card mb-3">
-            <div class="card-header bg-warning-subtle border-bottom border-warning border-2">
-                <h5 class="mb-0"><i class="fa fa-fill-drip"></i> 1 máquina parcial
-                    ({{ load_info.partial_water }} L) con:</h5>
-            </div>
-            <div class="card-body partial-machine">
-                <div class="row">
-                    {% for product in products %}
-                    <div class="col-6 col-sm-3 mb-2">
-                        <div class="treatment-product-card">
-                            <div class="product-header">
-                                <h5 class="product-name">{{ product.product.name }}</h5>
-                            </div>
-                            <div class="product-doses">
-                                <div class="dose-item">
-                                    <span class="dose-value">{{ product|partial_load_product:treatment }} {{ product.total_dose_unit }}</span>
-                                </div>
-                            </div>
-                        </div>
+                    <!-- Precios: secundarios, colapsados por defecto en móvil -->
+                    {% if product.unit_price > 0 %}
+                    <div class="product-cost-row">
+                        <span class="product-cost-item">
+                            <span class="dose-label">€/ud</span>
+                            <span class="dose-value">{{ product.unit_price }}€</span>
+                        </span>
+                        <span class="product-cost-item">
+                            <span class="dose-label">€/ha</span>
+                            <span class="dose-value text-success">{{ product.price_per_ha }}€</span>
+                        </span>
+                        <span class="product-cost-item">
+                            <span class="dose-label">Total</span>
+                            <span class="dose-value fw-bold text-success">{{ product.total_price }}€</span>
+                        </span>
                     </div>
-                    {% endfor %}
+                    {% endif %}
                 </div>
             </div>
+            {% endfor %}
+        </div>
+
+        {% if total_cost %}
+        <div class="detail-cost-summary mt-3">
+            <i class="fa fa-euro-sign me-1 text-muted"></i>
+            <span class="text-muted">Coste total:</span>
+            <strong class="text-success ms-1">{{ total_cost }}€</strong>
+            <span class="text-muted ms-2 small">({{ cost_per_ha|floatformat:2 }} €/ha)</span>
         </div>
         {% endif %}
-        {% endwith %}
-
-        <div class="alert alert-info">
-            <i class="fa fa-circle-info me-2"></i>
-            <strong>Nota:</strong>
-            Asegúrese de aplicar los productos en el orden indicado.
-        </div>
     </div>
 </div>
 
-<!-- Formulario oculto para las acciones de eliminación -->
-<form action="{% url 'treatment-delete' treatment.id %}" id="deleteForm" method="POST" style="display: none;">
+<!-- Hidden forms for actions -->
+<form action="{% url 'treatment-delete' treatment.id %}" id="deleteForm" method="POST" style="display:none;">
     {% csrf_token %}
 </form>
 
 {% include 'farm/treatments/_treatment_actions.html' with treatment=treatment %}
 
-<!-- Contenedor oculto para generar las instrucciones del operador -->
-<div id="export-container" style="position: absolute; left: -9999px; top: -9999px;">
-    <!-- Este contenedor será llenado dinámicamente cuando se solicite la exportación -->
-</div>
+<div id="export-container" style="position:absolute;left:-9999px;top:-9999px;"></div>
 
 {% endwith %}
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    // En el detalle, el form de borrar ya está en el DOM con id="deleteForm".
-    // Conectamos confirmDeleteTreatment al form local para que el partial del dropdown funcione igual.
     function confirmDeleteTreatment(name, url) {
         showConfirm({
             text: `Esta acción eliminará el tratamiento "${name}" de forma permanente y no se podrá deshacer.`,

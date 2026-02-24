@@ -148,6 +148,8 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
         date_from = self.request.GET.get('date_from')
         date_to = self.request.GET.get('date_to')
         product_type_filters = self.request.GET.getlist('product_types')
+        search_query = self.request.GET.get('q', '').strip()
+        sort = self.request.GET.get('sort', 'date_asc')
 
         if field_ids:
             queryset = queryset.filter(field__id__in=field_ids)
@@ -163,27 +165,60 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
             queryset = queryset.filter(products__product_type__in=product_type_filters)
         if status_filters:
             queryset = queryset.filter(status__in=status_filters)
+        if search_query:
+            queryset = queryset.filter(name__icontains=search_query)
 
-        return queryset.order_by(*self.ordering)
+        sort_map = {
+            'date_asc': 'date',
+            'date_desc': '-date',
+            'name_asc': 'name',
+            'name_desc': '-name',
+        }
+        order_field = sort_map.get(sort, 'date')
+        return queryset.order_by(order_field).distinct()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+
+        selected_fields = self.request.GET.getlist('field')
+        selected_types = self.request.GET.getlist('type')
+        selected_statuses = self.request.GET.getlist('status') or [Treatment.STATUS_PENDING, Treatment.STATUS_DELAYED]
+        selected_products = self.request.GET.getlist('products')
+        selected_product_types = self.request.GET.getlist('product_types')
+        date_from = self.request.GET.get('date_from')
+        date_to = self.request.GET.get('date_to')
+        search_query = self.request.GET.get('q', '').strip()
+        sort = self.request.GET.get('sort', 'date_asc')
 
         context['fields'] = Field.ownership_objects.get_queryset_for_user(self.request.user)
         context['products'] = Product.ownership_objects.get_queryset_for_user(self.request.user)
         context['type_choices'] = Treatment.TYPE_CHOICES
         context['status_choices'] = Treatment.STATUS_CHOICES
-        context['selected_fields'] = self.request.GET.getlist('field')
-        context['selected_types'] = self.request.GET.getlist('type')
-        context['selected_statuses'] = self.request.GET.getlist('status') or [Treatment.STATUS_PENDING,
-                                                                              Treatment.STATUS_DELAYED]
-        context['selected_products'] = self.request.GET.getlist('products')
-        context['date_from'] = self.request.GET.get('date_from')
-        context['date_to'] = self.request.GET.get('date_to')
+        context['selected_fields'] = selected_fields
+        context['selected_types'] = selected_types
+        context['selected_statuses'] = selected_statuses
+        context['selected_products'] = selected_products
+        context['date_from'] = date_from
+        context['date_to'] = date_to
         context['product_types'] = ProductType.ownership_objects.get_queryset_for_user(self.request.user)
-        context['selected_product_types'] = self.request.GET.getlist('product_types')
+        context['selected_product_types'] = selected_product_types
         context['total_count'] = self.get_queryset().count()
         context['available_fields'] = Field.ownership_objects.get_queryset_for_user(self.request.user)
+        context['search_query'] = search_query
+        context['sort'] = sort
+
+        # Count how many filter groups are active (for UI badges)
+        active_filter_count = (
+            len(selected_fields)
+            + len(selected_types)
+            + len(selected_products)
+            + len(selected_product_types)
+            + (1 if date_from or date_to else 0)
+            + (1 if search_query else 0)
+            # Only count status as active if it differs from default
+            + (len(selected_statuses) if self.request.GET.getlist('status') else 0)
+        )
+        context['active_filter_count'] = active_filter_count
 
         query_params = self.request.GET.copy()
         if 'page' in query_params:
