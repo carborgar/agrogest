@@ -3,85 +3,139 @@
 {% load static %}
 
 {% block header %}Parcelas{% endblock %}
+{% block sub_header %}{{ total_fields }} parcela{{ total_fields|pluralize }} · {{ total_area }} ha en total{% endblock %}
 
 {% block actions %}
-<a class="btn btn-primary w-100 w-md-auto" href="{% url 'field-create' %}" type="button"><i class="fa fa-plus me-1"></i>Nueva
-    parcela</a>
+<a class="btn btn-primary" href="{% url 'field-create' %}">
+    <i class="fa fa-plus me-1"></i>Nueva parcela
+</a>
 {% endblock %}
 
 {% block content %}
-<div class="row g-4">
+
+{% if not fields %}
+<div class="empty-state text-center py-5">
+    <i class="fa fa-map fa-3x text-muted opacity-50 mb-3 d-block"></i>
+    <h5 class="text-muted">Aún no tienes parcelas</h5>
+    <p class="text-muted small mb-3">Crea tu primera parcela para empezar a gestionar tratamientos</p>
+    <a class="btn btn-primary" href="{% url 'field-create' %}">
+        <i class="fa fa-plus me-1"></i>Nueva parcela
+    </a>
+</div>
+{% else %}
+
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    {% for field in fields %}
     <div class="col">
-        <div class="card-body">
-            {% if not fields %}
-            <div class="alert alert-info d-flex align-items-center" role="alert">
-                <i class="fa fa-info-circle me-3 fs-4"></i>
-                <div>No se encontraron parcelas.</div>
-            </div>
-            {% endif %}
+        <div class="card field-card h-100">
 
-            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-                {% for field in fields %}
-                <div class="col">
-                    <div class="card treatment-card position-relative">
-                        <div class="card-body ps-4 pt-3 pb-3">
-                            <div class="card-header-row">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <h5 class="card-title mb-0 fw-bold">
-                                        <i class="fa fa-map text-default"></i> {{ field.name }}</h5>
-                                    <div class="dropdown">
-                                        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">
-                                            <i class="fa fa-ellipsis-v"></i> Acciones
-                                        </button>
-                                        <ul class="dropdown-menu">
-                                            <li><a class="dropdown-item" href="{% url 'field-edit' field.id %}">
-                                                <i class="fa fa-edit me-2"></i>Editar</a></li>
-                                            {% if field.can_be_deleted %}
-                                            <li><a class="dropdown-item text-danger"
-                                                   data-url="{% url 'field-delete' field.id %}"
-                                                   href="#"
-                                                   onclick="confirmDelete(this)">
-                                                <i class="fa fa-trash me-2"></i>Eliminar</a></li>
-                                            {% endif %}
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <hr class="my-3">
-
-                            <div class="treatment-property">
-                                <span class="property-icon"><i class="fa fa-wheat-awn"></i></span>
-                                <span>Cultivo: {{ field.crop }} ({{ field.area }} ha)</span>
-                            </div>
-
-                            <div class="treatment-property">
-                                <span class="property-icon"><i class="fa fa-location-dot"></i></span>
-                                <span>Ubicación: {{ field.location|default:"No disponible" }}</span>
-                            </div>
-
-                            <div class="treatment-property">
-                                <span class="property-icon"><i class="fa fa-calendar"></i></span>
-                                <span>Año de plantación: {{ field.planting_year|default:"No disponible" }}</span>
-                            </div>
-                        </div>
-                    </div>
+            <!-- Header con nombre + acciones -->
+            <div class="field-card-header">
+                <div class="field-card-icon">
+                    <i class="fa fa-wheat-awn"></i>
                 </div>
-                {% endfor %}
+                <div class="field-card-title-group">
+                    <h5 class="field-card-name">{{ field.name }}</h5>
+                    <span class="field-card-crop">{{ field.crop }}</span>
+                </div>
+                <div class="dropdown ms-auto">
+                    <button aria-expanded="false"
+                            class="btn btn-sm btn-ghost-secondary field-actions-btn" data-bs-toggle="dropdown"
+                            title="Acciones">
+                        <i class="fa fa-ellipsis-vertical"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <a class="dropdown-item" href="{% url 'treatment-list' %}?field={{ field.id }}">
+                                <i class="fa fa-flask me-2 text-primary"></i>Ver tratamientos
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'field-edit' field.id %}">
+                                <i class="fa fa-edit me-2 text-secondary"></i>Editar
+                            </a>
+                        </li>
+                        {% if field.can_be_deleted %}
+                        <li>
+                            <a class="dropdown-item text-danger" data-url="{% url 'field-delete' field.id %}"
+                               href="#"
+                               onclick="confirmDelete(this); return false;">
+                                <i class="fa fa-trash me-2"></i>Eliminar
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
             </div>
-            {% if is_paginated %}
-            <div class="mt-3">
-                {% bootstrap_pagination page_obj pages_to_show="5" extra="&"|add:querystring %}
+
+            <!-- Datos principales -->
+            <div class="field-card-body">
+                <div class="field-stats-row">
+                    <div class="field-stat">
+                        <span class="field-stat-value">{{ field.area }}</span>
+                        <span class="field-stat-label">hectáreas</span>
+                    </div>
+                    <div class="field-stat-divider"></div>
+                    <div class="field-stat">
+                        <span class="field-stat-value">{{ field.planting_year }}</span>
+                        <span class="field-stat-label">plantación</span>
+                    </div>
+                    {% if field.location %}
+                    <div class="field-stat-divider"></div>
+                    <div class="field-stat field-stat--location">
+                        <i class="fa fa-location-dot text-muted me-1"></i>
+                        <span class="field-stat-label text-truncate">{{ field.location }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Mini-indicadores de tratamientos -->
+                <div class="field-treatment-indicators">
+                    <a class="field-indicator field-indicator--danger {% if field.delayed_count == 0 %}field-indicator--zero{% endif %}"
+                       href="{% url 'treatment-list' %}?field={{ field.id }}&status=delayed"
+                       title="{{ field.delayed_count }} atrasado{{ field.delayed_count|pluralize }}">
+                        <i class="fa fa-triangle-exclamation"></i>
+                        <span>{{ field.delayed_count }}</span>
+                    </a>
+                    <a class="field-indicator field-indicator--warning {% if field.pending_count == 0 %}field-indicator--zero{% endif %}"
+                       href="{% url 'treatment-list' %}?field={{ field.id }}&status=pending"
+                       title="{{ field.pending_count }} pendiente{{ field.pending_count|pluralize }}">
+                        <i class="fa fa-clock"></i>
+                        <span>{{ field.pending_count }}</span>
+                    </a>
+                    <a class="field-indicator field-indicator--success {% if field.completed_count == 0 %}field-indicator--zero{% endif %}"
+                       href="{% url 'treatment-list' %}?field={{ field.id }}&status=completed"
+                       title="{{ field.completed_count }} completado{{ field.completed_count|pluralize }}">
+                        <i class="fa fa-check-circle"></i>
+                        <span>{{ field.completed_count }}</span>
+                    </a>
+                    <span class="field-indicator-label">tratamientos</span>
+                </div>
             </div>
-            {% endif %}
+
+            <!-- Footer: acceso rápido -->
+            <div class="field-card-footer">
+                <a class="btn btn-primary btn-sm w-100"
+                   href="{% url 'treatment-list' %}?field={{ field.id }}">
+                    <i class="fa fa-flask me-1"></i>Ver tratamientos
+                </a>
+            </div>
+
         </div>
     </div>
+    {% endfor %}
 </div>
 
-<!-- Formulario oculto para las acciones de eliminación -->
-<form class="d-none" id="deleteForm" method="POST">
-    {% csrf_token %}
-</form>
+{% if is_paginated %}
+<div class="mt-4">
+    {% bootstrap_pagination page_obj pages_to_show="5" %}
+</div>
+{% endif %}
+
+{% endif %}
+
+<form class="d-none" id="deleteForm" method="POST">{% csrf_token %}</form>
 
 {% endblock %}
 

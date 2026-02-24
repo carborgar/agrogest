@@ -564,4 +564,180 @@ a:hover .dashboard-treatment-row {
     white-space: nowrap;
 }
 
+/* ═══════════════════════════════════════════
+   FIELD CARDS
+═══════════════════════════════════════════ */
+.field-card {
+    border-radius: 12px;
+    border: 1px solid rgba(0,0,0,0.07);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    transition: box-shadow 0.2s, transform 0.2s;
+    overflow: hidden;
+}
+
+.field-card:hover {
+    box-shadow: 0 6px 20px rgba(0,0,0,0.10);
+    transform: translateY(-2px);
+}
+
+/* ── Header ── */
+.field-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1rem 0.75rem;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.field-card-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: rgba(25, 135, 84, 0.10);
+    color: var(--bs-success);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.field-card-title-group {
+    min-width: 0;
+    flex: 1;
+}
+
+.field-card-name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #212529;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.field-card-crop {
+    font-size: 0.78rem;
+    color: #6c757d;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.field-actions-btn {
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: #6c757d;
+    padding: 0.25rem 0.5rem;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.field-actions-btn:hover {
+    background: rgba(0,0,0,0.05);
+    border-color: rgba(0,0,0,0.1);
+    color: #212529;
+}
+
+/* ── Body ── */
+.field-card-body {
+    padding: 0.85rem 1rem;
+    flex: 1;
+}
+
+.field-stats-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+}
+
+.field-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+}
+
+.field-stat-value {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #212529;
+    line-height: 1;
+}
+
+.field-stat-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6c757d;
+    margin-top: 0.1rem;
+}
+
+.field-stat--location {
+    flex-direction: row;
+    align-items: center;
+    overflow: hidden;
+    flex: 1;
+}
+
+.field-stat-divider {
+    width: 1px;
+    height: 2rem;
+    background: rgba(0,0,0,0.08);
+    flex-shrink: 0;
+}
+
+/* ── Treatment indicators ── */
+.field-treatment-indicators {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.field-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: opacity 0.15s, transform 0.15s;
+}
+
+.field-indicator:hover {
+    opacity: 0.85;
+    transform: translateY(-1px);
+}
+
+.field-indicator--danger  { background: rgba(220,53,69,0.12);  color: var(--bs-danger); }
+.field-indicator--warning { background: rgba(255,193,7,0.18);  color: #856404; }
+.field-indicator--success { background: rgba(25,135,84,0.12);  color: var(--bs-success); }
+
+/* cuando el count es 0: gris y no tan destacado */
+.field-indicator--zero {
+    background: rgba(0,0,0,0.05);
+    color: #adb5bd;
+}
+
+.field-indicator-label {
+    font-size: 0.7rem;
+    color: #adb5bd;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-left: 0.15rem;
+}
+
+/* ── Footer ── */
+.field-card-footer {
+    padding: 0.75rem 1rem;
+    border-top: 1px solid rgba(0,0,0,0.05);
+    background: #fafafa;
+    border-radius: 0 0 12px 12px;
+}
+
 
