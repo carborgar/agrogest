@@ -203,8 +203,9 @@
                         {% elif treatment.is_spraying %}
                         <h5 class="mb-0">
                             <i class="fa fa-tractor me-2"></i>
-                            {{ load_info.full_loads }} depósito{{ load_info.full_loads|pluralize }} completo
-                            {{ load_info.full_loads|pluralize }}
+                            {# @formatter:off #}
+                            {{ load_info.full_loads }} depósito{{ load_info.full_loads|pluralize }} completo{{ load_info.full_loads|pluralize }}
+                            {# @formatter:on #}
                         </h5>
                         {% endif %}
                     </div>
