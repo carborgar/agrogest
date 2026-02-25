@@ -2,63 +2,165 @@
 
 {% block header %}Tipos de gasto{% endblock %}
 
-{% block sub_header %}Define y gestiona los tipos de gasto que puedes usar al registrar un gasto general (no vinculado a tratamientos).{% endblock %}
+{% block sub_header %}{{ expense_types|length }} tipo{{ expense_types|length|pluralize }} configurado{{ expense_types|length|pluralize }}{% endblock %}
 
 {% block actions %}
-<a class="btn btn-primary w-100 w-md-auto" href="{% url 'expense-type-create' %}" type="button"><i
-        class="fa fa-plus me-1"></i>Nuevo
-    tipo</a>
+<a class="btn btn-primary" href="{% url 'expense-type-create' %}" type="button">
+    <i class="fa fa-plus me-1"></i>Nuevo tipo
+</a>
 {% endblock %}
 
 {% block content %}
 
 {% if not expense_types %}
-<div class="text-center py-5">
-    <div class="mb-4">
-        <i class="fa fa-receipt text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
-    </div>
-    <h4 class="text-muted mb-3">No hay tipos de gasto</h4>
-    <p class="text-muted mb-4 lead">Comienza creando tu primer tipo de gasto para organizar mejor
-        tus
-        finanzas.</p>
-    <a class="btn btn-primary btn-lg shadow-sm" href="{% url 'expense-type-create' %}">
-        <i class="fa fa-plus me-2"></i>Crear Primer Tipo
+<div class="empty-state text-center py-5">
+    <i class="fa fa-tags fa-3x text-muted opacity-50 mb-3 d-block"></i>
+    <h5 class="text-muted">No hay tipos de gasto</h5>
+    <p class="text-muted small mb-3">Crea tu primer tipo de gasto para organizar mejor tus finanzas.</p>
+    <a class="btn btn-primary" href="{% url 'expense-type-create' %}">
+        <i class="fa fa-plus me-2"></i>Crear primer tipo
     </a>
 </div>
+
 {% else %}
-<div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4">
-    {% for expense_type in expense_types %}
-    <div class="col">
-        <div class="card treatment-product-card h-100">
-            <div class="product-header">
-                <h5 class="product-name"> {{ expense_type.name }}</h5>
-            </div>
-            <div class="card-body product-doses">
-                <div class="dose-item text-start">
-                    <div class="text-muted small">
-                        <span>{{ expense_type.description|truncatechars:80 }}</span>
+
+<!-- Vista escritorio: tabla -->
+<div class="d-none d-md-block">
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table modern-table mb-0">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Descripción</th>
+                        <th class="text-center">Gastos registrados</th>
+                        <th class="text-end">Total acumulado</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for expense_type in expense_types %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="expense-type-icon">
+                                    <i class="fa fa-tag text-primary"></i>
+                                </div>
+                                <span class="fw-semibold">{{ expense_type.name }}</span>
+                            </div>
+                        </td>
+                        <td class="text-muted small">
+                            {% if expense_type.description %}
+                                {{ expense_type.description|truncatechars:80 }}
+                            {% else %}
+                                <span class="text-muted fst-italic">Sin descripción</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if expense_type.expense_count %}
+                                <a class="badge bg-primary text-decoration-none"
+                                   href="{% url 'expense-list' %}?type={{ expense_type.pk }}">
+                                    {{ expense_type.expense_count }} gasto{{ expense_type.expense_count|pluralize }}
+                                </a>
+                            {% else %}
+                                <span class="badge bg-light text-muted">Sin gastos</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end fw-semibold">
+                            {% if expense_type.total_amount %}
+                                {{ expense_type.total_amount|floatformat:2 }} €
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center gap-2">
+                                <a class="btn btn-sm btn-outline-secondary"
+                                   href="{% url 'expense-type-edit' expense_type.pk %}"
+                                   title="Editar">
+                                    <i class="fa fa-edit"></i>
+                                </a>
+                                {% if not expense_type.has_expenses %}
+                                <button class="btn btn-sm btn-outline-danger"
+                                        data-url="{% url 'expense-type-delete' expense_type.pk %}"
+                                        onclick="confirmDelete(this)"
+                                        title="Eliminar">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                                {% else %}
+                                <button class="btn btn-sm btn-outline-danger" disabled title="No se puede eliminar: tiene gastos asociados">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Vista móvil: cards -->
+<div class="d-md-none">
+    <div class="row row-cols-1 g-3">
+        {% for expense_type in expense_types %}
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-start justify-content-between mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="expense-type-icon">
+                                <i class="fa fa-tag text-primary"></i>
+                            </div>
+                            <h6 class="mb-0 fw-semibold">{{ expense_type.name }}</h6>
+                        </div>
+                        {% if expense_type.expense_count %}
+                        <a class="badge bg-primary text-decoration-none"
+                           href="{% url 'expense-list' %}?type={{ expense_type.pk }}">
+                            {{ expense_type.expense_count }} gasto{{ expense_type.expense_count|pluralize }}
+                        </a>
+                        {% else %}
+                        <span class="badge bg-light text-muted">Sin gastos</span>
+                        {% endif %}
+                    </div>
+
+                    {% if expense_type.description %}
+                    <p class="text-muted small mb-2">{{ expense_type.description|truncatechars:100 }}</p>
+                    {% endif %}
+
+                    {% if expense_type.total_amount %}
+                    <div class="text-end text-muted small mb-2">
+                        Total: <span class="fw-semibold text-dark">{{ expense_type.total_amount|floatformat:2 }} €</span>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-transparent pt-0 pb-3 px-3">
+                    <div class="d-flex gap-2">
+                        <a class="btn btn-outline-secondary btn-sm flex-fill"
+                           href="{% url 'expense-type-edit' expense_type.pk %}">
+                            <i class="fa fa-edit me-1"></i>Editar
+                        </a>
+                        {% if not expense_type.has_expenses %}
+                        <button class="btn btn-outline-danger btn-sm"
+                                data-url="{% url 'expense-type-delete' expense_type.pk %}"
+                                onclick="confirmDelete(this)">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                        {% else %}
+                        <button class="btn btn-outline-danger btn-sm" disabled title="Tiene gastos asociados">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                        {% endif %}
                     </div>
                 </div>
             </div>
-            <div class="card-footer product-card-footer pt-3">
-                <div class="d-flex gap-2">
-                    <a class="btn btn-outline-primary btn-sm flex-fill"
-                       href="{% url 'expense-type-edit' expense_type.pk %}">
-                        <i class="fa fa-edit me-1"></i>Editar
-                    </a>
-                    {% if not expense_type.has_expenses %}
-                    <button class="btn btn-outline-danger btn-sm"
-                            data-url="{% url 'expense-type-delete' expense_type.pk %}"
-                            onclick="confirmDelete(this)">
-                        <i class="fa fa-trash"></i>
-                    </button>
-                    {% endif %}
-                </div>
-            </div>
         </div>
+        {% endfor %}
     </div>
-    {% endfor %}
 </div>
+
 {% endif %}
 
 <!-- Formulario oculto para las acciones de eliminación -->

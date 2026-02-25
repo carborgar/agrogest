@@ -137,8 +137,8 @@ class ProductType(OrganizationOwnedModel):
 
 
 class ExpenseType(OrganizationOwnedModel):
-    name = models.CharField(max_length=100)
-    description = models.TextField(blank=True)
+    name = models.CharField(max_length=100, verbose_name="Nombre")
+    description = models.TextField(blank=True, verbose_name="Descripción")
 
     class Meta:
         verbose_name = "Tipo de gasto"
