@@ -147,21 +147,21 @@ STATICFILES_DIRS = [
 ]
 
 # ── Cloudflare R2 en producción, Whitenoise en local ─────────────────────────
-_R2_ACCOUNT_ID    = os.environ.get("CLOUDFLARE_R2_ACCOUNT_ID", "")
+_R2_ACCOUNT_ID = os.environ.get("CLOUDFLARE_R2_ACCOUNT_ID", "")
 _R2_ACCESS_KEY_ID = os.environ.get("CLOUDFLARE_R2_ACCESS_KEY_ID", "")
-_R2_SECRET_KEY    = os.environ.get("CLOUDFLARE_R2_SECRET_ACCESS_KEY", "")
-_R2_BUCKET_NAME   = os.environ.get("CLOUDFLARE_R2_STATICS_BUCKET_NAME", "")
-_R2_PUBLIC_URL    = os.environ.get("CLOUDFLARE_R2_STATICS_PUBLIC_URL", "")  # ej: https://static.tudominio.com
+_R2_SECRET_KEY = os.environ.get("CLOUDFLARE_R2_SECRET_ACCESS_KEY", "")
+_R2_BUCKET_NAME = os.environ.get("CLOUDFLARE_R2_STATICS_BUCKET_NAME", "")
+_R2_PUBLIC_URL = os.environ.get("CLOUDFLARE_R2_STATICS_PUBLIC_URL", "")  # ej: https://static.tudominio.com
 
 if not DEBUG and _R2_ACCOUNT_ID and _R2_BUCKET_NAME:
-    AWS_ACCESS_KEY_ID       = _R2_ACCESS_KEY_ID
-    AWS_SECRET_ACCESS_KEY   = _R2_SECRET_KEY
+    AWS_ACCESS_KEY_ID = _R2_ACCESS_KEY_ID
+    AWS_SECRET_ACCESS_KEY = _R2_SECRET_KEY
     AWS_STORAGE_BUCKET_NAME = _R2_BUCKET_NAME
-    AWS_S3_ENDPOINT_URL     = f"https://{_R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
-    AWS_S3_REGION_NAME      = "auto"  # R2 no usa regiones reales
-    AWS_DEFAULT_ACL         = None    # R2 no usa ACLs
-    AWS_S3_FILE_OVERWRITE   = False
-    AWS_QUERYSTRING_AUTH    = False   # URLs públicas sin firma
+    AWS_S3_ENDPOINT_URL = f"https://{_R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+    AWS_S3_REGION_NAME = "auto"  # R2 no usa regiones reales
+    AWS_DEFAULT_ACL = None  # R2 no usa ACLs
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_QUERYSTRING_AUTH = False  # URLs públicas sin firma
     AWS_S3_OBJECT_PARAMETERS = {
         # 1 año de caché — seguro porque el nombre del fichero lleva hash de contenido
         "CacheControl": "public, max-age=31536000, immutable",
@@ -183,7 +183,7 @@ if not DEBUG and _R2_ACCOUNT_ID and _R2_BUCKET_NAME:
     # → sube a R2 y añade hash al nombre de cada fichero (cache busting automático)
     STORAGES = {
         "staticfiles": {
-            "BACKEND": "storages.backends.s3.S3Storage",
+            "BACKEND": "storages.backends.s3boto3.S3ManifestStaticStorage",
         },
         "default": {
             "BACKEND": "django.core.files.storage.FileSystemStorage",
@@ -224,7 +224,7 @@ LOGGING = {
     },
     "root": {
         "handlers": ["console"],
-        "level": "DEBUG",
+        "level": "INFO",
         "propagate": True,
     },
 }
