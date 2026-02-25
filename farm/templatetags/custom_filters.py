@@ -41,3 +41,10 @@ def treatment_state_class(treatment):
 def treatment_type_icon(treatment):
     """Devuelve el nombre del icono FontAwesome para el tipo de tratamiento."""
     return _TYPE_ICON.get(treatment.type, 'flask')
+
+
+@register.filter
+def type_icon(type_value):
+    """Devuelve el nombre del icono FontAwesome para un valor de tipo (string)."""
+    return _TYPE_ICON.get(type_value, 'flask')
+

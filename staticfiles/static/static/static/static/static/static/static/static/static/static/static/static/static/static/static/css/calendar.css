@@ -1,75 +1,26 @@
 .fc-event {
     border-radius: 0.25rem;
-    padding: 0.25rem 0.5rem;
-    font-size: 0.875rem;
+    padding: 0.15rem 0.4rem;
+    font-size: 0.8rem;
     border: none;
     cursor: pointer;
 }
 
 .calendar-container {
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
     border-radius: 0.5rem;
-    padding: 1.5rem;
     background-color: #fff;
 }
 
-.treatment-detail {
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.3s ease-out;
-}
-
-.treatment-detail.show {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.calendar-legend {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 1rem;
-    margin-top: 1rem;
-}
-
-.calendar-legend > div {
-    display: flex;
-    align-items: center;
-}
-
-.calendar-legend span {
+/* ── Leyenda ─────────────────────────────── */
+.calendar-legend-dot {
     display: inline-block;
-    width: 15px;
-    height: 15px;
-    margin-right: 0.5rem;
+    width: 10px;
+    height: 10px;
     border-radius: 3px;
+    flex-shrink: 0;
 }
 
-@media (max-width: 768px) {
-    .fc-toolbar.fc-header-toolbar {
-        flex-direction: column;
-    }
-
-    .fc-toolbar {
-        flex-direction: column;
-        gap: 0.75rem;
-    }
-
-    .fc-toolbar-chunk {
-        width: 100%;
-        justify-content: center;
-        display: table-row;
-        text-align: center;
-        padding: 5px 0;
-    }
-}
-
-/* Mejoras generales del calendario */
-.fc {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-}
-
-/* Mejoras en la barra de herramientas */
+/* ── Toolbar ─────────────────────────────── */
 .fc-toolbar {
     display: flex;
     flex-wrap: wrap;
@@ -85,61 +36,93 @@
     gap: 0.5rem;
 }
 
-/* Estilo de botones */
+.fc-toolbar-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #212529;
+}
+
+/* ── Botones ─────────────────────────────── */
 .fc-button {
     text-transform: capitalize;
     font-weight: 500;
-    padding: 0.375rem 0.75rem;
-    border-radius: 0.25rem;
-    transition: all 0.2s ease;
+    padding: 0.3rem 0.65rem;
+    border-radius: 0.375rem;
+    transition: all 0.15s ease;
+    font-size: 0.875rem;
 }
 
 .fc-button-primary {
-    background-color: #007bff;
-    border-color: #007bff;
+    background-color: var(--primary) !important;
+    border-color: var(--primary) !important;
 }
 
 .fc-button-primary:hover {
-    background-color: #0056b3;
-    border-color: #0056b3;
+    background-color: var(--primary-dark) !important;
+    border-color: var(--primary-dark) !important;
 }
 
-.fc-button-primary.active {
-    background-color: #0056b3 !important;
-    border-color: #0056b3 !important;
+.fc-button-primary:not(.fc-button-active):not(.fc-button-group .fc-button-primary) {
+    background-color: var(--primary) !important;
+    border-color: var(--primary) !important;
 }
 
-/* Mejoras en el título del mes */
-.fc-toolbar-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: #333;
+.fc-button-primary.fc-button-active,
+.fc-button-primary:focus {
+    background-color: var(--primary-dark) !important;
+    border-color: var(--primary-dark) !important;
+    box-shadow: 0 0 0 0.2rem rgba(46, 125, 50, 0.3) !important;
 }
 
-/* Estilo de días */
+/* ── Días ────────────────────────────────── */
 .fc-day {
-    transition: background-color 0.2s ease;
+    transition: background-color 0.15s ease;
 }
 
 .fc-day-today {
-    background-color: rgba(0, 123, 255, 0.1) !important;
+    background-color: rgba(46, 125, 50, 0.06) !important;
 }
 
 .fc-day-other {
     background-color: #f8f9fa;
 }
 
+/* ── Eventos por estado ──────────────────── */
 .treatment-pending {
-    background-color: #ffc107;
-    border-color: #ffc107;
+    background-color: var(--bs-warning);
+    border-color: var(--bs-warning);
+    color: #000 !important;
 }
 
 .treatment-completed {
-    background-color: #198754;
-    border-color: #198754;
+    background-color: var(--bs-success);
+    border-color: var(--bs-success);
 }
 
 .treatment-delayed {
-    background-color: #dc3545;
-    border-color: #dc3545;
+    background-color: var(--bs-danger);
+    border-color: var(--bs-danger);
 }
+
+/* ── Filtros del sidebar ─────────────────── */
+.field-filter-item:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+.field-filter-item:has(input:checked) {
+    background-color: rgba(46, 125, 50, 0.08);
+}
+@media (max-width: 768px) {
+    .fc-toolbar.fc-header-toolbar {
+        flex-direction: column;
+    }
+
+    .fc-toolbar-chunk {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+        padding: 3px 0;
+    }
+}
+
+

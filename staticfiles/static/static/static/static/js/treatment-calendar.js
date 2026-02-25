@@ -79,78 +79,70 @@ document.addEventListener('DOMContentLoaded', function () {
     // Carga de detalles bajo demanda
     function loadTreatmentDetail(event) {
         const treatmentId = event.id;
-        const treatmentTitle = event.title;
         const treatmentModal = document.getElementById("treatment-detail");
 
-        // Mostrar información básica disponible inmediatamente
-        document.querySelector('.treatment-title').textContent = treatmentTitle;
-        document.getElementById('detail-date').textContent = formatDate(event.start);
-
-        // Mostrar indicadores de carga para los datos que vendrán del endpoint
-        document.getElementById('detail-field').textContent = 'Cargando...';
-        document.getElementById('detail-field-info').textContent = '';
-        document.getElementById('detail-type').textContent = 'Cargando...';
-        document.getElementById('detail-status').textContent = 'Cargando...';
-        document.getElementById('detail-machine').textContent = 'Cargando...';
-        document.getElementById('detail-machine-info').textContent = '';
-        document.getElementById('detail-water').innerHTML = 'Cargando...';
-        document.getElementById('detail-products').innerHTML = '<tr><td colspan="3" class="text-center">Cargando productos...</td></tr>';
+        // Mostrar información básica inmediatamente
+        document.querySelector('.treatment-title').textContent = event.title;
+        document.getElementById('detail-meta').textContent = formatDate(event.start);
         document.getElementById('view-treatment').href = `/tratamientos/${treatmentId}`;
 
-        // Resetear clases de estado
+        // Resetear estado del modal
         const statusContainer = document.getElementById('status-container');
-        statusContainer.className = 'info-item-vertical col-6';
+        statusContainer.className = 'bg-light rounded p-2 h-100';
+        document.getElementById('detail-status').textContent = '—';
+        document.getElementById('detail-type').textContent = '—';
+        document.getElementById('detail-field').textContent = '—';
+        document.getElementById('detail-field-info').textContent = '';
+        document.getElementById('detail-machine').textContent = '—';
+        document.getElementById('detail-machine-info').textContent = '';
+        document.getElementById('detail-water').textContent = '—';
+        document.getElementById('detail-products-list').innerHTML =
+            '<div class="text-center text-muted small py-3"><i class="fa fa-spinner fa-spin me-1"></i>Cargando...</div>';
 
-        // Mostrar el modal inmediatamente mientras se cargan los datos
         new bootstrap.Modal(treatmentModal).show();
 
-        // Cargar detalles completos desde el endpoint separado
         fetch(API_URLS.treatmentDetail(treatmentId))
             .then(response => {
-                if (!response.ok) {
-                    throw new Error('Error al cargar los detalles del tratamiento');
-                }
+                if (!response.ok) throw new Error('Error al cargar los detalles');
                 return response.json();
             })
-            .then(treatmentData => {
-                // Actualizar el modal con los datos recibidos
-                document.getElementById('detail-field').textContent = treatmentData.field_name;
+            .then(data => {
+                // Meta: fecha + parcela
+                document.getElementById('detail-meta').textContent =
+                    `${formatDate(event.start)} · ${data.field_name}`;
 
-                // Mostrar información adicional del campo si está disponible
-                if (treatmentData.field_crop || treatmentData.field_area) {
-                    const fieldInfo = [];
-                    if (treatmentData.field_crop) fieldInfo.push(treatmentData.field_crop);
-                    if (treatmentData.field_area) fieldInfo.push(`${treatmentData.field_area} ha`);
-                    document.getElementById('detail-field-info').textContent = fieldInfo.join(', ');
+                // Estado con color
+                document.getElementById('detail-status').textContent = data.status_display;
+                const statusColors = { pending: 'warning', delayed: 'danger', completed: 'success' };
+                const color = statusColors[data.status] || 'secondary';
+                statusContainer.className = `bg-${color} bg-opacity-10 rounded p-2 h-100`;
+
+                // Tipo
+                document.getElementById('detail-type').textContent = data.type_display;
+
+                // Parcela
+                document.getElementById('detail-field').textContent = data.field_name;
+                const fieldParts = [];
+                if (data.field_crop) fieldParts.push(data.field_crop);
+                if (data.field_area) fieldParts.push(`${data.field_area} ha`);
+                document.getElementById('detail-field-info').textContent = fieldParts.join(' · ');
+
+                // Maquinaria
+                document.getElementById('detail-machine').textContent = data.machine_name || 'No asignada';
+                if (data.machine_capacity) {
+                    document.getElementById('detail-machine-info').textContent = `${data.machine_capacity} litros`;
                 }
 
-                document.getElementById('detail-type').textContent = treatmentData.type_display;
-                document.getElementById('detail-status').textContent = treatmentData.status_display;
+                // Mojado
+                updateWaterDisplay(data.water_per_ha, data.real_water_per_ha);
 
-                // Añadir clase de estado para colorear el contenedor
-                if (treatmentData.state_class) {
-                    statusContainer.classList.add(`status-${treatmentData.state_class}`);
-                    statusContainer.classList.add(`bg-${treatmentData.state_class}`);
-                    statusContainer.classList.add('bg-opacity-25');
-                }
-
-                document.getElementById('detail-machine').textContent = treatmentData.machine_name || 'No asignada';
-
-                // Añadir información de capacidad de la máquina si está disponible
-                if (treatmentData.machine_capacity) {
-                    document.getElementById('detail-machine-info').textContent = `${treatmentData.machine_capacity} litros`;
-                }
-
-                // Lógica para mostrar el mojado estimado y real
-                updateWaterDisplay(treatmentData.water_per_ha, treatmentData.real_water_per_ha);
-
-                fillProducts(treatmentData.products);
-                document.getElementById('view-treatment').style.display = 'block';
+                // Productos
+                fillProducts(data.products);
             })
             .catch(error => {
                 console.error('Error:', error);
-                document.getElementById('detail-products').innerHTML =
-                    '<tr><td colspan="3" class="text-center">Error al cargar los datos</td></tr>';
+                document.getElementById('detail-products-list').innerHTML =
+                    '<div class="text-center text-danger small py-3"><i class="fa fa-circle-exclamation me-1"></i>Error al cargar los datos</div>';
             });
     }
 
@@ -169,14 +161,22 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function fillProducts(products) {
-        const container = document.getElementById('detail-products');
-        container.innerHTML = products?.length ? products.map(p =>
-            `<tr>
-                <td>${p.name}</td>
-                <td>${p.dose} ${p.dose_type_display}</td>
-                <td>${p.total_dose} ${p.total_dose_unit}</td>
-            </tr>`
-        ).join('') : `<tr><td colspan="3" class="text-center">No hay productos asignados</td></tr>`;
+        const container = document.getElementById('detail-products-list');
+        if (!products?.length) {
+            container.innerHTML = '<div class="text-center text-muted small py-2">Sin productos asignados</div>';
+            return;
+        }
+        container.innerHTML = products.map(p => `
+            <div class="d-flex align-items-center gap-2 px-2 py-2 bg-light rounded">
+                <div class="flex-grow-1 min-w-0">
+                    <div class="fw-semibold small text-truncate">${p.name}</div>
+                </div>
+                <div class="text-end flex-shrink-0">
+                    <div class="small fw-semibold">${p.dose} <span class="fw-normal text-muted">${p.dose_type_display}</span></div>
+                    <div class="small text-muted">${p.total_dose} ${p.total_dose_unit} total</div>
+                </div>
+            </div>
+        `).join('');
     }
 
     function formatDate(date) {

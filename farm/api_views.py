@@ -94,9 +94,7 @@ def get_calendar_treatments(request):
             'date': t.finish_date.isoformat() if t.finish_date else t.date.isoformat(),
             'finish_date': t.finish_date.isoformat() if t.finish_date else None,
             'status': t.status,
-            'status_display': t.status_display(),
-            'type': t.type,
-            'water_per_ha': t.water_per_ha,
+            'status_display': t.get_status_display(),
         }
 
         result.append(treatment_data)
@@ -117,7 +115,7 @@ def treatment_detail(request, treatment_id):
             'date': treatment.date.isoformat(),
             'finish_date': treatment.finish_date.isoformat() if treatment.finish_date else None,
             'status': treatment.status,
-            'status_display': treatment.status_display(),
+            'status_display': treatment.get_status_display(),
             'type': treatment.type,
             'type_display': dict(Treatment.TYPE_CHOICES).get(treatment.type, ''),
             'field': treatment.field_id,
