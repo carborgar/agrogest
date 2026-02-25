@@ -1,15 +1,17 @@
 {
-  "builds": [
-    {
-      "src": "agrogest/wsgi.py",
-      "use": "@vercel/python",
-      "config": {
-        "maxLambdaSize": "15mb",
-        "runtime": "python3.12"
-      }
+  "installCommand": "pip install -r requirements.txt",
+  "buildCommand": "python manage.py collectstatic --noinput",
+  "functions": {
+    "agrogest/wsgi.py": {
+      "runtime": "python3.12",
+      "maxDuration": 30
     }
-  ],
+  },
   "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "/staticfiles/static/$1"
+    },
     {
       "src": "/(.*)",
       "dest": "agrogest/wsgi.py"
