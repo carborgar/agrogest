@@ -1,12 +1,6 @@
 {
   "installCommand": "pip install -r requirements.txt",
   "buildCommand": "python manage.py collectstatic --noinput",
-  "functions": {
-    "agrogest/wsgi.py": {
-      "runtime": "python3.12",
-      "maxDuration": 30
-    }
-  },
   "routes": [
     {
       "src": "/static/(.*)",
