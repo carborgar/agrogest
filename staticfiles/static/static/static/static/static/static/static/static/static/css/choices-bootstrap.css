@@ -207,3 +207,10 @@
   background-color: var(--secondary-dark);
   border: 1px solid var(--secondary-dark);
 }
+
+/* Limitar altura en selects múltiples para que no crezca infinito */
+.choices[data-type*="select-multiple"] .choices__inner {
+  max-height: 80px;
+  overflow-y: auto;
+}
+

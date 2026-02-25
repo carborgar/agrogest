@@ -27,40 +27,53 @@ class ExpenseListView(BaseSecureExpenseViewMixin, ListView):
     model = Expense
     template_name = 'farm/expenses/expense_list.html'
     context_object_name = 'expenses'
-    paginate_by = 20
     ordering = ['-payment_date']
 
     def get_queryset(self):
         qs = super().get_queryset()
 
-        field_id = self.request.GET.get('field')  # <select name="field">
-        type_id = self.request.GET.get('type')  # <select name="type">
-        date_from = self.request.GET.get('date_from')  # <input name="date_from">
-        date_to = self.request.GET.get('date_to')  # <input name="date_to">
+        field_ids = self.request.GET.getlist('field')
+        type_ids = self.request.GET.getlist('type')
+        date_from = self.request.GET.get('date_from')
+        date_to = self.request.GET.get('date_to')
 
-        if field_id:
-            qs = qs.filter(field_id=field_id)
-        if type_id:
-            qs = qs.filter(expense_type_id=type_id)
+        if field_ids:
+            qs = qs.filter(field_id__in=field_ids)
+        if type_ids:
+            qs = qs.filter(expense_type_id__in=type_ids)
         if date_from:
             qs = qs.filter(payment_date__gte=parse_date(date_from))
         if date_to:
             qs = qs.filter(payment_date__lte=parse_date(date_to))
 
-        return qs
+        return qs.select_related('field', 'expense_type')
 
     def get_context_data(self, **kwargs):
+        from datetime import date
+
         context = super().get_context_data(**kwargs)
 
-        queryset = context['expenses']  # ya filtrado
-        context['total_amount'] = queryset.aggregate(total=Sum('amount'))['total'] or 0
+        expenses = context['expenses']
+        context['total_amount'] = expenses.aggregate(total=Sum('amount'))['total'] or 0
+        context['expense_count'] = expenses.count()
 
         # listas para los combos
         context['fields'] = Field.ownership_objects.get_queryset_for_user(self.request.user)
         context['expense_types'] = ExpenseType.ownership_objects.get_queryset_for_user(self.request.user)
 
-        # mantener los filtros marcados
+        # IDs seleccionados (como strings para comparar en template)
+        context['selected_field_ids'] = self.request.GET.getlist('field')
+        context['selected_type_ids'] = self.request.GET.getlist('type')
+
+        # mantener los filtros marcados (para compatibilidad)
         context['filter_params'] = self.request.GET.dict()
+
+
+        # años rápidos (año actual y 2 anteriores)
+        current_year = date.today().year
+        context['quick_years'] = [current_year - 2, current_year - 1, current_year]
+        context['active_date_from'] = self.request.GET.get('date_from', '')
+        context['active_date_to'] = self.request.GET.get('date_to', '')
 
         return context
 
