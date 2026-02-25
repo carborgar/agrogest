@@ -17,14 +17,14 @@ application = get_wsgi_application()
 
 if os.environ.get('VERCEL'):
     import django
-
     django.setup()
     from django.core.management import call_command
 
     try:
         call_command('migrate', '--noinput')
+        call_command('collectstatic', '--noinput')
     except Exception as e:
-        print(f"Migration error: {e}")
+        print(f"Startup error: {e}")
 
 # para vercel es necesario que se llame app
 app = application
