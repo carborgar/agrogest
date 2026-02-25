@@ -29,5 +29,14 @@ jobs:
           python manage.py makemigrations --check --dry-run
 
       - name: Collect static
+        env:
+          DJANGO_DEBUG: ${{ secrets.DJANGO_DEBUG }}
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          DJANGO_ALLOWED_HOSTS: ${{ secrets.DJANGO_ALLOWED_HOSTS }}
+          CLOUDFLARE_R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}
+          CLOUDFLARE_R2_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
+          CLOUDFLARE_R2_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
+          CLOUDFLARE_R2_STATICS_BUCKET_NAME: ${{ secrets.CLOUDFLARE_R2_STATICS_BUCKET_NAME }}
+          CLOUDFLARE_R2_STATICS_PUBLIC_URL: ${{ secrets.CLOUDFLARE_R2_STATICS_PUBLIC_URL }}
         run: |
           python manage.py collectstatic --noinput
