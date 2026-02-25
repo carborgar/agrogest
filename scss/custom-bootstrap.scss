@@ -1,25 +1,31 @@
 // Custom Bootstrap theme for AgroGest based on the color palette
 
-// Override Bootstrap's variables
-$primary: #2E7D32;      // Verde bosque - Main brand color
-$secondary: #1565C0;    // Blue - For water/irrigation
-$success: #4CAF50;      // Success green
-$warning: #FF9800;      // Warning orange
-$danger: #F44336;       // Error red
-$info: #2196F3;         // Info blue
+// ── Typography ──────────────────────────────────────────────────────────────
+// Inter es más legible en móvil bajo luz solar (campo)
+$font-family-sans-serif: 'Inter', system-ui, -apple-system, sans-serif;
+$font-size-base: 0.9375rem; // 15px — más cómodo en móvil que 16px
+$line-height-base: 1.6;
+
+// ── Brand colors ─────────────────────────────────────────────────────────────
+$primary: #2E7D32;
+$secondary: #1565C0;
+$success: #4CAF50;
+$warning: #F59E0B;   // ámbar más oscuro → ratio >4.5:1 con blanco y con negro
+$danger: #F44336;
+$info: #2196F3;
 
 // Additional custom colors
-$primary-light: #60AD5E; // Light green for backgrounds
-$primary-dark: #005005;  // Dark green for hover states
-$secondary-light: #5E92F3; // Light blue
-$secondary-dark: #003C8F; // Dark blue
-$accent: #FFA000;        // Amber - For alerts/harvest
-$accent-light: #FFC24A;  // Light amber
-$accent-dark: #C67100;   // Dark amber
+$primary-light: #60AD5E;
+$primary-dark: #005005;
+$secondary-light: #5E92F3;
+$secondary-dark: #003C8F;
+$accent: #D97706;        // ámbar oscuro — legible con texto blanco (ratio ~4.6:1)
+$accent-light: #FFC24A;
+$accent-dark: #C67100;
 
-// Neutral colors
+// ── Neutral palette ───────────────────────────────────────────────────────────
 $white: #FFFFFF;
-$gray-100: #F5F7FA;
+$gray-100: #F3F4F6;   // fondo body — ligeramente más oscuro para que las cards destaquen
 $gray-200: #E4E7EB;
 $gray-300: #CBD2D9;
 $gray-400: #9AA5B1;
@@ -29,90 +35,95 @@ $gray-700: #323F4B;
 $gray-800: #1F2933;
 $gray-900: #121212;
 
-// Body
+// ── Body ─────────────────────────────────────────────────────────────────────
 $body-bg: $gray-100;
-$body-color: $gray-800;
+$body-color: #212529;  // alineado con Bootstrap para no romper herencias
 
-// Links
+// ── Links — sólo afecta a <a> de texto, no a botones/badges ─────────────────
 $link-color: $primary;
 $link-hover-color: $primary-dark;
+$link-decoration: none;
 
-// Components
-$border-radius: 0.5rem;
-$border-radius-sm: 0.25rem;
+// ── Components ───────────────────────────────────────────────────────────────
+$border-radius:    0.5rem;
+$border-radius-sm: 0.375rem;
 $border-radius-lg: 0.75rem;
-$box-shadow: 0 0.5rem 1rem rgba($gray-900, 0.1);
+$border-radius-xl: 1rem;
 
-// Cards
-$card-bg: $white;
-$card-border-width: 0;
+// Token único de borde para cards/inputs — cámbialo aquí y se propaga
+$border-color: rgba(0, 0, 0, 0.08);
+
+$box-shadow:    0 1px 4px rgba(0, 0, 0, 0.07), 0 4px 16px rgba(0, 0, 0, 0.05);
+$box-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.07);
+$box-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.10);
+
+// ── Cards ────────────────────────────────────────────────────────────────────
+$card-bg:           $white;
+$card-border-width: 1px;
+$card-border-color: $border-color;
 $card-border-radius: $border-radius;
-$card-box-shadow: 0 0.25rem 0.75rem rgba($white, 0.05);
+$card-box-shadow:   $box-shadow;     // sombra real, no blanca sobre blanco
 
-// Buttons
-$btn-border-radius: $border-radius;
+// ── Buttons ──────────────────────────────────────────────────────────────────
+$btn-border-radius:    $border-radius;
+$btn-border-radius-sm: $border-radius-sm;
+$btn-border-radius-lg: $border-radius-lg;
 $btn-font-weight: 500;
+$btn-transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out,
+                 border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out,
+                 transform 0.15s ease-in-out;
 
-// Import Bootstrap
+// ── Forms ────────────────────────────────────────────────────────────────────
+$input-border-radius:    $border-radius-sm;
+$input-border-color:     $gray-300;
+$input-focus-border-color: $primary-light;
+$input-focus-box-shadow: 0 0 0 0.2rem rgba($primary, 0.2);
+
+// ── Import Bootstrap ─────────────────────────────────────────────────────────
 @import "../node_modules/bootstrap/scss/bootstrap";
 
-// Additional custom styles
+// ── Inter font (Google Fonts) ─────────────────────────────────────────────────
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+// ── Utility classes ───────────────────────────────────────────────────────────
 .btn-accent {
   @include button-variant($accent, $accent);
 }
 
-.bg-accent {
-  background-color: $accent !important;
-}
+.bg-accent   { background-color: $accent !important; }
+.text-accent { color: $accent !important; }
 
-.text-accent {
-  color: $accent !important;
-}
-
-// Card hover effect
+// ── Card hover ────────────────────────────────────────────────────────────────
 .card-hover {
-  transition: transform 0.3s, box-shadow 0.3s;
-
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 0.5rem 1.5rem rgba($gray-900, 0.15);
+    transform: translateY(-3px);
+    box-shadow: $box-shadow-lg;
   }
 }
 
-// Status badges
+// ── Status badges ─────────────────────────────────────────────────────────────
 .badge-status {
-  padding: 0.5rem 0.75rem;
+  padding: 0.35em 0.75em;
   font-weight: 500;
   border-radius: 2rem;
 }
 
-.badge-active {
-  background-color: rgba($success, 0.1);
-  color: $success;
-}
+.badge-active    { background-color: rgba($success, 0.12); color: darken($success, 10%); }
+.badge-pending   { background-color: rgba($warning, 0.15); color: darken($warning, 20%); }
+.badge-completed { background-color: rgba($info, 0.12);    color: darken($info, 15%); }
 
-.badge-pending {
-  background-color: rgba($warning, 0.1);
-  color: darken($warning, 15%);
-}
-
-.badge-completed {
-  background-color: rgba($info, 0.1);
-  color: darken($info, 15%);
-}
-
-// Action icons
+// ── Action icons ──────────────────────────────────────────────────────────────
 .action-icon {
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2.25rem;
+  height: 2.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0.5rem;
+  border-radius: $border-radius-sm;
   background-color: $gray-100;
   color: $gray-600;
-  margin-right: 0.5rem;
-  transition: background-color 0.2s, color 0.2s;
+  transition: background-color 0.15s, color 0.15s;
 
   &:hover {
     background-color: $primary;
@@ -120,21 +131,21 @@ $btn-font-weight: 500;
   }
 }
 
-// CSS variables for use in regular CSS
+// ── CSS variables (disponibles en todos los CSS externos) ─────────────────────
 :root {
-  --primary: #{$primary};
-  --primary-light: #{$primary-light};
-  --primary-dark: #{$primary-dark};
-  --secondary: #{$secondary};
-  --secondary-light: #{$secondary-light};
+  --primary:        #{$primary};
+  --primary-light:  #{$primary-light};
+  --primary-dark:   #{$primary-dark};
+  --secondary:      #{$secondary};
+  --secondary-light:#{$secondary-light};
   --secondary-dark: #{$secondary-dark};
-  --success: #{$success};
-  --warning: #{$warning};
-  --danger: #{$danger};
-  --info: #{$info};
-  --accent: #{$accent};
-  --accent-light: #{$accent-light};
-  --accent-dark: #{$accent-dark};
+  --success:        #{$success};
+  --warning:        #{$warning};
+  --danger:         #{$danger};
+  --info:           #{$info};
+  --accent:         #{$accent};
+  --accent-light:   #{$accent-light};
+  --accent-dark:    #{$accent-dark};
   --gray-100: #{$gray-100};
   --gray-200: #{$gray-200};
   --gray-300: #{$gray-300};
@@ -144,6 +155,7 @@ $btn-font-weight: 500;
   --gray-700: #{$gray-700};
   --gray-800: #{$gray-800};
   --gray-900: #{$gray-900};
-  --bs-body-bg: #fff;
-
+  --border-color: #{$border-color};
+  --border-radius: #{$border-radius};
+  --bs-body-bg: #{$gray-100};
 }
