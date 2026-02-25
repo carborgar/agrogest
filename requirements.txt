@@ -11,6 +11,8 @@ whitenoise
 django-mathfilters
 sentry-sdk[django]
 django-debug-toolbar
+django-storages[s3]
+boto3
 
 # Dependencies for testing
 pytest

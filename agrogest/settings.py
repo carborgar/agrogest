@@ -50,7 +50,7 @@ INSTALLED_APPS = [
     'whitenoise.runserver_nostatic',
     'mathfilters',
     'django.contrib.humanize',
-
+    'storages',
 ]
 
 AUTH_USER_MODEL = 'accounts.User'
@@ -141,12 +141,57 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
-STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles", "static")
 STATICFILES_DIRS = [
     BASE_DIR / "static",
-    BASE_DIR / "staticfiles",
 ]
+
+# ── Cloudflare R2 en producción, Whitenoise en local ─────────────────────────
+_R2_ACCOUNT_ID    = os.environ.get("CLOUDFLARE_R2_ACCOUNT_ID", "")
+_R2_ACCESS_KEY_ID = os.environ.get("CLOUDFLARE_R2_ACCESS_KEY_ID", "")
+_R2_SECRET_KEY    = os.environ.get("CLOUDFLARE_R2_SECRET_ACCESS_KEY", "")
+_R2_BUCKET_NAME   = os.environ.get("CLOUDFLARE_R2_BUCKET_NAME", "")
+_R2_PUBLIC_URL    = os.environ.get("CLOUDFLARE_R2_PUBLIC_URL", "")  # ej: https://static.tudominio.com
+
+if not DEBUG and _R2_ACCOUNT_ID and _R2_BUCKET_NAME:
+    AWS_ACCESS_KEY_ID       = _R2_ACCESS_KEY_ID
+    AWS_SECRET_ACCESS_KEY   = _R2_SECRET_KEY
+    AWS_STORAGE_BUCKET_NAME = _R2_BUCKET_NAME
+    AWS_S3_ENDPOINT_URL     = f"https://{_R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+    AWS_S3_REGION_NAME      = "auto"  # R2 no usa regiones reales
+    AWS_DEFAULT_ACL         = None    # R2 no usa ACLs
+    AWS_S3_FILE_OVERWRITE   = False
+    AWS_QUERYSTRING_AUTH    = False   # URLs públicas sin firma
+    AWS_S3_OBJECT_PARAMETERS = {
+        # 1 año de caché — seguro porque el nombre del fichero lleva hash de contenido
+        "CacheControl": "public, max-age=31536000, immutable",
+    }
+
+    # URL base desde la que el navegador carga los estáticos.
+    # Si tienes dominio custom en Cloudflare úsalo, si no pon la URL pub-xxx.r2.dev
+    # que Cloudflare te da al activar "Public Access" en el bucket.
+    if not _R2_PUBLIC_URL:
+        raise ValueError(
+            "CLOUDFLARE_R2_PUBLIC_URL no está configurada. "
+            "Activa 'Public Access' en el bucket R2 y copia la URL pub-xxx.r2.dev"
+        )
+    STATIC_URL = _R2_PUBLIC_URL.rstrip("/") + "/"
+    _r2_public_domain = _R2_PUBLIC_URL.rstrip("/").removeprefix("https://").removeprefix("http://")
+    AWS_S3_CUSTOM_DOMAIN = _r2_public_domain  # ej: pub-da47fb....r2.dev
+
+    # S3ManifestStaticFilesStorage = S3Boto3Storage + ManifestStaticFilesStorage
+    # → sube a R2 y añade hash al nombre de cada fichero (cache busting automático)
+    STORAGES = {
+        "staticfiles": {
+            "BACKEND": "storages.backends.s3.S3Storage",
+        },
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+    }
+else:
+    # Desarrollo local: Whitenoise
+    STATIC_URL = "static/"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
