@@ -150,8 +150,8 @@ STATICFILES_DIRS = [
 _R2_ACCOUNT_ID    = os.environ.get("CLOUDFLARE_R2_ACCOUNT_ID", "")
 _R2_ACCESS_KEY_ID = os.environ.get("CLOUDFLARE_R2_ACCESS_KEY_ID", "")
 _R2_SECRET_KEY    = os.environ.get("CLOUDFLARE_R2_SECRET_ACCESS_KEY", "")
-_R2_BUCKET_NAME   = os.environ.get("CLOUDFLARE_R2_BUCKET_NAME", "")
-_R2_PUBLIC_URL    = os.environ.get("CLOUDFLARE_R2_PUBLIC_URL", "")  # ej: https://static.tudominio.com
+_R2_BUCKET_NAME   = os.environ.get("CLOUDFLARE_R2_STATICS_BUCKET_NAME", "")
+_R2_PUBLIC_URL    = os.environ.get("CLOUDFLARE_R2_STATICS_PUBLIC_URL", "")  # ej: https://static.tudominio.com
 
 if not DEBUG and _R2_ACCOUNT_ID and _R2_BUCKET_NAME:
     AWS_ACCESS_KEY_ID       = _R2_ACCESS_KEY_ID
