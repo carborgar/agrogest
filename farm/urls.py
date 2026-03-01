@@ -9,7 +9,7 @@ from .views.expense_views import ExpenseListView, ExpenseFormView, ExpenseDelete
     ExpenseTypeFormView, ExpenseTypeDeleteView
 from .views.product_views import ProductTypeListView, ProductTypeFormView, ProductTypeDeleteView, ProductListView, \
     ProductFormView, ProductDeleteView
-from .views.field_views import FieldListView, FieldCreateView, FieldUpdateView, FieldDeleteView
+from .views.field_views import FieldListView, FieldCreateView, FieldUpdateView, FieldDeleteView, FieldDetailView
 from .views.harvest_views import HarvestFormView, HarvestSummaryView, HarvestDeleteView
 
 urlpatterns = [
@@ -32,6 +32,7 @@ urlpatterns = [
 
     path('adm/field/', FieldListView.as_view(), name='field-list'),
     path('adm/field/create/', FieldCreateView.as_view(), name='field-create'),
+    path('adm/field/<int:pk>/', FieldDetailView.as_view(), name='field-detail'),
     path('adm/field/<int:pk>/edit/', FieldUpdateView.as_view(), name='field-edit'),
     path('adm/field/<int:pk>/delete/', FieldDeleteView.as_view(), name='field-delete'),
 

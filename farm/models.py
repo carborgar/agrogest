@@ -27,7 +27,8 @@ class Field(OrganizationOwnedModel):
     area = models.FloatField()  # en hectáreas
     crop = models.CharField(max_length=100)
     planting_year = models.IntegerField()
-    location = models.CharField(max_length=255, blank=True)
+    # Geometría de la parcela almacenada como GeoJSON (opcional)
+    geometry = models.TextField(blank=True, help_text="GeoJSON del contorno de la parcela")
 
     def __str__(self):
         return self.name

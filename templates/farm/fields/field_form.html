@@ -1,34 +1,346 @@
 {% extends "base.html" %}
 {% load django_bootstrap5 %}
 
+{% block header %}{% if form.instance.pk %}Editar parcela{% else %}Nueva parcela{% endif %}{% endblock %}
+{% block sub_header %}{% if form.instance.pk %}{{ form.instance.name }}{% else %}Rellena los datos básicos de tu parcela{% endif %}{% endblock %}
+
+{% block extra_head %}
+<link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet"/>
+<link href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" rel="stylesheet"/>
+<style>
+    #map-draw {
+        height: 420px;
+        border-radius: 0.375rem;
+        border: 1px solid #dee2e6;
+    }
+    @media (max-width: 991px) {
+        #map-draw { height: 320px; }
+    }
+    .map-instructions { font-size: 0.8rem; }
+    .area-calculated {
+        background: #d1e7dd;
+        border-color: #a3cfbb;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col">
-        <div class="card shadow-sm border-0 rounded-lg">
-            <div class="card-header bg-primary text-white py-3">
-                <h2 class="mb-0 fs-3">{{ form.instance.pk|yesno:"Editar,Crear" }} parcela</h2>
-            </div>
-            <div class="card-body">
-                {% bootstrap_form_errors form %}
+    <div class="col-12">
+        <form id="fieldForm" method="post">
+            {% csrf_token %}
+            {{ form.geometry }}
+            {% bootstrap_form_errors form %}
 
-                <form method="post">
-                    {% csrf_token %}
+            <div class="row g-4 align-items-start">
 
-                    <div class="row row-cols-2">
-                        {% bootstrap_form form wrapper_class="mb-3 col" placeholder="" %}
+                <!-- Columna izquierda: datos -->
+                <div class="col-lg-4">
+                    <div class="card h-100">
+                        <div class="card-header fw-semibold">
+                            <i class="fa fa-tag me-2 text-primary"></i>Datos de la parcela
+                        </div>
+                        <div class="card-body d-flex flex-column gap-3">
+                            {% bootstrap_field form.name wrapper_class="col-12" %}
+                            <div class="row">
+                                {% bootstrap_field form.crop wrapper_class="col-6" %}
+                                {% bootstrap_field form.planting_year wrapper_class="col-6" %}
+                            </div>
+
+
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    {% bootstrap_field form.planting_year wrapper_class="" %}
+                                </div>
+                                <div class="col-12">
+                                    {% bootstrap_field form.area wrapper_class="" %}
+                                    <div class="form-text text-muted small" id="map-area-feedback">
+                                        Dibuja el contorno para calcular.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent d-flex justify-content-between">
+                            <a class="btn btn-secondary btn-sm"
+                               href="{% if form.instance.pk %}{% url 'field-detail' form.instance.pk %}{% else %}{% url 'field-list' %}{% endif %}">
+                                <i class="fa fa-arrow-left me-1"></i>Volver
+                            </a>
+                            <button class="btn btn-primary btn-sm" type="submit">
+                                <i class="fa fa-save me-1"></i>{{ submit_text|default:"Guardar" }}
+                            </button>
+                        </div>
                     </div>
+                </div>
 
-                    <div class="d-flex justify-content-between mt-4">
-                        <a class="btn btn-secondary col-xs-12" href="{% url 'field-list' %}">
-                            <i class="fa fa-arrow-left"></i> Volver
-                        </a>
-                        <button class="btn btn-primary col-xs-12" type="submit">
-                            <i class="fa fa-save"></i> {{ submit_text|default:"Guardar" }}
-                        </button>
+                <!-- Columna derecha: mapa -->
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header fw-semibold d-flex align-items-center justify-content-between">
+                            <span><i class="fa fa-map me-2 text-primary"></i>Contorno de la parcela</span>
+                            <span class="badge bg-secondary fw-normal">Opcional</span>
+                        </div>
+                        <div class="card-body pb-2">
+                            <div class="alert alert-info map-instructions py-2 mb-3">
+                                <i class="fa fa-circle-info me-1"></i>
+                                Dibuja el contorno. Al cerrar el polígono, el área se calcula automáticamente.
+                                Usa <strong>Satélite</strong> o <strong>Catastro</strong> para identificarla.
+                            </div>
+                            <div id="map-draw"></div>
+                        </div>
+                        <div class="card-footer bg-transparent d-flex gap-2">
+                            <button class="btn btn-sm btn-outline-secondary" id="btnMyLocation" type="button">
+                                <i class="fa fa-location-crosshairs me-1"></i>Mi ubicación
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" id="btnClearMap" type="button">
+                                <i class="fa fa-trash me-1"></i>Limpiar
+                            </button>
+                        </div>
                     </div>
-                </form>
+                </div>
+
             </div>
-        </div>
+        </form>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+<script>
+    (function () {
+
+        // ── Traducción completa de Leaflet.draw al español ───────────────────────
+        // IMPORTANTE: todas las claves deben estar presentes o Leaflet.draw
+        // lanza "Cannot read properties of undefined (reading 'error')"
+        L.drawLocal = {
+            draw: {
+                toolbar: {
+                    actions:  { title: 'Cancelar dibujo',      text: 'Cancelar'     },
+                    finish:   { title: 'Finalizar dibujo',      text: 'Finalizar'    },
+                    undo:     { title: 'Borrar último punto',   text: 'Borrar punto' },
+                    buttons: {
+                        polyline:      'Dibujar línea',
+                        polygon:       'Dibujar polígono',
+                        rectangle:     'Dibujar rectángulo',
+                        circle:        'Dibujar círculo',
+                        marker:        'Colocar marcador',
+                        circlemarker:  'Colocar marcador circular',
+                    }
+                },
+                handlers: {
+                    circle: {
+                        tooltip: { start: 'Haz clic y arrastra para dibujar un círculo.' },
+                        radius: 'Radio'
+                    },
+                    circlemarker: {
+                        tooltip: { start: 'Haz clic para colocar un marcador circular.' }
+                    },
+                    marker: {
+                        tooltip: { start: 'Haz clic para colocar un marcador.' }
+                    },
+                    polygon: {
+                        error:   '<strong>Error:</strong> los bordes no pueden cruzarse.',
+                        tooltip: {
+                            start: 'Haz clic para empezar a dibujar.',
+                            cont:  'Haz clic para continuar el contorno.',
+                            end:   'Haz clic en el primer punto para cerrar.'
+                        }
+                    },
+                    polyline: {
+                        error:   '<strong>Error:</strong> los bordes no pueden cruzarse.',
+                        tooltip: {
+                            start: 'Haz clic para empezar a dibujar.',
+                            cont:  'Haz clic para continuar la línea.',
+                            end:   'Haz clic en el último punto para terminar.'
+                        }
+                    },
+                    rectangle: {
+                        tooltip: { start: 'Haz clic y arrastra para dibujar un rectángulo.' }
+                    },
+                    simpleshape: {
+                        tooltip: { end: 'Suelta el ratón para terminar.' }
+                    }
+                }
+            },
+            edit: {
+                toolbar: {
+                    actions: {
+                        save:     { title: 'Guardar cambios',       text: 'Guardar'   },
+                        cancel:   { title: 'Cancelar sin guardar',  text: 'Cancelar'  },
+                        clearAll: { title: 'Borrar todo',           text: 'Borrar todo' }
+                    },
+                    buttons: {
+                        edit:            'Editar contorno',
+                        editDisabled:    'Sin contorno para editar',
+                        remove:          'Eliminar contorno',
+                        removeDisabled:  'Sin contorno para eliminar'
+                    }
+                },
+                handlers: {
+                    edit: {
+                        tooltip: {
+                            text:    'Arrastra los puntos para editar el contorno.',
+                            subtext: 'Pulsa Cancelar para deshacer los cambios.'
+                        }
+                    },
+                    remove: {
+                        tooltip: { text: 'Haz clic en el contorno para eliminarlo.' }
+                    }
+                }
+            }
+        };
+
+        // ── Capas base ──────────────────────────────────────────────────────────
+        var satellite = L.tileLayer(
+            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            { attribution: 'Tiles © Esri', maxZoom: 20 }
+        );
+        var osm = L.tileLayer(
+            'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+            { attribution: '© Carto', maxZoom: 20 }
+        );
+        var catastro = L.tileLayer.wms(
+            'https://ovc.catastro.meh.es/Cartografia/WMS/ServidorWMS.aspx?',
+            { layers: 'Catastro', format: 'image/png', transparent: true, attribution: '© Catastro', maxZoom: 20 }
+        );
+
+        var map = L.map('map-draw', { layers: [satellite] }).setView([37.5, -4.5], 7);
+
+        L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
+        L.control.layers(
+            { 'Satélite': satellite, 'Mapa': osm },
+            { 'Catastro': catastro },
+            { position: 'topright' }
+        ).addTo(map);
+
+        // ── Feature group para dibujo ────────────────────────────────────────────
+        var drawnItems = new L.FeatureGroup();
+        map.addLayer(drawnItems);
+
+        var drawControl = new L.Control.Draw({
+            draw: {
+                polygon: {
+                    shapeOptions: { color: '#198754', fillColor: '#198754', fillOpacity: 0.25, weight: 2 },
+                    showArea: true,
+                    allowIntersection: false,
+                    metric: true,
+                },
+                polyline: false, circle: false, circlemarker: false,
+                rectangle: {
+                    shapeOptions: { color: '#198754', fillColor: '#198754', fillOpacity: 0.25, weight: 2 },
+                    metric: true,
+                },
+                marker: false,
+            },
+            edit: { featureGroup: drawnItems, remove: true }
+        });
+        map.addControl(drawControl);
+
+        // ── Refs a inputs ───────────────────────────────────────────────────────
+        var geometryInput = document.getElementById('id_geometry');
+        var areaInput     = document.getElementById('id_area');
+        var areaFeedback  = document.getElementById('map-area-feedback');
+
+        // ── Cargar geometría existente ──────────────────────────────────────────
+        function loadExistingGeometry() {
+            var val = geometryInput ? geometryInput.value : '';
+            if (!val) return;
+            try {
+                var geojson = JSON.parse(val);
+                var layer = L.geoJSON(geojson, {
+                    style: { color: '#198754', fillColor: '#198754', fillOpacity: 0.25, weight: 2 }
+                });
+                layer.eachLayer(function(l) { drawnItems.addLayer(l); });
+                map.fitBounds(drawnItems.getBounds(), { padding: [20, 20] });
+            } catch (e) {}
+        }
+        loadExistingGeometry();
+
+        // ── Cálculo de área geodésica ────────────────────────────────────────────
+        function geodesicArea(latlngs) {
+            var area = 0, len = latlngs.length;
+            var R = 6378137;
+            for (var i = 0; i < len; i++) {
+                var p1 = latlngs[i], p2 = latlngs[(i + 1) % len];
+                area += (p2.lng - p1.lng) * Math.PI / 180 *
+                        (2 + Math.sin(p1.lat * Math.PI / 180) + Math.sin(p2.lat * Math.PI / 180));
+            }
+            return Math.abs(area * R * R / 2);
+        }
+
+        function setAreaFeedback(ha) {
+            if (!areaFeedback) return;
+            if (ha !== null) {
+                areaFeedback.textContent = ha + ' ha calculadas desde el mapa';
+                areaFeedback.className = 'form-text text-success fw-semibold';
+            } else {
+                areaFeedback.textContent = 'Dibuja un contorno para calcular el área automáticamente.';
+                areaFeedback.className = 'form-text text-muted';
+            }
+        }
+
+        function updateFromLayer(layer) {
+            if (geometryInput) {
+                geometryInput.value = JSON.stringify(layer.toGeoJSON().geometry);
+            }
+            var latlngs = layer.getLatLngs ? layer.getLatLngs()[0] : null;
+            if (latlngs && areaInput) {
+                var areaHa = (geodesicArea(latlngs) / 10000).toFixed(2);
+                areaInput.value = areaHa;
+                areaInput.classList.add('area-calculated');
+                setAreaFeedback(areaHa);
+            }
+        }
+
+        map.on('draw:created', function (e) {
+            drawnItems.clearLayers();
+            drawnItems.addLayer(e.layer);
+            updateFromLayer(e.layer);
+        });
+        map.on('draw:edited', function (e) {
+            e.layers.eachLayer(function (layer) { updateFromLayer(layer); });
+        });
+        map.on('draw:deleted', function () {
+            if (geometryInput) geometryInput.value = '';
+            if (areaInput) areaInput.classList.remove('area-calculated');
+            setAreaFeedback(null);
+        });
+
+        // ── Botón Mi ubicación ───────────────────────────────────────────────────
+        document.getElementById('btnMyLocation').addEventListener('click', function () {
+            var btn = this;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i>Localizando…';
+            if (!navigator.geolocation) {
+                alert('Tu navegador no soporta geolocalización');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa fa-location-crosshairs me-1"></i>Mi ubicación';
+                return;
+            }
+            navigator.geolocation.getCurrentPosition(function (pos) {
+                map.setView([pos.coords.latitude, pos.coords.longitude], 16);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa fa-location-crosshairs me-1"></i>Mi ubicación';
+            }, function () {
+                alert('No se pudo obtener tu ubicación');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa fa-location-crosshairs me-1"></i>Mi ubicación';
+            });
+        });
+
+        // ── Botón Limpiar mapa ──────────────────────────────────────────────────
+        document.getElementById('btnClearMap').addEventListener('click', function () {
+            if (!drawnItems.getLayers().length) return;
+            drawnItems.clearLayers();
+            if (geometryInput) geometryInput.value = '';
+            if (areaInput) areaInput.classList.remove('area-calculated');
+            setAreaFeedback(null);
+        });
+
+        // ── Estado inicial del feedback ─────────────────────────────────────────
+        if (!drawnItems.getLayers().length) setAreaFeedback(null);
+
+    })();
+</script>
 {% endblock %}

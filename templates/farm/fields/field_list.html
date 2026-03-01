@@ -46,6 +46,11 @@
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li>
+                            <a class="dropdown-item" href="{% url 'field-detail' field.id %}">
+                                <i class="fa fa-info-circle me-2 text-primary"></i>Ver detalles
+                            </a>
+                        </li>
+                        <li>
                             <a class="dropdown-item" href="{% url 'treatment-list' %}?field={{ field.id }}">
                                 <i class="fa fa-flask me-2 text-primary"></i>Ver tratamientos
                             </a>
@@ -81,13 +86,6 @@
                         <span class="field-stat-value">{{ field.planting_year }}</span>
                         <span class="field-stat-label">plantación</span>
                     </div>
-                    {% if field.location %}
-                    <div class="field-stat-divider"></div>
-                    <div class="field-stat field-stat--location">
-                        <i class="fa fa-location-dot text-muted me-1"></i>
-                        <span class="field-stat-label text-truncate">{{ field.location }}</span>
-                    </div>
-                    {% endif %}
                 </div>
 
                 <!-- Mini-indicadores de tratamientos -->
@@ -117,8 +115,8 @@
             <!-- Footer: acceso rápido -->
             <div class="field-card-footer">
                 <a class="btn btn-primary btn-sm w-100"
-                   href="{% url 'treatment-list' %}?field={{ field.id }}">
-                    <i class="fa fa-flask me-1"></i>Ver tratamientos
+                   href="{% url 'field-detail' field.id %}">
+                    <i class="fa fa-info-circle me-1"></i>Ver detalles
                 </a>
             </div>
 

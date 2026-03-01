@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+{% load custom_filters %}
+{% load static %}
+
+{% block title %}{{ field.name }}{% endblock %}
+{% block header %}{{ field.name }}{% endblock %}
+{% block sub_header %}{{ field.crop }} · {{ field.area }} ha{% endblock %}
+
+{% block extra_head %}
+{% if field.geometry %}
+<link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet" />
+<style>
+    #map-detail {
+        height: 260px;
+        border-radius: 0;
+        transition: height 0.3s ease;
+        cursor: pointer;
+    }
+    #map-detail.map-expanded {
+        height: 420px;
+    }
+    .map-expand-btn {
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        z-index: 1000;
+        background: white;
+        border: 1px solid rgba(0,0,0,.2);
+        border-radius: 4px;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 0.8rem;
+        color: #333;
+        box-shadow: 0 1px 3px rgba(0,0,0,.2);
+    }
+    .map-expand-btn:hover { background: #f4f4f4; }
+    .map-wrapper { position: relative; }
+</style>
+{% endif %}
+{% endblock %}
+
+{% block actions %}
+<div class="d-flex gap-2">
+    <a class="btn btn-outline-secondary btn-sm" href="{% url 'field-edit' field.pk %}">
+        <i class="fa fa-edit me-1"></i>Editar
+    </a>
+    <a class="btn btn-primary btn-sm" href="{% url 'treatment-create' %}?field={{ field.pk }}">
+        <i class="fa fa-plus me-1"></i>Nuevo tratamiento
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── STAT CARDS ───────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="dashboard-stat-card dashboard-stat-card--neutral">
+            <div class="dashboard-stat-icon"><i class="fa fa-up-right-and-down-left-from-center"></i></div>
+            <div class="dashboard-stat-body">
+                <div class="dashboard-stat-value">{{ field.area }}</div>
+                <div class="dashboard-stat-label">Hectáreas</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="dashboard-stat-card dashboard-stat-card--primary">
+            <div class="dashboard-stat-icon"><i class="fa fa-flask"></i></div>
+            <div class="dashboard-stat-body">
+                <div class="dashboard-stat-value">{{ total_treatments }}</div>
+                <div class="dashboard-stat-label">Tratamientos</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <a class="text-decoration-none" href="{% url 'treatment-list' %}?field={{ field.pk }}&status=delayed">
+            <div class="dashboard-stat-card {% if delayed_count > 0 %}dashboard-stat-card--danger{% else %}dashboard-stat-card--success{% endif %}">
+                <div class="dashboard-stat-icon">
+                    <i class="fa {% if delayed_count > 0 %}fa-triangle-exclamation{% else %}fa-check-circle{% endif %}"></i>
+                </div>
+                <div class="dashboard-stat-body">
+                    <div class="dashboard-stat-value">{{ delayed_count }}</div>
+                    <div class="dashboard-stat-label">Atrasados</div>
+                </div>
+                {% if delayed_count > 0 %}<i class="fa fa-arrow-right dashboard-stat-arrow"></i>{% endif %}
+            </div>
+        </a>
+    </div>
+    <div class="col-6 col-lg-3">
+        <a class="text-decoration-none" href="{% url 'treatment-list' %}?field={{ field.pk }}&status=pending">
+            <div class="dashboard-stat-card {% if pending_count > 0 %}dashboard-stat-card--warning{% else %}dashboard-stat-card--success{% endif %}">
+                <div class="dashboard-stat-icon">
+                    <i class="fa {% if pending_count > 0 %}fa-clock{% else %}fa-check-circle{% endif %}"></i>
+                </div>
+                <div class="dashboard-stat-body">
+                    <div class="dashboard-stat-value">{{ pending_count }}</div>
+                    <div class="dashboard-stat-label">Pendientes</div>
+                </div>
+                {% if pending_count > 0 %}<i class="fa fa-arrow-right dashboard-stat-arrow"></i>{% endif %}
+            </div>
+        </a>
+    </div>
+</div>
+
+<!-- ── MAIN CONTENT ──────────────────────────────────────── -->
+<div class="row g-4">
+
+    <!-- LEFT: Datos de la parcela -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <span class="fw-semibold"><i class="fa fa-info-circle me-2 text-primary"></i>Datos de la parcela</span>
+                <a class="btn btn-xs btn-outline-secondary" href="{% url 'field-edit' field.pk %}">
+                    <i class="fa fa-edit"></i>
+                </a>
+            </div>
+
+            {% if field.geometry %}
+            <!-- Mapa -->
+            <div class="map-wrapper">
+                <div id="map-detail"></div>
+                <button class="map-expand-btn" id="btnExpandMap" title="Ampliar mapa">
+                    <i class="fa fa-expand"></i>
+                </button>
+            </div>
+            {% endif %}
+
+            <div class="card-body">
+                <dl class="row mb-0 field-detail-dl">
+                    <dt class="col-5 text-muted small">Cultivo</dt>
+                    <dd class="col-7 fw-semibold">{{ field.crop }}</dd>
+
+                    <dt class="col-5 text-muted small">Superficie</dt>
+                    <dd class="col-7 fw-semibold">{{ field.area }} ha</dd>
+
+                    <dt class="col-5 text-muted small">Año plantación</dt>
+                    <dd class="col-7 fw-semibold">{{ field.planting_year }}</dd>
+
+
+                    {% if not field.geometry %}
+                    <dt class="col-12 mt-2">
+                        <a class="btn btn-outline-secondary btn-sm w-100" href="{% url 'field-edit' field.pk %}">
+                            <i class="fa fa-map me-1"></i>Añadir contorno en mapa
+                        </a>
+                    </dt>
+                    {% endif %}
+                </dl>
+            </div>
+
+            <!-- Acciones -->
+            <div class="card-footer bg-transparent border-top d-flex gap-2">
+                <a class="btn btn-outline-primary btn-sm flex-grow-1"
+                   href="{% url 'treatment-list' %}?field={{ field.pk }}">
+                    <i class="fa fa-flask me-1"></i>Ver todos los tratamientos
+                </a>
+            </div>
+
+            <!-- Acciones secundarias -->
+            <div class="card-footer bg-transparent border-top d-flex gap-2">
+                <a class="btn btn-outline-secondary btn-sm flex-grow-1" href="{% url 'field-edit' field.pk %}">
+                    <i class="fa fa-edit me-1"></i>Editar parcela
+                </a>
+                {% if field.can_be_deleted %}
+                <button class="btn btn-outline-danger btn-sm"
+                        data-url="{% url 'field-delete' field.pk %}"
+                        onclick="confirmDelete(this); return false;"
+                        title="Eliminar parcela">
+                    <i class="fa fa-trash"></i>
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT: Actividad reciente -->
+    <div class="col-lg-8">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="dashboard-section-dot bg-primary"></span>
+                    <span class="fw-semibold">Actividad reciente</span>
+                </div>
+                <a class="btn btn-outline-primary btn-xs"
+                   href="{% url 'treatment-list' %}?field={{ field.pk }}">
+                    Ver todos <i class="fa fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+            <div class="card-body p-0">
+                {% for treatment in recent_treatments %}
+                {% include 'farm/fields/_treatment_alert.html' %}
+                {% empty %}
+                <div class="dashboard-empty-state">
+                    <i class="fa fa-flask fa-2x text-muted opacity-50 mb-2"></i>
+                    <p class="mb-1">Sin tratamientos registrados</p>
+                    <a class="btn btn-primary btn-sm mt-1" href="{% url 'treatment-create' %}?field={{ field.pk }}">
+                        <i class="fa fa-plus me-1"></i>Crear primer tratamiento
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            {% if total_treatments > 5 %}
+            <div class="card-footer bg-transparent text-center">
+                <a class="btn btn-link btn-sm text-muted"
+                   href="{% url 'treatment-list' %}?field={{ field.pk }}">
+                    Ver los {{ total_treatments }} tratamientos
+                    <i class="fa fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<form class="d-none" id="deleteForm" method="POST">{% csrf_token %}</form>
+
+{% endblock %}
+
+{% block extra_js %}
+{% if field.geometry %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function () {
+    var satellite = L.tileLayer(
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        { attribution: 'Tiles © Esri', maxZoom: 20 }
+    );
+    var osm = L.tileLayer(
+        'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+        { attribution: '© Carto', maxZoom: 20 }
+    );
+    var catastro = L.tileLayer.wms(
+        'https://ovc.catastro.meh.es/Cartografia/WMS/ServidorWMS.aspx?',
+        { layers: 'Catastro', format: 'image/png', transparent: true, attribution: '© Catastro', maxZoom: 20 }
+    );
+
+    var map = L.map('map-detail', {
+        layers: [satellite],
+        zoomControl: true,
+        scrollWheelZoom: false,
+        dragging: !L.Browser.mobile,
+        tap: false,
+    });
+
+    // Escala métrica
+    L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
+
+    L.control.layers(
+        { 'Satélite': satellite, 'Mapa': osm },
+        { 'Catastro': catastro },
+        { position: 'topright' }
+    ).addTo(map);
+
+    var geojson = {{ field.geometry|safe }};
+    var layer = L.geoJSON(geojson, {
+        style: { color: '#198754', fillColor: '#198754', fillOpacity: 0.3, weight: 2 }
+    }).addTo(map);
+
+    // Popup con nombre y área al hacer clic
+    layer.bindPopup(
+        '<strong>{{ field.name|escapejs }}</strong><br>' +
+        '<span class="text-muted">{{ field.crop|escapejs }}</span><br>' +
+        '<i class="fa fa-ruler-combined me-1"></i>{{ field.area }} ha',
+        { closeButton: false }
+    );
+
+    map.fitBounds(layer.getBounds(), { padding: [16, 16] });
+
+    // Botón expandir/contraer
+    var expanded = false;
+    var expandBtn = document.getElementById('btnExpandMap');
+    if (expandBtn) {
+        expandBtn.addEventListener('click', function () {
+            var mapEl = document.getElementById('map-detail');
+            expanded = !expanded;
+            mapEl.classList.toggle('map-expanded', expanded);
+            expandBtn.innerHTML = expanded
+                ? '<i class="fa fa-compress"></i>'
+                : '<i class="fa fa-expand"></i>';
+            expandBtn.title = expanded ? 'Reducir mapa' : 'Ampliar mapa';
+            setTimeout(function () { map.invalidateSize(); map.fitBounds(layer.getBounds(), { padding: [16,16] }); }, 310);
+        });
+    }
+
+    // Activar scroll al hacer clic sobre el mapa (UX móvil/escritorio)
+    map.on('click', function () { map.scrollWheelZoom.enable(); });
+    map.on('mouseout', function () { map.scrollWheelZoom.disable(); });
+})();
+</script>
+{% endif %}
+
+<script>
+    function confirmDelete(button) {
+        const url = button.getAttribute('data-url');
+        showConfirm({
+            text: 'Esta acción eliminará la parcela de forma permanente y no se podrá deshacer.',
+            onConfirm: () => {
+                const form = document.getElementById('deleteForm');
+                form.action = url;
+                form.submit();
+            }
+        });
+    }
+</script>
+{% endblock %}

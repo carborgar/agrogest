@@ -1,8 +1,8 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count, Q
-from django.urls import reverse_lazy
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+from django.urls import reverse_lazy, reverse
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
 
 from farm.models import Field, Treatment
 from farm.views.field_forms import FieldForm
@@ -34,6 +34,29 @@ class FieldListView(LoginRequiredMixin, ListView):
         return context
 
 
+class FieldDetailView(LoginRequiredMixin, DetailView):
+    model = Field
+    template_name = 'farm/fields/field_detail.html'
+    context_object_name = 'field'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        field = self.object
+        treatments = (
+            Treatment.objects.filter(field=field)
+            .order_by('-date')
+            .select_related('machine')
+            .prefetch_related('products')
+        )
+        context['treatments'] = treatments
+        context['pending_count'] = treatments.filter(status=Treatment.STATUS_PENDING).count()
+        context['delayed_count'] = treatments.filter(status=Treatment.STATUS_DELAYED).count()
+        context['completed_count'] = treatments.filter(status=Treatment.STATUS_COMPLETED).count()
+        context['total_treatments'] = treatments.count()
+        context['recent_treatments'] = treatments[:5]
+        return context
+
+
 class FieldCreateView(LoginRequiredMixin, CreateView):
     model = Field
     form_class = FieldForm
@@ -50,7 +73,9 @@ class FieldUpdateView(LoginRequiredMixin, UpdateView):
     model = Field
     form_class = FieldForm
     template_name = 'farm/fields/field_form.html'
-    success_url = reverse_lazy('field-list')
+
+    def get_success_url(self):
+        return reverse('field-detail', kwargs={'pk': self.object.pk})
 
     def form_valid(self, form):
         messages.success(self.request, 'Parcela actualizada con éxito.')
