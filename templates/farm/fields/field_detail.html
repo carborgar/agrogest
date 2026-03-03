@@ -40,6 +40,63 @@
     .map-expand-btn:hover { background: #f4f4f4; }
     .map-wrapper { position: relative; }
 
+    /* ── Consejo de tratamiento ── */
+    .treatment-advice {
+        border-radius: 12px;
+        padding: .85rem 1rem;
+        display: flex;
+        align-items: flex-start;
+        gap: .75rem;
+        font-size: .88rem;
+        line-height: 1.5;
+        margin-bottom: .25rem;
+    }
+    .treatment-advice.advice-ok {
+        background: rgba(25,135,84,.08);
+        border: 1.5px solid rgba(25,135,84,.3);
+    }
+    .treatment-advice.advice-warn {
+        background: rgba(255,193,7,.08);
+        border: 1.5px solid rgba(255,193,7,.4);
+    }
+    .treatment-advice.advice-bad {
+        background: rgba(220,53,69,.07);
+        border: 1.5px solid rgba(220,53,69,.25);
+    }
+    .advice-icon {
+        font-size: 1.4rem;
+        flex-shrink: 0;
+        margin-top: .05rem;
+    }
+    .advice-ok   .advice-icon { color: #198754; }
+    .advice-warn .advice-icon { color: #d4a017; }
+    .advice-bad  .advice-icon { color: #dc3545; }
+    .advice-title {
+        font-weight: 700;
+        font-size: .92rem;
+        margin-bottom: .15rem;
+    }
+    .advice-ok   .advice-title { color: #146c43; }
+    .advice-warn .advice-title { color: #997404; }
+    .advice-bad  .advice-title { color: #b02a37; }
+    .advice-reasons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .3rem;
+        margin-top: .4rem;
+    }
+    .advice-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: .25rem;
+        font-size: .72rem;
+        padding: .15em .5em;
+        border-radius: 20px;
+        font-weight: 600;
+        background: rgba(0,0,0,.06);
+        color: var(--bs-body-color);
+    }
+
     /* ── Weather widget ─────────────────────────── */
     .weather-day-tabs { scrollbar-width: none; }
     .weather-day-tabs::-webkit-scrollbar { display: none; }
@@ -394,6 +451,10 @@
 
             <!-- Contenido -->
             <div class="d-none" id="weather-content">
+
+                <!-- ── Consejo de tratamiento ── -->
+                <div class="card-body pb-0" id="treatmentAdviceWrap"></div>
+
                 <!-- Resumen 7 días (pestañas) -->
                 <div class="card-body pb-0">
                     <ul class="nav nav-pills gap-1 flex-nowrap overflow-auto pb-1 weather-day-tabs" id="weatherDayTabs" role="tablist"></ul>
@@ -651,6 +712,131 @@
         }
     }
 
+    // ── Consejo de tratamiento ─────────────────────────────────
+    //
+    // Analiza los próximos 7 días y genera un texto en lenguaje natural:
+    //   · ¿Puedo tratar HOY?
+    //   · Si no, ¿cuándo es el próximo momento apto y por qué no ahora?
+    //
+    function buildTreatmentAdvice(data) {
+        const today      = new Date().toISOString().slice(0, 10);
+        const nowHour    = new Date().getHours();
+        const DAY_LABELS = { 0: 'hoy', 1: 'mañana' };
+
+        // Horas diurnas aptas (6–20h) dentro del periodo de previsión
+        // Filtramos las que ya han pasado hoy
+        function daytimeAptHours(day) {
+            return day.hours.filter(h => {
+                const hr = parseInt(h.hour, 10);
+                if (hr < 7 || hr > 20) return false;
+                if (day.date === today && hr < nowHour) return false;
+                return h.treatment_ok;
+            });
+        }
+
+        // Razones concretas de por qué un día no es apto
+        function dayBlockers(day) {
+            const blockers = [];
+            if (day.max_precipitation_probability >= 20)
+                blockers.push({ icon: 'fa-percent', text: `Lluvia ${day.max_precipitation_probability}%` });
+            if (day.max_wind_speed > 20)
+                blockers.push({ icon: 'fa-wind', text: `Viento ${day.max_wind_speed} km/h` });
+            return blockers;
+        }
+
+        // Buscar el próximo bloque de horas consecutivas aptas (≥ 1h)
+        function findNextWindow() {
+            for (const day of data.daily) {
+                const apt = daytimeAptHours(day);
+                if (!apt.length) continue;
+                // Agrupar horas consecutivas
+                const groups = [];
+                let cur = [apt[0]];
+                for (let i = 1; i < apt.length; i++) {
+                    const prev = parseInt(cur[cur.length - 1].hour, 10);
+                    const curr = parseInt(apt[i].hour, 10);
+                    if (curr - prev <= 1) { cur.push(apt[i]); }
+                    else { groups.push(cur); cur = [apt[i]]; }
+                }
+                groups.push(cur);
+                const best = groups.reduce((a, b) => b.length > a.length ? b : a);
+                return { day, hours: best };
+            }
+            return null;
+        }
+
+        const todayData   = data.daily.find(d => d.date === today);
+        const todayApt    = todayData ? daytimeAptHours(todayData) : [];
+        const nextWindow  = findNextWindow();
+
+        let variant, icon, title, body, tags = [];
+
+        if (todayApt.length) {
+            // ── Caso 1: HOY se puede tratar ──
+            const from = todayApt[0].hour;
+            const to   = todayApt[todayApt.length - 1].hour;
+            const span = todayApt.length;
+            variant = 'ok';
+            icon    = 'fa-circle-check';
+            title   = 'Puedes tratar hoy';
+            body    = `Hay <strong>${span} hora${span > 1 ? 's' : ''} aptas</strong> entre las <strong>${from}</strong> y las <strong>${to}</strong> con condiciones favorables.`;
+            if (todayData.max_precipitation_probability > 0)
+                tags.push({ icon: 'fa-percent', text: `Prob. lluvia máx. ${todayData.max_precipitation_probability}%` });
+            if (todayData.max_wind_speed > 0)
+                tags.push({ icon: 'fa-wind', text: `Viento máx. ${todayData.max_wind_speed} km/h` });
+
+        } else if (nextWindow) {
+            // ── Caso 2: No hoy, pero hay ventana próxima ──
+            const { day, hours } = nextWindow;
+            const daysAhead = Math.round((new Date(day.date) - new Date(today)) / 86400000);
+            const dayLabel  = DAY_LABELS[daysAhead] || day.label;
+            const from = hours[0].hour;
+            const to   = hours[hours.length - 1].hour;
+            const span = hours.length;
+
+            const isTomorrow = daysAhead <= 1;
+            variant = isTomorrow ? 'warn' : 'bad';
+            icon    = isTomorrow ? 'fa-clock' : 'fa-calendar-xmark';
+            title   = isTomorrow
+                ? `Hoy no, pero puedes tratar ${dayLabel}`
+                : `Próxima ventana: ${dayLabel}`;
+            body    = `El momento más favorable es <strong>${dayLabel}</strong> entre las <strong>${from}</strong> y las <strong>${to}</strong> (${span}h aptas).`;
+
+            // Razones por las que hoy no va
+            if (todayData) {
+                const blockers = dayBlockers(todayData);
+                if (blockers.length) {
+                    body += ` Hoy no es viable por: `;
+                    tags = blockers;
+                }
+            }
+
+        } else {
+            // ── Caso 3: Sin ventana en los próximos 7 días ──
+            variant = 'bad';
+            icon    = 'fa-triangle-exclamation';
+            title   = 'No hay ventanas aptas esta semana';
+            body    = 'Las condiciones no son favorables para tratar en los próximos 7 días. Revisa la previsión más adelante.';
+            if (todayData) tags = dayBlockers(todayData);
+        }
+
+        const tagsHtml = tags.length
+            ? `<div class="advice-reasons">${tags.map(t =>
+                `<span class="advice-tag">${fa('fa-' + t.icon, 'me-1')}${t.text}</span>`
+              ).join('')}</div>`
+            : '';
+
+        document.getElementById('treatmentAdviceWrap').innerHTML = `
+            <div class="treatment-advice advice-${variant}">
+                <div class="advice-icon">${fa(icon)}</div>
+                <div>
+                    <div class="advice-title">${title}</div>
+                    <div>${body}</div>
+                    ${tagsHtml}
+                </div>
+            </div>`;
+    }
+
     // ── Render principal ───────────────────────────────────────
     function renderWeather(data) {
         // Tabs
@@ -676,6 +862,9 @@
         if (coordsEl) {
             coordsEl.innerHTML = `<i class="fa fa-location-dot me-1"></i>${data.lat.toFixed(4)}, ${data.lon.toFixed(4)}`;
         }
+
+        // Consejo de tratamiento
+        buildTreatmentAdvice(data);
 
         // Mostrar hoy o primer día
         const today = new Date().toISOString().slice(0, 10);
