@@ -205,6 +205,28 @@ def field_costs_data(request):
     })
 
 
+def get_field_weather(request, field_id):
+    """
+    Devuelve la previsión meteorológica de una parcela usando Open-Meteo.
+    GET /api/fields/<field_id>/weather/
+    """
+    from .weather_service import get_weather_for_field
+
+    try:
+        field = Field.ownership_objects.get_queryset_for_user(request.user).get(pk=field_id)
+    except Field.DoesNotExist:
+        return JsonResponse({"error": "Parcela no encontrada"}, status=404)
+
+    weather = get_weather_for_field(field)
+    if weather is None:
+        return JsonResponse(
+            {"error": "No se pueden obtener datos meteorológicos. La parcela no tiene coordenadas definidas."},
+            status=422,
+        )
+
+    return JsonResponse(weather)
+
+
 def get_field_product_breakdown(user, fields_or_field, start_date, end_date):
     # Preparar filtro de parcelas
     if hasattr(fields_or_field, '__iter__') and not isinstance(fields_or_field, Field):
