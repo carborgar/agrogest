@@ -87,6 +87,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'farm.context_processors.sidebar_state',
+                'farm.context_processors.active_nav',
             ],
         },
     },

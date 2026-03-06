@@ -13,13 +13,6 @@
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
                 <li><h6 class="dropdown-header">{{ user.first_name|default:user.username }}</h6></li>
-                {% comment %}
-                <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Mi Perfil</a></li>
-                <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Configuración</a></li>
-                <li>
-                    <hr class="dropdown-divider">
-                </li>
-                {% endcomment %}
                 <li>
                     <form action="{% url 'accounts:logout' %}" method="post">
                         {% csrf_token %}
@@ -32,17 +25,6 @@
         </div>
     </div>
 </nav>
-
-{% with request.resolver_match.url_name as current_url %}
-{% with home_menus='field_list' %}
-{% with treatments_menus='treatment-list treatment-create treatment-detail' %}
-{% with calendar_menus='treatment-calendar' %}
-{% with expense_menus='expense-list expense-create expense-edit' %}
-{% with expense_type_menus='expense-type-list expense-type-create expense-type-edit' %}
-{% with field_costs_menus='field-costs' %}
-{% with product_type_menus='product-type-list product-type-create product-type-edit' %}
-{% with product_menus='product-list product-create product-edit' %}
-{% with harvest_menus='harvest-summary harvest-create harvest-edit' %}
 
 <!-- Desktop Sidebar -->
 <div class="sidebar-desktop d-none d-md-block">
@@ -61,42 +43,37 @@
             <div class="nav-section">
                 <ul class="nav flex-column">
                     <li class="nav-item">
-                        <a class="nav-link {% if current_url in home_menus %}active{% endif %}"
-                           href="{% url 'field_list' %}">
+                        <a class="nav-link {% if nav_home %}active{% endif %}" href="{% url 'field_list' %}">
                             <i class="fas fa-house"></i>Inicio
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if current_url in treatments_menus %}active{% endif %}"
-                           href="{% url 'treatment-list' %}">
+                        <a class="nav-link {% if nav_treatments %}active{% endif %}" href="{% url 'treatment-list' %}">
                             <i class="fas fa-droplet"></i>Tratamientos
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if current_url in calendar_menus %}active{% endif %}"
+                        <a class="nav-link {% if nav_calendar %}active{% endif %}"
                            href="{% url 'treatment-calendar' %}">
                             <i class="fas fa-calendar-days"></i>Calendario
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a aria-expanded="{% if current_url in field_costs_menus or current_url in expense_menus %}true{%else%}false{% endif %}"
-                           class="nav-link"
-                           data-bs-target="#gastosMenu" data-bs-toggle="collapse" href="#">
-                            <i class="fa fa-coins"></i>
-                            Gastos
+                        <a aria-expanded="{% if nav_gastos_open %}true{% else %}false{% endif %}"
+                           class="nav-link" data-bs-target="#gastosMenu" data-bs-toggle="collapse" href="#">
+                            <i class="fa fa-coins"></i>Gastos
                             <i class="fas fa-chevron-down chevron"></i>
                         </a>
-                        <div class="collapse nav-submenu {% if current_url in field_costs_menus or current_url in expense_menus %}show{% endif %}"
-                             id="gastosMenu">
+                        <div class="collapse nav-submenu {% if nav_gastos_open %}show{% endif %}" id="gastosMenu">
                             <ul class="nav flex-column">
                                 <li class="nav-item">
-                                    <a class="nav-link {% if current_url in field_costs_menus %}active{% endif %}"
+                                    <a class="nav-link {% if nav_costs %}active{% endif %}"
                                        href="{% url 'field-costs' %}">
                                         <i class="fa fa-chart-bar"></i> Resumen de gastos
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link {% if current_url in expense_menus %}active{% endif %}"
+                                    <a class="nav-link {% if nav_expenses %}active{% endif %}"
                                        href="{% url 'expense-list' %}">
                                         <i class="fa fa-receipt"></i> Gestionar gastos
                                     </a>
@@ -105,14 +82,13 @@
                         </div>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'treatment-shopping-list' %}active{% endif %}"
+                        <a class="nav-link {% if nav_shopping %}active{% endif %}"
                            href="{% url 'treatment-shopping-list' %}">
                             <i class="fa fa-shopping-cart"></i>Compras
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if current_url in harvest_menus %}active{% endif %}"
-                           href="{% url 'harvest-summary' %}">
+                        <a class="nav-link {% if nav_harvests %}active{% endif %}" href="{% url 'harvest-summary' %}">
                             <i class="fa fa-apple-whole"></i>Cosechas
                         </a>
                     </li>
@@ -123,28 +99,27 @@
                 <div class="nav-title">Administración</div>
                 <ul class="nav flex-column">
                     <li class="nav-item">
-                        <a class="nav-link {% if current_url in expense_type_menus %}active{% endif %}"
+                        <a class="nav-link {% if nav_expense_types %}active{% endif %}"
                            href="{% url 'expense-type-list' %}">
                             <i class="fa fa-tags"></i> Tipos de gasto
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a aria-expanded="{% if current_url in product_menus or current_url in product_type_menus %}true{%else%}false{% endif %}"
-                           class="nav-link"
-                           data-bs-target="#productosMenuDesktop" data-bs-toggle="collapse" href="#">
+                        <a aria-expanded="{% if nav_products_open %}true{% else %}false{% endif %}"
+                           class="nav-link" data-bs-target="#productosMenuDesktop" data-bs-toggle="collapse" href="#">
                             <i class="fa fa-box"></i> Productos<i class="fas fa-chevron-down chevron"></i>
                         </a>
-                        <div class="collapse nav-submenu {% if current_url in product_menus or current_url in product_type_menus %}show{% endif %}"
+                        <div class="collapse nav-submenu {% if nav_products_open %}show{% endif %}"
                              id="productosMenuDesktop">
                             <ul class="nav flex-column">
                                 <li class="nav-item">
-                                    <a class="nav-link {% if current_url in product_menus %}active{% endif %}"
+                                    <a class="nav-link {% if nav_products %}active{% endif %}"
                                        href="{% url 'product-list' %}">
                                         <i class="fa fa-flask"></i> Productos
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link {% if current_url in product_type_menus %}active{% endif %}"
+                                    <a class="nav-link {% if nav_product_types %}active{% endif %}"
                                        href="{% url 'product-type-list' %}">
                                         <i class="fa fa-tags"></i> Tipos de producto
                                     </a>
@@ -167,13 +142,6 @@
                 <i class="fas fa-ellipsis-v ms-auto"></i>
             </a>
             <ul class="dropdown-menu dropdown-menu-end">
-                {% comment %}
-                <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Mi Perfil</a></li>
-                <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Configuración</a></li>
-                <li>
-                    <hr class="dropdown-divider">
-                </li>
-                {% endcomment %}
                 <li>
                     <form action="{% url 'accounts:logout' %}" method="post">
                         {% csrf_token %}
@@ -205,42 +173,39 @@
                 <div class="nav-section">
                     <ul class="nav flex-column">
                         <li class="nav-item">
-                            <a class="nav-link {% if current_url in home_menus %}active{% endif %}"
-                               href="{% url 'field_list' %}">
+                            <a class="nav-link {% if nav_home %}active{% endif %}" href="{% url 'field_list' %}">
                                 <i class="fas fa-house"></i>Inicio
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {% if current_url in treatments_menus %}active{% endif %}"
+                            <a class="nav-link {% if nav_treatments %}active{% endif %}"
                                href="{% url 'treatment-list' %}">
                                 <i class="fas fa-droplet"></i>Tratamientos
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {% if current_url in calendar_menus %}active{% endif %}"
+                            <a class="nav-link {% if nav_calendar %}active{% endif %}"
                                href="{% url 'treatment-calendar' %}">
                                 <i class="fas fa-calendar-days"></i>Calendario
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a aria-expanded="false"
-                               class="nav-link {% if current_url in field_costs_menus or current_url in expense_menus %}active{% endif %}"
-                               data-bs-target="#gastosMobileMenu" data-bs-toggle="collapse" href="#">
-                                <i class="fa fa-coins"></i>
-                                Gastos
+                            <a aria-expanded="{% if nav_gastos_open %}true{% else %}false{% endif %}"
+                               class="nav-link" data-bs-target="#gastosMobileMenu" data-bs-toggle="collapse" href="#">
+                                <i class="fa fa-coins"></i>Gastos
                                 <i class="fas fa-chevron-down chevron"></i>
                             </a>
-                            <div class="collapse nav-submenu {% if current_url in field_costs_menus or current_url in expense_menus %}show{% endif %}"
+                            <div class="collapse nav-submenu {% if nav_gastos_open %}show{% endif %}"
                                  id="gastosMobileMenu">
                                 <ul class="nav flex-column">
                                     <li class="nav-item">
-                                        <a class="nav-link {% if current_url in field_costs_menus %}active{% endif %}"
+                                        <a class="nav-link {% if nav_costs %}active{% endif %}"
                                            href="{% url 'field-costs' %}">
                                             <i class="fa fa-chart-bar"></i> Resumen de gastos
                                         </a>
                                     </li>
                                     <li class="nav-item">
-                                        <a class="nav-link {% if current_url in expense_menus %}active{% endif %}"
+                                        <a class="nav-link {% if nav_expenses %}active{% endif %}"
                                            href="{% url 'expense-list' %}">
                                             <i class="fa fa-receipt"></i> Gestionar gastos
                                         </a>
@@ -249,13 +214,13 @@
                             </div>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'treatment-shopping-list' %}active{% endif %}"
+                            <a class="nav-link {% if nav_shopping %}active{% endif %}"
                                href="{% url 'treatment-shopping-list' %}">
                                 <i class="fa fa-shopping-cart"></i>Compras
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {% if current_url in harvest_menus %}active{% endif %}"
+                            <a class="nav-link {% if nav_harvests %}active{% endif %}"
                                href="{% url 'harvest-summary' %}">
                                 <i class="fa fa-apple-whole"></i>Cosechas
                             </a>
@@ -267,32 +232,29 @@
                     <div class="nav-title">Administración</div>
                     <ul class="nav flex-column">
                         <li class="nav-item">
-                            <a class="nav-link {% if current_url in expense_type_menus %}active{% endif %}"
+                            <a class="nav-link {% if nav_expense_types %}active{% endif %}"
                                href="{% url 'expense-type-list' %}">
                                 <i class="fa fa-tags"></i> Tipos de gasto
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a aria-expanded="{% if current_url in product_menus or current_url in product_type_menus %}true{%else%}false{% endif %}"
-                               class="nav-link"
-                               data-bs-target="#productosMenu" data-bs-toggle="collapse" href="#">
-                                <i class="fa fa-coins"></i>
-                                Productos
-                                <i class="fas fa-chevron-down chevron"></i>
+                            <a aria-expanded="{% if nav_products_open %}true{% else %}false{% endif %}"
+                               class="nav-link" data-bs-target="#productosMenu" data-bs-toggle="collapse" href="#">
+                                <i class="fa fa-box"></i>Productos<i class="fas fa-chevron-down chevron"></i>
                             </a>
-                            <div class="collapse nav-submenu {% if current_url in product_menus or current_url in product_type_menus %}show{% endif %}"
+                            <div class="collapse nav-submenu {% if nav_products_open %}show{% endif %}"
                                  id="productosMenu">
                                 <ul class="nav flex-column">
                                     <li class="nav-item">
-                                        <a class="nav-link {% if current_url in product_menus %}active{% endif %}"
+                                        <a class="nav-link {% if nav_products %}active{% endif %}"
                                            href="{% url 'product-list' %}">
-                                            <i class="fa fa-chart-bar"></i> Productos
+                                            <i class="fa fa-flask"></i> Productos
                                         </a>
                                     </li>
                                     <li class="nav-item">
-                                        <a class="nav-link {% if current_url in product_type_menus %}active{% endif %}"
+                                        <a class="nav-link {% if nav_product_types %}active{% endif %}"
                                            href="{% url 'product-type-list' %}">
-                                            <i class="fa fa-receipt"></i> Tipos de producto
+                                            <i class="fa fa-tags"></i> Tipos de producto
                                         </a>
                                     </li>
                                 </ul>
@@ -304,13 +266,3 @@
         </div>
     </div>
 </div>
-{% endwith %}
-{% endwith %}
-{% endwith %}
-{% endwith %}
-{% endwith %}
-{% endwith %}
-{% endwith %}
-{% endwith %}
-{% endwith %}
-{% endwith %}
