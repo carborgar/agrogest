@@ -69,7 +69,7 @@
                                 <li class="nav-item">
                                     <a class="nav-link {% if nav_costs %}active{% endif %}"
                                        href="{% url 'field-costs' %}">
-                                        <i class="fa fa-chart-bar"></i> Resumen de gastos
+                                        <i class="fa fa-chart-bar"></i> Informe
                                     </a>
                                 </li>
                                 <li class="nav-item">
@@ -90,18 +90,6 @@
                     <li class="nav-item">
                         <a class="nav-link {% if nav_harvests %}active{% endif %}" href="{% url 'harvest-summary' %}">
                             <i class="fa fa-apple-whole"></i>Cosechas
-                        </a>
-                    </li>
-                </ul>
-            </div>
-
-            <div class="nav-section">
-                <div class="nav-title">Administración</div>
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link {% if nav_expense_types %}active{% endif %}"
-                           href="{% url 'expense-type-list' %}">
-                            <i class="fa fa-tags"></i> Tipos de gasto
                         </a>
                     </li>
                     <li class="nav-item">
@@ -126,6 +114,18 @@
                                 </li>
                             </ul>
                         </div>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-title">Configuración</div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if nav_expense_types %}active{% endif %}"
+                           href="{% url 'expense-type-list' %}">
+                            <i class="fa fa-tags"></i> Tipos de gasto
+                        </a>
                     </li>
                 </ul>
             </div>
@@ -201,7 +201,7 @@
                                     <li class="nav-item">
                                         <a class="nav-link {% if nav_costs %}active{% endif %}"
                                            href="{% url 'field-costs' %}">
-                                            <i class="fa fa-chart-bar"></i> Resumen de gastos
+                                            <i class="fa fa-chart-bar"></i> Informe
                                         </a>
                                     </li>
                                     <li class="nav-item">
@@ -225,22 +225,10 @@
                                 <i class="fa fa-apple-whole"></i>Cosechas
                             </a>
                         </li>
-                    </ul>
-                </div>
-
-                <div class="nav-section">
-                    <div class="nav-title">Administración</div>
-                    <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link {% if nav_expense_types %}active{% endif %}"
-                               href="{% url 'expense-type-list' %}">
-                                <i class="fa fa-tags"></i> Tipos de gasto
-                            </a>
-                        </li>
                         <li class="nav-item">
                             <a aria-expanded="{% if nav_products_open %}true{% else %}false{% endif %}"
                                class="nav-link" data-bs-target="#productosMenu" data-bs-toggle="collapse" href="#">
-                                <i class="fa fa-box"></i>Productos<i class="fas fa-chevron-down chevron"></i>
+                                <i class="fa fa-box"></i> Productos<i class="fas fa-chevron-down chevron"></i>
                             </a>
                             <div class="collapse nav-submenu {% if nav_products_open %}show{% endif %}"
                                  id="productosMenu">
@@ -259,6 +247,18 @@
                                     </li>
                                 </ul>
                             </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-title">Configuración</div>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link {% if nav_expense_types %}active{% endif %}"
+                               href="{% url 'expense-type-list' %}">
+                                <i class="fa fa-tags"></i> Tipos de gasto
+                            </a>
                         </li>
                     </ul>
                 </div>
