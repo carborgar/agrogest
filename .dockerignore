@@ -1,3 +1,44 @@
-.venv
+# Git
 .git
 .gitignore
+.github
+
+# Python cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.egg-info
+.eggs
+dist
+build
+.venv
+venv
+env
+
+# Dev/test artifacts
+.coverage
+.coveragerc
+htmlcov
+.pytest_cache
+pytest.ini
+test_report.html
+
+# Node (SCSS tooling, not needed at runtime)
+node_modules
+package.json
+package-lock.json
+scss
+
+# Editor / OS
+.DS_Store
+.idea
+.vscode
+*.swp
+
+# Django local dev
+db.sqlite3
+.env
+
+# Vercel (not used in Docker deploys)
+vercel.json
