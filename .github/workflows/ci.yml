@@ -31,7 +31,13 @@ jobs:
       - name: Check if static files changed
         id: static_check
         run: |
-          git diff --name-only HEAD~1 HEAD | grep -q "^static/" && echo "changed=true" >> $GITHUB_OUTPUT || echo "changed=false" >> $GITHUB_OUTPUT
+          if git rev-parse HEAD~1 > /dev/null 2>&1; then
+            DIFF=$(git diff --name-only HEAD~1 HEAD)
+          else
+            # First commit — compare against the empty tree
+            DIFF=$(git diff --name-only 4b825dc642cb6eb9a060e54bf8d69288fbee4904 HEAD)
+          fi
+          echo "$DIFF" | grep -q "^static/" && echo "changed=true" >> $GITHUB_OUTPUT || echo "changed=false" >> $GITHUB_OUTPUT
 
       - name: Collect static
         if: steps.static_check.outputs.changed == 'true'
