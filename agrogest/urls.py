@@ -16,7 +16,8 @@ Including another URLconf
 
 from django.conf import settings
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import include, path
+from health_check.views import HealthCheckView
 
 
 def trigger_error(request):
@@ -27,15 +28,16 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include("farm.urls")),
     path('usuarios/', include("accounts.urls")),
-
     path('sentry-debug/', trigger_error),
-
+    path('health/', HealthCheckView.as_view(checks=[
+        'health_check.Database',
+        'health_check.Cache',
+    ]), name='health_check'),
 ]
 
 if settings.DEBUG:
     try:
         from debug_toolbar.toolbar import debug_toolbar_urls
-
         urlpatterns += debug_toolbar_urls()
     except Exception:
         pass

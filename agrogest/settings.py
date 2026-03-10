@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'mathfilters',
     'django.contrib.humanize',
     'storages',
+    'health_check',
 ]
 
 AUTH_USER_MODEL = 'accounts.User'
