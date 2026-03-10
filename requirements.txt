@@ -13,7 +13,7 @@ sentry-sdk[django]
 django-debug-toolbar
 django-storages[s3]
 boto3
-django-health-check
+django-watchman
 
 # Dependencies for testing
 pytest

@@ -17,7 +17,6 @@ Including another URLconf
 from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
-from health_check.views import HealthCheckView
 
 
 def trigger_error(request):
@@ -29,10 +28,7 @@ urlpatterns = [
     path('', include("farm.urls")),
     path('usuarios/', include("accounts.urls")),
     path('sentry-debug/', trigger_error),
-    path('health/', HealthCheckView.as_view(checks=[
-        'health_check.Database',
-        'health_check.Cache',
-    ]), name='health_check'),
+    path('health/', include('watchman.urls')),
 ]
 
 if settings.DEBUG:
