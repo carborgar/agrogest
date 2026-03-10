@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function updateFilters() {
         const anyChecked = [...fieldCheckboxes].some(cb => cb.checked);
         filterAll.checked = !anyChecked;
-        filterAll.closest('.field-filter').classList.toggle('active', !anyChecked);
+        filterAll.closest('.field-filter-item')?.classList.toggle('active', !anyChecked);
         calendar.refetchEvents();
     }
 
