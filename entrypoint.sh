@@ -1,5 +1,9 @@
 #!/bin/sh
 
+# Wait for the database to be available
+echo "Waiting for database..."
+python manage.py check --database default
+
 echo "Applying migrations..."
 python manage.py migrate --noinput
 
