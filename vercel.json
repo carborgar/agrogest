@@ -1,18 +1,18 @@
 {
-  "builds": [
-    {
-      "src": "agrogest/wsgi.py",
-      "use": "@vercel/python",
-      "config": {
-        "maxLambdaSize": "15mb",
-        "runtime": "python3.12"
-      }
+  "buildCommand": "python manage.py collectstatic --noinput",
+  "functions": {
+    "api/index.py": {
+      "runtime": "python3.12"
     }
-  ],
-  "routes": [
+  },
+  "rewrites": [
     {
-      "src": "/(.*)",
-      "dest": "agrogest/wsgi.py"
+      "source": "/static/(.*)",
+      "destination": "/static/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/api/index.py"
     }
   ]
 }
