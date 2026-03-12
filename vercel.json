@@ -1,11 +1,12 @@
 {
-  "buildCommand": "python manage.py collectstatic --noinput",
   "builds": [
     {
       "src": "agrogest/wsgi.py",
       "use": "@vercel/python",
       "config": {
-        "maxLambdaSize": "15mb"
+        "maxLambdaSize": "15mb",
+        "runtime": "python3.12",
+        "buildCommand": "python manage.py collectstatic --noinput"
       }
     }
   ],
