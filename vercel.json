@@ -1,19 +1,22 @@
 {
   "buildCommand": "python manage.py collectstatic --noinput",
-  "functions": {
-    "api/index.py": {
-      "runtime": "python3.12",
-      "maxLambdaSize": "15mb"
-    }
-  },
-  "rewrites": [
+  "builds": [
     {
-      "source": "/static/(.*)",
-      "destination": "/static/$1"
+      "src": "agrogest/wsgi.py",
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "15mb"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "/static/$1"
     },
     {
-      "source": "/(.*)",
-      "destination": "/api/index.py"
+      "src": "/(.*)",
+      "dest": "agrogest/wsgi.py"
     }
   ]
 }
