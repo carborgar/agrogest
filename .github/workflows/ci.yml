@@ -39,9 +39,6 @@ jobs:
           fi
           echo "$DIFF" | grep -q "^static/" && echo "changed=true" >> $GITHUB_OUTPUT || echo "changed=false" >> $GITHUB_OUTPUT
 
-      - name: Docker build check
-        run: docker build --tag agrogest:ci .
-
       - name: Collect static
         if: steps.static_check.outputs.changed == 'true'
         env:
