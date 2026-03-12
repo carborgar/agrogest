@@ -9,42 +9,39 @@
     <!-- Panel de filtros -->
     <div class="col-lg-3 filter-column">
         <form method="GET" id="shoppingListFilterForm">
-            <!-- Filtro por parcelas -->
-            <div class="filter-panel">
-                <div class="filter-header">
-                    <button class="btn filter-btn {% if not selected_fields %}collapsed{% endif %}"
-                            type="button" data-bs-toggle="collapse" data-bs-target="#parcelasFilter"
-                            aria-expanded="{% if selected_fields %}true{% else %}false{% endif %}">
-                        <div class="d-flex align-items-center">
-                            <span class="filter-icon">
-                                <i class="fa fa-map"></i>
-                            </span>
-                            <span>Parcelas</span>
-                        </div>
-                        <i class="fa fa-chevron-down toggle-icon"></i>
-                    </button>
+            <!-- Filtro por parcelas (mismo estilo que el calendario) -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-bottom d-flex justify-content-between align-items-center py-2 px-3">
+                    <span class="fw-semibold small"><i class="fa fa-filter me-2 text-muted"></i>Filtros</span>
                 </div>
-                <div class="collapse {% if selected_fields %}show{% endif %}" id="parcelasFilter">
-                    <div class="filter-body">
+                <div class="card-body py-3 px-3">
+                    <div class="small fw-semibold text-muted text-uppercase mb-2" style="font-size:.7rem;letter-spacing:.05em">Parcelas</div>
+                    <div class="d-flex flex-column gap-1" id="field-filters">
+                        <label class="d-flex align-items-center gap-2 py-1 px-2 rounded field-filter-item {% if not selected_fields %}active{% endif %}" style="cursor:pointer">
+                            <input class="form-check-input m-0 flex-shrink-0" id="filter-all" type="checkbox" value="all"
+                                   {% if not selected_fields %}checked{% endif %}>
+                            <span class="small">Todas</span>
+                        </label>
                         {% for field in fields %}
-                        <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" value="{{ field.id }}" name="field"
-                                   id="parcela-{{ field.id }}"
+                        <label class="d-flex align-items-center gap-2 py-1 px-2 rounded field-filter-item {% if field.id|stringformat:"s" in selected_fields %}active{% endif %}" style="cursor:pointer">
+                            <input class="form-check-input m-0 flex-shrink-0 field-checkbox"
+                                   id="filter-field-{{ field.id }}"
+                                   type="checkbox" name="field" value="{{ field.id }}"
                                    {% if field.id|stringformat:"s" in selected_fields %}checked{% endif %}>
-                            <label class="form-check-label" for="parcela-{{ field.id }}">{{ field.name }}</label>
-                        </div>
+                            <span class="small text-truncate">{{ field.name }}</span>
+                            <span class="badge bg-light text-muted border ms-auto fw-normal" style="font-size:.65rem">{{ field.area }} ha</span>
+                        </label>
                         {% endfor %}
                     </div>
                 </div>
-            </div>
-
-            <div class="filter-actions">
-                <button class="btn btn-primary apply-btn" type="submit">
-                    <i class="fa fa-filter"></i>Filtrar
-                </button>
-                <a class="clear-filters" href="{% url 'treatment-shopping-list' %}">
-                    <i class="fa fa-times-circle"></i>Limpiar
-                </a>
+                <div class="card-footer bg-transparent border-top px-3 py-2 d-flex justify-content-between align-items-center">
+                    <button class="btn btn-primary btn-sm" type="submit">
+                        <i class="fa fa-filter me-1"></i>Filtrar
+                    </button>
+                    <a class="btn btn-sm btn-outline-secondary" href="{% url 'treatment-shopping-list' %}" title="Limpiar filtros">
+                        <i class="fa fa-rotate-left"></i>
+                    </a>
+                </div>
             </div>
         </form>
 
@@ -203,6 +200,51 @@
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Filtros de parcelas (mismo comportamiento que el calendario)
+        const filterForm = document.getElementById('shoppingListFilterForm');
+        const filterAll = document.getElementById('filter-all');
+        const fieldCheckboxes = Array.from(document.querySelectorAll('.field-checkbox'));
+
+        function updateActiveStates() {
+            const anyChecked = fieldCheckboxes.some(cb => cb.checked);
+            if (!anyChecked) {
+                filterAll.checked = true;
+            }
+
+            const toggleActive = (input) => {
+                const wrap = input.closest('.field-filter-item');
+                if (wrap) wrap.classList.toggle('active', input.checked);
+            };
+
+            toggleActive(filterAll);
+            fieldCheckboxes.forEach(toggleActive);
+        }
+
+        function submitFilters() {
+            updateActiveStates();
+            filterForm?.submit();
+        }
+
+        if (filterAll) {
+            filterAll.addEventListener('change', () => {
+                if (filterAll.checked) {
+                    fieldCheckboxes.forEach(cb => cb.checked = false);
+                }
+                submitFilters();
+            });
+        }
+
+        fieldCheckboxes.forEach(cb => cb.addEventListener('change', () => {
+            if (cb.checked) {
+                filterAll.checked = false;
+            } else if (!fieldCheckboxes.some(c => c.checked)) {
+                filterAll.checked = true;
+            }
+            submitFilters();
+        }));
+
+        updateActiveStates();
+
         // View toggling
         const cardView = document.getElementById('cardView');
         const tableView = document.getElementById('tableView');

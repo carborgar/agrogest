@@ -97,12 +97,16 @@
                                     <hr class="text-muted">
                                     <div class="row g-3">
                                         <div class="col-md-6 col-lg-4" id="machineFieldGroup">
-                                            <div class="form-floating mb-3">
+                                                            <div class="form-floating mb-3" id="machineSelectWrapper">
                                                 {{ form.machine|add_class:"form-select" }}
                                                 <label for="{{ form.machine.id_for_label }}">Maquinaria</label>
                                             </div>
-                                            <div class="form-text text-primary fw-semibold"
-                                                 id="machineCapacityInfo"></div>
+                                            <div class="d-none small text-muted" id="singleMachineInfo">
+                                                <i class="fa fa-tractor text-primary"></i>
+                                                <span>Se usará automáticamente:</span>
+                                                <span class="fw-semibold text-dark" id="singleMachineName"></span>
+                                            </div>
+                                            <div class="form-text text-primary fw-semibold" id="machineCapacityInfo"></div>
                                         </div>
                                         <div class="col-md-6 col-lg-4" id="waterFieldGroup">
                                             <div class="form-floating mb-3">
@@ -264,6 +268,8 @@
             fieldSelect: document.getElementById('{{ form.field.id_for_label }}'),
             treatmentTypeSelect: document.getElementById('{{ form.type.id_for_label }}'),
             machineSelect: document.getElementById('{{ form.machine.id_for_label }}'),
+            machineSelectWrapper: document.getElementById('machineSelectWrapper'),
+            singleMachineInfo: document.getElementById('singleMachineInfo'),
             waterPerHaInput: document.getElementById('{{ form.water_per_ha.id_for_label }}'),
             completedDateInput: document.getElementById('{{ form.finish_date.id_for_label }}'),
             fieldInfo: document.getElementById('fieldAreaInfo'),
@@ -298,6 +304,26 @@
 
         async function loadMachinesData() {
             machines = Object.fromEntries((await fetchData(API_URLS.machines)).map(machine => [machine.id, machine]));
+            // Si sólo hay una maquinaria disponible, seleccionarla automáticamente y ocultar el selector
+            const machineIds = Object.keys(machines);
+            const hasSingleMachine = machineIds.length === 1;
+
+            if (hasSingleMachine) {
+                const machineId = machineIds[0];
+                elements.machineSelect.value = machineId;
+                elements.machineSelectWrapper?.classList.add('d-none');
+                if (elements.singleMachineInfo) {
+                    const machine = machines[machineId];
+                    elements.singleMachineInfo.textContent = `Maquinaria seleccionada automáticamente: ${machine.name}`;
+                    elements.singleMachineInfo.classList.remove('d-none');
+                }
+            } else {
+                elements.machineSelectWrapper?.classList.remove('d-none');
+                if (elements.singleMachineInfo) {
+                    elements.singleMachineInfo.classList.add('d-none');
+                    elements.singleMachineInfo.textContent = '';
+                }
+            }
             updateMachineInfo();
         }
 

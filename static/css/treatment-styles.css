@@ -187,6 +187,10 @@ ESTILOS PARA LISTA
     gap: 1rem;
 }
 
+.treatment-products-grid > *:not(:first-child) {
+    margin-top: 1rem;
+}
+
 .treatment-product-card {
     background: white;
     border-radius: 12px;

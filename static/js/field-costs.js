@@ -7,13 +7,34 @@ document.addEventListener('DOMContentLoaded', function() {
     const fieldsInput = document.getElementById('fieldSelector');
     const viewModeSelector = document.getElementById('viewMode');
 
-    // Inicializar fechas (último año por defecto)
+    // Inicializar fechas (año en curso por defecto)
     const today = new Date();
-    const lastYear = new Date();
-    lastYear.setFullYear(today.getFullYear() - 1);
+    const currentYear = today.getFullYear();
 
-    dateToInput.valueAsDate = today;
-    dateFromInput.valueAsDate = lastYear;
+    dateFromInput.value = `${currentYear}-01-01`;
+    dateToInput.value   = `${currentYear}-12-31`;
+
+    // Selector rápido de año (igual que en "Gestionar gastos")
+    const quickYearsContainer = document.getElementById('quickYearsContainer');
+    if (quickYearsContainer) {
+        [currentYear - 2, currentYear - 1, currentYear].forEach(y => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.dataset.year = y;
+            btn.textContent = y;
+            const isActive = dateFromInput.value === `${y}-01-01` && dateToInput.value === `${y}-12-31`;
+            btn.className = `btn btn-sm quick-year-btn ${isActive ? 'btn-primary' : 'btn-outline-secondary'}`;
+            btn.addEventListener('click', () => {
+                dateFromInput.value = `${y}-01-01`;
+                dateToInput.value   = `${y}-12-31`;
+                quickYearsContainer.querySelectorAll('.quick-year-btn').forEach(b => {
+                    b.className = `btn btn-sm quick-year-btn ${b.dataset.year == y ? 'btn-primary' : 'btn-outline-secondary'}`;
+                });
+                loadFieldCostsData();
+            });
+            quickYearsContainer.appendChild(btn);
+        });
+    }
 
     // Inicializar modo de vista desde localStorage
     let currentViewMode = localStorage.getItem('fieldCostsViewMode') || 'cost';

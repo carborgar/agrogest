@@ -424,7 +424,7 @@ class ShoppingListView(BaseSecureViewMixin, ListView):
     context_object_name = 'product_items'
 
     def get_queryset(self):
-        selected_fields = self.request.GET.getlist('field')
+        selected_fields = [fid for fid in self.request.GET.getlist('field') if fid.isdigit()]
         return get_shopping_list(self.request.user, field_ids=selected_fields or None)
 
     def get_context_data(self, **kwargs):
@@ -432,7 +432,7 @@ class ShoppingListView(BaseSecureViewMixin, ListView):
         context['fields'] = Field.objects.filter(organization=self.request.user.organization)
 
         # Add selected filters to context
-        context['selected_fields'] = self.request.GET.getlist('field')
+        context['selected_fields'] = [fid for fid in self.request.GET.getlist('field') if fid.isdigit()]
 
         # Calculate totals
         total_price = sum(item['total_price'] for item in self.object_list)
