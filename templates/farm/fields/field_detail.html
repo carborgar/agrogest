@@ -707,7 +707,14 @@
             const hoursArr = (hours.length ? hours : day.hours);
             const idx = hoursArr.findIndex(h => parseInt(h.hour, 10) >= nowHour);
             if (idx > 0 && cards[idx]) {
-                setTimeout(() => cards[idx].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }), 100);
+                setTimeout(() => {
+                    const wrap = timeline.closest('.weather-timeline-wrap');
+                    if (wrap) {
+                        const cardLeft = cards[idx].offsetLeft;
+                        const wrapWidth = wrap.clientWidth;
+                        wrap.scrollLeft = cardLeft - wrapWidth / 2 + cards[idx].offsetWidth / 2;
+                    }
+                }, 100);
             }
         }
     }
