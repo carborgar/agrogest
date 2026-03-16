@@ -302,6 +302,8 @@ class TreatmentFormView(BaseSecureViewMixin, SuccessMessageMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['is_edit'] = bool(self.object and self.object.pk)
+        context['form_title'] = 'Editar tratamiento' if context['is_edit'] else 'Nuevo tratamiento'
         context['products_formset'] = (
             TreatmentProductFormSet(self.request.POST, instance=self.object) if self.request.POST
             else TreatmentProductFormSet(instance=self.object)

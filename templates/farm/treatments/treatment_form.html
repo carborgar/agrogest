@@ -26,7 +26,7 @@
     <div class="col">
         <div class="card shadow-sm border-0 rounded-lg">
             <div class="card-header bg-primary text-white py-3">
-                <h2 class="mb-0 fs-3">Nuevo tratamiento</h2>
+                <h2 class="mb-0 fs-3">{{ form_title|default:'Nuevo tratamiento' }}</h2>
             </div>
             <div class="card-body">
                 {% bootstrap_form_errors form %}
@@ -119,10 +119,17 @@
                                 </div>
                             </div>
                             <div class="card-footer bg-white py-3">
-                                <button class="btn btn-primary w-100" id="nextToProducts" type="button">
-                                    Continuar a Productos
-                                    <i class="bi bi-arrow-right ms-2"></i>
-                                </button>
+                                <div class="d-flex gap-2">
+                                    <a class="btn btn-outline-secondary"
+                                       href="{% if is_edit %}{% url 'treatment-detail' pk=form.instance.pk %}{% else %}{% url 'treatment-list' %}{% endif %}">
+                                        <i class="bi bi-x-circle me-2"></i>
+                                        Cancelar
+                                    </a>
+                                    <button class="btn btn-primary flex-fill" id="nextToProducts" type="button">
+                                        Continuar a Productos
+                                        <i class="bi bi-arrow-right ms-2"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -148,6 +155,7 @@
                                         </div>
 
                                         {{ form.id }}
+                                        {{ form.DELETE|add_class:"d-none delete-input" }}
 
                                         <div class="row">
                                             <div class="col-12 col-md-6 col-lg-4">
@@ -186,6 +194,11 @@
                             </div>
                             <div class="card-footer bg-white py-3">
                                 <div class="d-flex gap-2">
+                                    <a class="btn btn-outline-secondary"
+                                       href="{% if is_edit %}{% url 'treatment-detail' pk=form.instance.pk %}{% else %}{% url 'treatment-list' %}{% endif %}">
+                                        <i class="bi bi-x-circle me-2"></i>
+                                        Cancelar
+                                    </a>
                                     <button class="btn btn-outline-primary" id="backToInfo" type="button">
                                         <i class="bi bi-arrow-left me-2"></i>
                                         Atrás
@@ -214,6 +227,7 @@
         </div>
 
         <input id="id_treatmentproduct_set-INDEX-id" name="treatmentproduct_set-INDEX-id" type="hidden">
+        <input class="d-none delete-input" id="id_treatmentproduct_set-INDEX-DELETE" name="treatmentproduct_set-INDEX-DELETE" type="checkbox">
 
         <div class="row">
             <div class="col-12 col-md-6 col-lg-4">
@@ -257,6 +271,7 @@
     document.addEventListener('DOMContentLoaded', async () => {
         // Variables globales
         let fields = {}, machines = {}, products = new Map();
+        const isEdit = {{ is_edit|yesno:"true,false" }};
         const formContainer = document.getElementById('treatmentForm');
         let formCount = parseInt(formContainer.dataset.formCount);
         let lastModifiedField = new Map(); // Para trackear el último campo modificado por fila
@@ -368,12 +383,6 @@
             });
         }
 
-        function resetProductsContainer() {
-            // Simplemente inicializar de nuevo
-            initializeFirstRow();
-            populateProductSelects();
-        }
-
         function updateProductsTableOptions() {
             // Actualizar todos los selects de productos en la tabla
             document.querySelectorAll('.product-select').forEach(productSelect => {
@@ -399,16 +408,17 @@
                     productSelect.appendChild(option);
                 }
 
-                // Si el valor anterior ya no existe en las nuevas opciones, limpiar los campos relacionados
-                if (productSelect.value !== currentValue) {
-                    const row = productSelect.closest('.product-form');
-                    if (row) {
-                        row.querySelector('.product-dose').value = '';
-                        row.querySelector('#product-default-dose').value = '';
-                        row.querySelector('.estimated-dose').textContent = '-';
-                    }
-                }
+                // If current product is no longer available for the selected treatment type,
+                // keep existing values visible so user can adjust manually before submitting.
             });
+        }
+
+        function isRowMarkedForDeletion(row) {
+            return row.querySelector('.delete-input')?.checked;
+        }
+
+        function getVisibleRows() {
+            return Array.from(document.querySelectorAll('.product-form')).filter(row => !isRowMarkedForDeletion(row));
         }
 
         // Funciones para actualizar información
@@ -430,9 +440,11 @@
             return products.get(Number(productId)) || null;
         }
 
-        function updateProductInfo(event) {
+        function updateProductInfo(event, options = {}) {
             const card = event.target.closest('.product-form');
             const product = getProduct(event.target.value);
+            const preserveExistingValues = options.preserveExistingValues === true;
+            const rowIndex = Array.from(document.querySelectorAll('.product-form')).indexOf(card);
 
             const doseInput = card.querySelector('.product-dose');
             const recommendedDoseSpan = card.querySelector('.recommended-dose');
@@ -441,17 +453,33 @@
             const doseInfo = card.querySelector('.dose-info');
 
             if (product) {
-                doseInput.value = product.dose;
+                // En cambios de producto por usuario, la dosis vuelve a la recomendada.
+                // En inicialización, se preservan valores guardados.
+                if (!preserveExistingValues || !doseInput.value) {
+                    doseInput.value = product.dose;
+                }
+                if (!preserveExistingValues && rowIndex >= 0) {
+                    lastModifiedField.set(rowIndex, 'dose');
+                }
                 recommendedDoseSpan.textContent = product.dose + ' ' + product.dose_type_display;
                 doseInfo.classList.remove('d-none');
             } else {
-                doseInput.value = '';
+                if (!preserveExistingValues) {
+                    doseInput.value = '';
+                    totalInput.value = '';
+                    if (rowIndex >= 0) {
+                        lastModifiedField.set(rowIndex, null);
+                    }
+                }
                 recommendedDoseSpan.textContent = '-';
                 doseInfo.classList.add('d-none');
-                totalInput.value = '';
             }
 
             calculateTotalDoses();
+        }
+
+        function handleProductChange(event) {
+            updateProductInfo(event, { preserveExistingValues: false });
         }
 
         // Función para validar la fecha de finalización
@@ -487,6 +515,10 @@
             if (!field) return;
 
             document.querySelectorAll('.product-form').forEach((card, index) => {
+                if (isRowMarkedForDeletion(card)) {
+                    return;
+                }
+
                 const doseInput = card.querySelector('.product-dose');
                 const totalInput = card.querySelector('.total-dose-input');
                 const unitSpan = card.querySelector('.total-unit');
@@ -622,23 +654,31 @@
 
 
         // Función para añadir eventos a una fila
-        function addEventListenersToRow(row, index) {
+        function addEventListenersToRow(row) {
             const productSelect = row.querySelector('.product-select');
             const doseInput = row.querySelector('.product-dose');
             const totalInput = row.querySelector('.total-dose-input');
             const removeBtn = row.querySelector('.remove-row');
+            const deleteInput = row.querySelector('.delete-input');
 
-            productSelect.addEventListener('change', updateProductInfo);
+            productSelect.addEventListener('change', handleProductChange);
             doseInput.addEventListener('input', handleDoseChange);
             doseInput.addEventListener('input', limitDecimalPlaces);
             totalInput.addEventListener('input', (e) => {
-                lastModifiedField.set(index, 'total');
+                const rowIndex = Array.from(document.querySelectorAll('.product-form')).indexOf(row);
+                lastModifiedField.set(rowIndex, 'total');
                 calculateDoseFromTotal(e);
             });
             totalInput.addEventListener('input', limitDecimalPlaces);
             removeBtn.addEventListener('click', () => {
+                if (deleteInput) {
+                    deleteInput.checked = true;
+                    row.classList.add('d-none');
+                    updateProductsIndexes();
+                    return;
+                }
+
                 row.remove();
-                updateFormIndexes();
                 updateProductsIndexes();
             });
         }
@@ -652,28 +692,16 @@
             container.appendChild(newRow);
             const rowElement = container.firstChild;
 
-            addEventListenersToRow(rowElement, formCount);
+            addEventListenersToRow(rowElement);
 
             elements.productsContainer.appendChild(rowElement);
             elements.totalFormsInput.value = ++formCount;
-        }
-
-        function updateFormIndexes() {
-            document.querySelectorAll('.product-form').forEach((row, index) => {
-                row.querySelectorAll('input, select').forEach(el => {
-                    ['name', 'id'].forEach(attr => {
-                        if (el.hasAttribute(attr)) {
-                            el.setAttribute(attr, el.getAttribute(attr).replace(/treatmentproduct_set-\d+-/, `treatmentproduct_set-${index}-`));
-                        }
-                    });
-                });
-            });
-            elements.totalFormsInput.value = formCount = document.querySelectorAll('.product-form').length;
+            updateProductsIndexes();
         }
 
         function updateProductsIndexes() {
-            // recalculate all product-number based on the form count
-            document.querySelectorAll('.product-number').forEach((el, index) => {
+            getVisibleRows().forEach((row, index) => {
+                const el = row.querySelector('.product-number');
                 el.textContent = index + 1;
             });
         }
@@ -688,7 +716,7 @@
             container.appendChild(firstRow);
             const rowElement = container.firstChild;
 
-            addEventListenersToRow(rowElement, 0);
+            addEventListenersToRow(rowElement);
             elements.productsContainer.appendChild(rowElement);
 
             formCount = 1;
@@ -823,7 +851,7 @@
             }
 
             // Validar que al menos hay un producto
-            const validProducts = Array.from(document.querySelectorAll('.product-form')).filter(row => {
+            const validProducts = getVisibleRows().filter(row => {
                 const productSelect = row.querySelector('.product-select');
                 const dose = row.querySelector('.product-dose');
                 return productSelect.value && dose.value;
@@ -871,8 +899,9 @@
             // Cargar los productos específicos para este tipo antes de mostrar el paso 2
             await loadProductsData(selectedType);
 
-            // Reiniciar la tabla de productos
-            resetProductsContainer();
+            if (!isEdit && document.querySelectorAll('.product-form').length === 0) {
+                initializeFirstRow();
+            }
 
             // Avanzar al paso 2
             showStep(2);
@@ -880,41 +909,39 @@
 
         elements.backToInfo.addEventListener('click', () => showStep(1));
 
-        // Eventos para eliminar productos
-        document.querySelectorAll('.remove-row').forEach(button => button.addEventListener('click', function() {
-            this.closest('.product-form').remove();
-            updateFormIndexes();
-            updateProductsIndexes();
-        }));
-
-        // Eventos para calcular dosis
-        document.querySelectorAll('.product-dose').forEach((el, index) => {
-            el.addEventListener('input', handleDoseChange);
-            // Inicializar el tracking para las filas existentes
-            lastModifiedField.set(index, null);
-        });
-
-        document.querySelectorAll('.product-select').forEach(select => select.addEventListener('change', updateProductInfo));
-        document.querySelectorAll('.total-dose-input').forEach(input => {
-            input.addEventListener('input', calculateDoseFromTotal);
-            input.addEventListener('input', limitDecimalPlaces);
-        });
-
         // Validación en envío del formulario
         document.getElementById('treatmentForm').addEventListener('submit', validateForm);
 
-        document.querySelectorAll('.total-dose-input').forEach((input, index) => {
-            input.addEventListener('input', (e) => {
-                lastModifiedField.set(index, 'total');
-                calculateDoseFromTotal(e);
+        function bindExistingRows() {
+            document.querySelectorAll('.product-form').forEach((row, index) => {
+                addEventListenersToRow(row);
+                lastModifiedField.set(index, null);
+                // En bindExistingRows, updateProductInfo solo muestra la dosis recomendada y no sobrescribe valores del usuario
+                // Forzar actualización de dosis recomendada y total
+                const productSelect = row.querySelector('.product-select');
+                if (productSelect && productSelect.value) {
+                    // Simular evento para poblar dosis recomendada y recalcular total
+                    updateProductInfo({ target: productSelect }, { preserveExistingValues: true });
+                }
             });
-        });
+            formCount = document.querySelectorAll('.product-form').length;
+            updateProductsIndexes();
+            // Recalcular totales por si hay valores ya cargados
+            calculateTotalDoses();
+        }
 
         // Inicialización
         await loadFieldsData();
         await loadMachinesData();
+        await loadProductsData(elements.treatmentTypeSelect.value);
         handleTreatmentTypeChange();
-        initializeFirstRow(); // Crear primera fila desde template
+
+        if (isEdit) {
+            bindExistingRows();
+        } else {
+            initializeFirstRow();
+        }
+
         checkStep1Completion();
 
     });

@@ -31,6 +31,18 @@ class TreatmentForm(forms.ModelForm):
         model = Treatment
         fields = ['name', 'type', 'date', 'field', 'machine', 'water_per_ha', 'finish_date']
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Only default to today on creation; in edit keep stored model values.
+        if not self.instance.pk:
+            self.fields['date'].initial = Datetime.today().strftime('%Y-%m-%d')
+        elif self.instance.date:
+            self.initial['date'] = self.instance.date.strftime('%Y-%m-%d')
+
+        if self.instance.pk and self.instance.finish_date:
+            self.initial['finish_date'] = self.instance.finish_date.strftime('%Y-%m-%d')
+
     def clean(self):
         cleaned_data = super().clean()
         treatment_type = cleaned_data.get('type')
@@ -101,6 +113,7 @@ TreatmentProductFormSet = inlineformset_factory(
     extra=0,
     validate_min=True
 )
+
 
 
 class ExpenseForm(forms.ModelForm):
