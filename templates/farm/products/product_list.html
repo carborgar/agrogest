@@ -15,6 +15,35 @@
 
 {% block content %}
 
+<!-- Sección: Productos sin precio -->
+{% if products_without_price %}
+<div class="card border-warning border-opacity-50 shadow-sm mb-4">
+    <div class="card-header bg-warning-subtle d-flex align-items-center gap-2 py-2 px-3">
+        <i class="fa fa-triangle-exclamation text-warning"></i>
+        <span class="fw-semibold text-warning-emphasis">
+            {{ products_without_price|length }} producto{{ products_without_price|length|pluralize }} sin precio
+        </span>
+        <button class="btn btn-sm btn-link text-warning-emphasis ms-auto p-0 text-decoration-none"
+                type="button" data-bs-toggle="collapse" data-bs-target="#noPriceList" aria-expanded="false">
+            <i class="fa fa-chevron-down"></i>
+        </button>
+    </div>
+    <div class="collapse" id="noPriceList">
+        <ul class="list-group list-group-flush">
+            {% for p in products_without_price %}
+            <li class="list-group-item px-3 py-2 d-flex align-items-center gap-2">
+                <span class="badge bg-secondary-subtle text-secondary-emphasis rounded-pill small">{{ p.product_type.name }}</span>
+                <span class="flex-fill fw-semibold small">{{ p.name }}</span>
+                <a class="btn btn-outline-warning btn-sm" href="{% url 'product-edit' p.pk %}" title="Añadir precio">
+                    <i class="fa fa-tag me-1"></i>Añadir precio
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endif %}
+
 <!-- Search & Filter Bar -->
 <form id="filterForm" method="get">
     <div class="card border-0 shadow-sm mb-4">
@@ -110,22 +139,24 @@
                 <div class="flex-fill min-width-0">
                     <div class="d-flex align-items-baseline gap-2 flex-wrap">
                         <span class="fw-semibold text-truncate">{{ product.name }}</span>
-                        <span class="badge bg-primary-subtle text-primary-emphasis rounded-pill">{{ product.product_type.name }}</span>
+                        <span class="badge bg-primary-subtle text-primary-emphasis rounded-pill small">{{ product.product_type.name }}</span>
                     </div>
-                    <!-- Dose badges -->
-                    <div class="d-flex gap-2 flex-wrap mt-1">
+                    <!-- Dose info -->
+                    <div class="d-flex gap-3 flex-wrap mt-1">
                         {% if product.spraying_dose %}
-                        <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">
-                            <i class="fa fa-spray-can me-1"></i>{{ product.full_spraying_dose }}
+                        <span class="small text-muted">
+                            <i class="fa fa-spray-can fa-xs me-1"></i>{{ product.full_spraying_dose }}
                         </span>
                         {% endif %}
                         {% if product.fertigation_dose %}
-                        <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">
-                            <i class="fa fa-droplet me-1"></i>{{ product.full_fertigation_dose }}
+                        <span class="small text-muted">
+                            <i class="fa fa-droplet fa-xs me-1"></i>{{ product.full_fertigation_dose }}
                         </span>
                         {% endif %}
                         {% if not product.spraying_dose and not product.fertigation_dose %}
-                        <span class="text-warning small"><i class="fa fa-exclamation-triangle me-1"></i>Sin dosis</span>
+                        <span class="small text-danger-emphasis opacity-75">
+                            <i class="fa fa-exclamation-triangle fa-xs me-1"></i>Sin dosis
+                        </span>
                         {% endif %}
                     </div>
                     {% if product.comments %}
@@ -136,11 +167,13 @@
                 </div>
 
                 <!-- Price -->
-                <div class="flex-shrink-0 text-end d-none d-sm-block" style="min-width: 60px;">
+                <div class="flex-shrink-0 text-end d-none d-sm-block" style="min-width: 70px;">
                     {% if product.price %}
-                    <span class="fw-semibold text-dark">{{ product.price }}€/ud</span>
+                    <span class="fw-semibold text-dark small">{{ product.price }}€/ud</span>
                     {% else %}
-                    <span class="text-muted">—</span>
+                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle small">
+                        <i class="fa fa-tag me-1"></i>Sin precio
+                    </span>
                     {% endif %}
                 </div>
 

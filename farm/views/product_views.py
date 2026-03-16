@@ -57,6 +57,15 @@ class ProductListView(BaseSecureProductViewMixin, ListView):
         context['search'] = self.request.GET.get('search', '')
         context['selected_type'] = self.request.GET.get('type', '')
         context['selected_application'] = self.request.GET.get('application', '')
+
+        # Productos sin precio (price = 0) – independientemente de los filtros activos
+        all_qs = (
+            super().get_queryset()
+            .select_related("product_type")
+        )
+        context['products_without_price'] = list(
+            all_qs.filter(price__lte=0).order_by('name')
+        )
         return context
 
 

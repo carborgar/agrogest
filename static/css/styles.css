@@ -2,6 +2,15 @@ html, body {
     height: 100%;
 }
 
+/* ── Fix: varios componentes heredan body-bg (gris) por defecto en Bootstrap 5 ── */
+.list-group-item {
+    --bs-list-group-bg: #ffffff;
+}
+
+.dropdown-menu {
+    --bs-dropdown-bg: #ffffff;
+}
+
 /* ═══════════════════════════════════════════
    PAGE HEADER (common to all pages)
 ═══════════════════════════════════════════ */

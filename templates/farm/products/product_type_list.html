@@ -25,28 +25,34 @@
 </div>
 {% else %}
 
+<div class="text-muted small mb-2 ps-1">{{ product_types|length }} tipo{{ product_types|length|pluralize }}</div>
+
 <div class="card border-0 shadow-sm">
     <ul class="list-group list-group-flush">
         {% for pt in product_types %}
         <li class="list-group-item px-4 py-3">
             <div class="d-flex align-items-center gap-3">
                 <!-- Icon -->
-                <div class="flex-shrink-0 text-primary opacity-75">
+                <div class="flex-shrink-0 text-primary opacity-75 d-none d-sm-block">
                     <i class="fa fa-tag fa-lg"></i>
                 </div>
                 <!-- Name + description -->
                 <div class="flex-fill min-width-0">
-                    <div class="fw-semibold">{{ pt.name }}</div>
+                    <span class="fw-semibold">{{ pt.name }}</span>
                     {% if pt.description %}
-                    <div class="text-muted small text-truncate" title="{{ pt.description }}">{{ pt.description|truncatechars:100 }}</div>
+                    <div class="text-muted small text-truncate mt-1" title="{{ pt.description }}">{{ pt.description|truncatechars:100 }}</div>
                     {% endif %}
                 </div>
-                <!-- Product count badge -->
-                <a class="badge rounded-pill text-decoration-none flex-shrink-0
-                    {% if pt.product_count %}bg-primary-subtle text-primary-emphasis{% else %}bg-secondary-subtle text-secondary-emphasis{% endif %}"
+                <!-- Product count -->
+                <a class="text-decoration-none flex-shrink-0 d-none d-sm-flex align-items-center gap-1
+                    {% if pt.product_count %}text-primary fw-semibold{% else %}text-muted{% endif %}"
                    href="{% url 'product-list' %}?type={{ pt.pk }}"
                    title="Ver productos de este tipo">
-                    {{ pt.product_count }} producto{{ pt.product_count|pluralize }}
+                    <span>{{ pt.product_count }}</span>
+                    <span class="small fw-normal">producto{{ pt.product_count|pluralize }}</span>
+                    {% if pt.product_count %}
+                    <i class="fa fa-arrow-right fa-xs ms-1 opacity-75"></i>
+                    {% endif %}
                 </a>
                 <!-- Actions -->
                 <div class="flex-shrink-0 d-flex gap-2">

@@ -60,6 +60,12 @@ $box-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.10);
 // ── Cards ────────────────────────────────────────────────────────────────────
 $card-bg:           $white;
 $card-border-width: 1px;
+
+// ── List Groups ──────────────────────────────────────────────────────────────
+$list-group-bg: $white;
+
+// ── Dropdowns ────────────────────────────────────────────────────────────────
+$dropdown-bg: $white;
 $card-border-color: $border-color;
 $card-border-radius: $border-radius;
 $card-box-shadow:   $box-shadow;     // sombra real, no blanca sobre blanco
