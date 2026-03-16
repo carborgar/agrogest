@@ -16,7 +16,7 @@
     <!-- Atrasados -->
     <div class="col-6 col-lg-3">
         <a class="text-decoration-none" href="{% url 'treatment-list' %}?status=delayed">
-            <div class="dashboard-stat-card {% if delayed_treatments_count > 0 %}dashboard-stat-card--danger{% else %}dashboard-stat-card--success{% endif %}">
+            <div class="dashboard-stat-card dashboard-stat-card--action {% if delayed_treatments_count > 0 %}dashboard-stat-card--danger{% else %}dashboard-stat-card--success{% endif %}">
                 <div class="dashboard-stat-icon">
                     <i class="fa {% if delayed_treatments_count > 0 %}fa-triangle-exclamation{% else %}fa-check-circle{% endif %}"></i>
                 </div>
@@ -34,7 +34,7 @@
     <!-- Próximos -->
     <div class="col-6 col-lg-3">
         <a class="text-decoration-none" href="{% url 'treatment-list' %}?status=pending">
-            <div class="dashboard-stat-card {% if pending_treatments_count > 0 %}dashboard-stat-card--warning{% else %}dashboard-stat-card--success{% endif %}">
+            <div class="dashboard-stat-card dashboard-stat-card--action {% if pending_treatments_count > 0 %}dashboard-stat-card--warning{% else %}dashboard-stat-card--success{% endif %}">
                 <div class="dashboard-stat-icon">
                     <i class="fa {% if pending_treatments_count > 0 %}fa-calendar-check{% else %}fa-check-circle{% endif %}"></i>
                 </div>
@@ -52,7 +52,7 @@
     <!-- Parcelas -->
     <div class="col-6 col-lg-3">
         <a class="text-decoration-none" href="{% url 'field-list' %}">
-            <div class="dashboard-stat-card dashboard-stat-card--primary">
+            <div class="dashboard-stat-card dashboard-stat-card--action dashboard-stat-card--primary">
                 <div class="dashboard-stat-icon">
                     <i class="fa fa-map"></i>
                 </div>
