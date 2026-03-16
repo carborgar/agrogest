@@ -53,7 +53,7 @@ class FieldDetailView(LoginRequiredMixin, DetailView):
         context['delayed_count'] = treatments.filter(status=Treatment.STATUS_DELAYED).count()
         context['completed_count'] = treatments.filter(status=Treatment.STATUS_COMPLETED).count()
         context['total_treatments'] = treatments.count()
-        context['recent_treatments'] = treatments[:5]
+        context['recent_treatments'] = treatments[:6]
         return context
 
 
