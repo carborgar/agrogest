@@ -123,6 +123,20 @@
                 </ul>
             </div>
 
+            {% if gemini_configured %}
+            <div class="nav-section">
+                <div class="nav-title">Herramientas</div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if nav_chat %}active{% endif %}" href="{% url 'chat' %}">
+                            <i class="fa fa-robot"></i>Asistente IA
+                            <span class="badge bg-warning text-dark ms-auto" style="font-size:0.6rem;vertical-align:middle;">BETA</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            {% endif %}
+
             <div class="nav-section">
                 <div class="nav-title">Configuración</div>
                 <ul class="nav flex-column">
@@ -260,6 +274,20 @@
                         </li>
                     </ul>
                 </div>
+
+                {% if gemini_configured %}
+                <div class="nav-section">
+                    <div class="nav-title">Herramientas</div>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link {% if nav_chat %}active{% endif %}" href="{% url 'chat' %}">
+                                <i class="fa fa-robot"></i>Asistente IA
+                                <span class="badge bg-warning text-dark ms-auto" style="font-size:0.6rem;vertical-align:middle;">BETA</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                {% endif %}
 
                 <div class="nav-section">
                     <div class="nav-title">Configuración</div>

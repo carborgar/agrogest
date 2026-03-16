@@ -753,6 +753,27 @@ class Expense(OrganizationOwnedModel):
             return "Importe directo"
 
 
+class ChatMessage(OrganizationOwnedModel):
+    """
+    Almacena el historial de mensajes del chat con la IA por sesión de usuario.
+    """
+    ROLE_CHOICES = [
+        ('user', 'Usuario'),
+        ('assistant', 'Asistente'),
+    ]
+    session_id = models.CharField(max_length=100, db_index=True)
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    content = models.TextField()
+
+    class Meta:
+        ordering = ['created_at']
+        verbose_name = "Mensaje de chat"
+        verbose_name_plural = "Mensajes de chat"
+
+    def __str__(self):
+        return f"[{self.role}] {self.content[:60]}"
+
+
 class Harvest(OrganizationOwnedModel):
     field = models.ForeignKey(Field, on_delete=models.RESTRICT)
     date = models.DateField()

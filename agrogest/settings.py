@@ -95,6 +95,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'farm.context_processors.sidebar_state',
                 'farm.context_processors.active_nav',
+                'farm.context_processors.ai_configured',
             ],
         },
     },
@@ -209,6 +210,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = 'accounts:login'
 LOGIN_REDIRECT_URL = ''
 LOGOUT_REDIRECT_URL = 'login'
+
+# ── Asistente IA (Google Gemini) ──────────────────────────────────────────────
+# Obtén tu clave GRATIS en: https://aistudio.google.com/apikey
+# Modelo recomendado: gemini-2.0-flash-lite  (30 RPM, 1.500 req/día gratis)
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.1-flash-lite-preview")
 
 LOGGING = {
     "version": 1,

@@ -4,6 +4,13 @@ def sidebar_state(request):
     }
 
 
+def ai_configured(request):
+    from django.conf import settings
+    return {
+        'gemini_configured': bool(getattr(settings, 'GEMINI_API_KEY', ''))
+    }
+
+
 # Mapeo: clave de contexto → lista de url_names que activan ese ítem
 _NAV_GROUPS = {
     'nav_home':         {'field_list'},
@@ -17,6 +24,7 @@ _NAV_GROUPS = {
     'nav_expense_types':{'expense-type-list', 'expense-type-create', 'expense-type-edit'},
     'nav_products':     {'product-list', 'product-create', 'product-edit'},
     'nav_product_types':{'product-type-list', 'product-type-create', 'product-type-edit'},
+    'nav_chat':         {'chat'},
 }
 
 

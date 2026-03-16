@@ -14,6 +14,7 @@ from .views.product_views import ProductTypeListView, ProductTypeFormView, Produ
     ProductFormView, ProductDeleteView
 from .views.field_views import FieldListView, FieldCreateView, FieldUpdateView, FieldDeleteView, FieldDetailView
 from .views.harvest_views import HarvestFormView, HarvestSummaryView, HarvestDeleteView
+from .views.chat_views import ChatView
 
 urlpatterns = [
     path("", RedirectView.as_view(url="/parcelas/vistazo/", permanent=False), name="home"),
@@ -74,4 +75,6 @@ urlpatterns = [
     path('api/treatments/<int:treatment_id>/', api_views.treatment_detail, name='api-treatment-detail'),
     path('api/field-costs-data/', api_views.field_costs_data, name='api-field-costs-data'),
 
+    # AI Assistant
+    path('asistente/', ChatView.as_view(), name='chat'),
 ]
