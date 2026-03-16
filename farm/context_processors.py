@@ -7,6 +7,7 @@ def sidebar_state(request):
 # Mapeo: clave de contexto → lista de url_names que activan ese ítem
 _NAV_GROUPS = {
     'nav_home':         {'field_list'},
+    'nav_fields':       {'field-list', 'field-create', 'field-detail', 'field-edit'},
     'nav_treatments':   {'treatment-list', 'treatment-create', 'treatment-detail'},
     'nav_calendar':     {'treatment-calendar'},
     'nav_costs':        {'field-costs'},

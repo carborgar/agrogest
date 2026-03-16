@@ -32,11 +32,11 @@ urlpatterns = [
     path('cosechas/<int:pk>/editar/', HarvestFormView.as_view(), name='harvest-edit'),
     path('cosechas/<int:pk>/eliminar/', HarvestDeleteView.as_view(), name='harvest-delete'),
 
-    path('adm/field/', FieldListView.as_view(), name='field-list'),
-    path('adm/field/create/', FieldCreateView.as_view(), name='field-create'),
-    path('adm/field/<int:pk>/', FieldDetailView.as_view(), name='field-detail'),
-    path('adm/field/<int:pk>/edit/', FieldUpdateView.as_view(), name='field-edit'),
-    path('adm/field/<int:pk>/delete/', FieldDeleteView.as_view(), name='field-delete'),
+    path('parcelas/', FieldListView.as_view(), name='field-list'),
+    path('parcelas/nueva/', FieldCreateView.as_view(), name='field-create'),
+    path('parcelas/<int:pk>/', FieldDetailView.as_view(), name='field-detail'),
+    path('parcelas/<int:pk>/editar/', FieldUpdateView.as_view(), name='field-edit'),
+    path('parcelas/<int:pk>/eliminar/', FieldDeleteView.as_view(), name='field-delete'),
 
     # Expense Management
     path('gastos/gestionar/', ExpenseListView.as_view(), name='expense-list'),

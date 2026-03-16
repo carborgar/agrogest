@@ -93,6 +93,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {% if nav_fields %}active{% endif %}" href="{% url 'field-list' %}">
+                            <i class="fas fa-map-location-dot"></i>Parcelas
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a aria-expanded="{% if nav_products_open %}true{% else %}false{% endif %}"
                            class="nav-link" data-bs-target="#productosMenuDesktop" data-bs-toggle="collapse" href="#">
                             <i class="fa fa-box"></i> Productos<i class="fas fa-chevron-down chevron"></i>
@@ -223,6 +228,11 @@
                             <a class="nav-link {% if nav_harvests %}active{% endif %}"
                                href="{% url 'harvest-summary' %}">
                                 <i class="fa fa-apple-whole"></i>Cosechas
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if nav_fields %}active{% endif %}" href="{% url 'field-list' %}">
+                                <i class="fas fa-map-location-dot"></i>Parcelas
                             </a>
                         </li>
                         <li class="nav-item">
