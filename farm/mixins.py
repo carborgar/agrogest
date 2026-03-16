@@ -90,3 +90,8 @@ class AuditableMixin:
         )
 
         return super().form_valid(form)
+
+
+class BaseSecureViewMixin(OwnershipRequiredMixin, QuerysetFilterMixin, AuditableMixin):
+    """Mixin base que aplica control de acceso, filtrado y auditoría."""
+    pass

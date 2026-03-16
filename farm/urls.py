@@ -1,9 +1,12 @@
 from django.urls import path
 from django.views.generic import RedirectView
 
-from farm.views.views import FieldDashboardView, FieldCostView, TreatmentListView, TreatmentDetailView, \
-    TreatmentFormView, FinishTreatmentView, DeleteTreatmentView, CloneTreatmentView, \
-    TreatmentCalendarView, TreatmentExportView, ShoppingListView
+from farm.views.dashboard_views import FieldDashboardView, FieldCostView
+from farm.views.treatment_views import (
+    TreatmentListView, TreatmentDetailView, TreatmentFormView,
+    FinishTreatmentView, DeleteTreatmentView, CloneTreatmentView,
+    TreatmentCalendarView, TreatmentExportView, ShoppingListView,
+)
 from . import api_views
 from .views.expense_views import ExpenseListView, ExpenseFormView, ExpenseDeleteView, ExpenseTypeListView, \
     ExpenseTypeFormView, ExpenseTypeDeleteView

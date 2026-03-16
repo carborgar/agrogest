@@ -1,125 +1,25 @@
 import logging
-from datetime import timedelta
+from datetime import date
 from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
-from django.core.paginator import Paginator
-from django.db.models import Sum
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views import View
-from django.views.decorators.http import require_POST
-from django.views.generic import ListView, DetailView
-from django.views.generic import TemplateView
+from django.views.generic import ListView, DetailView, TemplateView
 from django.views.generic.edit import UpdateView
+from django.views.decorators.http import require_POST
 
 from farm.forms import TreatmentForm, TreatmentProductFormSet
-from farm.mixins import OwnershipRequiredMixin, QuerysetFilterMixin, AuditableMixin
-from farm.models import Field, ProductType, TreatmentProduct
-from farm.models import Product
-from farm.models import Treatment
+from farm.mixins import BaseSecureViewMixin
+from farm.models import Field, Product, ProductType, Treatment, TreatmentProduct
 from farm.services import save_treatment_with_products, get_shopping_list, clone_treatment
 
 logger = logging.getLogger(__name__)
-
-
-class BaseSecureViewMixin(OwnershipRequiredMixin, QuerysetFilterMixin, AuditableMixin):
-    """Mixin base que aplica control de acceso, filtrado y auditoría."""
-    pass
-
-
-class FieldDashboardView(BaseSecureViewMixin, ListView):
-    model = Field
-    template_name = "farm/fields/field_dashboard.html"
-    context_object_name = "fields"
-
-    # Configuración de paginación para tratamientos
-    treatments_per_page = 5
-
-    def get_queryset(self):
-        return Field.ownership_objects.get_queryset_for_user(self.request.user)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        fields = context['fields']
-
-        # Calcula el total de hectáreas
-        total_area = fields.aggregate(Sum('area'))['area__sum']
-
-        # Redondear a 2 decimales para evitar problemas de precisión flotante
-        context['total_area'] = round(total_area, 2) if total_area else 0
-
-        # Base queryset para tratamientos
-        base_treatments = Treatment.objects.filter(field__in=fields).select_related('field')
-
-        # Obtener tratamientos atrasados (ordenados por fecha, más antiguos primero)
-        delayed_treatments_qs = base_treatments.filter(
-            status=Treatment.STATUS_DELAYED
-        ).order_by('date')
-
-        # Obtener próximos tratamientos pendientes (ordenados por fecha, más próximos primero)
-        today = timezone.now().date()
-        upcoming_days = 15
-        upcoming_limit_date = today + timedelta(days=upcoming_days)
-
-        upcoming_treatments_qs = base_treatments.filter(
-            status=Treatment.STATUS_PENDING,
-            date__range=(today, upcoming_limit_date)
-        ).order_by('date')
-
-        # Contar totales de forma eficiente (una sola query para cada estado)
-        context['delayed_treatments_count'] = delayed_treatments_qs.count()
-        context['pending_treatments_count'] = upcoming_treatments_qs.count()
-
-        treatment_types = Treatment.TYPE_CHOICES
-
-        # Mapeo de iconos para tipos de tratamiento
-        type_map = {
-            'spraying': 'spray-can-sparkles',
-            'fertigation': 'droplet',
-        }
-
-        context['treatment_types'] = treatment_types
-        context['type_map'] = type_map
-
-        # Paginación para tratamientos atrasados
-        delayed_page = self.request.GET.get('delayed_page', 1)
-        delayed_paginator = Paginator(delayed_treatments_qs, self.treatments_per_page)
-        delayed_page_obj = delayed_paginator.get_page(delayed_page)
-
-        # Paginación para próximos tratamientos
-        upcoming_page = self.request.GET.get('upcoming_page', 1)
-        upcoming_paginator = Paginator(upcoming_treatments_qs, self.treatments_per_page)
-        upcoming_page_obj = upcoming_paginator.get_page(upcoming_page)
-
-        context['delayed_treatments'] = delayed_page_obj
-        context['delayed_total'] = delayed_paginator.count
-        context['delayed_showing'] = len(delayed_page_obj)
-
-        context['upcoming_treatments'] = upcoming_page_obj
-        context['upcoming_total'] = upcoming_paginator.count
-        context['upcoming_showing'] = len(upcoming_page_obj)
-
-        # Parámetros para mantener ambas paginaciones en los links
-        context['delayed_page_param'] = f"delayed_page={delayed_page}" if delayed_page != '1' else ""
-        context['upcoming_page_param'] = f"upcoming_page={upcoming_page}" if upcoming_page != '1' else ""
-
-        context['upcoming_days'] = upcoming_days
-
-        return context
-
-
-class FieldCostView(BaseSecureViewMixin, ListView):
-    model = Field
-    template_name = "farm/fields/field_costs.html"
-    context_object_name = "fields"
-
-    def get_queryset(self):
-        return Field.ownership_objects.get_queryset_for_user(self.request.user)
 
 
 class TreatmentListView(BaseSecureViewMixin, ListView):
@@ -133,12 +33,8 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
         queryset = (
             super()
             .get_queryset()
-            .select_related(
-                "field",
-            )
-            .prefetch_related(
-                "treatmentproduct_set__product__product_type",
-            )
+            .select_related("field")
+            .prefetch_related("treatmentproduct_set__product__product_type")
         )
 
         field_ids = self.request.GET.getlist('field')
@@ -207,7 +103,6 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
         context['search_query'] = search_query
         context['sort'] = sort
 
-        # Count how many filter groups are active (for UI badges)
         active_filter_count = (
             len(selected_fields)
             + len(selected_types)
@@ -215,7 +110,6 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
             + len(selected_product_types)
             + (1 if date_from or date_to else 0)
             + (1 if search_query else 0)
-            # Only count status as active if it differs from default
             + (len(selected_statuses) if self.request.GET.getlist('status') else 0)
         )
         context['active_filter_count'] = active_filter_count
@@ -237,35 +131,24 @@ class TreatmentDetailView(BaseSecureViewMixin, DetailView):
         return (
             super()
             .get_queryset()
-            .select_related(
-                "field",
-                "machine",
-            )
-            .prefetch_related(
-                "treatmentproduct_set__product__product_type",
-            )
+            .select_related("field", "machine")
+            .prefetch_related("treatmentproduct_set__product__product_type")
         )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['status_choices'] = Treatment.STATUS_CHOICES
 
-        # Obtener productos
         products = self.object.treatmentproduct_set.all()
         context['products'] = products
 
-        # Calcular costos - ahora es mucho más simple
         total_cost = sum(product.total_price for product in products)
-
-        # Calcular costo por hectárea
         cost_per_ha = 0
         if self.object.field and self.object.field.area > 0:
             cost_per_ha = total_cost / Decimal(self.object.field.area)
 
         context['total_cost'] = total_cost
         context['cost_per_ha'] = cost_per_ha
-
-        # Parcelas disponibles para clonar (todas excepto la actual)
         context['available_fields'] = (
             Field.ownership_objects
             .get_queryset_for_user(self.request.user)
@@ -276,20 +159,11 @@ class TreatmentDetailView(BaseSecureViewMixin, DetailView):
 
 
 class TreatmentFormView(BaseSecureViewMixin, SuccessMessageMixin, UpdateView):
-    """
-    Vista para crear tratamientos.
-
-    Usa UpdateView como base porque sabe gestionar el ciclo form/object.
-    get_object() devuelve None cuando no hay pk, haciendo que el formulario
-    actúe como creación. Cuando añadamos edición, bastará con registrar la
-    URL con pk y el resto funciona solo.
-    """
     model = Treatment
     form_class = TreatmentForm
     template_name = 'farm/treatments/treatment_form.html'
 
     def get_object(self, queryset=None):
-        # Sin pk en la URL → creación
         if 'pk' not in self.kwargs:
             return None
         return super().get_object(queryset)
@@ -372,11 +246,10 @@ class CloneTreatmentView(BaseSecureViewMixin, View):
         })
 
     def post(self, request, pk):
-        from datetime import date
         treatment = self.get_treatment(pk)
 
         field_ids = request.POST.getlist('field_id')
-        date_str = request.POST.get('date')  # fallback global (no usado en la nueva UI)
+        date_str = request.POST.get('date')
 
         if not field_ids:
             messages.error(request, 'Debes seleccionar al menos una parcela de destino.')
@@ -414,10 +287,6 @@ class TreatmentExportView(BaseSecureViewMixin, DetailView):
         context['products'] = TreatmentProduct.ownership_objects.get_queryset_for_user(self.request.user).filter(
             treatment=self.object)
         context['now'] = timezone.now()
-
-        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            self.template_name = 'treatments/treatment_export.html'
-
         return context
 
 
@@ -432,13 +301,9 @@ class ShoppingListView(BaseSecureViewMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['fields'] = Field.objects.filter(organization=self.request.user.organization)
-
-        # Add selected filters to context
         context['selected_fields'] = [fid for fid in self.request.GET.getlist('field') if fid.isdigit()]
-
-        # Calculate totals
         total_price = sum(item['total_price'] for item in self.object_list)
         context['total_price'] = round(total_price, 2)
         context['total_count'] = len(self.object_list)
-
         return context
+

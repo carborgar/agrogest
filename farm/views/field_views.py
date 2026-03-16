@@ -5,7 +5,7 @@ from django.urls import reverse_lazy, reverse
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
 
 from farm.models import Field, Treatment
-from farm.views.field_forms import FieldForm
+from farm.forms import FieldForm
 
 
 class FieldListView(LoginRequiredMixin, ListView):

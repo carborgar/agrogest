@@ -1,3 +1,4 @@
+import datetime
 from datetime import date as Datetime
 from decimal import Decimal, ROUND_UP
 
@@ -7,7 +8,7 @@ from django.forms import BaseInlineFormSet
 from django.forms import inlineformset_factory
 
 from core.forms import NoPlaceholderModelForm
-from .models import Treatment, TreatmentProduct, Expense, Product, Harvest, ProductType
+from .models import Treatment, TreatmentProduct, Expense, Product, Harvest, ProductType, Field
 
 
 class TreatmentForm(forms.ModelForm):
@@ -396,4 +397,35 @@ class HarvestForm(NoPlaceholderModelForm):
         if commit:
             obj.save()
         return obj
+
+
+_current_year = datetime.datetime.now().year
+_year_choices = [(y, y) for y in range(_current_year, _current_year - 10, -1)]
+
+
+class FieldForm(NoPlaceholderModelForm):
+    class Meta:
+        model = Field
+        fields = ['name', 'crop', 'area', 'planting_year', 'geometry']
+        labels = {
+            'name': 'Nombre',
+            'crop': 'Cultivo',
+            'planting_year': 'Año de siembra',
+            'area': 'Superficie (ha)',
+            'geometry': 'Geometría',
+        }
+        help_texts = {
+            'area': 'Se usa para cálculos de costos y tratamientos.',
+        }
+        widgets = {
+            'planting_year': forms.Select(choices=_year_choices),
+            'geometry': forms.HiddenInput(),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs.update({'class': 'form-control'})
+        self.fields['geometry'].required = False
+        self.fields['area'].widget.attrs['id'] = 'id_area'
 
