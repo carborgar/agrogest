@@ -213,9 +213,12 @@ LOGOUT_REDIRECT_URL = 'login'
 
 # ── Asistente IA (Google Gemini) ──────────────────────────────────────────────
 # Obtén tu clave GRATIS en: https://aistudio.google.com/apikey
-# Modelo recomendado: gemini-2.0-flash-lite  (30 RPM, 1.500 req/día gratis)
+# Modelo: gemini-flash-lite-latest → alias siempre actualizado al Flash Lite más reciente (FREE TIER)
+# GEMINI_DAILY_LIMIT: límite diario de peticiones por organización (protección extra).
+#   Por defecto 50 (bien por debajo de los límites gratuitos de Gemini). Ponlo a 0 para sin límite.
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.1-flash-lite-preview")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-flash-lite-latest")
+GEMINI_DAILY_LIMIT = int(os.environ.get("GEMINI_DAILY_LIMIT", "50"))
 
 LOGGING = {
     "version": 1,

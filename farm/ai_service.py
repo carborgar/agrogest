@@ -1,13 +1,13 @@
 """
 Servicio de integración con Google Gemini AI para el asistente de AgroGest.
 
-Modelo recomendado: gemini-2.0-flash-lite
-  - Tier gratuito: 30 RPM, 1.500 req/día, 1 M tokens/minuto
-  - Mejor ratio límite-calidad del mercado a fecha 2025-2026
+Modelo recomendado: gemini-flash-lite-latest
+  - Alias siempre actualizado al Flash Lite más reciente (FREE TIER)
+  - Actualmente apunta a gemini-2.5-flash-lite
 
 Configura en .env:
   GEMINI_API_KEY=tu_clave_aqui
-  GEMINI_MODEL=gemini-2.0-flash-lite   (opcional, este es el default)
+  GEMINI_MODEL=gemini-flash-lite-latest   (opcional, este es el default)
 
 Obtén tu clave GRATIS en: https://aistudio.google.com/apikey
 """
@@ -15,15 +15,42 @@ Obtén tu clave GRATIS en: https://aistudio.google.com/apikey
 import json
 import logging
 import re
-from datetime import date
+from datetime import date, datetime, timedelta, timezone as dt_tz
 
+from django.conf import settings
+from django.core.cache import cache
+from django.utils import timezone
 from google import genai
 from google.genai import types
-from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-MAX_TREATMENTS_CONTEXT = 200
+MAX_TREATMENTS_CONTEXT = 100
+
+# ── Circuit breaker de quota Gemini ──────────────────────────────────────────
+# Clave de caché que se activa cuando la API devuelve 429/RESOURCE_EXHAUSTED.
+# Expira automáticamente a la próxima medianoche UTC (cuando Gemini resetea cuotas).
+_QUOTA_CACHE_KEY = 'gemini_quota_exhausted'
+
+
+def _seconds_until_midnight_utc() -> int:
+    """Segundos hasta la próxima medianoche UTC + 90s de margen."""
+    now = datetime.now(dt_tz.utc)
+    next_midnight = (now + timedelta(days=1)).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    return int((next_midnight - now).total_seconds()) + 90
+
+
+def mark_quota_exhausted(retry_after_seconds: int = 0) -> None:
+    """Activa el circuit breaker. Expira al reset de Gemini (medianoche UTC)."""
+    ttl = max(_seconds_until_midnight_utc(), retry_after_seconds + 10)
+    cache.set(_QUOTA_CACHE_KEY, True, timeout=ttl)
+    logger.warning("Gemini quota exhausted — circuit breaker activado por %ds", ttl)
+
+
+def is_quota_exhausted() -> bool:
+    return bool(cache.get(_QUOTA_CACHE_KEY, False))
 
 # Regex para detectar secuencias \uXXXX literales que algunos modelos emiten como texto plano
 _UNICODE_ESCAPE_RE = re.compile(r'\\u([0-9a-fA-F]{4})')
@@ -55,7 +82,6 @@ def get_org_context(organization) -> dict:
     for p in products:
         pd: dict = {
             'id': p.pk,
-            'url': f'/productos/{p.pk}/editar/',
             'nombre': p.name,
             'tipo': p.product_type.name,
         }
@@ -76,7 +102,6 @@ def get_org_context(organization) -> dict:
     fields_list = [
         {
             'id': f.pk,
-            'url': f'/parcelas/{f.pk}/',
             'nombre': f.name,
             'hectáreas': float(f.area),
             'cultivo': f.crop,
@@ -104,7 +129,6 @@ def get_org_context(organization) -> dict:
     for t in treatments:
         tc: dict = {
             'id': t.pk,
-            'url': f'/tratamientos/{t.pk}',
             'nombre': t.name,
             'parcela': t.field.name,
             'tipo': t.get_type_display(),
@@ -134,7 +158,7 @@ def get_org_context(organization) -> dict:
 
 def build_system_prompt(organization, context: dict) -> str:
     today = date.today().strftime('%d/%m/%Y')
-    context_json = json.dumps(context, ensure_ascii=False, indent=2)
+    context_json = json.dumps(context, ensure_ascii=False, separators=(',', ':'))
     return f"""Eres AgroGest Asistente, un asistente virtual de gestión agrícola integrado en la aplicación AgroGest.
 
 Organización: {organization.name}
@@ -218,6 +242,13 @@ Combina **siempre** el enlace con los detalles más relevantes.
 Adapta el nivel de detalle al contexto: si es un solo elemento, muestra todo;
 si son varios en lista, muestra solo los campos clave para no sobrecargar.
 
+## Construcción de enlaces
+
+Los datos del contexto incluyen un campo `id` para cada entidad. Construye los enlaces así:
+- Producto: `/productos/{id}/editar/`
+- Parcela: `/parcelas/{id}/`
+- Tratamiento: `/tratamientos/{id}/`
+
 ## Cómo interpretar los datos para consultas
 
 **Búsquedas por tipo de producto** (ej. "insecticida", "fungicida", "herbicida", "abono"...):
@@ -245,6 +276,38 @@ si son varios en lista, muestra solo los campos clave para no sobrecargar.
 """
 
 
+def check_daily_limit(organization) -> tuple[bool, str | None]:
+    """
+    Comprueba si la organización ha superado el límite diario de consultas al asistente.
+    Usa los ChatMessage de rol 'assistant' de hoy como contador (sin BD extra).
+
+    Returns:
+        (ok: bool, error_msg: str | None)
+        ok=True  → puede continuar
+        ok=False → límite alcanzado, error_msg con el mensaje para el usuario
+    """
+    daily_limit: int = getattr(settings, 'GEMINI_DAILY_LIMIT', 50)
+    if daily_limit <= 0:
+        return True, None  # sin límite
+
+    from farm.models import ChatMessage
+    today = timezone.now().date()
+    used = ChatMessage.objects.filter(
+        organization=organization,
+        role='assistant',
+        created_at__date=today,
+    ).count()
+
+    if used >= daily_limit:
+        reset_hour = "02:00h" if timezone.now().month in range(4, 11) else "01:00h"
+        return False, (
+            f"🚫 **Límite diario alcanzado** (`{used}/{daily_limit}` consultas).\n\n"
+            f"El asistente se reinicia cada día a las {reset_hour} (España). "
+            f"Puedes aumentar el límite configurando `GEMINI_DAILY_LIMIT` en el fichero `.env`. 🌙"
+        )
+    return True, None
+
+
 def chat_with_ai(organization, user_message: str, history_messages) -> tuple:
     """
     Envía un mensaje a Gemini AI y devuelve la respuesta.
@@ -264,6 +327,20 @@ def chat_with_ai(organization, user_message: str, history_messages) -> tuple:
             "⚙️ No hay clave de API configurada. "
             "El administrador debe añadir GEMINI_API_KEY en el fichero .env."
         )
+
+    # ── Circuit breaker: quota global agotada ─────────────────────────────
+    if is_quota_exhausted():
+        return None, (
+            "⚠️ **Consultas del día agotadas.** La cuota gratuita de la API se ha "
+            "alcanzado y el asistente está pausado para todos hasta que Gemini la "
+            "restablezca (cada día a las 00:00 UTC · `02:00h` en verano / `01:00h` "
+            "en invierno en España). ¡Hasta mañana! 🌙"
+        )
+
+    # ── Límite diario por organización (protección extra) ─────────────────
+    ok, limit_error = check_daily_limit(organization)
+    if not ok:
+        return None, limit_error
 
     try:
         client = genai.Client(api_key=api_key)
@@ -297,10 +374,18 @@ def chat_with_ai(organization, user_message: str, history_messages) -> tuple:
         logger.warning("Gemini API error [org=%s]: %s", organization.id, error_str)
 
         if any(k in error_str for k in ('429', 'RESOURCE_EXHAUSTED', 'quota', 'rate limit')):
+            # Intentar extraer retryDelay del mensaje de error
+            retry_seconds = 0
+            import re as _re
+            m = _re.search(r"retryDelay.*?'(\d+)s'", error_str)
+            if m:
+                retry_seconds = int(m.group(1))
+            mark_quota_exhausted(retry_after_seconds=retry_seconds)
             return None, (
-                "⚠️ **Límite diario alcanzado.** Se han agotado las consultas gratuitas del día "
-                "para el modelo Gemini. Los límites se reinician cada día a las 00:00 UTC "
-                "(02:00h en verano / 01:00h en invierno en España). ¡Hasta mañana! 🌙"
+                "⚠️ **Consultas del día agotadas.** La cuota gratuita de la API se ha "
+                "alcanzado y el asistente está pausado para todos hasta que Gemini la "
+                "restablezca (cada día a las 00:00 UTC · `02:00h` en verano / `01:00h` "
+                "en invierno en España). ¡Hasta mañana! 🌙"
             )
         if any(k in error_str for k in ('403', 'API_KEY_INVALID', 'invalid api key')):
             return None, "❌ Clave de API no válida. Revisa la configuración en .env (GEMINI_API_KEY)."
