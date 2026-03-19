@@ -211,6 +211,24 @@ LOGIN_URL = 'accounts:login'
 LOGIN_REDIRECT_URL = ''
 LOGOUT_REDIRECT_URL = 'login'
 
+# ── Email ─────────────────────────────────────────────────────────────────────
+# En desarrollo imprime los emails en consola; en producción usa SMTP.
+# Variables de entorno necesarias en producción:
+#   EMAIL_HOST, EMAIL_PORT, EMAIL_USE_TLS, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD
+EMAIL_BACKEND = (
+    'django.core.mail.backends.console.EmailBackend'
+    if DEBUG else
+    'django.core.mail.backends.smtp.EmailBackend'
+)
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'AgroGest <noreply@agrogest.app>')
+# Tiempo de validez del enlace de recuperación de contraseña (en segundos). Por defecto: 1 día.
+PASSWORD_RESET_TIMEOUT = int(os.environ.get('PASSWORD_RESET_TIMEOUT', str(60 * 60 * 24)))
+
 # ── Asistente IA (Google Gemini) ──────────────────────────────────────────────
 # Obtén tu clave GRATIS en: https://aistudio.google.com/apikey
 # Modelo: gemini-flash-lite-latest → alias siempre actualizado al Flash Lite más reciente (FREE TIER)
