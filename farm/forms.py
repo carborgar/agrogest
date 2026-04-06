@@ -103,6 +103,25 @@ class BaseTreatmentProductFormSet(BaseInlineFormSet):
         if valid_forms < 1:
             raise forms.ValidationError("Debe agregar al menos un producto al tratamiento.")
 
+    def save(self, commit=True):
+        """
+        Asigna el campo `position` a cada instancia según el orden visual
+        del formulario antes de delegar el guardado al padre.
+        Esto garantiza el orden correcto independientemente del ID asignado por la BD
+        (crítico en PostgreSQL con connection pooling, donde los IDs no son estrictamente secuenciales).
+        """
+        position = 0
+        for form in self.forms:
+            if not getattr(form, 'cleaned_data', None):
+                continue
+            if form.cleaned_data.get('DELETE', False):
+                continue
+            if not form.cleaned_data.get('product'):
+                continue
+            form.instance.position = position
+            position += 1
+        return super().save(commit=commit)
+
 
 TreatmentProductFormSet = inlineformset_factory(
     Treatment,

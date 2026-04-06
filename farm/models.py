@@ -467,7 +467,7 @@ class Treatment(OrganizationOwnedModel):
             machine=self.machine,
             water_per_ha=self.water_per_ha,
         )
-        for tp in self.treatmentproduct_set.all():
+        for position, tp in enumerate(self.treatmentproduct_set.all()):
             TreatmentProduct.objects.create(
                 treatment=new_treatment,
                 product=tp.product,
@@ -476,6 +476,7 @@ class Treatment(OrganizationOwnedModel):
                 total_dose=0,           # el save() recalculará desde dose
                 total_dose_unit=tp.total_dose_unit,
                 unit_price=tp.unit_price,
+                position=position,
                 # total_overridden=False siempre: al clonar a otra parcela el total
                 # debe recalcularse según su área, aunque en el original fuera manual.
             )
@@ -499,8 +500,13 @@ class TreatmentProduct(OrganizationOwnedModel):
     # Si False (defecto), la dosis es la fuente de verdad y el total se calcula desde ella.
     total_overridden = models.BooleanField(default=False)
 
+    # Posición visual del producto dentro del tratamiento (0-based).
+    # Se asigna explícitamente desde el formset para ser independiente del ID de BD.
+    position = models.PositiveIntegerField(default=0)
+
     class Meta:
         unique_together = ('treatment', 'product')  # Evita duplicados
+        ordering = ['position']  # Orden visual explícito, independiente del ID de BD
 
     def __str__(self):
         return f"{self.product.name} en {self.treatment} - {self.dose}"
