@@ -21,6 +21,7 @@ ESTILOS PARA CARDS
     border-radius: 11px 11px 0 0;
     overflow: hidden;
 }
+
 .treatment-status-bar {
     position: absolute;
     left: 0;
@@ -30,6 +31,7 @@ ESTILOS PARA CARDS
     z-index: 1;
     border-radius: 12px 0 0 12px;
 }
+
 .treatment-icon {
     width: 48px;
     height: 48px;
@@ -39,6 +41,7 @@ ESTILOS PARA CARDS
     justify-content: center;
     font-size: 1.25rem;
 }
+
 .treatment-badge {
     font-size: 0.75rem !important;
     font-weight: 500 !important;
@@ -47,11 +50,13 @@ ESTILOS PARA CARDS
     border-radius: 9999px !important;
     padding: 0.25rem 0.75rem !important;
 }
+
 .treatment-property {
     display: flex;
     align-items: center;
     margin-bottom: 8px;
 }
+
 .property-icon {
     width: 16px;
     text-align: center;
@@ -71,40 +76,48 @@ ESTILOS PARA LISTA
     position: relative;
     transition: all 0.2s ease;
 }
+
 .treatment-main-info {
     display: flex;
     align-items: flex-start;
     gap: 1rem;
     flex: 1;
 }
+
 .treatment-icon-wrapper {
     flex-shrink: 0;
 }
+
 .treatment-details {
     flex: 1;
 }
+
 .treatment-title {
     font-size: 1.125rem;
     font-weight: 600;
     color: var(--gray-900);
     margin: 0 0 0.5rem 0;
 }
+
 .treatment-meta {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
     margin-bottom: 0.75rem;
 }
+
 .treatment-meta-item {
     color: var(--gray-600);
     font-size: 0.875rem;
 }
+
 .treatment-dates {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
     margin-right: 1rem;
 }
+
 .treatment-date-item {
     display: flex;
     align-items: center;
@@ -169,11 +182,13 @@ ESTILOS PARA LISTA
 .treatment-header[aria-expanded="true"] .treatment-expand-icon {
     transform: rotate(180deg);
 }
+
 .treatment-body {
     padding: 1.5rem;
     background-color: #f9fafb;
     border-top: 1px solid var(--gray-200);
 }
+
 .treatment-products-title {
     font-size: 1rem;
     font-weight: 600;
@@ -275,6 +290,7 @@ ESTILOS PARA LISTA
     border-radius: 4px;
     display: inline-block;
 }
+
 .product-doses {
     display: flex;
     justify-content: space-between;
@@ -549,7 +565,7 @@ ESTILOS PARA DETALLES
     border-radius: 12px;
     padding: 1rem 1.1rem;
     border: 1px solid var(--gray-200, #e5e7eb);
-    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
     height: 100%;
     position: relative;
     overflow: hidden;
@@ -558,7 +574,9 @@ ESTILOS PARA DETALLES
 .detail-stat-card::before {
     content: '';
     position: absolute;
-    top: 0; left: 0; right: 0;
+    top: 0;
+    left: 0;
+    right: 0;
     height: 3px;
     background: var(--bs-primary);
     border-radius: 12px 12px 0 0;
@@ -566,12 +584,29 @@ ESTILOS PARA DETALLES
     transition: opacity 0.2s;
 }
 
-.detail-stat-card:hover::before { opacity: 1; }
+.detail-stat-card:hover::before {
+    opacity: 1;
+}
 
-.detail-stat-card.border-warning::before { background: var(--bs-warning); opacity: 1; }
-.detail-stat-card.border-success::before { background: var(--bs-success); opacity: 1; }
-.detail-stat-card.border-danger::before  { background: var(--bs-danger); opacity: 1; }
-.detail-stat-card.border-primary::before { background: var(--bs-primary); opacity: 1; }
+.detail-stat-card.border-warning::before {
+    background: var(--bs-warning);
+    opacity: 1;
+}
+
+.detail-stat-card.border-success::before {
+    background: var(--bs-success);
+    opacity: 1;
+}
+
+.detail-stat-card.border-danger::before {
+    background: var(--bs-danger);
+    opacity: 1;
+}
+
+.detail-stat-card.border-primary::before {
+    background: var(--bs-primary);
+    opacity: 1;
+}
 
 .detail-stat-icon {
     width: 36px;
@@ -632,7 +667,9 @@ ESTILOS PARA DETALLES
     gap: 0.75rem;
 }
 
-.timeline-item:last-child { padding-bottom: 0; }
+.timeline-item:last-child {
+    padding-bottom: 0;
+}
 
 .timeline-dot {
     position: absolute;
@@ -669,7 +706,7 @@ ESTILOS PARA DETALLES
 }
 
 .product-detail-card:hover {
-    box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.10);
     transform: translateY(-2px);
 }
 
@@ -739,8 +776,13 @@ a.filter-active-chip:hover {
 /* ═══════════════════════════════════════════════
    EMPTY STATE
 ═══════════════════════════════════════════════ */
-.empty-state { padding: 3rem 1rem; }
-.empty-state-icon { color: #adb5bd; }
+.empty-state {
+    padding: 3rem 1rem;
+}
+
+.empty-state-icon {
+    color: #adb5bd;
+}
 
 /* ═══════════════════════════════════════════════
    CARD BODY card-header cleanup for detail
@@ -787,10 +829,15 @@ a.filter-active-chip:hover {
     transition: background 0.15s, color 0.15s;
 }
 
-.view-switcher .view-btn:hover { background: var(--gray-100, #f3f4f6); }
+.view-switcher .view-btn:hover {
+    background: var(--gray-100, #f3f4f6);
+}
+
 .view-switcher .view-btn.active {
     background: var(--bs-primary);
     color: white;
 }
 
-.view-switcher .view-btn:first-child { border-right: 1px solid var(--gray-200, #dee2e6); }
+.view-switcher .view-btn:first-child {
+    border-right: 1px solid var(--gray-200, #dee2e6);
+}
