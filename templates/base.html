@@ -104,12 +104,15 @@
 
 <script>
     document.querySelectorAll('select.choices-init').forEach(select => {
-        new Choices(select, {
-            removeItemButton: true,
-            placeholderValue: 'Selecciona opciones',
-            searchPlaceholderValue: 'Buscar...',
-            noResultsText: 'No hay coincidencias',
-            itemSelectText: '',
+        new TomSelect(select, {
+            plugins: ['remove_button'],
+            placeholder: select.getAttribute('data-placeholder') || 'Selecciona opciones...',
+            maxOptions: null,
+            create: false,
+            dropdownParent: 'body',
+            render: {
+                no_results: () => `<div class="no-results">Sin resultados</div>`,
+            },
         });
     });
 </script>

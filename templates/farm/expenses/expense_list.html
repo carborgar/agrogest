@@ -20,7 +20,8 @@
             <div class="row g-3 align-items-end">
                 <div class="col-12 col-md-3">
                     <label class="form-label small fw-semibold text-muted mb-1" for="fieldFilter">Parcela</label>
-                    <select class="form-select choices-init" id="fieldFilter" name="field" multiple aria-label="Filtrar por parcela">
+                    <select class="form-select choices-init" id="fieldFilter" name="field" multiple
+                            aria-label="Filtrar por parcela" data-placeholder="Todas las parcelas…">
                         {% for f in fields %}
                         <option value="{{ f.id }}" {% if f.id|stringformat:"s" in selected_field_ids %}selected{% endif %}>
                             {{ f.name }}
@@ -30,7 +31,8 @@
                 </div>
                 <div class="col-12 col-md-3">
                     <label class="form-label small fw-semibold text-muted mb-1" for="typeFilter">Tipo</label>
-                    <select class="form-select choices-init" id="typeFilter" name="type" multiple aria-label="Filtrar por tipo">
+                    <select class="form-select choices-init" id="typeFilter" name="type" multiple
+                            aria-label="Filtrar por tipo" data-placeholder="Todos los tipos…">
                         {% for et in expense_types %}
                         <option value="{{ et.id }}" {% if et.id|stringformat:"s" in selected_type_ids %}selected{% endif %}>
                             {{ et.name }}
@@ -257,25 +259,6 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-
-        // ── Choices.js ─────────────────────────────────────────────
-        const choicesConfig = [
-            { id: 'fieldFilter', placeholder: 'Todas las parcelas' },
-            { id: 'typeFilter',  placeholder: 'Todos los tipos' },
-        ];
-        choicesConfig.forEach(({ id, placeholder }) => {
-            const sel = document.getElementById(id);
-            if (!sel) return;
-            try {
-                new Choices(sel, {
-                    removeItemButton: true,
-                    placeholderValue: placeholder,
-                    searchPlaceholderValue: 'Buscar...',
-                    noResultsText: 'Sin resultados',
-                    itemSelectText: '',
-                });
-            } catch (_) {}
-        });
         document.querySelectorAll('.quick-year-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const y = btn.dataset.year;

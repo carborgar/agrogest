@@ -1,0 +1,151 @@
+/**
+ * Tom Select — ajustes visuales para AgroGest
+ *
+ * Usa las variables CSS de nuestro Bootstrap personalizado:
+ *   --bs-primary       → #2E7D32  (verde)
+ *   --bs-primary-rgb   → 46, 125, 50
+ */
+
+/* ── Wrapper & control ──────────────────────────────────── */
+.ts-wrapper.form-select {
+    padding: 0;
+}
+
+.ts-wrapper .ts-control {
+    border-color: #dee2e6;
+    border-radius: 0.375rem;
+    min-height: calc(1.5em + 0.75rem + 2px);
+    font-size: 1rem;
+    padding: 0.35rem 0.6rem;
+    gap: 0.25rem;
+    cursor: text;
+}
+
+.ts-wrapper.form-select-sm .ts-control {
+    font-size: 0.875rem;
+    min-height: calc(1.5em + 0.5rem + 2px);
+    padding: 0.2rem 0.5rem;
+}
+
+/* Focus ring: verde como el resto de inputs del proyecto */
+.ts-wrapper.focus .ts-control {
+    border-color: var(--primary-light, #60AD5E);
+    box-shadow: 0 0 0 0.2rem rgba(46, 125, 50, 0.2);
+    outline: 0;
+}
+
+/* ── Tags (items seleccionados) ─────────────────────────── */
+.ts-wrapper.multi .ts-control .item {
+    background-color: var(--bs-primary, #2E7D32);
+    border: 1px solid var(--bs-primary, #2E7D32);
+    color: #fff;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    padding: 0.15rem 0.4rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    line-height: 1.4;
+    max-width: 100%;
+    white-space: normal;
+    word-break: break-word;
+}
+
+.ts-wrapper.multi .ts-control .item.active {
+    background-color: var(--primary-dark, #005005);
+    border-color: var(--primary-dark, #005005);
+}
+
+/* Botón × de eliminar tag */
+.ts-wrapper.multi .ts-control .item .remove {
+    color: rgba(255, 255, 255, 0.8);
+    border-left: 1px solid rgba(255, 255, 255, 0.35);
+    padding-left: 0.3rem;
+    margin-left: 0.1rem;
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.ts-wrapper.multi .ts-control .item .remove:hover {
+    color: #fff;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 0 0.2rem 0.2rem 0;
+}
+
+/* ── Dropdown ────────────────────────────────────────────── */
+.ts-dropdown {
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 0.5rem;
+    box-shadow: 0 0.5rem 1.25rem rgba(0, 0, 0, 0.12);
+    font-size: 0.9375rem;
+    z-index: 1065; /* por encima de modales */
+}
+
+.ts-dropdown .option {
+    padding: 0.5rem 0.85rem;
+    border-radius: 0.25rem;
+    transition: background 0.1s;
+}
+
+.ts-dropdown .option:hover,
+.ts-dropdown .option.active {
+    background-color: rgba(46, 125, 50, 0.1);
+    color: #212529;
+}
+
+.ts-dropdown .option.selected {
+    background-color: rgba(46, 125, 50, 0.06);
+    color: #212529;
+}
+
+/* Item ya seleccionado con check */
+.ts-dropdown .option.selected::after {
+    content: "✓";
+    float: right;
+    color: var(--bs-primary, #2E7D32);
+    font-weight: 700;
+}
+
+/* Sin resultados */
+.ts-dropdown .no-results {
+    padding: 0.6rem 0.85rem;
+    color: #6c757d;
+    font-style: italic;
+    font-size: 0.875rem;
+}
+
+/* ── Input de búsqueda ──────────────────────────────────── */
+.ts-control input {
+    font-size: inherit;
+    min-width: 80px;
+    color: #212529;
+}
+
+.ts-control input::placeholder {
+    color: #adb5bd;
+}
+
+/* ── Dentro del sidebar de filtros ─────────────────────── */
+/* Aseguramos que el wrapper no tenga margen extra dentro del filter-body */
+.filter-body .ts-wrapper {
+    margin-bottom: 0;
+    width: 100%;
+    display: block;
+}
+
+.filter-body .ts-wrapper .ts-control {
+    /* Limitar la altura máxima de los tags visibles para no desordenar el sidebar */
+    max-height: 120px;
+    overflow-y: auto;
+    width: 100%;
+}
+
+/* ── Caret/flecha (select simple) ───────────────────────── */
+.ts-wrapper.single .ts-control::after {
+    border-color: #5c6770 transparent transparent;
+}
+
+.ts-wrapper.single.dropdown-active .ts-control::after {
+    border-color: transparent transparent #5c6770;
+}
+

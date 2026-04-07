@@ -19,7 +19,8 @@
       <div class="row g-3 align-items-end">
         <div class="col-12 col-md-5">
           <label class="form-label small fw-semibold text-muted mb-1">Parcela(s)</label>
-          <select name="field" class="form-select choices-init" multiple aria-label="Filtrar por parcela">
+          <select name="field" class="form-select choices-init" multiple aria-label="Filtrar por parcela"
+                  data-placeholder="Todas las parcelas…">
             {% for f in fields %}
               <option value="{{ f.id }}" {% if f.id|stringformat:"s" in selected_field_ids %}selected{% endif %}>
                 {{ f.name }} ({{ f.area }} ha)
@@ -307,21 +308,6 @@
   }
   document.addEventListener('DOMContentLoaded', () => {
 
-    // ── Choices.js ──────────────────────────────────────────────────
-    document.querySelectorAll('select.choices-init').forEach(sel => {
-      try {
-        if (!sel.dataset.choicesInitialized) {
-          new Choices(sel, {
-            removeItemButton: true,
-            placeholderValue: 'Todas las parcelas',
-            searchPlaceholderValue: 'Buscar...',
-            noResultsText: 'Sin resultados',
-            itemSelectText: '',
-          });
-          sel.dataset.choicesInitialized = 'true';
-        }
-      } catch (_) {}
-    });
 
     // ── Botones año rápido ──────────────────────────────────────────
     document.querySelectorAll('.quick-year-btn').forEach(btn => {
