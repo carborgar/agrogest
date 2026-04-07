@@ -165,6 +165,7 @@
                                                 </div>
 
                                                 <div class="dose-info d-none">
+                                                    <i class="fa-solid fa-eye-dropper me-1"></i>
                                                     <strong>Dosis recomendada:</strong>
                                                     <span class="recommended-dose">-</span>
                                                 </div>
@@ -178,11 +179,16 @@
                                             <div class="col-6 col-lg-4">
                                                 <div class="form-floating">
                                                     {{ form.total_dose|add_class:"form-control total-dose-input" }}
-                                                    <label>Total</label>
+                                                    <label>Total parcela</label>
                                                 </div>
                                             </div>
                                         </div>
 
+                                        <div class="machine-dose-info d-none">
+                                            <i class="fa-solid fa-flask me-1"></i>
+                                            <strong>Cantidad por máquina:</strong>
+                                            <span class="machine-dose-value">-</span>
+                                        </div>
 
                                     </div>
                                     {% endfor %}
@@ -241,6 +247,7 @@
                 </div>
 
                 <div class="dose-info d-none">
+                    <i class="fa-solid fa-eye-dropper me-1"></i>
                     <strong>Dosis recomendada:</strong>
                     <span class="recommended-dose">-</span>
                 </div>
@@ -258,9 +265,15 @@
                     <input class="form-control total-dose-input" id="id_treatmentproduct_set-INDEX-total_dose" name="treatmentproduct_set-INDEX-total_dose"
                            step="0.01"
                            type="number">
-                    <label>Total</label>
+                    <label>Total parcela</label>
                 </div>
             </div>
+        </div>
+
+        <div class="machine-dose-info d-none">
+            <i class="fa-solid fa-flask me-1"></i>
+            <strong>Cantidad por máquina:</strong>
+            <span class="machine-dose-value">-</span>
         </div>
     </div>
 </template>
@@ -559,6 +572,68 @@
                 totalInput.value = totalDose.toFixed(2);
 
             });
+
+            calculateMachineDoses();
+        }
+
+        // Función para calcular la cantidad de producto por carga de máquina
+        function calculateMachineDoses() {
+            const machine = machines[elements.machineSelect.value];
+            const treatmentType = elements.treatmentTypeSelect.value;
+            const waterPerHa = parseFloat(elements.waterPerHaInput.value) || 0;
+
+            document.querySelectorAll('.product-form').forEach((card) => {
+                if (isRowMarkedForDeletion(card)) return;
+
+                const machineDoseInfo = card.querySelector('.machine-dose-info');
+                const machineDoseValue = card.querySelector('.machine-dose-value');
+                if (!machineDoseInfo || !machineDoseValue) return;
+
+                // Solo mostrar para tratamientos de pulverización con máquina
+                if (treatmentType !== 'spraying' || !machine || !machine.capacity) {
+                    machineDoseInfo.classList.add('d-none');
+                    return;
+                }
+
+                const doseInput = card.querySelector('.product-dose');
+                const productSelect = card.querySelector('.product-select');
+                const productId = productSelect.value;
+
+                if (!productId || !getProduct(productId)) {
+                    machineDoseInfo.classList.add('d-none');
+                    return;
+                }
+
+                const dose = parseFloat(doseInput.value) || 0;
+                if (!dose) {
+                    machineDoseInfo.classList.add('d-none');
+                    return;
+                }
+
+                const product = getProduct(productId);
+                const doseType = product.dose_type;
+                const capacity = machine.capacity;
+                const unit = doseType.includes('kg') ? 'kg' : 'L';
+                let machineDose = 0;
+
+                if (doseType.includes('_per_1000l')) {
+                    machineDose = (dose / 1000) * capacity;
+                } else if (doseType.includes('_per_2000l')) {
+                    machineDose = (dose / 2000) * capacity;
+                } else if (doseType === 'pct') {
+                    machineDose = (dose / 100) * capacity;
+                } else if (doseType.includes('_per_ha') && waterPerHa > 0) {
+                    // Cada máquina cubre capacity/waterPerHa hectáreas
+                    machineDose = dose * (capacity / waterPerHa);
+                }
+
+                if (machineDose > 0) {
+                    machineDoseValue.textContent = machineDose.toFixed(2) + ' ' + unit;
+                    machineDoseInfo.classList.remove('d-none');
+                } else {
+                    machineDoseInfo.classList.add('d-none');
+                }
+            });
         }
 
         function calculateDoseFromTotal(event) {
@@ -596,6 +671,8 @@
             }
 
             doseInput.value = dosePerHa.toFixed(2);
+
+            calculateMachineDoses();
         }
 
         function handleDoseChange(event) {
