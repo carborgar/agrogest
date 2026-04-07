@@ -97,7 +97,7 @@
                                     <hr class="text-muted">
                                     <div class="row g-3">
                                         <div class="col-md-6 col-lg-4" id="machineFieldGroup">
-                                                            <div class="form-floating mb-3" id="machineSelectWrapper">
+                                            <div class="form-floating mb-3" id="machineSelectWrapper">
                                                 {{ form.machine|add_class:"form-select" }}
                                                 <label for="{{ form.machine.id_for_label }}">Maquinaria</label>
                                             </div>
@@ -106,7 +106,8 @@
                                                 <span>Se usará automáticamente:</span>
                                                 <span class="fw-semibold text-dark" id="singleMachineName"></span>
                                             </div>
-                                            <div class="form-text text-primary fw-semibold" id="machineCapacityInfo"></div>
+                                            <div class="form-text text-primary fw-semibold"
+                                                 id="machineCapacityInfo"></div>
                                         </div>
                                         <div class="col-md-6 col-lg-4" id="waterFieldGroup">
                                             <div class="form-floating mb-3">
@@ -169,25 +170,24 @@
                                                     <span class="recommended-dose">-</span>
                                                 </div>
                                             </div>
-                                            <div class="col-6 col-lg-4">
-                                                <div class="form-floating">
+                                            <div class="col-12 col-md-6 col-lg-4">
+                                                <div class="form-floating mb-3">
                                                     {{ form.dose|add_class:"form-control product-dose" }}
                                                     <label>Dosis</label>
                                                 </div>
+
+                                                <div class="dose-info machine-dose-line d-none">
+                                                    <strong>Dosis por máquina:</strong>
+                                                    <span class="machine-dose-value">-</span>
+                                                </div>
                                             </div>
-                                            <div class="col-6 col-lg-4">
-                                                <div class="form-floating">
+                                            <div class="col-12 col-md-6 col-lg-4">
+                                                <div class="form-floating mb-3">
                                                     {{ form.total_dose|add_class:"form-control total-dose-input" }}
                                                     <label>Total parcela</label>
                                                 </div>
                                             </div>
                                         </div>
-
-                                        <div class="dose-info machine-dose-line d-none">
-                                            <strong>Cantidad por máquina:</strong>
-                                            <span class="machine-dose-value">-</span>
-                                        </div>
-
                                     </div>
                                     {% endfor %}
                                 </div>
@@ -231,7 +231,8 @@
         </div>
 
         <input id="id_treatmentproduct_set-INDEX-id" name="treatmentproduct_set-INDEX-id" type="hidden">
-        <input class="d-none delete-input" id="id_treatmentproduct_set-INDEX-DELETE" name="treatmentproduct_set-INDEX-DELETE" type="checkbox">
+        <input class="d-none delete-input" id="id_treatmentproduct_set-INDEX-DELETE"
+               name="treatmentproduct_set-INDEX-DELETE" type="checkbox">
 
         <div class="row">
             <div class="col-12 col-md-6 col-lg-4">
@@ -249,27 +250,28 @@
                     <span class="recommended-dose">-</span>
                 </div>
             </div>
-            <div class="col-6 col-lg-4">
-                <div class="form-floating">
-                    <input class="form-control product-dose" id="id_treatmentproduct_set-INDEX-dose" name="treatmentproduct_set-INDEX-dose"
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="form-floating mb-3">
+                    <input class="form-control product-dose" id="id_treatmentproduct_set-INDEX-dose"
+                           name="treatmentproduct_set-INDEX-dose"
                            step="0.01"
                            type="number">
                     <label>Dosis</label>
                 </div>
+                <div class="dose-info machine-dose-line d-none">
+                    <strong>Dosis por máquina:</strong>
+                    <span class="machine-dose-value">-</span>
+                </div>
             </div>
-            <div class="col-6 col-lg-4">
-                <div class="form-floating">
-                    <input class="form-control total-dose-input" id="id_treatmentproduct_set-INDEX-total_dose" name="treatmentproduct_set-INDEX-total_dose"
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="form-floating mb-3">
+                    <input class="form-control total-dose-input" id="id_treatmentproduct_set-INDEX-total_dose"
+                           name="treatmentproduct_set-INDEX-total_dose"
                            step="0.01"
                            type="number">
                     <label>Total parcela</label>
                 </div>
             </div>
-        </div>
-
-        <div class="dose-info machine-dose-line d-none">
-            <strong>Cantidad por máquina:</strong>
-            <span class="machine-dose-value">-</span>
         </div>
     </div>
 </template>
@@ -488,7 +490,7 @@
         }
 
         function handleProductChange(event) {
-            updateProductInfo(event, { preserveExistingValues: false });
+            updateProductInfo(event, {preserveExistingValues: false});
         }
 
         // Función para validar la fecha de finalización
@@ -861,8 +863,7 @@
                     elements.waterPerHaInput.value = '1000';
                 }
 
-            }
-            else if (selectedType === 'fertigation') {
+            } else if (selectedType === 'fertigation') {
                 // Para fertirrigación: ocultar máquina y mojado
                 elements.machineFieldGroup.classList.add('d-none');
                 elements.waterFieldGroup.classList.add('d-none');
@@ -994,7 +995,7 @@
                 const productSelect = row.querySelector('.product-select');
                 if (productSelect && productSelect.value) {
                     // Simular evento para poblar dosis recomendada y recalcular total
-                    updateProductInfo({ target: productSelect }, { preserveExistingValues: true });
+                    updateProductInfo({target: productSelect}, {preserveExistingValues: true});
                 }
             });
             formCount = document.querySelectorAll('.product-form').length;
