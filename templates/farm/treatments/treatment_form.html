@@ -97,7 +97,7 @@
                                     <hr class="text-muted">
                                     <div class="row g-3">
                                         <div class="col-md-6 col-lg-4" id="machineFieldGroup">
-                                                            <div class="form-floating mb-3" id="machineSelectWrapper">
+                                            <div class="form-floating mb-3" id="machineSelectWrapper">
                                                 {{ form.machine|add_class:"form-select" }}
                                                 <label for="{{ form.machine.id_for_label }}">Maquinaria</label>
                                             </div>
@@ -106,7 +106,8 @@
                                                 <span>Se usará automáticamente:</span>
                                                 <span class="fw-semibold text-dark" id="singleMachineName"></span>
                                             </div>
-                                            <div class="form-text text-primary fw-semibold" id="machineCapacityInfo"></div>
+                                            <div class="form-text text-primary fw-semibold"
+                                                 id="machineCapacityInfo"></div>
                                         </div>
                                         <div class="col-md-6 col-lg-4" id="waterFieldGroup">
                                             <div class="form-floating mb-3">
@@ -169,21 +170,24 @@
                                                     <span class="recommended-dose">-</span>
                                                 </div>
                                             </div>
-                                            <div class="col-6 col-lg-4">
-                                                <div class="form-floating">
+                                            <div class="col-12 col-md-6 col-lg-4">
+                                                <div class="form-floating mb-3">
                                                     {{ form.dose|add_class:"form-control product-dose" }}
                                                     <label>Dosis</label>
                                                 </div>
+
+                                                <div class="dose-info machine-dose-line d-none">
+                                                    <strong>Dosis por máquina:</strong>
+                                                    <span class="machine-dose-value">-</span>
+                                                </div>
                                             </div>
-                                            <div class="col-6 col-lg-4">
-                                                <div class="form-floating">
+                                            <div class="col-12 col-md-6 col-lg-4">
+                                                <div class="form-floating mb-3">
                                                     {{ form.total_dose|add_class:"form-control total-dose-input" }}
-                                                    <label>Total</label>
+                                                    <label>Total parcela</label>
                                                 </div>
                                             </div>
                                         </div>
-
-
                                     </div>
                                     {% endfor %}
                                 </div>
@@ -227,7 +231,8 @@
         </div>
 
         <input id="id_treatmentproduct_set-INDEX-id" name="treatmentproduct_set-INDEX-id" type="hidden">
-        <input class="d-none delete-input" id="id_treatmentproduct_set-INDEX-DELETE" name="treatmentproduct_set-INDEX-DELETE" type="checkbox">
+        <input class="d-none delete-input" id="id_treatmentproduct_set-INDEX-DELETE"
+               name="treatmentproduct_set-INDEX-DELETE" type="checkbox">
 
         <div class="row">
             <div class="col-12 col-md-6 col-lg-4">
@@ -245,20 +250,26 @@
                     <span class="recommended-dose">-</span>
                 </div>
             </div>
-            <div class="col-6 col-lg-4">
-                <div class="form-floating">
-                    <input class="form-control product-dose" id="id_treatmentproduct_set-INDEX-dose" name="treatmentproduct_set-INDEX-dose"
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="form-floating mb-3">
+                    <input class="form-control product-dose" id="id_treatmentproduct_set-INDEX-dose"
+                           name="treatmentproduct_set-INDEX-dose"
                            step="0.01"
                            type="number">
                     <label>Dosis</label>
                 </div>
+                <div class="dose-info machine-dose-line d-none">
+                    <strong>Dosis por máquina:</strong>
+                    <span class="machine-dose-value">-</span>
+                </div>
             </div>
-            <div class="col-6 col-lg-4">
-                <div class="form-floating">
-                    <input class="form-control total-dose-input" id="id_treatmentproduct_set-INDEX-total_dose" name="treatmentproduct_set-INDEX-total_dose"
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="form-floating mb-3">
+                    <input class="form-control total-dose-input" id="id_treatmentproduct_set-INDEX-total_dose"
+                           name="treatmentproduct_set-INDEX-total_dose"
                            step="0.01"
                            type="number">
-                    <label>Total</label>
+                    <label>Total parcela</label>
                 </div>
             </div>
         </div>
@@ -479,7 +490,7 @@
         }
 
         function handleProductChange(event) {
-            updateProductInfo(event, { preserveExistingValues: false });
+            updateProductInfo(event, {preserveExistingValues: false});
         }
 
         // Función para validar la fecha de finalización
@@ -559,6 +570,68 @@
                 totalInput.value = totalDose.toFixed(2);
 
             });
+
+            calculateMachineDoses();
+        }
+
+        // Función para calcular la cantidad de producto por carga de máquina
+        function calculateMachineDoses() {
+            const machine = machines[elements.machineSelect.value];
+            const treatmentType = elements.treatmentTypeSelect.value;
+            const waterPerHa = parseFloat(elements.waterPerHaInput.value) || 0;
+
+            document.querySelectorAll('.product-form').forEach((card) => {
+                if (isRowMarkedForDeletion(card)) return;
+
+                const machineDoseLine = card.querySelector('.machine-dose-line');
+                const machineDoseValue = card.querySelector('.machine-dose-value');
+                if (!machineDoseLine || !machineDoseValue) return;
+
+                // Solo mostrar para tratamientos de pulverización con máquina
+                if (treatmentType !== 'spraying' || !machine || !machine.capacity) {
+                    machineDoseLine.classList.add('d-none');
+                    return;
+                }
+
+                const doseInput = card.querySelector('.product-dose');
+                const productSelect = card.querySelector('.product-select');
+                const productId = productSelect.value;
+
+                if (!productId || !getProduct(productId)) {
+                    machineDoseLine.classList.add('d-none');
+                    return;
+                }
+
+                const dose = parseFloat(doseInput.value) || 0;
+                if (!dose) {
+                    machineDoseLine.classList.add('d-none');
+                    return;
+                }
+
+                const product = getProduct(productId);
+                const doseType = product.dose_type;
+                const capacity = machine.capacity;
+                const unit = doseType.includes('kg') ? 'kg' : 'L';
+                let machineDose = 0;
+
+                if (doseType.includes('_per_1000l')) {
+                    machineDose = (dose / 1000) * capacity;
+                } else if (doseType.includes('_per_2000l')) {
+                    machineDose = (dose / 2000) * capacity;
+                } else if (doseType === 'pct') {
+                    machineDose = (dose / 100) * capacity;
+                } else if (doseType.includes('_per_ha') && waterPerHa > 0) {
+                    // Cada máquina cubre capacity/waterPerHa hectáreas
+                    machineDose = dose * (capacity / waterPerHa);
+                }
+
+                if (machineDose > 0) {
+                    machineDoseValue.textContent = machineDose.toFixed(2) + ' ' + unit;
+                    machineDoseLine.classList.remove('d-none');
+                } else {
+                    machineDoseLine.classList.add('d-none');
+                }
+            });
         }
 
         function calculateDoseFromTotal(event) {
@@ -596,6 +669,8 @@
             }
 
             doseInput.value = dosePerHa.toFixed(2);
+
+            calculateMachineDoses();
         }
 
         function handleDoseChange(event) {
@@ -788,8 +863,7 @@
                     elements.waterPerHaInput.value = '1000';
                 }
 
-            }
-            else if (selectedType === 'fertigation') {
+            } else if (selectedType === 'fertigation') {
                 // Para fertirrigación: ocultar máquina y mojado
                 elements.machineFieldGroup.classList.add('d-none');
                 elements.waterFieldGroup.classList.add('d-none');
@@ -921,7 +995,7 @@
                 const productSelect = row.querySelector('.product-select');
                 if (productSelect && productSelect.value) {
                     // Simular evento para poblar dosis recomendada y recalcular total
-                    updateProductInfo({ target: productSelect }, { preserveExistingValues: true });
+                    updateProductInfo({target: productSelect}, {preserveExistingValues: true});
                 }
             });
             formCount = document.querySelectorAll('.product-form').length;
