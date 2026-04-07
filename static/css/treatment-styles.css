@@ -233,10 +233,8 @@ ESTILOS PARA LISTA
     color: var(--gray-600);
 }
 
-.dose-info .machine-dose-line {
-    margin-top: 0.35rem;
-    padding-top: 0.35rem;
-    border-top: 1px dashed var(--gray-300, #dee2e6);
+.dose-info.machine-dose-line {
+    margin-top: 0;
 }
 
 @media (max-width: 768px) {
