@@ -165,9 +165,14 @@
                                                 </div>
 
                                                 <div class="dose-info d-none">
-                                                    <i class="fa-solid fa-eye-dropper me-1"></i>
-                                                    <strong>Dosis recomendada:</strong>
-                                                    <span class="recommended-dose">-</span>
+                                                    <div>
+                                                        <strong>Dosis recomendada:</strong>
+                                                        <span class="recommended-dose">-</span>
+                                                    </div>
+                                                    <div class="machine-dose-line d-none">
+                                                        <strong>Cantidad por máquina:</strong>
+                                                        <span class="machine-dose-value">-</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div class="col-6 col-lg-4">
@@ -182,12 +187,6 @@
                                                     <label>Total parcela</label>
                                                 </div>
                                             </div>
-                                        </div>
-
-                                        <div class="machine-dose-info d-none">
-                                            <i class="fa-solid fa-flask me-1"></i>
-                                            <strong>Cantidad por máquina:</strong>
-                                            <span class="machine-dose-value">-</span>
                                         </div>
 
                                     </div>
@@ -247,9 +246,14 @@
                 </div>
 
                 <div class="dose-info d-none">
-                    <i class="fa-solid fa-eye-dropper me-1"></i>
-                    <strong>Dosis recomendada:</strong>
-                    <span class="recommended-dose">-</span>
+                    <div>
+                        <strong>Dosis recomendada:</strong>
+                        <span class="recommended-dose">-</span>
+                    </div>
+                    <div class="machine-dose-line d-none">
+                        <strong>Cantidad por máquina:</strong>
+                        <span class="machine-dose-value">-</span>
+                    </div>
                 </div>
             </div>
             <div class="col-6 col-lg-4">
@@ -268,12 +272,6 @@
                     <label>Total parcela</label>
                 </div>
             </div>
-        </div>
-
-        <div class="machine-dose-info d-none">
-            <i class="fa-solid fa-flask me-1"></i>
-            <strong>Cantidad por máquina:</strong>
-            <span class="machine-dose-value">-</span>
         </div>
     </div>
 </template>
@@ -585,13 +583,13 @@
             document.querySelectorAll('.product-form').forEach((card) => {
                 if (isRowMarkedForDeletion(card)) return;
 
-                const machineDoseInfo = card.querySelector('.machine-dose-info');
+                const machineDoseLine = card.querySelector('.machine-dose-line');
                 const machineDoseValue = card.querySelector('.machine-dose-value');
-                if (!machineDoseInfo || !machineDoseValue) return;
+                if (!machineDoseLine || !machineDoseValue) return;
 
                 // Solo mostrar para tratamientos de pulverización con máquina
                 if (treatmentType !== 'spraying' || !machine || !machine.capacity) {
-                    machineDoseInfo.classList.add('d-none');
+                    machineDoseLine.classList.add('d-none');
                     return;
                 }
 
@@ -600,13 +598,13 @@
                 const productId = productSelect.value;
 
                 if (!productId || !getProduct(productId)) {
-                    machineDoseInfo.classList.add('d-none');
+                    machineDoseLine.classList.add('d-none');
                     return;
                 }
 
                 const dose = parseFloat(doseInput.value) || 0;
                 if (!dose) {
-                    machineDoseInfo.classList.add('d-none');
+                    machineDoseLine.classList.add('d-none');
                     return;
                 }
 
@@ -629,9 +627,9 @@
 
                 if (machineDose > 0) {
                     machineDoseValue.textContent = machineDose.toFixed(2) + ' ' + unit;
-                    machineDoseInfo.classList.remove('d-none');
+                    machineDoseLine.classList.remove('d-none');
                 } else {
-                    machineDoseInfo.classList.add('d-none');
+                    machineDoseLine.classList.add('d-none');
                 }
             });
         }
