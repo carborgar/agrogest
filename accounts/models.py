@@ -41,22 +41,38 @@ class User(AbstractUser):
 
 class NotificationPreferences(models.Model):
     """
-    Preferencias de notificación por usuario.
+    Preferencias de notificación por usuario: canal elegido para cada evento.
     """
+    CHANNEL_NONE = 'none'
+    CHANNEL_INBOX = 'inbox'
+    CHANNEL_EMAIL = 'email'
+    CHANNEL_BOTH = 'both'
+
+    CHANNEL_CHOICES = [
+        (CHANNEL_NONE, 'Ninguna'),
+        (CHANNEL_INBOX, 'Sólo inbox'),
+        (CHANNEL_EMAIL, 'Sólo email'),
+        (CHANNEL_BOTH, 'Inbox y email'),
+    ]
+
     user = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
         related_name='notification_preferences'
     )
-    notify_treatment_created = models.BooleanField(
-        default=True,
+    treatment_created_channel = models.CharField(
+        max_length=10,
+        choices=CHANNEL_CHOICES,
+        default=CHANNEL_INBOX,
         verbose_name='Nuevo tratamiento',
-        help_text='Recibir notificación cuando se cree un nuevo tratamiento'
+        help_text='Recibir notificación cuando se cree un nuevo tratamiento',
     )
-    notify_treatment_finished = models.BooleanField(
-        default=True,
+    treatment_finished_channel = models.CharField(
+        max_length=10,
+        choices=CHANNEL_CHOICES,
+        default=CHANNEL_INBOX,
         verbose_name='Tratamiento finalizado',
-        help_text='Recibir notificación cuando se finalice un tratamiento'
+        help_text='Recibir notificación cuando se finalice un tratamiento',
     )
 
     class Meta:
@@ -65,6 +81,39 @@ class NotificationPreferences(models.Model):
 
     def __str__(self):
         return f'Preferencias de {self.user}'
+
+
+class Notification(models.Model):
+    """
+    Notificación interna de inbox por usuario.
+    """
+    EVENT_TREATMENT_CREATED = 'treatment_created'
+    EVENT_TREATMENT_FINISHED = 'treatment_finished'
+
+    EVENT_CHOICES = [
+        (EVENT_TREATMENT_CREATED, 'Nuevo tratamiento'),
+        (EVENT_TREATMENT_FINISHED, 'Tratamiento finalizado'),
+    ]
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='notifications'
+    )
+    event_type = models.CharField(max_length=50, choices=EVENT_CHOICES)
+    title = models.CharField(max_length=200)
+    body = models.TextField(blank=True)
+    link = models.CharField(max_length=500, blank=True)
+    read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Notificación'
+        verbose_name_plural = 'Notificaciones'
+
+    def __str__(self):
+        return f'{self.title} → {self.user}'
 
 
 class AuditLog(models.Model):

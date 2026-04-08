@@ -1,0 +1,109 @@
+erda{% extends "base.html" %}
+
+{% block header %}Notificaciones{% endblock %}
+{% block sub_header %}Tus últimas notificaciones{% endblock %}
+
+{% block actions %}
+<a class="btn btn-outline-secondary btn-sm" href="{% url 'accounts:notification-preferences' %}">
+    <i class="fas fa-sliders me-1"></i>Preferencias
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-7 col-xl-6">
+
+        {% if notifications %}
+            <div class="d-flex flex-column gap-2">
+            {% for notif in notifications %}
+                <div class="notif-inbox-row d-flex align-items-start gap-3 p-3 rounded-3
+                            {% if notif.is_new %}notif-inbox-row--new{% endif %}">
+
+                    <!-- Icono -->
+                    <div class="notif-inbox-icon flex-shrink-0 rounded-3 d-flex align-items-center justify-content-center"
+                         style="width:42px;height:42px;margin-top:2px;
+                                {% if notif.event_type == 'treatment_created' %}background:rgba(25,135,84,.12);{% else %}background:rgba(13,110,253,.12);{% endif %}">
+                        {% if notif.event_type == 'treatment_created' %}
+                            <i class="fas fa-plus" style="color:#198754;"></i>
+                        {% else %}
+                            <i class="fas fa-flag-checkered" style="color:#0d6efd;"></i>
+                        {% endif %}
+                    </div>
+
+                    <!-- Texto -->
+                    <div class="flex-grow-1" style="min-width:0;">
+                        <div class="d-flex align-items-baseline justify-content-between gap-2 flex-wrap">
+                            <span class="fw-semibold {% if notif.is_new %}text-body{% else %}text-body{% endif %}"
+                                  style="font-size:.93rem;">
+                                {{ notif.title }}
+                            </span>
+                            <span class="text-muted flex-shrink-0" style="font-size:.75rem;white-space:nowrap;">
+                                {{ notif.created_at|timesince }} ago
+                            </span>
+                        </div>
+                        {% if notif.body %}
+                        <div class="text-muted mt-1" style="font-size:.82rem;">{{ notif.body }}</div>
+                        {% endif %}
+                        {% if notif.link %}
+                        <a class="notif-inbox-link mt-2 d-inline-flex align-items-center gap-1"
+                           href="{{ notif.link }}">
+                            Ver detalle <i class="fas fa-arrow-right" style="font-size:.7rem;"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+
+                    <!-- Punto "nueva" -->
+                    {% if notif.is_new %}
+                    <div class="flex-shrink-0 pt-1">
+                        <span class="notif-dot"></span>
+                    </div>
+                    {% endif %}
+
+                </div>
+            {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-5 text-muted">
+                <i class="fas fa-bell-slash mb-3" style="font-size:2.5rem;opacity:.3;"></i>
+                <p class="mb-0">No tienes notificaciones todavía</p>
+            </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+    .notif-inbox-row {
+        background: #fff;
+        border: 1px solid rgba(0,0,0,.07);
+        transition: box-shadow .15s ease, border-color .15s ease;
+    }
+    .notif-inbox-row:hover {
+        box-shadow: 0 2px 12px rgba(0,0,0,.06);
+        border-color: rgba(0,0,0,.12);
+    }
+    .notif-inbox-row--new {
+        border-left: 3px solid #0d6efd;
+        background: #f8faff;
+    }
+    .notif-dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #0d6efd;
+    }
+    .notif-inbox-link {
+        font-size: .8rem;
+        color: #0d6efd;
+        text-decoration: none;
+        font-weight: 500;
+    }
+    .notif-inbox-link:hover {
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}
+

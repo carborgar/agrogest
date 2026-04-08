@@ -10,6 +10,7 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
 
     path('preferencias/notificaciones/', views.NotificationPreferencesView.as_view(), name='notification-preferences'),
+    path('notificaciones/', views.NotificationInboxView.as_view(), name='notification-inbox'),
 
     # Recuperación de contraseña
     path('password-reset/', auth_views.PasswordResetView.as_view(

@@ -215,6 +215,17 @@ class FinishTreatmentView(BaseSecureViewMixin, View):
             return JsonResponse({'success': False}, status=400)
 
         treatment.finish_treatment(finish_date, real_water_used)
+
+        from accounts.models import Notification
+        from accounts.notification_service import notify_org_users
+        notify_org_users(
+            event_type=Notification.EVENT_TREATMENT_FINISHED,
+            title=f'Tratamiento finalizado: {treatment.name}',
+            body=f'El tratamiento "{treatment.name}" en {treatment.field.name} ha sido marcado como completado.',
+            link=reverse('treatment-detail', kwargs={'pk': treatment.pk}),
+            organization=treatment.organization,
+        )
+
         return JsonResponse({'success': True})
 
 

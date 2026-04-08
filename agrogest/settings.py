@@ -96,6 +96,7 @@ TEMPLATES = [
                 'farm.context_processors.sidebar_state',
                 'farm.context_processors.active_nav',
                 'farm.context_processors.ai_configured',
+                'farm.context_processors.unread_notifications',
             ],
         },
     },
@@ -228,6 +229,13 @@ EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'AgroGest <noreply@agrogest.app>')
 # Tiempo de validez del enlace de recuperación de contraseña (en segundos). Por defecto: 1 día.
 PASSWORD_RESET_TIMEOUT = int(os.environ.get('PASSWORD_RESET_TIMEOUT', str(60 * 60 * 24)))
+
+# Resend (email transaccional). Si se configura, tiene prioridad sobre SMTP.
+# Obtén tu API key en https://resend.com
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
+
+# URL pública de la app (usada para construir enlaces absolutos en emails)
+SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000')
 
 # ── Asistente IA (Google Gemini) ──────────────────────────────────────────────
 # Obtén tu clave GRATIS en: https://aistudio.google.com/apikey

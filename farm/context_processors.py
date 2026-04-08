@@ -11,6 +11,13 @@ def ai_configured(request):
     }
 
 
+def unread_notifications(request):
+    if not request.user.is_authenticated:
+        return {'unread_notifications_count': 0}
+    from accounts.models import Notification
+    count = Notification.objects.filter(user=request.user, read=False).count()
+    return {'unread_notifications_count': count}
+
 # Mapeo: clave de contexto → lista de url_names que activan ese ítem
 _NAV_GROUPS = {
     'nav_home':         {'field_list'},

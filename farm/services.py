@@ -6,6 +6,7 @@ con lógica HTTP. Así, si mañana añadimos bulk-create o clone, solo
 necesitamos ampliar este módulo sin tocar las vistas.
 """
 from django.db import transaction
+from django.urls import reverse
 
 
 @transaction.atomic
@@ -25,9 +26,22 @@ def save_treatment_with_products(treatment_form, products_formset):
     --------
     El Treatment creado o actualizado.
     """
+    is_new = treatment_form.instance.pk is None
     treatment = treatment_form.save()
     products_formset.instance = treatment
     products_formset.save()
+
+    if is_new:
+        from accounts.models import Notification
+        from accounts.notification_service import notify_org_users
+        notify_org_users(
+            event_type=Notification.EVENT_TREATMENT_CREATED,
+            title=f'Nuevo tratamiento: {treatment.name}',
+            body=f'Se ha creado el tratamiento "{treatment.name}" en la parcela {treatment.field.name}.',
+            link=reverse('treatment-detail', kwargs={'pk': treatment.pk}),
+            organization=treatment.organization,
+        )
+
     return treatment
 
 

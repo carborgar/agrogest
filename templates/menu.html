@@ -8,14 +8,29 @@
         <span class="navbar-brand mb-0">AgroGest</span>
         <!-- Mobile User section -->
         <div class="dropdown">
-            <button class="btn btn-outline-primary" data-bs-toggle="dropdown" type="button">
+            <button class="btn btn-outline-primary position-relative" data-bs-toggle="dropdown" type="button">
                 <i class="fas fa-user"></i>
+                {% if unread_notifications_count %}
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary"
+                      style="font-size:.6rem;">
+                    {{ unread_notifications_count }}
+                </span>
+                {% endif %}
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
                 <li><h6 class="dropdown-header">{{ user.first_name|default:user.username }}</h6></li>
                 <li>
+                    <a class="dropdown-item d-flex align-items-center justify-content-between"
+                       href="{% url 'accounts:notification-inbox' %}">
+                        <span><i class="fas fa-bell me-2"></i>Notificaciones</span>
+                        {% if unread_notifications_count %}
+                        <span class="badge rounded-pill bg-primary ms-2">{{ unread_notifications_count }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+                <li>
                     <a class="dropdown-item" href="{% url 'accounts:notification-preferences' %}">
-                        <i class="fas fa-bell me-2"></i>Notificaciones
+                        <i class="fas fa-sliders me-2"></i>Preferencias
                     </a>
                 </li>
                 <li><hr class="dropdown-divider"></li>
@@ -147,6 +162,15 @@
                 <div class="nav-title">Configuración</div>
                 <ul class="nav flex-column">
                     <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center justify-content-between"
+                           href="{% url 'accounts:notification-inbox' %}">
+                            <span><i class="fas fa-bell me-1"></i>Notificaciones</span>
+                            {% if unread_notifications_count %}
+                            <span class="badge rounded-pill bg-primary ms-auto" style="font-size:.65rem;">{{ unread_notifications_count }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if nav_expense_types %}active{% endif %}"
                            href="{% url 'expense-type-list' %}">
                             <i class="fa fa-tags"></i> Tipos de gasto
@@ -159,7 +183,12 @@
         <!-- User Menu -->
         <div class="user-menu">
             <a class="user-profile" data-bs-toggle="dropdown" href="#">
-                <div class="user-avatar"><i class="fa fa-user"></i></div>
+.                <div class="user-avatar">
+                    <i class="fa fa-user"></i>
+                    {% if unread_notifications_count %}
+                    <span class="user-avatar-badge">{{ unread_notifications_count }}</span>
+                    {% endif %}
+                </div>
                 <div class="user-info">
                     <h6>{{ user.first_name|default:user.username }}</h6>
                     <small>Usuario</small>
@@ -168,8 +197,17 @@
             </a>
             <ul class="dropdown-menu dropdown-menu-end">
                 <li>
+                    <a class="dropdown-item d-flex align-items-center justify-content-between"
+                       href="{% url 'accounts:notification-inbox' %}">
+                        <span><i class="fas fa-bell me-2"></i>Notificaciones</span>
+                        {% if unread_notifications_count %}
+                        <span class="badge rounded-pill bg-primary ms-2">{{ unread_notifications_count }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+                <li>
                     <a class="dropdown-item" href="{% url 'accounts:notification-preferences' %}">
-                        <i class="fas fa-bell me-2"></i>Notificaciones
+                        <i class="fas fa-sliders me-2"></i>Preferencias
                     </a>
                 </li>
                 <li><hr class="dropdown-divider"></li>
@@ -304,6 +342,15 @@
                 <div class="nav-section">
                     <div class="nav-title">Configuración</div>
                     <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link d-flex align-items-center justify-content-between"
+                               href="{% url 'accounts:notification-inbox' %}">
+                                <span><i class="fas fa-bell me-2"></i>Notificaciones</span>
+                                {% if unread_notifications_count %}
+                                <span class="badge rounded-pill bg-primary" style="font-size:.65rem;">{{ unread_notifications_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
                         <li class="nav-item">
                             <a class="nav-link {% if nav_expense_types %}active{% endif %}"
                                href="{% url 'expense-type-list' %}">
