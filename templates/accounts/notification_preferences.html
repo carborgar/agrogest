@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+
+{% block header %}Notificaciones{% endblock %}
+{% block sub_header %}Elige para qué eventos quieres recibir notificaciones{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6 col-xl-5">
+
+        <form method="post">
+            {% csrf_token %}
+
+            <!-- Section -->
+            <div class="mb-2">
+                <p class="text-muted text-uppercase fw-semibold mb-3"
+                   style="font-size: 0.7rem; letter-spacing: 0.08em;">
+                    <i class="fas fa-droplet me-1 text-primary opacity-75"></i>Tratamientos
+                </p>
+
+                <!-- Row: Nuevo tratamiento -->
+                <div class="notif-row d-flex align-items-center justify-content-between gap-3 p-3 rounded-3 mb-2">
+                    <div class="d-flex align-items-center gap-3 flex-grow-1" style="min-width: 0;">
+                        <div class="notif-icon flex-shrink-0 rounded-3 d-flex align-items-center justify-content-center"
+                             style="width:44px;height:44px;background:rgba(25,135,84,.1);">
+                            <i class="fas fa-plus" style="color:#198754;font-size:1rem;"></i>
+                        </div>
+                        <div style="min-width:0;">
+                            <div class="fw-semibold" style="font-size:.93rem;">
+                                {{ form.notify_treatment_created.label }}
+                            </div>
+                            <div class="text-muted" style="font-size:.8rem;">
+                                {{ form.notify_treatment_created.help_text }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-check form-switch mb-0 flex-shrink-0">
+                        {{ form.notify_treatment_created }}
+                        <label class="form-check-label visually-hidden"
+                               for="{{ form.notify_treatment_created.id_for_label }}">
+                            {{ form.notify_treatment_created.label }}
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Row: Tratamiento finalizado -->
+                <div class="notif-row d-flex align-items-center justify-content-between gap-3 p-3 rounded-3 mb-2">
+                    <div class="d-flex align-items-center gap-3 flex-grow-1" style="min-width: 0;">
+                        <div class="notif-icon flex-shrink-0 rounded-3 d-flex align-items-center justify-content-center"
+                             style="width:44px;height:44px;background:rgba(13,110,253,.1);">
+                            <i class="fas fa-flag-checkered" style="color:#0d6efd;font-size:1rem;"></i>
+                        </div>
+                        <div style="min-width:0;">
+                            <div class="fw-semibold" style="font-size:.93rem;">
+                                {{ form.notify_treatment_finished.label }}
+                            </div>
+                            <div class="text-muted" style="font-size:.8rem;">
+                                {{ form.notify_treatment_finished.help_text }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-check form-switch mb-0 flex-shrink-0">
+                        {{ form.notify_treatment_finished }}
+                        <label class="form-check-label visually-hidden"
+                               for="{{ form.notify_treatment_finished.id_for_label }}">
+                            {{ form.notify_treatment_finished.label }}
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end mt-4">
+                <button class="btn btn-primary px-4" type="submit">
+                    <i class="fa fa-check me-2"></i>Guardar
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+    .notif-row {
+        background: #fff;
+        border: 1px solid rgba(0,0,0,.07);
+        transition: box-shadow .15s ease, border-color .15s ease;
+    }
+    .notif-row:hover {
+        box-shadow: 0 2px 12px rgba(0,0,0,.06);
+        border-color: rgba(0,0,0,.12);
+    }
+    .form-check-input[type="checkbox"] {
+        width: 2.4em;
+        height: 1.3em;
+        cursor: pointer;
+    }
+</style>
+{% endblock %}

@@ -39,6 +39,34 @@ class User(AbstractUser):
         return self.username
 
 
+class NotificationPreferences(models.Model):
+    """
+    Preferencias de notificación por usuario.
+    """
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='notification_preferences'
+    )
+    notify_treatment_created = models.BooleanField(
+        default=True,
+        verbose_name='Nuevo tratamiento',
+        help_text='Recibir notificación cuando se cree un nuevo tratamiento'
+    )
+    notify_treatment_finished = models.BooleanField(
+        default=True,
+        verbose_name='Tratamiento finalizado',
+        help_text='Recibir notificación cuando se finalice un tratamiento'
+    )
+
+    class Meta:
+        verbose_name = 'Preferencias de notificación'
+        verbose_name_plural = 'Preferencias de notificación'
+
+    def __str__(self):
+        return f'Preferencias de {self.user}'
+
+
 class AuditLog(models.Model):
     """
     Registro de auditoría para cambios en entidades.

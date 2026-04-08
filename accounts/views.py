@@ -1,7 +1,13 @@
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
 from django.shortcuts import render
 from django.urls import reverse_lazy
+from django.views.generic import UpdateView
+
+from accounts.forms import NotificationPreferencesForm
+from accounts.models import NotificationPreferences
 
 
 class CustomLoginView(LoginView):
@@ -9,18 +15,28 @@ class CustomLoginView(LoginView):
     redirect_authenticated_user = True
 
     def get_success_url(self):
-        # Obtener el valor 'next' o redirigir a la página principal
         next_url = self.request.POST.get('next') or self.request.GET.get('next')
-        return next_url or reverse_lazy('home')  # Cambia 'home' a tu URL principal
+        return next_url or reverse_lazy('home')
 
     def form_valid(self, form):
         remember_me = self.request.POST.get('remember')
-
         if not remember_me:
-            # La sesión expirará cuando el usuario cierre el navegador
             self.request.session.set_expiry(0)
+        return super().form_valid(form)
 
-        # Llamamos al método form_valid padre que maneja el login
+
+class NotificationPreferencesView(LoginRequiredMixin, UpdateView):
+    model = NotificationPreferences
+    form_class = NotificationPreferencesForm
+    template_name = 'accounts/notification_preferences.html'
+    success_url = reverse_lazy('accounts:notification-preferences')
+
+    def get_object(self, queryset=None):
+        obj, _ = NotificationPreferences.objects.get_or_create(user=self.request.user)
+        return obj
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Preferencias de notificación actualizadas.')
         return super().form_valid(form)
 
 
