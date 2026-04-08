@@ -209,7 +209,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_URL = 'accounts:login'
 LOGIN_REDIRECT_URL = ''
-LOGOUT_REDIRECT_URL = 'login'
+LOGOUT_REDIRECT_URL = '/'
 
 # ── Email ─────────────────────────────────────────────────────────────────────
 # En desarrollo imprime los emails en consola; en producción usa SMTP.

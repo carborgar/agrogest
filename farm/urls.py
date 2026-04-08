@@ -1,7 +1,7 @@
 from django.urls import path
-from django.views.generic import RedirectView
 
 from farm.views.dashboard_views import FieldDashboardView, FieldCostView
+from farm.views.landing_views import LandingView
 from farm.views.treatment_views import (
     TreatmentListView, TreatmentDetailView, TreatmentFormView,
     FinishTreatmentView, DeleteTreatmentView, CloneTreatmentView,
@@ -17,7 +17,7 @@ from .views.harvest_views import HarvestFormView, HarvestSummaryView, HarvestDel
 from .views.chat_views import ChatView
 
 urlpatterns = [
-    path("", RedirectView.as_view(url="/parcelas/vistazo/", permanent=False), name="home"),
+    path("", LandingView.as_view(), name="home"),
     path("parcelas/vistazo/", FieldDashboardView.as_view(), name="field_list"),
     path("parcelas/gastos/", FieldCostView.as_view(), name="field-costs"),
     path('tratamientos/', TreatmentListView.as_view(), name='treatment-list'),
