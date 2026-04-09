@@ -178,18 +178,30 @@ class TreatmentFormView(BaseSecureViewMixin, SuccessMessageMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         context['is_edit'] = bool(self.object and self.object.pk)
         context['form_title'] = 'Editar tratamiento' if context['is_edit'] else 'Nuevo tratamiento'
-        context['products_formset'] = (
-            TreatmentProductFormSet(self.request.POST, instance=self.object) if self.request.POST
-            else TreatmentProductFormSet(instance=self.object)
-        )
+
+        # Usar el formset ya validado (con errores) si existe; si no, crear uno nuevo.
+        if hasattr(self, '_products_formset'):
+            context['products_formset'] = self._products_formset
+        elif self.request.POST:
+            context['products_formset'] = TreatmentProductFormSet(self.request.POST, instance=self.object)
+        else:
+            context['products_formset'] = TreatmentProductFormSet(instance=self.object)
+
+        # Indicar al template si hay errores en el formset para navegar al paso 2
+        fs = context['products_formset']
+        context['has_formset_errors'] = bool(
+            any(fs.errors) or fs.non_form_errors()
+        ) if hasattr(self, '_products_formset') else False
+
         return context
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         form = self.get_form()
-        products_formset = TreatmentProductFormSet(request.POST, instance=self.object)
-        if form.is_valid() and products_formset.is_valid():
-            self.object = save_treatment_with_products(form, products_formset)
+        # Guardar referencia al formset validado para reutilizarlo en get_context_data
+        self._products_formset = TreatmentProductFormSet(request.POST, instance=self.object)
+        if form.is_valid() and self._products_formset.is_valid():
+            self.object = save_treatment_with_products(form, self._products_formset)
             return self.form_valid(form)
         return self.form_invalid(form)
 

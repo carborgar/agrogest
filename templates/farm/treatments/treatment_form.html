@@ -28,6 +28,15 @@
         border-radius: 0.375rem;
         font-size: 0.95rem;
     }
+
+    /* Tarjeta duplicada */
+    .treatment-product-card.product-card--duplicate {
+        outline: 2px solid var(--bs-danger, #dc3545);
+        outline-offset: 2px;
+        border-radius: 0.5rem;
+        background-color: rgba(220, 53, 69, 0.04);
+        transition: outline 0.15s, background-color 0.15s;
+    }
 </style>
 {% endblock %}
 
@@ -153,6 +162,11 @@
                             </div>
                             <div class="card-body">
                                 {{ products_formset.management_form }}
+
+                                <div class="alert alert-danger d-none align-items-center gap-2 mb-3" id="productsError" role="alert">
+                                    <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+                                    <span id="productsErrorMessage"></span>
+                                </div>
 
                                 <div class="treatment-products-grid" id="productsContainer">
                                     {% for form in products_formset %}
@@ -434,6 +448,74 @@
             return Array.from(document.querySelectorAll('.product-form')).filter(row => !isRowMarkedForDeletion(row));
         }
 
+        // ── Mensajes de error inline para productos ────────────────────
+        function showProductsError(message) {
+            const errorDiv = document.getElementById('productsError');
+            document.getElementById('productsErrorMessage').textContent = message;
+            errorDiv.classList.remove('d-none');
+            errorDiv.classList.add('d-flex');
+            errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function clearProductsError() {
+            const errorDiv = document.getElementById('productsError');
+            errorDiv.classList.add('d-none');
+            errorDiv.classList.remove('d-flex');
+        }
+
+        /**
+         * Detecta duplicados en tiempo real y marca visualmente los cards afectados.
+         * Llamar cada vez que cambia un producto o se elimina una fila.
+         */
+        function checkProductDuplicates() {
+            const visibleRows = getVisibleRows();
+
+            // Contar apariciones de cada product ID
+            const counts = {};
+            visibleRows.forEach(row => {
+                const select = row.querySelector('.product-select');
+                const id = select?.tomselect
+                    ? String(select.tomselect.getValue() || '')
+                    : (select?.value || '');
+                if (id) counts[id] = (counts[id] || 0) + 1;
+            });
+
+            let hasDuplicates = false;
+
+            visibleRows.forEach(row => {
+                const select = row.querySelector('.product-select');
+                const id = select?.tomselect
+                    ? String(select.tomselect.getValue() || '')
+                    : (select?.value || '');
+                const isDup = Boolean(id && counts[id] > 1);
+
+                row.classList.toggle('product-card--duplicate', isDup);
+
+                // Añadir o quitar badge "Duplicado" en la cabecera de la tarjeta
+                const header = row.querySelector('.product-card-header');
+                let badge = row.querySelector('.duplicate-badge');
+                if (isDup && header) {
+                    if (!badge) {
+                        badge = document.createElement('span');
+                        badge.className = 'duplicate-badge badge bg-danger ms-auto me-2 align-self-center';
+                        badge.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>Duplicado';
+                        header.insertBefore(badge, header.querySelector('.remove-row'));
+                    }
+                } else {
+                    badge?.remove();
+                }
+
+                if (isDup) hasDuplicates = true;
+            });
+
+            if (hasDuplicates) {
+                showProductsError('Los productos marcados en rojo están duplicados. Cada producto solo puede aparecer una vez.');
+            } else {
+                clearProductsError();
+            }
+        }
+        // ───────────────────────────────────────────────────────────────
+
         // Funciones para actualizar información
         function updateFieldInfo() {
             const field = fields[elements.fieldSelect.value];
@@ -493,6 +575,7 @@
 
         function handleProductChange(event) {
             updateProductInfo(event, {preserveExistingValues: false});
+            checkProductDuplicates();
         }
 
         // Función para validar la fecha de finalización
@@ -744,12 +827,14 @@
                 if (deleteInput) {
                     deleteInput.checked = true;
                     row.classList.add('d-none');
+                    row.classList.remove('product-card--duplicate');
+                    row.querySelector('.duplicate-badge')?.remove();
                     updateProductsIndexes();
-                    return;
+                } else {
+                    row.remove();
+                    updateProductsIndexes();
                 }
-
-                row.remove();
-                updateProductsIndexes();
+                checkProductDuplicates();
             });
         }
 
@@ -940,7 +1025,15 @@
 
             if (validProducts.length === 0) {
                 event.preventDefault();
-                alert('Debe agregar al menos un producto al tratamiento');
+                showStep(2);
+                showProductsError('Debe agregar al menos un producto al tratamiento.');
+                return false;
+            }
+
+            // Validar que no hay productos duplicados (checkProductDuplicates actualiza el estado visual)
+            checkProductDuplicates();
+            if (getVisibleRows().some(row => row.classList.contains('product-card--duplicate'))) {
+                event.preventDefault();
                 showStep(2);
                 return false;
             }
@@ -998,6 +1091,12 @@
                 addEventListenersToRow(row);
                 lastModifiedField.set(index, null);
 
+                // Ocultar filas marcadas para borrar (ocurre al re-renderizar tras un error)
+                if (isRowMarkedForDeletion(row)) {
+                    row.classList.add('d-none');
+                    return; // No inicializar TomSelect en filas eliminadas
+                }
+
                 const productSelect = row.querySelector('.product-select');
                 const currentValue = productSelect.value; // read before Tom Select takes over
 
@@ -1029,6 +1128,12 @@
         }
 
         checkStep1Completion();
+
+        // Si hay errores en el formset de productos (tras un envío fallido), ir al paso 2
+        const hasFormsetErrors = {{ has_formset_errors|yesno:"true,false" }};
+        if (hasFormsetErrors) {
+            showStep(2);
+        }
 
     });
 </script>

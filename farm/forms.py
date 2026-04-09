@@ -75,6 +75,16 @@ class TreatmentProductForm(forms.ModelForm):
             'total_dose': forms.NumberInput(attrs={'step': '0.01'}),
         }
 
+    def validate_unique(self):
+        """
+        Omitir la validación de unicidad a nivel de formulario individual.
+        El formset gestiona la detección de duplicados en clean(), y la
+        restricción unique_together del modelo se aplica a nivel de BD.
+        Al guardar, las eliminaciones se procesan ANTES que las inserciones,
+        por lo que borrar y volver a añadir el mismo producto funciona correctamente.
+        """
+        pass
+
     def clean_dose(self):
         dose = self.cleaned_data.get('dose')
         if dose is not None:
@@ -86,19 +96,31 @@ class TreatmentProductForm(forms.ModelForm):
 class BaseTreatmentProductFormSet(BaseInlineFormSet):
     def clean(self):
         """
-        Validate that at least one product is being used.
+        Valida que:
+        - Al menos un producto esté siendo usado.
+        - No haya productos duplicados entre los formularios no eliminados.
         """
         super().clean()
 
+        seen_products = {}
         valid_forms = 0
 
         for form in self.forms:
-            if form.is_valid() and form.cleaned_data and not form.cleaned_data.get('DELETE', False):
-                product = form.cleaned_data.get('product')
-                dose = form.cleaned_data.get('dose')
+            if not form.is_valid() or not form.cleaned_data:
+                continue
+            if form.cleaned_data.get('DELETE', False):
+                continue
+            product = form.cleaned_data.get('product')
+            dose = form.cleaned_data.get('dose')
 
-                if product and dose:
-                    valid_forms += 1
+            if product and dose:
+                if product.pk in seen_products:
+                    raise forms.ValidationError(
+                        f"El producto '{product.name}' está duplicado. "
+                        f"Cada producto solo puede aparecer una vez en el tratamiento."
+                    )
+                seen_products[product.pk] = True
+                valid_forms += 1
 
         if valid_forms < 1:
             raise forms.ValidationError("Debe agregar al menos un producto al tratamiento.")
