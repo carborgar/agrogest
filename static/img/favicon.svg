@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="7" fill="#1C3829"/>
+  <!-- Leaf -->
+  <path d="M16 4 C16 4 8 9.5 8 16.5 C8 20.9 11.6 24.5 16 24.5 C20.4 24.5 24 20.9 24 16.5 C24 9.5 16 4 16 4Z"
+        fill="url(#fg)"/>
+  <!-- Leaf vein -->
+  <path d="M16 4.5 L16 24" stroke="rgba(255,255,255,0.22)" stroke-width="0.8" stroke-linecap="round"/>
+  <!-- Gold drop -->
+  <path d="M16 25 C13.5 27.5 12 29 12 30.2 C12 31.8 13.8 33 16 33 C18.2 33 20 31.8 20 30.2 C20 29 18.5 27.5 16 25Z"
+        fill="#D4A017"/>
+  <defs>
+    <linearGradient id="fg" x1="16" y1="4" x2="16" y2="24.5" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#52B788"/>
+      <stop offset="1" stop-color="#2D6A4F"/>
+    </linearGradient>
+  </defs>
+</svg>
+

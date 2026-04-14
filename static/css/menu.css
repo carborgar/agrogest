@@ -1,13 +1,13 @@
 :root {
     --sidebar-width: 15rem;
-    --sidebar-bg: #1a2332;
+    --sidebar-bg: #1C3829;
     --sidebar-bg-hover: rgba(255,255,255,.06);
     --sidebar-bg-active: rgba(255,255,255,.1);
-    --text-light: #c8d3e0;
-    --text-bright: #f0f4f8;
+    --text-light: #b8cec4;
+    --text-bright: #f0f4f1;
     --border-subtle: rgba(255,255,255,.07);
-    --accent: #3b82f6;
-    --accent-glow: rgba(59,130,246,.18);
+    --accent: #52B788;
+    --accent-glow: rgba(82,183,136,.18);
     /* Anular el verde de Bootstrap en los nav-links del sidebar */
     --bs-nav-link-hover-color: var(--text-bright);
     --bs-nav-link-color: var(--text-light);
@@ -91,12 +91,11 @@ body {
 
 .brand-icon {
     width: 34px; height: 34px;
-    background: var(--accent);
     border-radius: 8px;
+    background: rgba(82,183,136,0.15);
     display: flex; align-items: center; justify-content: center;
-    font-size: 16px;
-    color: white;
     flex-shrink: 0;
+    overflow: hidden;
 }
 .brand-text { font-size: 1.15rem; font-weight: 700; margin: 0; }
 

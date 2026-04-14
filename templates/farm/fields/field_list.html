@@ -85,8 +85,8 @@
 
             <!-- Header con nombre + acciones -->
             <div class="field-card-header">
-                <div class="field-card-icon">
-                    <i class="fa fa-wheat-awn"></i>
+                <div class="field-card-icon field-card-icon--initial">
+                    {{ field.name|first|upper }}
                 </div>
                 <div class="field-card-title-group">
                     <h5 class="field-card-name">{{ field.name }}</h5>
