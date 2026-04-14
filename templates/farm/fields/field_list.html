@@ -33,30 +33,31 @@
       {% for c in crop_area_summary %}
       <div class="col-12 col-sm-6 col-xl-4">
         <div class="rounded-3 border p-3 h-100" style="border-color: rgba(0,0,0,.08) !important;">
-          <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-            <div class="d-flex align-items-center gap-2 min-w-0">
-              <span class="rounded-circle bg-{{ c.color }} bg-opacity-15 d-flex align-items-center justify-content-center flex-shrink-0"
-                    style="width:30px;height:30px">
-                <i class="fa fa-wheat-awn text-{{ c.color }}" style="font-size:.8rem"></i>
-              </span>
-              <span class="fw-semibold text-truncate">{{ c.crop }}</span>
-            </div>
-            <span class="badge rounded-pill bg-{{ c.color }} bg-opacity-10 text-{{ c.color }} border border-{{ c.color }} border-opacity-25 flex-shrink-0"
-                  style="font-size:.7rem">
-              {{ c.count }} parcela{{ c.count|pluralize }}
+
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <span class="rounded-circle bg-{{ c.color }} bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0 fw-bold text-{{ c.color }}"
+                  style="width:38px;height:38px;font-size:1rem">
+              {{ c.crop|first|upper }}
             </span>
+            <div class="min-w-0 flex-grow-1">
+              <div class="fw-semibold lh-1 text-truncate">{{ c.crop }}</div>
+              <div class="small text-muted lh-1 mt-1">
+                <i class="fa fa-layer-group fa-xs me-1"></i>{{ c.count }} parcela{{ c.count|pluralize }}
+              </div>
+            </div>
           </div>
 
-          <div class="d-flex align-items-end justify-content-between mb-1">
-            <span class="fs-5 fw-bold lh-1">{{ c.area }} <span class="fs-6 fw-normal text-muted">ha</span></span>
+          <div class="d-flex align-items-end justify-content-between mb-2">
+            <span class="fs-4 fw-bold lh-1">{{ c.area }} <span class="fs-6 fw-normal text-muted">ha</span></span>
             <span class="small text-muted">{{ c.area_pct }}%</span>
           </div>
 
-          <div class="progress rounded-pill" style="height:5px">
-            <div class="progress-bar bg-{{ c.color }}" role="progressbar"
+          <div class="progress rounded-pill" style="height:6px">
+            <div class="progress-bar bg-{{ c.color }} rounded-pill" role="progressbar"
                  style="width:{{ c.area_pct }}%"
                  aria-valuenow="{{ c.area_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
           </div>
+
         </div>
       </div>
       {% endfor %}
