@@ -1,6 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum
 from django.urls import reverse_lazy, reverse
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
 
@@ -28,10 +28,46 @@ class FieldListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         fields = context['fields']
-        from django.db.models import Sum
         context['total_area'] = round(fields.aggregate(Sum('area'))['area__sum'] or 0, 2)
         context['total_fields'] = fields.count()
+        context['crop_area_summary'] = self._build_crop_area_summary()
         return context
+
+    def _build_crop_area_summary(self):
+        """
+        Returns area (ha) grouped by crop name (case-insensitive, stripped),
+        sorted descending by area.
+        """
+        all_fields = Field.objects.all().values('crop', 'area')
+
+        groups: dict = {}
+        for row in all_fields:
+            raw_crop = (row['crop'] or '').strip()
+            key = raw_crop.lower()
+            if not key:
+                key = '(sin cultivo)'
+                raw_crop = key
+            if key not in groups:
+                groups[key] = {'area': 0.0, 'count': 0, 'display': raw_crop.title()}
+            groups[key]['area'] += row['area'] or 0
+            groups[key]['count'] += 1
+
+        palette = ['success', 'primary', 'info', 'warning', 'danger', 'secondary']
+        sorted_groups = sorted(groups.values(), key=lambda x: -x['area'])
+        total_area = sum(g['area'] for g in sorted_groups)
+
+        result = []
+        for i, g in enumerate(sorted_groups):
+            area = round(g['area'], 2)
+            pct = int(round(area / total_area * 100)) if total_area > 0 else 0
+            result.append({
+                'crop': g['display'],
+                'area': area,
+                'count': g['count'],
+                'area_pct': pct,
+                'color': palette[i % len(palette)],
+            })
+        return result
 
 
 class FieldDetailView(LoginRequiredMixin, DetailView):
