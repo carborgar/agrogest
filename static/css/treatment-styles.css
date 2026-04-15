@@ -797,9 +797,6 @@ ESTILOS PARA DETALLES
 .filter-sidebar-sticky {
     position: sticky;
     top: 1rem;
-    max-height: calc(100vh - 2rem);
-    overflow-y: auto;
-    padding-right: 2px; /* thin scrollbar gap */
 }
 
 /* ═══════════════════════════════════════════════
