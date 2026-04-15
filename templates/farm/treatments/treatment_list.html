@@ -377,8 +377,8 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         // ── Elevate z-index on dropdown open so cards don't overlap ──
-        document.querySelectorAll('.treatment-card [data-bs-toggle="dropdown"], .treatment-item [data-bs-toggle="dropdown"]').forEach(trigger => {
-            const col = trigger.closest('.col') || trigger.closest('.treatment-item');
+        document.querySelectorAll('.treatment-card [data-bs-toggle="dropdown"], .treatment-item [data-bs-toggle="dropdown"], .ti-group [data-bs-toggle="dropdown"]').forEach(trigger => {
+            const col = trigger.closest('.col') || trigger.closest('.treatment-item') || trigger.closest('.ti-group');
             if (!col) return;
             trigger.addEventListener('show.bs.dropdown', () => {
                 col.style.zIndex = '100';
