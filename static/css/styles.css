@@ -900,3 +900,81 @@ a:hover .dashboard-treatment-row {
     cursor: default;
     box-shadow: none;
 }
+
+/* ═══════════════════════════════════════════
+   SEARCHABLE SELECT  (.ss-*)
+   Generic single-value combobox with search
+═══════════════════════════════════════════ */
+.ss-wrapper {
+    position: relative;
+}
+
+.ss-input {
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236c757d' viewBox='0 0 16 16'%3E%3Cpath d='M7.5 1a6.5 6.5 0 1 0 4.76 10.99l2.87 2.87a.75.75 0 1 0 1.06-1.06l-2.87-2.87A6.5 6.5 0 0 0 7.5 1zm0 1.5a5 5 0 1 1 0 10A5 5 0 0 1 7.5 2.5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 14px;
+    padding-right: 2.25rem;
+}
+
+.ss-dropdown {
+    position: absolute;
+    top: calc(100% + 2px);
+    left: 0;
+    right: 0;
+    z-index: 1050;
+    background: #fff;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    max-height: 230px;
+    overflow-y: auto;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .12);
+}
+
+.ss-item {
+    display: block;
+    width: 100%;
+    padding: 0.42rem 0.75rem;
+    text-align: left;
+    background: none;
+    border: none;
+    border-bottom: 1px solid #f1f3f5;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    cursor: pointer;
+    color: #212529;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ss-item:last-child {
+    border-bottom: none;
+}
+
+.ss-item:hover {
+    background: var(--bs-primary, #4a7c59);
+    color: #fff;
+}
+
+.ss-item--selected {
+    font-weight: 600;
+    color: var(--bs-primary, #4a7c59);
+}
+
+.ss-item--selected:hover {
+    color: #fff;
+}
+
+.ss-item--active {
+    background: rgba(var(--bs-primary-rgb, 74, 124, 89), 0.12);
+    color: var(--bs-primary, #4a7c59);
+}
+
+.ss-empty {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    color: #6c757d;
+    font-style: italic;
+}

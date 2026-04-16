@@ -43,6 +43,165 @@
 <script src="{% static 'js/menu.js' %}"></script>
 
 <script>
+/**
+ * SearchableSelect — combobox genérico reutilizable
+ *
+ * Uso:
+ *   const ss = new SearchableSelect(selectElement, { placeholder: 'Buscar...' });
+ *   ss.setOptions([{ value: 1, text: 'Opción A' }, ...], restoreValue);
+ *   ss.setValue(42);
+ *   const val = ss.getValue();
+ *   ss.destroy();
+ *
+ * El <select> original queda oculto en el DOM y se usa para el envío del formulario.
+ * Escucha el evento nativo 'change' en el <select> para reaccionar a cambios.
+ */
+class SearchableSelect {
+    constructor(selectElement, { placeholder = 'Buscar...' } = {}) {
+        if (selectElement._ssInstance) return; // ya inicializado
+        selectElement._ssInstance = this;
+        this.select = selectElement;
+        this.placeholder = placeholder;
+        this._build();
+    }
+
+    _build() {
+        const sel = this.select;
+        sel.style.display = 'none';
+
+        // Wrapper
+        this.wrapper = document.createElement('div');
+        this.wrapper.className = 'ss-wrapper';
+        sel.parentNode.insertBefore(this.wrapper, sel);
+        this.wrapper.appendChild(sel); // mover el select dentro del wrapper
+
+        // Input visible
+        this.input = document.createElement('input');
+        this.input.type = 'text';
+        this.input.className = 'form-control ss-input';
+        this.input.placeholder = this.placeholder;
+        this.input.autocomplete = 'off';
+        this.wrapper.insertBefore(this.input, sel);
+
+        // Dropdown
+        this.dropdown = document.createElement('div');
+        this.dropdown.className = 'ss-dropdown d-none';
+        this.wrapper.appendChild(this.dropdown);
+
+        // Eventos
+        this.input.addEventListener('focus', () => this._open());
+        this.input.addEventListener('input', () => this._open());
+        this.input.addEventListener('blur', () => setTimeout(() => this._close(), 160));
+        this.input.addEventListener('keydown', e => this._onKeydown(e));
+
+        this._syncDisplay();
+    }
+
+    _open() {
+        const q = this.input.value.toLowerCase().trim();
+        this.dropdown.innerHTML = '';
+        let count = 0;
+
+        Array.from(this.select.options).forEach(opt => {
+            if (!opt.value) return;
+            if (q && !opt.text.toLowerCase().includes(q)) return;
+
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'ss-item' + (opt.value === this.select.value ? ' ss-item--selected' : '');
+            btn.textContent = opt.text;
+            btn.dataset.value = opt.value;
+            btn.addEventListener('mousedown', e => {
+                e.preventDefault();
+                this._pick(opt.value, opt.text);
+            });
+            this.dropdown.appendChild(btn);
+            count++;
+        });
+
+        if (count === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'ss-empty';
+            empty.textContent = 'Sin resultados';
+            this.dropdown.appendChild(empty);
+        }
+
+        this.dropdown.classList.remove('d-none');
+        this._highlightedIndex = -1;
+    }
+
+    _close() {
+        this.dropdown.classList.add('d-none');
+        this._syncDisplay(); // restaurar texto si el usuario borrara sin seleccionar
+    }
+
+    _pick(value, text) {
+        this.select.value = value;
+        this.input.value = text;
+        this.dropdown.classList.add('d-none');
+        this.select.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    _syncDisplay() {
+        const selected = Array.from(this.select.options).find(o => o.value === this.select.value);
+        this.input.value = (selected && selected.value) ? selected.text : '';
+    }
+
+    _onKeydown(e) {
+        if (this.dropdown.classList.contains('d-none')) return;
+        const items = Array.from(this.dropdown.querySelectorAll('.ss-item'));
+        if (!items.length) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            this._highlightedIndex = Math.min((this._highlightedIndex ?? -1) + 1, items.length - 1);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            this._highlightedIndex = Math.max((this._highlightedIndex ?? 0) - 1, 0);
+        } else if (e.key === 'Enter' && this._highlightedIndex >= 0) {
+            e.preventDefault();
+            const item = items[this._highlightedIndex];
+            if (item) this._pick(item.dataset.value, item.textContent);
+            return;
+        } else if (e.key === 'Escape') {
+            this._close();
+            return;
+        }
+
+        items.forEach((it, i) => it.classList.toggle('ss-item--active', i === this._highlightedIndex));
+        items[this._highlightedIndex]?.scrollIntoView({ block: 'nearest' });
+    }
+
+    /** Reemplaza las opciones del select y restaura el valor seleccionado */
+    setOptions(items, restoreValue = null) {
+        this.select.innerHTML = '<option value=""></option>';
+        items.forEach(({ value, text }) => {
+            const opt = document.createElement('option');
+            opt.value = String(value);
+            opt.textContent = text;
+            this.select.appendChild(opt);
+        });
+        this.select.value = restoreValue != null ? String(restoreValue) : '';
+        this._syncDisplay();
+    }
+
+    getValue() { return this.select.value; }
+
+    setValue(value) {
+        this.select.value = value != null ? String(value) : '';
+        this._syncDisplay();
+    }
+
+    destroy() {
+        delete this.select._ssInstance;
+        this.wrapper.parentNode?.insertBefore(this.select, this.wrapper);
+        this.select.style.display = '';
+        this.wrapper.remove();
+    }
+}
+</script>
+
+<script>
     function showNotification({ icon = 'info', title = '', text = '', reload = false, onOk = null }) {
         Swal.fire({
             target: '#swal-container',
@@ -102,20 +261,6 @@
     };
 </script>
 
-<script>
-    document.querySelectorAll('select.choices-init').forEach(select => {
-        new TomSelect(select, {
-            plugins: ['remove_button'],
-            placeholder: select.getAttribute('data-placeholder') || 'Selecciona opciones...',
-            maxOptions: null,
-            create: false,
-            dropdownParent: 'body',
-            render: {
-                no_results: () => `<div class="no-results">Sin resultados</div>`,
-            },
-        });
-    });
-</script>
 
 <script>
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
@@ -155,6 +300,20 @@
             }
 
             checkboxes.forEach(cb => cb.addEventListener('change', updateBtn));
+
+            // Buscador dentro del dropdown
+            const searchInput = dropdown.querySelector('.filter-dd-search');
+            if (searchInput) {
+                searchInput.addEventListener('input', () => {
+                    const q = searchInput.value.toLowerCase().trim();
+                    dropdown.querySelectorAll('.filter-dd-options .form-check').forEach(item => {
+                        const text = item.querySelector('label')?.textContent.toLowerCase() || '';
+                        item.style.display = (!q || text.includes(q)) ? '' : 'none';
+                    });
+                });
+                // Evitar que el dropdown cierre al hacer click en el buscador
+                searchInput.addEventListener('click', e => e.stopPropagation());
+            }
         });
     });
 </script>

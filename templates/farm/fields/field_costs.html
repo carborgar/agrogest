@@ -54,12 +54,24 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label small" for="fieldSelector">Parcelas</label>
-                    <select class="form-select form-select-sm choices-init" id="fieldSelector" multiple
-                            data-placeholder="Todas las parcelas…">
-                        {% for f in fields %}
-                        <option value="{{ f.id }}">{{ f.name }}</option>
-                        {% endfor %}
-                    </select>
+                    <div class="dropdown filter-check-dropdown w-100" id="fieldSelectorDropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start filter-dd-btn"
+                                type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                            <span class="filter-dd-label">Todas las parcelas…</span>
+                        </button>
+                        <div class="dropdown-menu filter-dd-menu p-2">
+                            <input type="text" class="form-control form-control-sm mb-2 filter-dd-search" placeholder="Buscar…" autocomplete="off">
+                            <div class="filter-dd-options">
+                            {% for f in fields %}
+                            <div class="form-check mb-1">
+                                <input class="form-check-input fieldcost-check" type="checkbox"
+                                       value="{{ f.id }}" id="fc-{{ f.id }}">
+                                <label class="form-check-label small" for="fc-{{ f.id }}">{{ f.name }}</label>
+                            </div>
+                            {% endfor %}
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label small" for="viewMode">Mostrar valores en</label>
@@ -188,5 +200,16 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 <script src="{% static 'js/field-costs.js' %}"></script>
+<script>
+    // Recargar datos al cambiar los checkboxes de parcelas
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.fieldcost-check').forEach(cb => {
+            cb.addEventListener('change', () => {
+                if (typeof loadFieldCostsData === 'function') loadFieldCostsData();
+            });
+        });
+    });
+</script>
 {% endblock %}

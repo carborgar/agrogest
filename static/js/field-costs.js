@@ -4,8 +4,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const dateToInput = document.getElementById('dateTo');
     const applyFilterBtn = document.getElementById('applyDateFilter');
     const fieldsContainer = document.getElementById('fieldsContainer');
-    const fieldsInput = document.getElementById('fieldSelector');
+    const fieldsInput = document.getElementById('fieldSelectorDropdown');
     const viewModeSelector = document.getElementById('viewMode');
+
+    // Salir si no estamos en la página de resumen de gastos
+    if (!dateFromInput || !dateToInput || !applyFilterBtn || !fieldsContainer || !fieldsInput || !viewModeSelector) {
+        return;
+    }
 
     // Inicializar fechas (año en curso por defecto)
     const today = new Date();
@@ -69,7 +74,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function loadFieldCostsData() {
         const dateFrom = dateFromInput.value;
         const dateTo = dateToInput.value;
-        const fieldsList = Array.from(fieldsInput.selectedOptions).map(opt => opt.value);
+        const fieldsList = Array.from(fieldsInput.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
 
         // Construir parámetros
         const params = new URLSearchParams();

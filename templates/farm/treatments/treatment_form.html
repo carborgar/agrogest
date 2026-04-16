@@ -19,15 +19,6 @@
         gap: 0.5rem;
     }
 
-    /* Tom Select dentro de las tarjetas de producto */
-    .treatment-product-card .ts-wrapper {
-        width: 100%;
-    }
-
-    .treatment-product-card .ts-control {
-        border-radius: 0.375rem;
-        font-size: 0.95rem;
-    }
 
     /* Tarjeta duplicada */
     .treatment-product-card.product-card--duplicate {
@@ -403,40 +394,39 @@
             updateProductsTableOptions();
         }
 
-        // ── Tom Select helpers ─────────────────────────────────────────
-        function initProductTomSelect(selectElement) {
-            if (selectElement.tomselect) return selectElement.tomselect;
-            return new TomSelect(selectElement, {
-                searchField: ['text'],
-                maxOptions: null,
-                create: false,
-                allowEmptyOption: false,
-                placeholder: 'Buscar producto…',
-                render: {
-                    no_results: () => `<div class="no-results">Sin resultados</div>`,
-                },
-            });
+        // ── Product select helpers (SearchableSelect) ────────────────
+        // Mapa: selectElement -> instancia SearchableSelect
+        const ssInstances = new Map();
+
+        function initProductSelect(selectElement) {
+            if (ssInstances.has(selectElement)) return;
+            const ss = new SearchableSelect(selectElement, { placeholder: 'Buscar producto…' });
+            ssInstances.set(selectElement, ss);
         }
 
-        function updateTomSelectOptions(selectElement, restoreValue) {
-            const ts = selectElement.tomselect;
-            if (!ts) return;
-            ts.clearOptions();
-            ts.addOption({ value: '', text: '' }); // empty placeholder option
-            for (const product of products.values()) {
-                ts.addOption({ value: String(product.id), text: product.name });
+        function updateProductSelectOptions(selectElement, restoreValue) {
+            const items = Array.from(products.values()).map(p => ({ value: p.id, text: p.name }));
+            const ss = ssInstances.get(selectElement);
+            if (ss) {
+                ss.setOptions(items, restoreValue || null);
+            } else {
+                // fallback sin instancia
+                selectElement.innerHTML = '<option value=""></option>';
+                items.forEach(({ value, text }) => {
+                    const opt = document.createElement('option');
+                    opt.value = String(value);
+                    opt.textContent = text;
+                    selectElement.appendChild(opt);
+                });
+                selectElement.value = restoreValue ? String(restoreValue) : '';
             }
-            ts.refreshOptions(false);
-            const val = restoreValue ? String(restoreValue) : '';
-            ts.setValue(val, true); // silent — no change event fired
         }
-        // ───────────────────────────────────────────────────────────────
+        // ─────────────────────────────────────────────────────────────
 
         function updateProductsTableOptions() {
             document.querySelectorAll('.product-select').forEach(productSelect => {
-                const ts = productSelect.tomselect;
-                const currentValue = ts ? String(ts.getValue() || '') : productSelect.value;
-                updateTomSelectOptions(productSelect, currentValue);
+                const currentValue = productSelect.value;
+                updateProductSelectOptions(productSelect, currentValue);
             });
         }
 
@@ -474,9 +464,7 @@
             const counts = {};
             visibleRows.forEach(row => {
                 const select = row.querySelector('.product-select');
-                const id = select?.tomselect
-                    ? String(select.tomselect.getValue() || '')
-                    : (select?.value || '');
+                const id = select?.value || '';
                 if (id) counts[id] = (counts[id] || 0) + 1;
             });
 
@@ -484,9 +472,7 @@
 
             visibleRows.forEach(row => {
                 const select = row.querySelector('.product-select');
-                const id = select?.tomselect
-                    ? String(select.tomselect.getValue() || '')
-                    : (select?.value || '');
+                const id = select?.value || '';
                 const isDup = Boolean(id && counts[id] > 1);
 
                 row.classList.toggle('product-card--duplicate', isDup);
@@ -849,10 +835,10 @@
 
             elements.productsContainer.appendChild(rowElement);
 
-            // Init Tom Select after the row is in the DOM, then populate options
+            // Init product select after the row is in the DOM, then populate options
             const productSelect = rowElement.querySelector('.product-select');
-            initProductTomSelect(productSelect);
-            updateTomSelectOptions(productSelect, '');
+            initProductSelect(productSelect);
+            updateProductSelectOptions(productSelect, '');
 
             addEventListenersToRow(rowElement);
 
@@ -879,10 +865,10 @@
 
             elements.productsContainer.appendChild(rowElement);
 
-            // Init Tom Select after insertion, then populate options
+            // Init product select after insertion, then populate options
             const productSelect = rowElement.querySelector('.product-select');
-            initProductTomSelect(productSelect);
-            updateTomSelectOptions(productSelect, '');
+            initProductSelect(productSelect);
+            updateProductSelectOptions(productSelect, '');
 
             addEventListenersToRow(rowElement);
 
@@ -1094,15 +1080,15 @@
                 // Ocultar filas marcadas para borrar (ocurre al re-renderizar tras un error)
                 if (isRowMarkedForDeletion(row)) {
                     row.classList.add('d-none');
-                    return; // No inicializar TomSelect en filas eliminadas
+                    return; // No inicializar select en filas eliminadas
                 }
 
                 const productSelect = row.querySelector('.product-select');
-                const currentValue = productSelect.value; // read before Tom Select takes over
+                const currentValue = productSelect.value;
 
-                // Init Tom Select and populate with treatment-type-filtered options
-                initProductTomSelect(productSelect);
-                updateTomSelectOptions(productSelect, currentValue);
+                // Init product select and populate with treatment-type-filtered options
+                initProductSelect(productSelect);
+                updateProductSelectOptions(productSelect, currentValue);
 
                 // Show recommended dose info without overwriting saved values
                 if (currentValue) {
