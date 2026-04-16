@@ -26,6 +26,7 @@ jobs:
           access_key_id = ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
           secret_access_key = ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
           endpoint = https://${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          no_check_bucket = true
           EOF
 
       - name: Backup database
@@ -36,6 +37,6 @@ jobs:
           set -e
           FILE=backup_$(date +%F_%H-%M).sql.gz
           pg_dump "$DATABASE_URL" --no-owner --no-acl | gzip > $FILE
-          rclone copy $FILE r2:$BUCKET/
+          rclone copy $FILE r2:$BUCKET/ --no-check-dest
           # eliminar backups más antiguos de 30 días
           rclone delete r2:$BUCKET --min-age 30d
