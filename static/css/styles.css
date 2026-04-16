@@ -394,6 +394,58 @@ footer a:hover { color: #b9f6ca; }
     margin-right: 6px;
 }
 
+/* ═══════════════════════════════════════════
+   FILTER BAR — dropdown + checkboxes
+   Componente reutilizable en todas las páginas
+═══════════════════════════════════════════ */
+.filter-check-dropdown .filter-dd-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    height: calc(1.5em + 0.75rem + 2px);
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: #6c757d;
+    border-color: #dee2e6;
+    background: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.filter-check-dropdown .filter-dd-btn::after {
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.filter-check-dropdown .filter-dd-btn .filter-dd-label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+}
+
+.filter-check-dropdown .filter-dd-btn--active {
+    color: #212529;
+    border-color: var(--bs-primary);
+    font-weight: 500;
+}
+
+.filter-dd-menu {
+    min-width: 200px;
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.filter-dd-menu .form-check-label {
+    cursor: pointer;
+}
+
+.filter-dd-menu .form-check-input:checked + .form-check-label {
+    color: var(--bs-primary);
+    font-weight: 500;
+}
+
 .white-over-white {
     background: white;
     border: 1px solid var(--gray-200);

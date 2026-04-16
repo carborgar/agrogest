@@ -5,358 +5,338 @@
 {% block header %}Tratamientos{% endblock %}
 {% block sub_header %}Gestión y seguimiento de todos los tratamientos{% endblock %}
 
+{% block actions %}
+<a class="btn btn-primary" href="{% url 'treatment-create' %}">
+    <i class="fa fa-plus me-1"></i>Nuevo tratamiento
+</a>
+{% endblock %}
+
 {% block content %}
-<div class="row g-4">
-    <!-- Panel de filtros (sticky desktop) -->
-    <div class="col-lg-3">
 
-        <div class="mb-3 d-grid">
-            <a class="btn btn-primary action-btn" href="{% url 'treatment-create' %}">
-                <i class="fa fa-plus-circle"></i>Nuevo tratamiento
-            </a>
-        </div>
+{# ── BARRA DE FILTROS ──────────────────────────────────────────────── #}
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body py-3">
+        <form method="GET" id="filterForm">
 
-        <!-- Mobile: toggle filters button -->
-        <button class="btn btn-outline-secondary w-100 mb-3 d-lg-none" type="button"
-                data-bs-toggle="collapse" data-bs-target="#filterSidebar" aria-expanded="false">
-            <i class="fa fa-sliders me-2"></i>Filtros
-            {% if active_filter_count %}
-            <span class="badge bg-primary ms-2">{{ active_filter_count }}</span>
-            {% endif %}
-        </button>
+            {# Fila principal de filtros #}
+            <div class="row g-2 align-items-end">
 
-        <div class="collapse d-lg-block" id="filterSidebar">
-            <div class="filter-sidebar-sticky">
-                <form method="GET" id="filterForm">
+                {# Búsqueda #}
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <label class="form-label small fw-semibold text-muted mb-1" for="searchInput">
+                        <i class="fa fa-search me-1"></i>Nombre
+                    </label>
+                    <input type="text" name="q" value="{{ search_query|default:'' }}"
+                           class="form-control" placeholder="Buscar tratamiento…" id="searchInput"
+                           autocomplete="off">
+                </div>
 
-                    <!-- Search box -->
-                    <div class="mb-3">
-                        <div class="input-group">
-                            <span class="input-group-text bg-white border-end-0">
-                                <i class="fa fa-search text-muted"></i>
+                {# Parcelas — dropdown + checkboxes #}
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <label class="form-label small fw-semibold text-muted mb-1">
+                        <i class="fa fa-map me-1"></i>Parcelas
+                    </label>
+                    <div class="dropdown filter-check-dropdown w-100">
+                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start filter-dd-btn{% if selected_fields %} filter-dd-btn--active{% endif %}"
+                                type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                            <span class="filter-dd-label">
+                                {% if selected_fields %}{{ selected_fields|length }} parcela{{ selected_fields|length|pluralize }}{% else %}Todas las parcelas…{% endif %}
                             </span>
-                            <input type="text" name="q" value="{{ search_query|default:'' }}"
-                                   class="form-control border-start-0 ps-0" placeholder="Buscar por nombre…"
-                                   id="searchInput">
-                            {% if search_query %}
-                            <a href="?{% for key, value in request.GET.items %}{% if key != 'q' %}{{ key }}={{ value }}&{% endif %}{% endfor %}"
-                               class="input-group-text bg-white text-muted" title="Limpiar búsqueda">
-                                <i class="fa fa-times"></i>
-                            </a>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <!-- Parcelas -->
-                    <div class="filter-panel">
-                        <div class="filter-header">
-                            <button class="btn filter-btn {% if not selected_fields %}collapsed{% endif %}"
-                                    type="button" data-bs-toggle="collapse" data-bs-target="#parcelasFilter"
-                                    aria-expanded="{% if selected_fields %}true{% else %}false{% endif %}">
-                                <div class="d-flex align-items-center">
-                                    <span class="filter-icon"><i class="fa fa-map"></i></span>
-                                    <span>Parcelas</span>
-                                    {% if selected_fields %}
-                                    <span class="badge bg-primary ms-2">{{ selected_fields|length }}</span>
-                                    {% endif %}
-                                </div>
-                                <i class="fa fa-chevron-down toggle-icon"></i>
-                            </button>
-                        </div>
-                        <div class="collapse {% if selected_fields %}show{% endif %}" id="parcelasFilter">
-                            <div class="filter-body">
-                                {% for field in fields %}
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input" type="checkbox" value="{{ field.id }}" name="field"
-                                           id="parcela-{{ field.id }}"
-                                           {% if field.id|stringformat:"s" in selected_fields %}checked{% endif %}>
-                                    <label class="form-check-label" for="parcela-{{ field.id }}">{{ field.name }}</label>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Tipo de tratamiento -->
-                    <div class="filter-panel">
-                        <div class="filter-header">
-                            <button class="btn filter-btn {% if not selected_types %}collapsed{% endif %}" type="button"
-                                    data-bs-toggle="collapse" data-bs-target="#tratamientosFilter"
-                                    aria-expanded="{% if selected_types %}true{% else %}false{% endif %}">
-                                <div class="d-flex align-items-center">
-                                    <span class="filter-icon"><i class="fa fa-droplet"></i></span>
-                                    <span>Tipo</span>
-                                    {% if selected_types %}
-                                    <span class="badge bg-primary ms-2">{{ selected_types|length }}</span>
-                                    {% endif %}
-                                </div>
-                                <i class="fa fa-chevron-down toggle-icon"></i>
-                            </button>
-                        </div>
-                        <div class="collapse {% if selected_types %}show{% endif %}" id="tratamientosFilter">
-                            <div class="filter-body">
-                                {% for key, value in type_choices %}
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input" type="checkbox" value="{{ key }}" name="type"
-                                           id="tipoTratamiento-{{ key }}"
-                                           {% if key in selected_types %}checked{% endif %}>
-                                    <label class="form-check-label" for="tipoTratamiento-{{ key }}">{{ value }}</label>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Estado -->
-                    <div class="filter-panel">
-                        <div class="filter-header">
-                            <button class="btn filter-btn {% if not selected_statuses %}collapsed{% endif %}" type="button"
-                                    data-bs-toggle="collapse" data-bs-target="#estadosFilter"
-                                    aria-expanded="{% if selected_statuses %}true{% else %}false{% endif %}">
-                                <div class="d-flex align-items-center">
-                                    <span class="filter-icon"><i class="fa fa-circle-half-stroke"></i></span>
-                                    <span>Estado</span>
-                                    {% if selected_statuses %}
-                                    <span class="badge bg-primary ms-2">{{ selected_statuses|length }}</span>
-                                    {% endif %}
-                                </div>
-                                <i class="fa fa-chevron-down toggle-icon"></i>
-                            </button>
-                        </div>
-                        <div class="collapse {% if selected_statuses %}show{% endif %}" id="estadosFilter">
-                            <div class="filter-body">
-                                {% for key, value in status_choices %}
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input" type="checkbox" value="{{ key }}" name="status"
-                                           id="estado-{{ key }}"
-                                           {% if key in selected_statuses %}checked{% endif %}>
-                                    <label class="form-check-label" for="estado-{{ key }}">{{ value }}</label>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Tipo de producto -->
-                    <div class="filter-panel">
-                        <div class="filter-header">
-                            <button class="btn filter-btn {% if not selected_product_types %}collapsed{% endif %}" type="button"
-                                    data-bs-toggle="collapse" data-bs-target="#tipoProductoFilter"
-                                    aria-expanded="{% if selected_product_types %}true{% else %}false{% endif %}">
-                                <div class="d-flex align-items-center">
-                                    <span class="filter-icon"><i class="fa fa-box"></i></span>
-                                    <span>Tipo de producto</span>
-                                    {% if selected_product_types %}
-                                    <span class="badge bg-primary ms-2">{{ selected_product_types|length }}</span>
-                                    {% endif %}
-                                </div>
-                                <i class="fa fa-chevron-down toggle-icon"></i>
-                            </button>
-                        </div>
-                        <div class="collapse {% if selected_product_types %}show{% endif %}" id="tipoProductoFilter">
-                            <div class="filter-body pb-2">
-                                <select class="choices-init" name="product_types" multiple
-                                        data-placeholder="Buscar tipos de producto...">
-                                    {% for product_type in product_types %}
-                                    <option value="{{ product_type.id }}"
-                                            {% if product_type.id|stringformat:"s" in selected_product_types %}selected{% endif %}>
-                                        {{ product_type.name }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Productos -->
-                    <div class="filter-panel">
-                        <div class="filter-header">
-                            <button class="btn filter-btn {% if not selected_products %}collapsed{% endif %}" type="button"
-                                    data-bs-toggle="collapse" data-bs-target="#productosFilter"
-                                    aria-expanded="{% if selected_products %}true{% else %}false{% endif %}">
-                                <div class="d-flex align-items-center">
-                                    <span class="filter-icon"><i class="fa fa-flask"></i></span>
-                                    <span>Productos</span>
-                                    {% if selected_products %}
-                                    <span class="badge bg-primary ms-2">{{ selected_products|length }}</span>
-                                    {% endif %}
-                                </div>
-                                <i class="fa fa-chevron-down toggle-icon"></i>
-                            </button>
-                        </div>
-                        <div class="collapse {% if selected_products %}show{% endif %}" id="productosFilter">
-                            <div class="filter-body pb-2">
-                                <select class="choices-init" name="products" multiple
-                                        data-placeholder="Buscar productos...">
-                                    {% for product in products %}
-                                    <option value="{{ product.id }}"
-                                            {% if product.id|stringformat:"s" in selected_products %}selected{% endif %}>
-                                        {{ product.name }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Fechas -->
-                    <div class="filter-panel">
-                        <div class="filter-header">
-                            <button class="btn filter-btn {% if not date_from and not date_to %}collapsed{% endif %}"
-                                    type="button" data-bs-toggle="collapse" data-bs-target="#fechasFilter"
-                                    aria-expanded="{% if date_from or date_to %}true{% else %}false{% endif %}">
-                                <div class="d-flex align-items-center">
-                                    <span class="filter-icon"><i class="fa fa-calendar"></i></span>
-                                    <span>Rango de fechas</span>
-                                    {% if date_from or date_to %}
-                                    <span class="badge bg-primary ms-2">1</span>
-                                    {% endif %}
-                                </div>
-                                <i class="fa fa-chevron-down toggle-icon"></i>
-                            </button>
-                        </div>
-                        <div class="collapse {% if date_from or date_to %}show{% endif %}" id="fechasFilter">
-                            <div class="filter-body">
-                                <div class="date-filter mb-3">
-                                    <label for="date_from" class="form-label fw-semibold">Desde:</label>
-                                    <input type="date" name="date_from" value="{{ date_from }}" class="form-control" id="date_from">
-                                </div>
-                                <div class="date-filter">
-                                    <label for="date_to" class="form-label fw-semibold">Hasta:</label>
-                                    <input type="date" name="date_to" value="{{ date_to }}" class="form-control" id="date_to">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="filter-actions">
-                        <button class="btn btn-primary apply-btn" type="submit">
-                            <i class="fa fa-filter"></i>Filtrar
+                            {% if selected_fields %}<span class="badge bg-primary">{{ selected_fields|length }}</span>{% endif %}
                         </button>
-                        <a class="clear-filters" href="{% url 'treatment-list' %}">
-                            <i class="fa fa-times-circle"></i>Limpiar
-                        </a>
+                        <div class="dropdown-menu filter-dd-menu p-2">
+                            {% for field in fields %}
+                            <div class="form-check mb-1">
+                                <input class="form-check-input" type="checkbox" name="field"
+                                       value="{{ field.id }}" id="field-{{ field.id }}"
+                                       {% if field.id|stringformat:"s" in selected_fields %}checked{% endif %}>
+                                <label class="form-check-label small" for="field-{{ field.id }}">{{ field.name }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
                     </div>
-                </form>
-            </div>
-        </div>
-    </div>
+                </div>
 
-    <!-- Results -->
-    <div class="col-lg-9">
-        <div class="results-container card">
-            <!-- Results header with sort + view toggle -->
-            <div class="results-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-                <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <h5 class="mb-0 fw-bold">
-                        {% if total_count > 99 %}99+{% else %}{{ total_count }}{% endif %}
-                        resultado{{ total_count|pluralize }}
-                    </h5>
-                    <!-- Active filter chip: solo búsqueda de texto (los demás se ven en el panel) -->
+                {# Tipo — dropdown + checkboxes #}
+                <div class="col-6 col-sm-4 col-lg-2">
+                    <label class="form-label small fw-semibold text-muted mb-1">
+                        <i class="fa fa-droplet me-1"></i>Tipo
+                    </label>
+                    <div class="dropdown filter-check-dropdown w-100">
+                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start filter-dd-btn{% if selected_types %} filter-dd-btn--active{% endif %}"
+                                type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                            <span class="filter-dd-label">
+                                {% if selected_types %}{{ selected_types|length }} tipo{{ selected_types|length|pluralize }}{% else %}Todos…{% endif %}
+                            </span>
+                            {% if selected_types %}<span class="badge bg-primary">{{ selected_types|length }}</span>{% endif %}
+                        </button>
+                        <div class="dropdown-menu filter-dd-menu p-2">
+                            {% for key, value in type_choices %}
+                            <div class="form-check mb-1">
+                                <input class="form-check-input" type="checkbox" name="type"
+                                       value="{{ key }}" id="type-{{ key }}"
+                                       {% if key in selected_types %}checked{% endif %}>
+                                <label class="form-check-label small" for="type-{{ key }}">{{ value }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                {# Estado — dropdown + checkboxes (pre-selección pending+delayed) #}
+                <div class="col-6 col-sm-4 col-lg-2">
+                    <label class="form-label small fw-semibold text-muted mb-1">
+                        <i class="fa fa-circle-half-stroke me-1"></i>Estado
+                    </label>
+                    <div class="dropdown filter-check-dropdown w-100">
+                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start filter-dd-btn filter-dd-btn--active"
+                                type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside"
+                                id="statusDropdownBtn">
+                            <span class="filter-dd-label" id="statusDropdownLabel">
+                                {% if selected_statuses %}{{ selected_statuses|length }} estado{{ selected_statuses|length|pluralize }}{% else %}Pdte + Atrasado{% endif %}
+                            </span>
+                            <span class="badge bg-primary" id="statusDropdownBadge">
+                                {% if selected_statuses %}{{ selected_statuses|length }}{% else %}2{% endif %}
+                            </span>
+                        </button>
+                        <div class="dropdown-menu filter-dd-menu p-2">
+                            {% for key, value in status_choices %}
+                            <div class="form-check mb-1">
+                                <input class="form-check-input status-check" type="checkbox" name="status"
+                                       value="{{ key }}" id="status-{{ key }}"
+                                       {% if selected_statuses %}
+                                           {% if key in selected_statuses %}checked{% endif %}
+                                       {% else %}
+                                           {% if key == 'pending' or key == 'delayed' %}checked{% endif %}
+                                       {% endif %}>
+                                <label class="form-check-label small" for="status-{{ key }}">{{ value }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                {# Acciones #}
+                <div class="col-12 col-sm-4 col-lg-2 d-flex gap-2 align-items-end">
+                    <button class="btn btn-primary flex-fill" type="submit">
+                        <i class="fa fa-filter me-1"></i>Filtrar
+                    </button>
+                    {% if active_filter_count %}
+                    <a class="btn btn-outline-secondary" href="{% url 'treatment-list' %}" title="Limpiar filtros">
+                        <i class="fa fa-rotate-left"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            {# Fila de filtros avanzados (colapsable) #}
+            <div class="collapse {% if selected_product_types or selected_products or date_from or date_to %}show{% endif %}"
+                 id="advancedFilters">
+                <div class="row g-2 align-items-end mt-1 pt-2 border-top">
+
+                    {# Tipo de producto #}
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <label class="form-label small fw-semibold text-muted mb-1">
+                            <i class="fa fa-box me-1"></i>Tipo de producto
+                        </label>
+                        <select class="choices-init" name="product_types" multiple
+                                data-placeholder="Todos los tipos…">
+                            {% for product_type in product_types %}
+                            <option value="{{ product_type.id }}"
+                                    {% if product_type.id|stringformat:"s" in selected_product_types %}selected{% endif %}>
+                                {{ product_type.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    {# Productos #}
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <label class="form-label small fw-semibold text-muted mb-1">
+                            <i class="fa fa-flask me-1"></i>Productos
+                        </label>
+                        <select class="choices-init" name="products" multiple
+                                data-placeholder="Todos los productos…">
+                            {% for product in products %}
+                            <option value="{{ product.id }}"
+                                    {% if product.id|stringformat:"s" in selected_products %}selected{% endif %}>
+                                {{ product.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    {# Fecha desde #}
+                    <div class="col-6 col-lg-2">
+                        <label class="form-label small fw-semibold text-muted mb-1" for="date_from">
+                            <i class="fa fa-calendar me-1"></i>Desde
+                        </label>
+                        <input type="date" name="date_from" value="{{ date_from }}" class="form-control" id="date_from">
+                    </div>
+
+                    {# Fecha hasta #}
+                    <div class="col-6 col-lg-2">
+                        <label class="form-label small fw-semibold text-muted mb-1" for="date_to">
+                            <i class="fa fa-calendar me-1"></i>Hasta
+                        </label>
+                        <input type="date" name="date_to" value="{{ date_to }}" class="form-control" id="date_to">
+                    </div>
+
+                </div>
+            </div>
+
+            {# Toggle de filtros avanzados #}
+            <div class="mt-2 d-flex align-items-center gap-3">
+                <button class="btn btn-link btn-sm text-muted p-0 text-decoration-none" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#advancedFilters"
+                        id="advancedToggleBtn"
+                        aria-expanded="{% if selected_product_types or selected_products or date_from or date_to %}true{% else %}false{% endif %}">
+                    <i class="fa fa-sliders me-1"></i>
+                    <span class="advanced-toggle-label">Más filtros</span>
+                    <i class="fa fa-chevron-down ms-1 advanced-toggle-icon"></i>
+                    {% if selected_product_types or selected_products or date_from or date_to %}
+                    <span class="badge bg-primary ms-1">
+                        {% with 0 as c %}
+                        {{ selected_product_types|length|add:selected_products|length }}{% if date_from or date_to %}+{% endif %}
+                        {% endwith %}
+                    </span>
+                    {% endif %}
+                </button>
+
+                {# Active filter chips #}
+                <div class="d-flex flex-wrap gap-1 align-items-center">
                     {% if search_query %}
                     <a href="?{% for key, value in request.GET.items %}{% if key != 'q' %}{{ key }}={{ value }}&{% endif %}{% endfor %}"
                        class="filter-active-chip" title="Quitar búsqueda">
-                        <i class="fa fa-search me-1"></i>"{{ search_query }}" <i class="fa fa-times ms-1"></i>
+                        <i class="fa fa-search me-1"></i>{{ search_query }} <i class="fa fa-times ms-1"></i>
                     </a>
                     {% endif %}
-                </div>
-
-                <div class="d-flex align-items-center gap-2">
-                    <!-- Sort -->
-                    <div class="dropdown">
-                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button"
-                                data-bs-toggle="dropdown" id="sortDropdown">
-                            <i class="fa fa-sort me-1"></i>Ordenar
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item {% if sort == 'date_asc' or not sort %}active{% endif %}"
-                                   href="?{{ request.GET.urlencode }}&sort=date_asc">
-                                <i class="fa fa-arrow-up me-2"></i>Fecha (más próxima)
-                            </a></li>
-                            <li><a class="dropdown-item {% if sort == 'date_desc' %}active{% endif %}"
-                                   href="?{{ request.GET.urlencode }}&sort=date_desc">
-                                <i class="fa fa-arrow-down me-2"></i>Fecha (más antigua)
-                            </a></li>
-                            <li><a class="dropdown-item {% if sort == 'name_asc' %}active{% endif %}"
-                                   href="?{{ request.GET.urlencode }}&sort=name_asc">
-                                <i class="fa fa-font me-2"></i>Nombre A→Z
-                            </a></li>
-                            <li><a class="dropdown-item {% if sort == 'name_desc' %}active{% endif %}"
-                                   href="?{{ request.GET.urlencode }}&sort=name_desc">
-                                <i class="fa fa-font me-2"></i>Nombre Z→A
-                            </a></li>
-                        </ul>
-                    </div>
-
-                    <!-- View switcher -->
-                    <div class="view-switcher">
-                        <button type="button" class="btn view-btn active" id="cardViewBtn" title="Vista tarjetas">
-                            <i class="fa fa-th"></i>
-                        </button>
-                        <button type="button" class="btn view-btn" id="listViewBtn" title="Vista lista">
-                            <i class="fa fa-list"></i>
-                        </button>
-                    </div>
+                    {% if selected_fields %}
+                    <span class="filter-active-chip">
+                        <i class="fa fa-map me-1"></i>{{ selected_fields|length }} parcela{{ selected_fields|length|pluralize }}
+                    </span>
+                    {% endif %}
+                    {% if selected_types %}
+                    <span class="filter-active-chip">
+                        <i class="fa fa-droplet me-1"></i>{{ selected_types|length }} tipo{{ selected_types|length|pluralize }}
+                    </span>
+                    {% endif %}
+                    {% if selected_statuses %}
+                    <span class="filter-active-chip">
+                        <i class="fa fa-circle-half-stroke me-1"></i>{{ selected_statuses|length }} estado{{ selected_statuses|length|pluralize }}
+                    </span>
+                    {% endif %}
+                    {% if date_from or date_to %}
+                    <span class="filter-active-chip">
+                        <i class="fa fa-calendar me-1"></i>
+                        {% if date_from %}{{ date_from }}{% endif %}{% if date_from and date_to %} → {% endif %}{% if date_to %}{{ date_to }}{% endif %}
+                    </span>
+                    {% endif %}
                 </div>
             </div>
 
-            <div class="card-body" id="results">
-                {% if not treatments %}
-                <div class="empty-state text-center py-5">
-                    <div class="empty-state-icon mb-3">
-                        <i class="fa fa-seedling fa-3x text-muted opacity-50"></i>
-                    </div>
-                    <h5 class="text-muted">No se encontraron tratamientos</h5>
-                    <p class="text-muted small mb-3">
-                        {% if active_filter_count %}
-                            Prueba a cambiar o limpiar los filtros activos
-                        {% else %}
-                            Empieza creando tu primer tratamiento
-                        {% endif %}
-                    </p>
-                    {% if active_filter_count %}
-                    <a href="{% url 'treatment-list' %}" class="btn btn-outline-secondary btn-sm">
-                        <i class="fa fa-times me-1"></i>Limpiar filtros
-                    </a>
-                    {% else %}
-                    <a href="{% url 'treatment-create' %}" class="btn btn-primary btn-sm">
-                        <i class="fa fa-plus me-1"></i>Nuevo tratamiento
-                    </a>
-                    {% endif %}
-                </div>
-                {% else %}
+        </form>
+    </div>
+</div>
 
-                <!-- Card view -->
-                <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3" id="cardView">
-                    {% for treatment in treatments %}
-                    {% include 'farm/treatments/treatment_card.html' with treatment=treatment %}
-                    {% endfor %}
-                </div>
+{# ── CABECERA DE RESULTADOS ────────────────────────────────────────── #}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <h6 class="mb-0 fw-bold text-muted">
+        {% if total_count > 99 %}99+{% else %}{{ total_count }}{% endif %}
+        resultado{{ total_count|pluralize }}
+    </h6>
+    <div class="d-flex align-items-center gap-2">
+        {# Sort #}
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button"
+                    data-bs-toggle="dropdown" id="sortDropdown">
+                <i class="fa fa-sort me-1"></i>Ordenar
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item {% if sort == 'date_asc' or not sort %}active{% endif %}"
+                       href="?{{ request.GET.urlencode }}&sort=date_asc">
+                    <i class="fa fa-arrow-up me-2"></i>Fecha (más próxima)
+                </a></li>
+                <li><a class="dropdown-item {% if sort == 'date_desc' %}active{% endif %}"
+                       href="?{{ request.GET.urlencode }}&sort=date_desc">
+                    <i class="fa fa-arrow-down me-2"></i>Fecha (más antigua)
+                </a></li>
+                <li><a class="dropdown-item {% if sort == 'name_asc' %}active{% endif %}"
+                       href="?{{ request.GET.urlencode }}&sort=name_asc">
+                    <i class="fa fa-font me-2"></i>Nombre A→Z
+                </a></li>
+                <li><a class="dropdown-item {% if sort == 'name_desc' %}active{% endif %}"
+                       href="?{{ request.GET.urlencode }}&sort=name_desc">
+                    <i class="fa fa-font me-2"></i>Nombre Z→A
+                </a></li>
+            </ul>
+        </div>
 
-                <!-- List view -->
-                <div id="listView" class="accordion d-none">
-                    {% include 'farm/treatments/treatment_list_item.html' with treatment_list=treatments %}
-                </div>
-
-                {% if page_obj.has_other_pages %}
-                <p class="text-muted pt-2 mb-0 small">
-                    Mostrando {{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ total_count }} tratamientos
-                </p>
-                {% endif %}
-
-                {% if is_paginated %}
-                {% with request.GET.urlencode as querystring %}
-                <div class="mt-3">
-                    {% bootstrap_pagination page_obj pages_to_show="5" extra="&"|add:querystring %}
-                </div>
-                {% endwith %}
-                {% endif %}
-
-                {% endif %}
-            </div>
+        {# View switcher #}
+        <div class="view-switcher">
+            <button type="button" class="btn view-btn active" id="cardViewBtn" title="Vista tarjetas">
+                <i class="fa fa-th"></i>
+            </button>
+            <button type="button" class="btn view-btn" id="listViewBtn" title="Vista lista">
+                <i class="fa fa-list"></i>
+            </button>
         </div>
     </div>
 </div>
+
+{# ── RESULTADOS ────────────────────────────────────────────────────── #}
+{% if not treatments %}
+<div class="empty-state text-center py-5">
+    <div class="empty-state-icon mb-3">
+        <i class="fa fa-seedling fa-3x text-muted opacity-50"></i>
+    </div>
+    <h5 class="text-muted">No se encontraron tratamientos</h5>
+    <p class="text-muted small mb-3">
+        {% if active_filter_count %}
+            Prueba a cambiar o limpiar los filtros activos
+        {% else %}
+            Empieza creando tu primer tratamiento
+        {% endif %}
+    </p>
+    {% if active_filter_count %}
+    <a href="{% url 'treatment-list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fa fa-times me-1"></i>Limpiar filtros
+    </a>
+    {% else %}
+    <a href="{% url 'treatment-create' %}" class="btn btn-primary btn-sm">
+        <i class="fa fa-plus me-1"></i>Nuevo tratamiento
+    </a>
+    {% endif %}
+</div>
+{% else %}
+
+{# Card view #}
+<div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3" id="cardView">
+    {% for treatment in treatments %}
+    {% include 'farm/treatments/treatment_card.html' with treatment=treatment %}
+    {% endfor %}
+</div>
+
+{# List view #}
+<div id="listView" class="accordion d-none">
+    {% include 'farm/treatments/treatment_list_item.html' with treatment_list=treatments %}
+</div>
+
+{% if page_obj.has_other_pages %}
+<p class="text-muted pt-2 mb-0 small">
+    Mostrando {{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ total_count }} tratamientos
+</p>
+{% endif %}
+
+{% if is_paginated %}
+{% with request.GET.urlencode as querystring %}
+<div class="mt-3">
+    {% bootstrap_pagination page_obj pages_to_show="5" extra="&"|add:querystring %}
+</div>
+{% endwith %}
+{% endif %}
+
+{% endif %}
 
 <form id="deleteTreatmentForm" method="POST" style="display:none;">{% csrf_token %}</form>
 
@@ -395,26 +375,28 @@
         const cardViewBtn = document.getElementById('cardViewBtn');
         const listViewBtn = document.getElementById('listViewBtn');
 
-        function setView(view) {
-            if (view === 'list') {
-                listView.classList.remove('d-none');
-                cardView.classList.add('d-none');
-                listViewBtn.classList.add('active');
-                cardViewBtn.classList.remove('active');
-            } else {
-                cardView.classList.remove('d-none');
-                listView.classList.add('d-none');
-                cardViewBtn.classList.add('active');
-                listViewBtn.classList.remove('active');
+        if (cardView && listView) {
+            function setView(view) {
+                if (view === 'list') {
+                    listView.classList.remove('d-none');
+                    cardView.classList.add('d-none');
+                    listViewBtn.classList.add('active');
+                    cardViewBtn.classList.remove('active');
+                } else {
+                    cardView.classList.remove('d-none');
+                    listView.classList.add('d-none');
+                    cardViewBtn.classList.add('active');
+                    listViewBtn.classList.remove('active');
+                }
+                localStorage.setItem('treatmentListViewPreference', view);
             }
-            localStorage.setItem('treatmentListViewPreference', view);
+
+            cardViewBtn.addEventListener('click', () => setView('card'));
+            listViewBtn.addEventListener('click', () => setView('list'));
+
+            const storedPreference = localStorage.getItem('treatmentListViewPreference');
+            if (storedPreference === 'list') setView('list');
         }
-
-        cardViewBtn.addEventListener('click', () => setView('card'));
-        listViewBtn.addEventListener('click', () => setView('list'));
-
-        const storedPreference = localStorage.getItem('treatmentListViewPreference');
-        if (storedPreference === 'list') setView('list');
 
         // ── Auto-submit on search (debounced) ──
         const searchInput = document.getElementById('searchInput');
@@ -425,6 +407,22 @@
                 debounceTimer = setTimeout(() => {
                     document.getElementById('filterForm').submit();
                 }, 500);
+            });
+        }
+
+        // ── Advanced filters toggle icon rotation ──
+        const advancedEl = document.getElementById('advancedFilters');
+        const toggleBtn = document.getElementById('advancedToggleBtn');
+        if (advancedEl && toggleBtn) {
+            const icon = toggleBtn.querySelector('.advanced-toggle-icon');
+            const label = toggleBtn.querySelector('.advanced-toggle-label');
+            advancedEl.addEventListener('show.bs.collapse', () => {
+                icon && icon.classList.add('rotate-180');
+                if (label) label.textContent = 'Menos filtros';
+            });
+            advancedEl.addEventListener('hide.bs.collapse', () => {
+                icon && icon.classList.remove('rotate-180');
+                if (label) label.textContent = 'Más filtros';
             });
         }
     });

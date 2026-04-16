@@ -126,7 +126,6 @@
 }
 
 /* ── Dentro del sidebar de filtros ─────────────────────── */
-/* Aseguramos que el wrapper no tenga margen extra dentro del filter-body */
 .filter-body .ts-wrapper {
     margin-bottom: 0;
     width: 100%;
@@ -134,11 +133,11 @@
 }
 
 .filter-body .ts-wrapper .ts-control {
-    /* Limitar la altura máxima de los tags visibles para no desordenar el sidebar */
     max-height: 120px;
     overflow-y: auto;
     width: 100%;
 }
+
 
 /* ── Caret/flecha (select simple) ───────────────────────── */
 .ts-wrapper.single .ts-control::after {

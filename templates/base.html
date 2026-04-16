@@ -122,6 +122,43 @@
     const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
 </script>
 
+<script>
+    // ── Filter dropdown + checkboxes (global, todas las páginas) ──────
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.filter-check-dropdown').forEach(dropdown => {
+            const btn = dropdown.querySelector('.filter-dd-btn');
+            if (!btn) return;
+            const label = btn.querySelector('.filter-dd-label');
+            const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');
+            // Guardar el texto original del botón como placeholder
+            btn.dataset.defaultLabel = btn.dataset.defaultLabel || (label ? label.textContent.trim() : '');
+
+            function updateBtn() {
+                const checked = Array.from(checkboxes).filter(cb => cb.checked);
+                const n = checked.length;
+                // Eliminar badge anterior y reconstruirlo
+                btn.querySelectorAll('.badge').forEach(el => el.remove());
+                if (n === 0) {
+                    if (label) label.textContent = btn.dataset.defaultLabel;
+                    btn.classList.remove('filter-dd-btn--active');
+                } else {
+                    const names = checked.map(cb =>
+                        dropdown.querySelector(`label[for="${cb.id}"]`)?.textContent.trim() || cb.value
+                    );
+                    if (label) label.textContent = n <= 2 ? names.join(', ') : `${n} seleccionados`;
+                    btn.classList.add('filter-dd-btn--active');
+                    const badge = document.createElement('span');
+                    badge.className = 'badge bg-primary flex-shrink-0';
+                    badge.textContent = n;
+                    btn.appendChild(badge);
+                }
+            }
+
+            checkboxes.forEach(cb => cb.addEventListener('change', updateBtn));
+        });
+    });
+</script>
+
 {% block extra_js %} {% endblock %}
 
 {% endblock %}

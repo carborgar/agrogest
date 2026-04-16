@@ -18,27 +18,51 @@
     <div class="card-body py-3">
         <form method="get">
             <div class="row g-3 align-items-end">
+                {# Parcela — dropdown + checkboxes #}
                 <div class="col-12 col-md-3">
-                    <label class="form-label small fw-semibold text-muted mb-1" for="fieldFilter">Parcela</label>
-                    <select class="form-select choices-init" id="fieldFilter" name="field" multiple
-                            aria-label="Filtrar por parcela" data-placeholder="Todas las parcelas…">
-                        {% for f in fields %}
-                        <option value="{{ f.id }}" {% if f.id|stringformat:"s" in selected_field_ids %}selected{% endif %}>
-                            {{ f.name }}
-                        </option>
-                        {% endfor %}
-                    </select>
+                    <label class="form-label small fw-semibold text-muted mb-1">Parcela</label>
+                    <div class="dropdown filter-check-dropdown w-100">
+                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start filter-dd-btn{% if selected_field_ids %} filter-dd-btn--active{% endif %}"
+                                type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                            <span class="filter-dd-label">
+                                {% if selected_field_ids %}{{ selected_field_ids|length }} parcela{{ selected_field_ids|length|pluralize }}{% else %}Todas las parcelas…{% endif %}
+                            </span>
+                            {% if selected_field_ids %}<span class="badge bg-primary flex-shrink-0">{{ selected_field_ids|length }}</span>{% endif %}
+                        </button>
+                        <div class="dropdown-menu filter-dd-menu p-2">
+                            {% for f in fields %}
+                            <div class="form-check mb-1">
+                                <input class="form-check-input" type="checkbox" name="field"
+                                       value="{{ f.id }}" id="ef-{{ f.id }}"
+                                       {% if f.id|stringformat:"s" in selected_field_ids %}checked{% endif %}>
+                                <label class="form-check-label small" for="ef-{{ f.id }}">{{ f.name }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
                 </div>
+                {# Tipo — dropdown + checkboxes #}
                 <div class="col-12 col-md-3">
-                    <label class="form-label small fw-semibold text-muted mb-1" for="typeFilter">Tipo</label>
-                    <select class="form-select choices-init" id="typeFilter" name="type" multiple
-                            aria-label="Filtrar por tipo" data-placeholder="Todos los tipos…">
-                        {% for et in expense_types %}
-                        <option value="{{ et.id }}" {% if et.id|stringformat:"s" in selected_type_ids %}selected{% endif %}>
-                            {{ et.name }}
-                        </option>
-                        {% endfor %}
-                    </select>
+                    <label class="form-label small fw-semibold text-muted mb-1">Tipo</label>
+                    <div class="dropdown filter-check-dropdown w-100">
+                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start filter-dd-btn{% if selected_type_ids %} filter-dd-btn--active{% endif %}"
+                                type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                            <span class="filter-dd-label">
+                                {% if selected_type_ids %}{{ selected_type_ids|length }} tipo{{ selected_type_ids|length|pluralize }}{% else %}Todos los tipos…{% endif %}
+                            </span>
+                            {% if selected_type_ids %}<span class="badge bg-primary flex-shrink-0">{{ selected_type_ids|length }}</span>{% endif %}
+                        </button>
+                        <div class="dropdown-menu filter-dd-menu p-2">
+                            {% for et in expense_types %}
+                            <div class="form-check mb-1">
+                                <input class="form-check-input" type="checkbox" name="type"
+                                       value="{{ et.id }}" id="et-{{ et.id }}"
+                                       {% if et.id|stringformat:"s" in selected_type_ids %}checked{% endif %}>
+                                <label class="form-check-label small" for="et-{{ et.id }}">{{ et.name }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
                 </div>
                 <div class="col-6 col-md-2">
                     <label class="form-label small fw-semibold text-muted mb-1" for="dateFromFilter">Desde</label>

@@ -38,8 +38,8 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
         )
 
         field_ids = self.request.GET.getlist('field')
-        type_filters = self.request.GET.getlist('type')
-        status_filters = self.request.GET.getlist('status') or [Treatment.STATUS_PENDING, Treatment.STATUS_DELAYED]
+        type_filters = [v for v in self.request.GET.getlist('type') if v]
+        status_filters = [v for v in self.request.GET.getlist('status') if v]
         product_ids = self.request.GET.getlist('products')
         date_from = self.request.GET.get('date_from')
         date_to = self.request.GET.get('date_to')
@@ -61,6 +61,10 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
             queryset = queryset.filter(products__product_type__in=product_type_filters)
         if status_filters:
             queryset = queryset.filter(status__in=status_filters)
+        elif 'status' not in self.request.GET:
+            # Sin parámetro status → mostrar solo pendientes y atrasados por defecto
+            queryset = queryset.filter(status__in=[Treatment.STATUS_PENDING, Treatment.STATUS_DELAYED])
+        # Si status está en GET pero vacío (no debería ocurrir con choices.js) → mostrar todo
         if search_query:
             queryset = queryset.filter(name__icontains=search_query)
 
@@ -77,14 +81,15 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
         context = super().get_context_data(**kwargs)
 
         selected_fields = self.request.GET.getlist('field')
-        selected_types = self.request.GET.getlist('type')
-        selected_statuses = self.request.GET.getlist('status') or [Treatment.STATUS_PENDING, Treatment.STATUS_DELAYED]
+        selected_types = [v for v in self.request.GET.getlist('type') if v]
+        selected_statuses = [v for v in self.request.GET.getlist('status') if v]
         selected_products = self.request.GET.getlist('products')
         selected_product_types = self.request.GET.getlist('product_types')
         date_from = self.request.GET.get('date_from')
         date_to = self.request.GET.get('date_to')
         search_query = self.request.GET.get('q', '').strip()
         sort = self.request.GET.get('sort', 'date_asc')
+
 
         context['fields'] = Field.ownership_objects.get_queryset_for_user(self.request.user)
         context['products'] = Product.ownership_objects.get_queryset_for_user(self.request.user)
@@ -110,7 +115,7 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
             + len(selected_product_types)
             + (1 if date_from or date_to else 0)
             + (1 if search_query else 0)
-            + (len(selected_statuses) if self.request.GET.getlist('status') else 0)
+            + (1 if selected_statuses else 0)
         )
         context['active_filter_count'] = active_filter_count
 

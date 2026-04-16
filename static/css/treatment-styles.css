@@ -1,6 +1,7 @@
 /**
 ESTILOS PARA CARDS
 */
+
 .treatment-card {
     height: 100%;
     border-radius: 12px;
@@ -1227,6 +1228,18 @@ a.filter-active-chip:hover {
     font-size: 0.84rem;
     font-weight: 600;
     color: #212529;
+}
+
+/* ═══════════════════════════════════════════════
+   ADVANCED FILTER TOGGLE ICON
+═══════════════════════════════════════════════ */
+.advanced-toggle-icon {
+    transition: transform 0.2s ease;
+    font-size: 0.72rem;
+}
+
+.rotate-180 {
+    transform: rotate(180deg);
 }
 
 /* ── Mobile ── */
