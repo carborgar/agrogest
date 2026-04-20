@@ -244,6 +244,8 @@ SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000')
 #   Por defecto 50 (bien por debajo de los límites gratuitos de Gemini). Ponlo a 0 para sin límite.
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-flash-lite-latest")
+
+AEMET_API_KEY = os.environ.get("AEMET_API_KEY", "")
 GEMINI_DAILY_LIMIT = int(os.environ.get("GEMINI_DAILY_LIMIT", "50"))
 
 LOGGING = {

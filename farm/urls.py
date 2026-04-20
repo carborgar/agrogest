@@ -8,13 +8,14 @@ from farm.views.treatment_views import (
     TreatmentCalendarView, TreatmentExportView, ShoppingListView,
 )
 from . import api_views
+from .views.chat_views import ChatView
 from .views.expense_views import ExpenseListView, ExpenseFormView, ExpenseDeleteView, ExpenseTypeListView, \
     ExpenseTypeFormView, ExpenseTypeDeleteView
-from .views.product_views import ProductTypeListView, ProductTypeFormView, ProductTypeDeleteView, ProductListView, \
-    ProductFormView, ProductDeleteView
 from .views.field_views import FieldListView, FieldCreateView, FieldUpdateView, FieldDeleteView, FieldDetailView
 from .views.harvest_views import HarvestFormView, HarvestSummaryView, HarvestDeleteView
-from .views.chat_views import ChatView
+from .views.product_views import ProductTypeListView, ProductTypeFormView, ProductTypeDeleteView, ProductListView, \
+    ProductFormView, ProductDeleteView
+from .views.weather_views import WeatherOverviewView
 
 urlpatterns = [
     path("", LandingView.as_view(), name="home"),
@@ -65,6 +66,9 @@ urlpatterns = [
     path('productos/nuevo/', ProductFormView.as_view(), name='product-create'),
     path('productos/<int:pk>/editar/', ProductFormView.as_view(), name='product-edit'),
     path('productos/<int:pk>/eliminar/', ProductDeleteView.as_view(), name='product-delete'),
+
+    # Weather Overview
+    path('tiempo/', WeatherOverviewView.as_view(), name='weather-overview'),
 
     # API Endpoints
     path('api/fields/', api_views.get_fields, name='api-fields'),

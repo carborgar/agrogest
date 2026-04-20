@@ -207,7 +207,7 @@ def field_costs_data(request):
 
 def get_field_weather(request, field_id):
     """
-    Devuelve la previsión meteorológica de una parcela usando Open-Meteo.
+    Devuelve la previsión meteorológica de una parcela usando AEMET OpenData.
     GET /api/fields/<field_id>/weather/
     """
     from .weather_service import get_weather_for_field

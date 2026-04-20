@@ -1,0 +1,839 @@
+{% extends "base.html" %}
+
+{% block title %}El Tiempo – AgroGest{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ── Page header ───────────────────────────────────────────────── */
+.weather-page-header {
+    background: linear-gradient(135deg, #1b5e20 0%, #43a047 100%);
+    border-radius: 16px;
+    padding: 1.5rem 2rem;
+    color: #fff;
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+}
+.weather-page-header::before {
+    content: '';
+    position: absolute;
+    top: -30px; right: -30px;
+    width: 180px; height: 180px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.07);
+}
+.weather-page-header::after {
+    content: '';
+    position: absolute;
+    bottom: -40px; right: 60px;
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.05);
+}
+.weather-page-title { font-size: 1.5rem; font-weight: 700; margin: 0; }
+.weather-page-subtitle { opacity: .8; font-size: .9rem; margin-top: .2rem; }
+
+/* ── Municipality card ─────────────────────────────────────────── */
+.muni-card {
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,.07);
+    transition: box-shadow .2s, transform .2s;
+    border: 1px solid var(--bs-border-color);
+    background: var(--bs-body-bg);
+}
+.muni-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,.12); transform: translateY(-2px); }
+
+/* Hero del municipio */
+.muni-hero {
+    padding: 1.25rem 1.25rem .75rem;
+    position: relative;
+    color: #fff;
+    min-height: 130px;
+    background: linear-gradient(135deg, #1b5e20 0%, #43a047 100%);
+}
+.muni-hero.sky-clear  { background: linear-gradient(135deg, #1565c0 0%, #42a5f5 100%); }
+.muni-hero.sky-cloudy { background: linear-gradient(135deg, #455a64 0%, #90a4ae 100%); }
+.muni-hero.sky-rain   { background: linear-gradient(135deg, #1a237e 0%, #5c6bc0 100%); }
+.muni-hero.sky-storm  { background: linear-gradient(135deg, #12005e 0%, #4527a0 100%); }
+.muni-hero.sky-snow   { background: linear-gradient(135deg, #78909c 0%, #cfd8dc 100%); color: #263238; }
+.muni-hero.sky-fog    { background: linear-gradient(135deg, #546e7a 0%, #b0bec5 100%); }
+
+.muni-hero-bg-icon {
+    position: absolute;
+    top: 10px; right: 16px;
+    font-size: 4rem;
+    opacity: .15;
+    pointer-events: none;
+}
+.muni-name { font-size: 1.1rem; font-weight: 700; margin: 0; line-height: 1.2; }
+.muni-fields-label { font-size: .72rem; opacity: .8; margin-top: .1rem; }
+.muni-temp-row { display: flex; align-items: flex-end; gap: .5rem; margin-top: .5rem; }
+.muni-temp-max { font-size: 2.4rem; font-weight: 800; line-height: 1; }
+.muni-temp-min { font-size: 1rem; opacity: .7; margin-bottom: .2rem; }
+.muni-condition { font-size: .78rem; opacity: .9; margin-top: .15rem; }
+
+.muni-badge-row { display: flex; gap: .4rem; margin-top: .45rem; flex-wrap: wrap; }
+.muni-pill {
+    font-size: .68rem; font-weight: 600;
+    padding: .2em .55em; border-radius: 20px;
+    background: rgba(255,255,255,.22);
+    display: inline-flex; align-items: center; gap: .25rem;
+}
+
+/* Estado de tratamiento */
+.muni-treatment-badge {
+    position: absolute; bottom: 10px; right: 12px;
+    font-size: .7rem; font-weight: 700;
+    padding: .25em .65em; border-radius: 20px;
+}
+.muni-treatment-ok   { background: #198754; color: #fff; }
+.muni-treatment-warn { background: #ffc107; color: #000; }
+.muni-treatment-bad  { background: #dc3545; color: #fff; }
+
+/* Strip semanal */
+.muni-week {
+    display: flex;
+    border-top: 1px solid var(--bs-border-color);
+    background: var(--bs-body-bg);
+}
+.muni-week-day {
+    flex: 1; text-align: center;
+    padding: .5rem .2rem; font-size: .68rem;
+    border-right: 1px solid var(--bs-border-color);
+    transition: background .15s;
+    cursor: pointer;
+}
+.muni-week-day:last-child { border-right: none; }
+.muni-week-day:hover { background: var(--bs-secondary-bg); }
+.muni-week-day.active { background: var(--bs-primary); color: #fff !important; }
+.muni-week-day.active .muni-week-day-name,
+.muni-week-day.active .muni-week-day-prob { color: rgba(255,255,255,.8) !important; }
+.muni-week-day-name  { color: var(--bs-secondary-color); font-weight: 500; font-size: .63rem; }
+.muni-week-day-icon  { font-size: 1rem; margin: .2rem 0; }
+.muni-week-day-temp  { font-weight: 600; font-size: .7rem; }
+.muni-week-day-prob  { font-size: .63rem; }
+
+/* Parcelas del municipio */
+.muni-fields {
+    padding: .5rem .75rem .6rem;
+    border-top: 1px solid var(--bs-border-color);
+    display: flex; flex-wrap: wrap; gap: .3rem;
+}
+.muni-field-chip {
+    font-size: .7rem; padding: .2em .55em; border-radius: 20px;
+    background: var(--bs-secondary-bg); border: 1px solid var(--bs-border-color);
+    color: var(--bs-body-color); text-decoration: none; transition: background .15s;
+    display: inline-flex; align-items: center; gap: .25rem;
+}
+.muni-field-chip:hover { background: var(--bs-primary); color: #fff; border-color: var(--bs-primary); }
+
+/* ── Hourly panel ──────────────────────────────────────────────── */
+.muni-hourly-panel {
+    border-top: 1px solid var(--bs-border-color);
+    background: var(--bs-body-bg);
+    display: none;
+}
+.muni-hourly-panel.open { display: block; }
+
+.muni-hourly-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: .35rem .75rem;
+    font-size: .72rem; font-weight: 600;
+    border-bottom: 1px solid var(--bs-border-color);
+    background: var(--bs-secondary-bg);
+    flex-wrap: wrap; gap: .3rem;
+}
+.muni-sun-info {
+    display: flex; gap: .75rem; align-items: center;
+    font-size: .7rem; color: var(--bs-secondary-color);
+}
+.muni-sun-info span { display: inline-flex; align-items: center; gap: .2rem; }
+
+/* ── Apple-style hourly carousel ──────────────────────────────── */
+.muni-hourly-carousel {
+    display: flex;
+    overflow-x: auto;
+    gap: 0;
+    padding: .5rem .4rem .4rem;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: var(--bs-border-color) transparent;
+}
+.muni-hourly-carousel::-webkit-scrollbar { height: 3px; }
+.muni-hourly-carousel::-webkit-scrollbar-track { background: transparent; }
+.muni-hourly-carousel::-webkit-scrollbar-thumb { background: var(--bs-border-color); border-radius: 3px; }
+
+/* Hour card */
+.hr-card {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    width: 62px;
+    display: flex; flex-direction: column; align-items: center;
+    padding: .4rem .1rem .35rem;
+    border-radius: 14px;
+    gap: .08rem;
+    position: relative;
+    transition: background .15s;
+    cursor: default;
+}
+.hr-card:hover { background: var(--bs-secondary-bg); }
+
+/* Sun separator card */
+.hr-card-sun {
+    width: 38px;
+    flex-shrink: 0;
+    background: linear-gradient(180deg, rgba(255,200,0,.13), transparent 85%);
+    border-left: 2px solid rgba(255,200,0,.5);
+    border-right: none;
+    border-radius: 0;
+    font-size: .6rem; color: #b07000; font-weight: 700;
+    gap: .25rem; justify-content: center; align-items: center;
+    padding: .5rem .1rem;
+}
+.hr-card-sun .hr-sun-lbl { font-size: .6rem; line-height: 1.1; text-align: center; }
+.hr-sun-icon { font-size: 1rem; line-height: 1; }
+
+/* Card content */
+.hr-card-time { color: var(--bs-secondary-color); font-weight: 600; font-size: .65rem; line-height: 1; }
+.hr-card-icon { font-size: 1.3rem; margin: .18rem 0 .1rem; line-height: 1; }
+.hr-card-temp { font-weight: 800; font-size: .82rem; line-height: 1; }
+.hr-card-temp.no-data { opacity: .3; font-weight: 400; }
+
+/* Rain section */
+.hr-rain-wrap {
+    width: 100%; display: flex; flex-direction: column; align-items: center;
+    gap: .04rem; margin-top: .1rem;
+}
+.hr-rain-prob {
+    font-size: .62rem; font-weight: 600; line-height: 1;
+    color: #0d6efd; min-height: .75rem;
+}
+.hr-rain-prob.high { color: #dc3545; }
+.hr-rain-prob.empty { opacity: .35; color: var(--bs-secondary-color) !important; }
+.hr-rain-bar-bg {
+    width: 32px; height: 3px; border-radius: 2px;
+    background: var(--bs-border-color); overflow: hidden;
+}
+.hr-rain-bar-fill { height: 100%; border-radius: 2px; background: #0d6efd; }
+.hr-rain-bar-fill.high { background: #dc3545; }
+.hr-rain-mm {
+    font-size: .58rem; color: #0d6efd; line-height: 1;
+    min-height: .72rem; font-weight: 500;
+}
+
+/* Wind — colored icon */
+.hr-card-wind {
+    display: inline-flex; align-items: center; gap: .2rem;
+    font-size: .63rem; font-weight: 600; line-height: 1;
+    margin-top: .12rem;
+}
+.hr-wind-icon { font-size: .75rem; }
+.hr-wind-icon.lvl0 { color: #43a047; }
+.hr-wind-icon.lvl1 { color: #f9a825; }
+.hr-wind-icon.lvl2 { color: #fd7e14; }
+.hr-wind-icon.lvl3 { color: #dc3545; }
+.hr-wind-kmh { font-size: .58rem; opacity: .7; }
+
+/* Treatment dot */
+.hr-treat-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    position: absolute; top: 5px; right: 5px;
+}
+.hr-treat-dot.ok   { background: #198754; }
+.hr-treat-dot.warn { background: #ffc107; }
+.hr-treat-dot.bad  { background: #dc3545; }
+
+/* Legend */
+.muni-hourly-legend {
+    display: flex; gap: .7rem; flex-wrap: wrap; align-items: center;
+    padding: .3rem .75rem .4rem;
+    font-size: .6rem; color: var(--bs-secondary-color);
+    border-top: 1px solid var(--bs-border-color);
+    background: var(--bs-secondary-bg);
+}
+.muni-hourly-legend span { display: inline-flex; align-items: center; gap: .2rem; }
+.muni-hourly-legend .leg-sep { opacity: .3; margin: 0 .1rem; }
+
+/* Day summary bar */
+.muni-hourly-summary {
+    display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;
+    padding: .4rem .75rem;
+    font-size: .72rem;
+    border-bottom: 1px solid var(--bs-border-color);
+    background: var(--bs-body-bg);
+}
+.muni-hourly-summary span { display: inline-flex; align-items: center; gap: .3rem; }
+
+/* Hourly toggle btn */
+.muni-hourly-toggle {
+    font-size: .7rem; padding: .3em .8em; border-radius: 20px;
+    border: 1px solid var(--bs-border-color);
+    background: var(--bs-secondary-bg); color: var(--bs-body-color);
+    cursor: pointer; transition: all .15s;
+    display: flex; align-items: center; gap: .35rem;
+}
+.muni-hourly-toggle:hover { background: var(--bs-primary); color: #fff; border-color: var(--bs-primary); }
+.muni-hourly-toggle-bar {
+    padding: .45rem .75rem;
+    border-top: 1px solid var(--bs-border-color);
+    display: flex; justify-content: center;
+    background: var(--bs-body-bg);
+}
+
+
+/* Loading skeleton */
+.muni-skeleton { border-radius: 16px; overflow: hidden; border: 1px solid var(--bs-border-color); }
+.muni-skeleton-hero {
+    height: 130px;
+    background: linear-gradient(90deg, var(--bs-secondary-bg) 25%, var(--bs-tertiary-bg,#f8f9fa) 50%, var(--bs-secondary-bg) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+}
+.muni-skeleton-week {
+    height: 72px;
+    background: linear-gradient(90deg, var(--bs-secondary-bg) 25%, var(--bs-tertiary-bg,#f8f9fa) 50%, var(--bs-secondary-bg) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite .2s;
+    border-top: 1px solid var(--bs-border-color);
+}
+.muni-skeleton-bottom {
+    height: 36px; background: var(--bs-secondary-bg);
+    border-top: 1px solid var(--bs-border-color);
+    padding: .5rem .75rem; display: flex; gap: .3rem; align-items: center;
+}
+@keyframes shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position:  200% 0; }
+}
+
+.no-geo-banner {
+    border-radius: 12px; background: var(--bs-secondary-bg);
+    border: 1px dashed var(--bs-border-color);
+    padding: 1.25rem; text-align: center; color: var(--bs-secondary-color);
+}
+
+/* ── Geo info banner ───────────────────────────────────────────── */
+.geo-info-banner {
+    border-radius: 12px;
+    background: rgba(13,110,253,.06);
+    border: 1px solid rgba(13,110,253,.18);
+    padding: .65rem 1rem;
+    font-size: .82rem;
+    color: var(--bs-body-color);
+    display: flex; align-items: center; gap: .65rem;
+    margin-bottom: 1rem;
+}
+.geo-info-banner i { color: #0d6efd; flex-shrink: 0; }
+
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Header ───────────────────────────────────────────────────── -->
+<div class="weather-page-header">
+    <div class="d-flex align-items-center gap-3">
+        <i class="fa fa-cloud-sun" style="font-size:2rem;opacity:.9"></i>
+        <div>
+            <p class="weather-page-title">El Tiempo en tus parcelas</p>
+            <p class="weather-page-subtitle" id="wov-subtitle">Cargando previsión AEMET…</p>
+        </div>
+    </div>
+</div>
+
+<!-- ── Geo info banner ──────────────────────────────────────────── -->
+<div class="geo-info-banner">
+    <i class="fa fa-circle-info fa-lg"></i>
+    <span>
+        La previsión se obtiene automáticamente a partir de la <strong>ubicación geográfica</strong> de cada parcela.
+        Si una parcela no aparece aquí, <a href="{% url 'field-list' %}" class="fw-semibold">edítala y añade su contorno en el mapa</a>.
+        Los datos provienen de <strong>AEMET OpenData</strong>.
+    </span>
+</div>
+
+{% if fields_with_geo %}
+
+<!-- ── Grid de municipios ────────────────────────────────────────── -->
+<div class="row g-3" id="wov-grid">
+    {% for f in fields_with_geo %}
+    <div class="col-12 col-sm-6 col-xl-4 wov-field-col d-none"
+         data-field-id="{{ f.id }}"
+         data-field-name="{{ f.name }}"
+         data-field-crop="{{ f.crop }}"
+         data-field-area="{{ f.area }}">
+    </div>
+    {% endfor %}
+</div>
+
+<!-- ── Skeletons mientras carga ─────────────────────────────────── -->
+<div class="row g-3" id="wov-skeletons">
+    {% for f in fields_with_geo %}
+    <div class="col-12 col-sm-6 col-xl-4">
+        <div class="muni-skeleton">
+            <div class="muni-skeleton-hero"></div>
+            <div class="muni-skeleton-week"></div>
+            <div class="muni-skeleton-bottom">
+                <span style="display:inline-block;width:60px;height:18px;border-radius:20px;background:var(--bs-border-color)"></span>
+                <span style="display:inline-block;width:80px;height:18px;border-radius:20px;background:var(--bs-border-color)"></span>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% else %}
+<div class="no-geo-banner">
+    <i class="fa fa-map fa-2x mb-2 d-block opacity-50"></i>
+    <p class="mb-1 fw-semibold">Ninguna parcela tiene contorno definido</p>
+    <small>
+        <a href="{% url 'field-list' %}">Edita tus parcelas</a> y añade el contorno en el mapa para ver la previsión del tiempo.
+    </small>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+{% if fields_with_geo %}
+<script>
+(function () {
+
+    const FIELDS = {{ fields_with_geo|safe }};
+
+    // ── Sky class según icono FA ───────────────────────────────────
+    function skyClass(icon) {
+        if (!icon) return 'sky-default';
+        if (icon.includes('bolt') || icon.includes('storm')) return 'sky-storm';
+        if (icon.includes('snow') || icon.includes('snowflake')) return 'sky-snow';
+        if (icon.includes('rain') || icon.includes('drizzle') || icon.includes('showers')) return 'sky-rain';
+        if (icon.includes('smog') || icon.includes('fog')) return 'sky-fog';
+        if (icon === 'fa-cloud-sun' || icon === 'fa-cloud-sun-rain') return 'sky-clear';
+        if (icon.includes('cloud')) return 'sky-cloudy';
+        if (icon.includes('sun')) return 'sky-clear';
+        return 'sky-default';
+    }
+
+    // ── Treatment badge ────────────────────────────────────────────
+    function treatmentBadge(day) {
+        if (!day) return '';
+        if (day.treatment_ok)
+            return `<span class="muni-treatment-badge muni-treatment-ok"><i class="fa fa-check me-1"></i>Apto tratar</span>`;
+        const prob = day.max_precipitation_probability || 0;
+        const wind = day.max_wind_speed || 0;
+        if (prob >= 50 || wind > 25)
+            return `<span class="muni-treatment-badge muni-treatment-bad"><i class="fa fa-xmark me-1"></i>Adverso</span>`;
+        return `<span class="muni-treatment-badge muni-treatment-warn"><i class="fa fa-exclamation me-1"></i>Precaución</span>`;
+    }
+
+    // ── Render week strip ──────────────────────────────────────────
+    function renderWeek(daily, cardId) {
+        return daily.slice(0, 7).map((d, i) => {
+            const tempHtml = d.min_temp != null
+                ? `<div class="muni-week-day-temp">${Math.round(d.max_temp)}° <span style="opacity:.6">${Math.round(d.min_temp)}°</span></div>`
+                : `<div class="muni-week-day-temp">—</div>`;
+            const prob = d.max_precipitation_probability || 0;
+            const mm   = d.total_precipitation > 0 ? d.total_precipitation : null;
+            const rainColor = prob === 0 ? 'opacity:.35;color:var(--bs-secondary-color)' : prob >= 50 ? 'color:#dc3545' : 'color:#0d6efd';
+            // mm solo disponible en previsión ~48h (horaria AEMET). Para días lejanos mostrar '—'
+            const mmHtml = prob > 0
+                ? (mm != null
+                    ? `<div style="font-size:.58rem;color:#0d6efd;opacity:.85;line-height:1;margin-top:.05rem">${mm} L/m²</div>`
+                    : `<div style="font-size:.58rem;opacity:.35;line-height:1;margin-top:.05rem">— L/m²</div>`)
+                : '';
+            const rainHtml = `<div class="muni-week-day-prob" style="${rainColor}"><i class="fa fa-droplet" style="font-size:.58rem;margin-right:.1rem"></i>${prob}%</div>${mmHtml}`;
+            const activeClass = i === 0 ? ' active' : '';
+            return `
+            <div class="muni-week-day${activeClass}" data-day-idx="${i}" data-card-id="${cardId}" onclick="wovSelectDay(this)">
+                <div class="muni-week-day-name">${d.label.split(' ')[0]}</div>
+                <div class="muni-week-day-icon"><i class="fa ${d.icon}"></i></div>
+                ${tempHtml}
+                ${rainHtml}
+            </div>`;
+        }).join('');
+    }
+
+    // ── Render field chips ─────────────────────────────────────────
+    function renderChips(fields) {
+        return fields.map(f =>
+            `<a class="muni-field-chip" href="/parcelas/${f.id}/" title="${f.crop} · ${f.area} ha">
+                <i class="fa fa-seedling me-1"></i>${f.name}
+             </a>`
+        ).join('');
+    }
+
+    // ── Render hourly carousel for a day ──────────────────────────
+    function renderHourlyTable(day) {
+        let hours = (day.hours || []);
+        if (!hours.length) {
+            return `<p class="text-center text-muted small py-3">Sin datos horarios para este día.</p>`;
+        }
+
+        // Filter out past hours for today
+        const nowDate = new Date().toISOString().slice(0, 10);
+        const nowHour = new Date().getHours();
+        if (day.date === nowDate) {
+            const filtered = hours.filter(h => parseInt(h.hour) >= nowHour);
+            if (filtered.length > 0) hours = filtered;
+        }
+
+        const sunriseMin = day.sunrise ? timeToMinutes(day.sunrise) : null;
+        const sunsetMin  = day.sunset  ? timeToMinutes(day.sunset)  : null;
+        let sunriseInserted = false;
+        let sunsetInserted  = false;
+
+        // ── Day summary bar ──────────────────────────────────────
+        const validTemps = hours.map(h => h.temperature).filter(t => t != null);
+        const sumMaxT = day.max_temp != null ? `${Math.round(day.max_temp)}°` : (validTemps.length ? `${Math.round(Math.max(...validTemps))}°` : '—');
+        const sumMinT = day.min_temp != null ? `${Math.round(day.min_temp)}°` : (validTemps.length ? `${Math.round(Math.min(...validTemps))}°` : '—');
+        const sumMaxWind = day.max_wind_speed != null ? day.max_wind_speed : 0;
+        const sumWindLvl = sumMaxWind <= 10 ? 0 : sumMaxWind <= 15 ? 1 : sumMaxWind < 20 ? 2 : 3;
+        const sumWindColors = ['#43a047','#f9a825','#fd7e14','#dc3545'];
+        const sumRainProb = day.max_precipitation_probability || 0;
+        const sumRainMm  = day.total_precipitation > 0 ? `${day.total_precipitation} L/m²` : null;
+        const sumRainColor = sumRainProb === 0 ? 'opacity:.35' : sumRainProb >= 50 ? 'color:#dc3545' : 'color:#0d6efd';
+        const sumRainProbHtml = `<span style="${sumRainColor};font-weight:${sumRainProb > 0 ? '600' : '400'}">${sumRainProb}%</span>`;
+        const sumRainMmHtml = sumRainProb > 0
+            ? (sumRainMm
+                ? ` <span style="opacity:.55">·</span> <span style="color:#0d6efd;font-size:.68rem">${sumRainMm}</span>`
+                : ` <span style="opacity:.55">·</span> <span style="opacity:.35;font-size:.68rem" title="AEMET no provee mm para días >48h">— L/m²</span>`)
+            : '';
+        const sumTreat = day.treatment_ok
+            ? `<span style="color:#198754;font-weight:700"><i class="fa fa-check-circle me-1"></i>Apto tratar</span>`
+            : (sumRainProb >= 50 || sumMaxWind > 25
+                ? `<span style="color:#dc3545;font-weight:700"><i class="fa fa-xmark-circle me-1"></i>Adverso</span>`
+                : `<span style="color:#cc8800;font-weight:700"><i class="fa fa-exclamation-circle me-1"></i>Precaución</span>`);
+        const sunSummary = (day.sunrise || day.sunset)
+            ? `<span style="margin-left:auto;opacity:.7">
+                ${day.sunrise ? `<i class="fa fa-sun" style="color:#ffc107"></i> ${day.sunrise}` : ''}
+                ${day.sunset  ? ` &nbsp;<i class="fa fa-moon" style="color:#7c9bcc"></i> ${day.sunset}` : ''}
+               </span>` : '';
+
+        const summaryHtml = `<div class="muni-hourly-summary">
+            <span><i class="fa fa-thermometer-half" style="opacity:.5"></i> ${sumMaxT} / <span style="opacity:.6">${sumMinT}</span></span>
+            <span><i class="fa fa-wind" style="color:${sumWindColors[sumWindLvl]}"></i> ${sumMaxWind} <small style="opacity:.6">km/h</small></span>
+            <span title="Probabilidad de lluvia · Litros esperados"><i class="fa fa-droplet" style="color:#0d6efd;opacity:.8"></i> ${sumRainProbHtml}${sumRainMmHtml}</span>
+            ${sumTreat}
+            ${sunSummary}
+        </div>`;
+
+        // ── Cards ────────────────────────────────────────────────
+        let cards = '';
+        for (const h of hours) {
+            const hrMin = timeToMinutes(h.hour);
+
+            if (sunriseMin !== null && !sunriseInserted && hrMin >= sunriseMin) {
+                cards += `<div class="hr-card hr-card-sun">
+                    <span class="hr-sun-icon"><i class="fa fa-sun" style="color:#ffc107"></i></span>
+                    <span class="hr-sun-lbl">${day.sunrise}</span>
+                </div>`;
+                sunriseInserted = true;
+            }
+            if (sunsetMin !== null && !sunsetInserted && hrMin >= sunsetMin) {
+                cards += `<div class="hr-card hr-card-sun">
+                    <span class="hr-sun-icon"><i class="fa fa-moon" style="color:#7c9bcc"></i></span>
+                    <span class="hr-sun-lbl">${day.sunset}</span>
+                </div>`;
+                sunsetInserted = true;
+            }
+
+            const treatCls  = h.treatment_ok ? 'ok' : (h.precipitation_probability >= 50 || h.wind_speed > 25 ? 'bad' : 'warn');
+            const windLvl   = h.wind_level ?? (h.wind_speed <= 10 ? 0 : h.wind_speed <= 15 ? 1 : h.wind_speed < 20 ? 2 : 3);
+            const tempTxt   = h.temperature != null ? `${Math.round(h.temperature)}°` : '—';
+            const tempCls   = h.temperature != null ? '' : ' no-data';
+            const prob      = h.precipitation_probability || 0;
+            const probFill  = Math.min(100, prob);
+            const probCls   = prob >= 50 ? ' high' : '';
+            const probLbl   = `${prob}%`;
+            const probEmpty = prob === 0 ? ' empty' : '';
+            const rainMm    = h.precipitation > 0 ? `${h.precipitation}L` : '';
+
+            cards += `<div class="hr-card">
+                <div class="hr-treat-dot ${treatCls}"></div>
+                <div class="hr-card-time">${h.hour}</div>
+                <div class="hr-card-icon"><i class="fa ${h.icon}"></i></div>
+                <div class="hr-card-temp${tempCls}">${tempTxt}</div>
+                <div class="hr-rain-wrap">
+                    <div class="hr-rain-prob${probCls}${probEmpty}">${probLbl}</div>
+                    <div class="hr-rain-bar-bg"><div class="hr-rain-bar-fill${probCls}" style="width:${probFill}%"></div></div>
+                    <div class="hr-rain-mm">${rainMm}</div>
+                </div>
+                <div class="hr-card-wind">
+                    <i class="fa fa-wind hr-wind-icon lvl${windLvl}"></i>
+                    <span>${h.wind_speed}<span class="hr-wind-kmh">km/h</span></span>
+                </div>
+            </div>`;
+        }
+
+        if (sunriseMin !== null && !sunriseInserted)
+            cards += `<div class="hr-card hr-card-sun"><span class="hr-sun-icon"><i class="fa fa-sun" style="color:#ffc107"></i></span><span class="hr-sun-lbl">${day.sunrise}</span></div>`;
+        if (sunsetMin !== null && !sunsetInserted)
+            cards += `<div class="hr-card hr-card-sun"><span class="hr-sun-icon"><i class="fa fa-moon" style="color:#7c9bcc"></i></span><span class="hr-sun-lbl">${day.sunset}</span></div>`;
+
+        return `${summaryHtml}
+        <div class="muni-hourly-carousel">${cards}</div>
+        <div class="muni-hourly-legend">
+            <span><i class="fa fa-wind" style="color:#43a047"></i> ≤10</span>
+            <span><i class="fa fa-wind" style="color:#f9a825"></i> 11–15</span>
+            <span><i class="fa fa-wind" style="color:#fd7e14"></i> 16–20</span>
+            <span><i class="fa fa-wind" style="color:#dc3545"></i> &gt;20 km/h</span>
+            <span class="leg-sep">│</span>
+            <span><i class="fa fa-cloud-rain" style="color:#0d6efd;opacity:.7"></i> % · L/m²</span>
+            <span style="margin-left:auto;opacity:.6"><i class="fa fa-satellite-dish me-1"></i>Fuente: AEMET</span>
+        </div>`;
+    }
+
+    function timeToMinutes(t) {
+        if (!t) return 0;
+        const parts = t.split(':');
+        return parseInt(parts[0]) * 60 + (parseInt(parts[1]) || 0);
+    }
+
+    // ── Build municipality card ────────────────────────────────────
+    let _cardCounter = 0;
+    const _muniDailyData = {}; // cardId → daily array
+
+    function buildCard(muni) {
+        const cardId = ++_cardCounter;
+        _muniDailyData[cardId] = muni.daily;
+
+        const today = muni.today;
+        const cls   = skyClass(today ? today.icon : '');
+        const maxT  = today && today.max_temp != null ? `${Math.round(today.max_temp)}°` : '—';
+        const minT  = today && today.min_temp != null ? `${Math.round(today.min_temp)}°` : '';
+        const cond  = today ? today.label_weather : '';
+
+        const pillWind = today ? `<span class="muni-pill"><i class="fa fa-wind"></i>${today.max_wind_speed} km/h</span>` : '';
+        const pillRain = today ? `<span class="muni-pill"><i class="fa fa-droplet"></i>${today.max_precipitation_probability}%</span>` : '';
+
+        const weekHtml = muni.daily.length
+            ? `<div class="muni-week">${renderWeek(muni.daily, cardId)}</div>`
+            : '';
+
+        const firstDayData = muni.daily[0];
+        const hourlyHeaderHtml = `<div class="muni-hourly-header">
+            <span><i class="fa fa-clock me-1"></i>Previsión horaria — <span class="muni-hourly-day-label">${firstDayData ? firstDayData.label : ''}</span></span>
+            <div class="muni-sun-info">
+                ${firstDayData && firstDayData.sunrise ? `<span><i class="fa fa-sun" style="color:#ffc107"></i>${firstDayData.sunrise}</span>` : ''}
+                ${firstDayData && firstDayData.sunset  ? `<span><i class="fa fa-moon" style="color:#7c9bcc"></i>${firstDayData.sunset}</span>` : ''}
+            </div>
+        </div>`;
+        const hourlyBodyHtml = firstDayData ? renderHourlyTable(firstDayData) : '';
+
+        return `
+        <div class="muni-card" data-card-id="${cardId}">
+            <div class="muni-hero ${cls}">
+                <div class="muni-hero-bg-icon"><i class="fa ${today ? today.icon : 'fa-cloud'}"></i></div>
+                <div class="muni-name"><i class="fa fa-location-dot me-1" style="opacity:.7"></i>${muni.name}</div>
+                <div class="muni-fields-label">${muni.fields.length} parcela${muni.fields.length !== 1 ? 's' : ''}</div>
+                <div class="muni-temp-row">
+                    <span class="muni-temp-max">${maxT}</span>
+                    ${minT ? `<span class="muni-temp-min">${minT}</span>` : ''}
+                </div>
+                <div class="muni-condition">${cond}</div>
+                <div class="muni-badge-row">${pillWind}${pillRain}</div>
+                ${treatmentBadge(today)}
+            </div>
+            ${weekHtml}
+            <div class="muni-hourly-toggle-bar">
+                <button class="muni-hourly-toggle" onclick="wovToggleHourly(this)" data-card-id="${cardId}">
+                    <i class="fa fa-clock"></i> Ver previsión por horas <i class="fa fa-chevron-down ms-1 toggle-arrow"></i>
+                </button>
+            </div>
+            <div class="muni-hourly-panel" id="muni-hourly-${cardId}">
+                ${hourlyHeaderHtml}
+                <div class="muni-hourly-body">${hourlyBodyHtml}</div>
+            </div>
+            <div class="muni-fields">${renderChips(muni.fields)}</div>
+        </div>`;
+    }
+
+
+    // ── Toggle hourly panel ────────────────────────────────────────
+    window.wovToggleHourly = function(btn) {
+        const cardId = btn.dataset.cardId;
+        const panel  = document.getElementById(`muni-hourly-${cardId}`);
+        const arrow  = btn.querySelector('.toggle-arrow');
+        const isOpen = panel.classList.toggle('open');
+        arrow.classList.toggle('fa-chevron-down', !isOpen);
+        arrow.classList.toggle('fa-chevron-up',    isOpen);
+    };
+
+    // ── Select day in week strip ───────────────────────────────────
+    window.wovSelectDay = function(el) {
+        const cardId = el.dataset.cardId;
+        const dayIdx = parseInt(el.dataset.dayIdx);
+        document.querySelectorAll(`.muni-week-day[data-card-id="${cardId}"]`)
+            .forEach(d => d.classList.remove('active'));
+        el.classList.add('active');
+
+        const daily = _muniDailyData[cardId];
+        if (!daily || !daily[dayIdx]) return;
+        const day = daily[dayIdx];
+
+        // ── Update hero ──────────────────────────────────────────
+        const card = document.querySelector(`.muni-card[data-card-id="${cardId}"]`);
+        if (card) {
+            const hero = card.querySelector('.muni-hero');
+            const skyClasses = ['sky-clear','sky-cloudy','sky-rain','sky-storm','sky-snow','sky-fog','sky-default'];
+            hero.classList.remove(...skyClasses);
+            const newSky = skyClass(day.icon || '');
+            if (newSky !== 'sky-default') hero.classList.add(newSky);
+            const bgIcon = hero.querySelector('.muni-hero-bg-icon i');
+            if (bgIcon) bgIcon.className = `fa ${day.icon || 'fa-cloud'}`;
+            const maxT = day.max_temp != null ? `${Math.round(day.max_temp)}°` : '—';
+            const minT = day.min_temp != null ? `${Math.round(day.min_temp)}°` : '';
+            hero.querySelector('.muni-temp-max').textContent = maxT;
+            const minEl = hero.querySelector('.muni-temp-min');
+            if (minEl) minEl.textContent = minT;
+            const condEl = hero.querySelector('.muni-condition');
+            if (condEl) condEl.textContent = day.label_weather || '';
+            const pillsRow = hero.querySelector('.muni-badge-row');
+            if (pillsRow) {
+                pillsRow.innerHTML =
+                    `<span class="muni-pill"><i class="fa fa-wind"></i>${day.max_wind_speed ?? '—'} km/h</span>` +
+                    `<span class="muni-pill"><i class="fa fa-droplet"></i>${day.max_precipitation_probability ?? 0}%</span>`;
+            }
+            const oldBadge = hero.querySelector('.muni-treatment-badge');
+            if (oldBadge) oldBadge.remove();
+            hero.insertAdjacentHTML('beforeend', treatmentBadge(day));
+        }
+
+        const panel = document.getElementById(`muni-hourly-${cardId}`);
+        panel.querySelector('.muni-hourly-day-label').textContent = day.label;
+        const sunWrap = panel.querySelector('.muni-sun-info');
+        if (sunWrap) {
+            sunWrap.innerHTML = `
+                ${day.sunrise ? `<span><i class="fa fa-sun" style="color:#ffc107"></i>${day.sunrise}</span>` : ''}
+                ${day.sunset  ? `<span><i class="fa fa-moon" style="color:#7c9bcc"></i>${day.sunset}</span>`  : ''}`;
+        }
+        panel.querySelector('.muni-hourly-body').innerHTML = renderHourlyTable(day);
+        if (!panel.classList.contains('open')) {
+            panel.classList.add('open');
+            const btn = document.querySelector(`.muni-hourly-toggle[data-card-id="${cardId}"]`);
+            if (btn) btn.querySelector('.toggle-arrow').className = 'fa fa-chevron-up ms-1 toggle-arrow';
+        }
+    };
+
+    // ── Fetch and group ────────────────────────────────────────────
+    const muniMap  = {};
+    const errFields = []; // fields that failed
+    let completed = 0;
+
+    function friendlyError(status, msg) {
+        if (status === 429) return 'AEMET ha alcanzado el límite de consultas. Inténtalo de nuevo en unos minutos.';
+        if (status === 401 || status === 403) return 'API key de AEMET no válida o sin permisos.';
+        if (status === 404) return 'No se encontraron datos AEMET para esta localización.';
+        if (status >= 500) return 'El servidor de AEMET no está disponible temporalmente.';
+        if (msg && msg.length < 120) return msg;
+        return 'No se pudieron obtener datos meteorológicos para esta parcela.';
+    }
+
+    async function fetchField(field) {
+        try {
+            const res = await fetch(`/api/fields/${field.id}/weather/`);
+            if (!res.ok) throw { status: res.status };
+            const data = await res.json();
+            if (data.error) throw { status: 0, msg: data.error };
+
+            const mname = data.municipality || `Zona ${field.id}`;
+            if (!muniMap[mname]) {
+                const today = new Date().toISOString().slice(0, 10);
+                const todayData = data.daily.find(d => d.date >= today) || data.daily[0];
+                muniMap[mname] = {
+                    name: mname,
+                    fields: [],
+                    today: todayData || null,
+                    daily: data.daily,
+                };
+            }
+            muniMap[mname].fields.push(field);
+        } catch (e) {
+            errFields.push({ field, reason: friendlyError(e.status, e.msg) });
+        } finally {
+            completed++;
+            if (completed === FIELDS.length) renderAll();
+        }
+    }
+
+    function renderAll() {
+        document.getElementById('wov-skeletons').classList.add('d-none');
+        document.querySelectorAll('.wov-field-col').forEach(el => el.remove());
+
+        const grid  = document.getElementById('wov-grid');
+        const munis = Object.values(muniMap).sort((a, b) => a.name.localeCompare(b.name));
+
+        if (munis.length === 0 && errFields.length === 0) {
+            grid.innerHTML = `<div class="col-12">
+                <div class="alert alert-secondary mb-0">
+                    <i class="fa fa-triangle-exclamation me-2"></i>
+                    No se obtuvieron datos de ninguna parcela. Comprueba que las parcelas tienen contorno definido en el mapa.
+                </div>
+            </div>`;
+        } else {
+            munis.forEach(muni => {
+                const col = document.createElement('div');
+                col.className = 'col-12 col-sm-6 col-xl-4';
+                col.innerHTML = buildCard(muni);
+                grid.appendChild(col);
+            });
+
+            if (errFields.length) {
+                const allFailed = munis.length === 0;
+                const errCol = document.createElement('div');
+                errCol.className = 'col-12';
+                const grouped = {};
+                errFields.forEach(({ field, reason }) => {
+                    if (!grouped[reason]) grouped[reason] = [];
+                    grouped[reason].push(field.name);
+                });
+                const items = Object.entries(grouped).map(([reason, names]) =>
+                    `<li><strong>${names.join(', ')}</strong> — ${reason}</li>`
+                ).join('');
+                const allFailedNote = allFailed
+                    ? `<div class="mt-2 text-center">
+                           <button class="btn btn-sm btn-outline-warning" onclick="location.reload()">
+                               <i class="fa fa-rotate-right me-1"></i>Reintentar
+                           </button>
+                       </div>`
+                    : '';
+                errCol.innerHTML = `
+                <div class="alert alert-warning d-flex gap-3 align-items-start mb-0">
+                    <i class="fa fa-cloud-slash fa-lg flex-shrink-0 mt-1 text-warning"></i>
+                    <div class="w-100">
+                        <div class="fw-semibold mb-1">
+                            ${allFailed
+                                ? 'No se pudo obtener la previsión del tiempo en este momento.'
+                                : `No se pudo cargar la previsión de ${errFields.length === 1 ? 'esta parcela' : 'algunas parcelas'}:`}
+                        </div>
+                        <ul class="mb-1 ps-3 small">${items}</ul>
+                        <small class="text-muted">
+                            <i class="fa fa-circle-info me-1"></i>AEMET OpenData tiene límites de consultas por minuto.
+                            Si el problema persiste, inténtalo en unos minutos.
+                        </small>
+                        ${allFailedNote}
+                    </div>
+                </div>`;
+                grid.appendChild(errCol);
+            }
+        }
+
+        const now = new Date();
+        const fmt = now.toLocaleString('es-ES', { weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' });
+        const okCount = munis.length;
+        document.getElementById('wov-subtitle').textContent =
+            okCount > 0
+                ? `${okCount} municipio${okCount !== 1 ? 's' : ''} · Actualizado ${fmt} · AEMET`
+                : `Sin datos disponibles · ${fmt}`;
+    }
+
+    FIELDS.forEach(f => fetchField(f));
+
+})();
+</script>
+{% endif %}
+{% endblock %}
+
+
