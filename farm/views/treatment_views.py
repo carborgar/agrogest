@@ -29,6 +29,27 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
     paginate_by = 6
     ordering = ['-date']
 
+    # ── Etiquetas legibles para el selector de orden ──────────────────────────
+    SORT_LABELS = {
+        'date_asc':  'Fecha: más próxima primero',
+        'date_desc': 'Fecha: más antigua primero',
+        'name_asc':  'Nombre: A → Z',
+        'name_desc': 'Nombre: Z → A',
+    }
+
+    def _get_filter_dates(self):
+        """Devuelve (date_from, date_to, from_is_default, to_is_default).
+
+        Si el usuario no ha enviado los parámetros, se usa el año en curso
+        como rango por defecto para que el listado esté acotado.
+        """
+        current_year = date.today().year
+        from_in_get = 'date_from' in self.request.GET
+        to_in_get = 'date_to' in self.request.GET
+        date_from = self.request.GET.get('date_from') if from_in_get else f'{current_year}-01-01'
+        date_to = self.request.GET.get('date_to') if to_in_get else f'{current_year}-12-31'
+        return date_from, date_to, not from_in_get, not to_in_get
+
     def get_queryset(self):
         queryset = (
             super()
@@ -41,8 +62,7 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
         type_filters = [v for v in self.request.GET.getlist('type') if v]
         status_filters = [v for v in self.request.GET.getlist('status') if v]
         product_ids = self.request.GET.getlist('products')
-        date_from = self.request.GET.get('date_from')
-        date_to = self.request.GET.get('date_to')
+        date_from, date_to, _, _ = self._get_filter_dates()
         product_type_filters = self.request.GET.getlist('product_types')
         search_query = self.request.GET.get('q', '').strip()
         sort = self.request.GET.get('sort', 'date_asc')
@@ -85,11 +105,9 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
         selected_statuses = [v for v in self.request.GET.getlist('status') if v]
         selected_products = self.request.GET.getlist('products')
         selected_product_types = self.request.GET.getlist('product_types')
-        date_from = self.request.GET.get('date_from')
-        date_to = self.request.GET.get('date_to')
+        date_from, date_to, date_from_is_default, date_to_is_default = self._get_filter_dates()
         search_query = self.request.GET.get('q', '').strip()
         sort = self.request.GET.get('sort', 'date_asc')
-
 
         context['fields'] = Field.ownership_objects.get_queryset_for_user(self.request.user)
         context['products'] = Product.ownership_objects.get_queryset_for_user(self.request.user)
@@ -101,12 +119,15 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
         context['selected_products'] = selected_products
         context['date_from'] = date_from
         context['date_to'] = date_to
+        context['date_from_is_default'] = date_from_is_default
+        context['date_to_is_default'] = date_to_is_default
         context['product_types'] = ProductType.ownership_objects.get_queryset_for_user(self.request.user)
         context['selected_product_types'] = selected_product_types
         context['total_count'] = self.get_queryset().count()
         context['available_fields'] = Field.ownership_objects.get_queryset_for_user(self.request.user)
         context['search_query'] = search_query
         context['sort'] = sort
+        context['sort_label'] = self.SORT_LABELS.get(sort, self.SORT_LABELS['date_asc'])
 
         active_filter_count = (
             len(selected_fields)

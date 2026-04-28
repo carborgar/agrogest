@@ -825,6 +825,13 @@ a.filter-active-chip:hover {
     cursor: pointer;
 }
 
+/* Variante para fechas por defecto (año en curso) — tono neutro/secundario */
+.filter-active-chip--default {
+    background: var(--bs-secondary-bg-subtle, #e2e3e5);
+    color: var(--bs-secondary-text-emphasis, #41464b);
+    border-color: var(--bs-secondary-border-subtle, #c4c8cb);
+}
+
 /* ═══════════════════════════════════════════════
    EMPTY STATE
 ═══════════════════════════════════════════════ */

@@ -130,7 +130,7 @@
             </div>
 
             {# Fila de filtros avanzados (colapsable) #}
-            <div class="collapse {% if selected_product_types or selected_products or date_from or date_to %}show{% endif %}"
+            <div class="collapse {% if selected_product_types or selected_products or not date_from_is_default or not date_to_is_default %}show{% endif %}"
                  id="advancedFilters">
                 <div class="row g-2 align-items-end mt-1 pt-2">
 
@@ -194,43 +194,46 @@
 
                     {# Fecha desde #}
                     <div class="col-6 col-lg-2">
-                        <label class="form-label small fw-semibold text-muted mb-1" for="date_from">
+                        <label class="form-label small fw-semibold text-muted mb-1 d-flex align-items-center gap-1" for="date_from">
                             <i class="fa fa-calendar me-1"></i>Desde
+                            {% if date_from_is_default %}<span class="badge bg-secondary fw-normal" style="font-size:0.65rem;">año actual</span>{% endif %}
                         </label>
-                        <input type="date" name="date_from" value="{{ date_from }}" class="form-control" id="date_from">
+                        <input type="date" name="date_from" value="{{ date_from }}"
+                               class="form-control{% if date_from_is_default %} border-secondary{% endif %}" id="date_from">
                     </div>
 
                     {# Fecha hasta #}
                     <div class="col-6 col-lg-2">
-                        <label class="form-label small fw-semibold text-muted mb-1" for="date_to">
+                        <label class="form-label small fw-semibold text-muted mb-1 d-flex align-items-center gap-1" for="date_to">
                             <i class="fa fa-calendar me-1"></i>Hasta
+                            {% if date_to_is_default %}<span class="badge bg-secondary fw-normal" style="font-size:0.65rem;">año actual</span>{% endif %}
                         </label>
-                        <input type="date" name="date_to" value="{{ date_to }}" class="form-control" id="date_to">
+                        <input type="date" name="date_to" value="{{ date_to }}"
+                               class="form-control{% if date_to_is_default %} border-secondary{% endif %}" id="date_to">
                     </div>
 
                 </div>
             </div>
 
-            {# Toggle de filtros avanzados #}
-            <div class="mt-2 d-flex align-items-center gap-3">
+            {# Toggle de filtros avanzados + chips — dos filas para que en móvil no se descuadre #}
+            <div class="mt-2">
+                {# Fila 1: botón toggle #}
                 <button class="btn btn-link btn-sm text-muted p-0 text-decoration-none" type="button"
                         data-bs-toggle="collapse" data-bs-target="#advancedFilters"
                         id="advancedToggleBtn"
-                        aria-expanded="{% if selected_product_types or selected_products or date_from or date_to %}true{% else %}false{% endif %}">
+                        aria-expanded="{% if selected_product_types or selected_products or not date_from_is_default or not date_to_is_default %}true{% else %}false{% endif %}">
                     <i class="fa fa-sliders me-1"></i>
                     <span class="advanced-toggle-label">Más filtros</span>
                     <i class="fa fa-chevron-down ms-1 advanced-toggle-icon"></i>
-                    {% if selected_product_types or selected_products or date_from or date_to %}
+                    {% if selected_product_types or selected_products or not date_from_is_default or not date_to_is_default %}
                     <span class="badge bg-primary ms-1">
-                        {% with 0 as c %}
-                        {{ selected_product_types|length|add:selected_products|length }}{% if date_from or date_to %}+{% endif %}
-                        {% endwith %}
+                        {{ selected_product_types|length|add:selected_products|length }}{% if not date_from_is_default or not date_to_is_default %}+{% endif %}
                     </span>
                     {% endif %}
                 </button>
 
-                {# Active filter chips #}
-                <div class="d-flex flex-wrap gap-1 align-items-center">
+                {# Fila 2: chips de filtros activos #}
+                <div class="d-flex flex-wrap gap-1 align-items-center mt-1">
                     {% if search_query %}
                     <a href="?{% for key, value in request.GET.items %}{% if key != 'q' %}{{ key }}={{ value }}&{% endif %}{% endfor %}"
                        class="filter-active-chip" title="Quitar búsqueda">
@@ -253,9 +256,11 @@
                     </span>
                     {% endif %}
                     {% if date_from or date_to %}
-                    <span class="filter-active-chip">
+                    <span class="filter-active-chip {% if date_from_is_default and date_to_is_default %}filter-active-chip--default{% endif %}"
+                          title="{% if date_from_is_default and date_to_is_default %}Filtrando el año en curso por defecto. Abre «Más filtros» para cambiarlo.{% endif %}">
                         <i class="fa fa-calendar me-1"></i>
                         {% if date_from %}{{ date_from }}{% endif %}{% if date_from and date_to %} → {% endif %}{% if date_to %}{{ date_to }}{% endif %}
+                        {% if date_from_is_default and date_to_is_default %}<span class="ms-1 opacity-75">(año actual)</span>{% endif %}
                     </span>
                     {% endif %}
                 </div>
@@ -276,24 +281,27 @@
         <div class="dropdown">
             <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button"
                     data-bs-toggle="dropdown" id="sortDropdown">
-                <i class="fa fa-sort me-1"></i>Ordenar
+                <i class="fa fa-sort me-1"></i>{{ sort_label }}
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
                 <li><a class="dropdown-item {% if sort == 'date_asc' or not sort %}active{% endif %}"
                        href="?{{ request.GET.urlencode }}&sort=date_asc">
-                    <i class="fa fa-arrow-up me-2"></i>Fecha (más próxima)
+                    <div class="fw-semibold">Fecha ↑</div>
+                    <div class="text-muted small">atrasadas y más próximas primero</div>
                 </a></li>
                 <li><a class="dropdown-item {% if sort == 'date_desc' %}active{% endif %}"
                        href="?{{ request.GET.urlencode }}&sort=date_desc">
-                    <i class="fa fa-arrow-down me-2"></i>Fecha (más antigua)
+                    <div class="fw-semibold">Fecha ↓</div>
+                    <div class="text-muted small">más lejanas o recientes primero</div>
                 </a></li>
+                <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item {% if sort == 'name_asc' %}active{% endif %}"
                        href="?{{ request.GET.urlencode }}&sort=name_asc">
-                    <i class="fa fa-font me-2"></i>Nombre A→Z
+                    Nombre A-Z
                 </a></li>
                 <li><a class="dropdown-item {% if sort == 'name_desc' %}active{% endif %}"
                        href="?{{ request.GET.urlencode }}&sort=name_desc">
-                    <i class="fa fa-font me-2"></i>Nombre Z→A
+                    Nombre Z-A
                 </a></li>
             </ul>
         </div>
