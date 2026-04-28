@@ -35,37 +35,6 @@
             margin: -15px -15px 15px -15px;
         }
 
-        .treatment-info {
-            margin-bottom: 20px;
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 15px;
-        }
-
-        .info-card {
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 12px;
-            background-color: #f8f9fa;
-        }
-
-        .info-label {
-            font-size: 12px;
-            color: #6c757d;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 5px;
-        }
-
-        .info-label i {
-            margin-right: 5px;
-        }
-
-        .info-value {
-            font-size: 16px;
-            font-weight: 600;
-        }
-
         .footer {
             margin-top: 30px;
             padding-top: 15px;
@@ -85,63 +54,23 @@
 </head>
 <body>
 <div class="card container mb-3" id="export-container">
-    <div class="card-header header bg-primary text-white d-flex justify-content-between">
-        <div class="d-flex align-items-center flex-grow-1">
-            <h3>Instrucciones</h3>
-        </div>
-        <div class="d-flex gap-3 d-print-none">
-            <!-- View switcher -->
-            <div class="view-switcher">
-                <button class="btn view-btn active" id="cardViewBtn" type="button">
-                    <i class="fa fa-th"></i> Tarjetas
-                </button>
-                <button class="btn view-btn" id="listViewBtn" type="button">
-                    <i class="fa fa-list"></i> Lista
-                </button>
-            </div>
+    <div class="card-header header bg-primary text-white">
+        <h3 class="mb-1">Instrucciones para operador</h3>
+        <div class="d-flex flex-wrap gap-3 mt-1" style="font-size:0.9rem;">
+            <span><i class="fa fa-clipboard-check me-1"></i><strong>{{ treatment.name }}</strong></span>
+            <span><i class="fa fa-map-marked-alt me-1"></i>{{ treatment.field.name }}
+                ({{ treatment.field.crop }}, {{ treatment.field.area }} ha)</span>
+            {% if treatment.machine %}
+            <span><i class="fa fa-fill-drip me-1"></i>
+                {% if treatment.real_water_per_ha and treatment.real_water_per_ha != treatment.water_per_ha %}
+                <del class="text-white-50">{{ treatment.water_per_ha }} L/ha</del>
+                {% endif %}
+                <strong>{{ treatment.actual_water_per_ha }} L/ha</strong>
+            </span>
+            {% endif %}
         </div>
     </div>
     <div class="card-body p-0">
-        <div class="treatment-info">
-            <div class="info-card">
-                <div class="info-label"><i class="fa fa-clipboard-check"></i> Tratamiento</div>
-                <div class="info-value">{{ treatment.name }}</div>
-            </div>
-
-            <div class="info-card">
-                <div class="info-label"><i class="fa fa-map-marked-alt"></i> Parcela</div>
-                <div class="info-value">{{ treatment.field.name }}</div>
-                <div>{{ treatment.field.crop }}, {{ treatment.field.area }} ha</div>
-            </div>
-
-            {% if treatment.machine %}
-            <div class="info-card">
-                <div class="info-label"><i class="fa fa-fill-drip"></i> Mojado</div>
-                <div class="info-value">
-                    {% if treatment.real_water_per_ha and treatment.real_water_per_ha != treatment.water_per_ha %}
-                    <del class="text-muted">{{ treatment.water_per_ha }} L/ha</del>
-                    <br>
-                    {% endif %}
-                    {{ treatment.actual_water_per_ha }} L/ha
-
-                </div>
-            </div>
-            {% endif %}
-        </div>
-
-        <div class="alert alert-info mb-3">
-            <i class="fa fa-info-circle me-2"></i>
-            {% if treatment.is_spraying and treatment.machine %}
-            {% with load_info=treatment.calculate_machine_loads %}
-            Total: <strong>{{ load_info.total_water }} litros</strong> de agua
-            para <strong>{{ treatment.field.area }} ha</strong> a <strong>{{ treatment.actual_water_per_ha }}
-            l/ha</strong>
-            {% endwith %}
-            {% elif treatment.is_fertigation %}
-            Aplicación de fertirrigación para <strong>{{ treatment.field.area }} ha</strong> en <strong>
-            {{ treatment.field.name }}</strong>
-            {% endif %}
-        </div>
 
         {% with load_info=treatment.calculate_machine_loads %}
         {% if treatment.is_fertigation or load_info.full_loads > 0 %}
@@ -150,30 +79,12 @@
                 {% if treatment.is_fertigation %}
                 <h5 class="mb-0"><i class="fa fa-droplet me-2"></i>Dosis a aplicar:</h5>
                 {% elif treatment.is_spraying %}
-                <h5 class="mb-0"><i class="fa fa-tractor"></i> {{ load_info.full_loads }} máquinas completas con:
+                <h5 class="mb-0"><i class="fa fa-tractor me-1"></i> {{ load_info.full_loads }} máquina{{ load_info.full_loads|pluralize }} completa{{ load_info.full_loads|pluralize }} con:
                 </h5>
                 {% endif %}
             </div>
-            <div class="card-body full-machine card-view-content">
-                <div class="row">
-                    {% for product in products %}
-                    <div class="col-6 col-sm-3 mb-2">
-                        <div class="treatment-product-card">
-                            <div class="product-header">
-                                <h5 class="product-name">{{ product.product.name }}</h5>
-                            </div>
-                            <div class="product-doses">
-                                <div class="dose-item">
-                                    <span class="dose-value">{{ product.get_dose_per_load }} {{ product.total_dose_unit }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-            <div class="list-view-content d-none">
-                <table class="table table-stripped table-bordered table-responsive">
+            <div class="card-body p-0">
+                <table class="table table-bordered table-responsive mb-0">
                     <thead>
                     <tr>
                         <th scope="col">Producto</th>
@@ -183,8 +94,8 @@
                     <tbody>
                     {% for product in products %}
                     <tr>
-                        <th scope="row">{{ product.product.name }}</th>
-                        <td>{{ product.get_dose_per_load }}{{ product.total_dose_unit }}</td>
+                        <td>{{ product.product.name }}</td>
+                        <td>{{ product.get_dose_per_load }} {{ product.total_dose_unit }}</td>
                     </tr>
                     {% endfor %}
                     </tbody>
@@ -194,53 +105,18 @@
         {% endif %}
 
         {% if load_info.partial_load %}
-        <!-- Productos para máquina parcial -->
-        <div class="card mb-3">
+        <!-- Máquina parcial: solo mostrar el agua, el operador calcula las dosis -->
+        <div class="card mb-3 border-warning">
             <div class="card-header bg-warning-subtle border-bottom border-warning border-2">
-                <h5 class="mb-0"><i class="fa fa-fill-drip"></i> 1 máquina parcial
-                    ({{ load_info.partial_water }} L) con:</h5>
-            </div>
-            <div class="card-body partial-machine card-view-content">
-                <div class="row">
-                    {% for product in products %}
-                    <div class="col-6 col-sm-3 mb-2">
-                        <div class="treatment-product-card">
-                            <div class="product-header">
-                                <h5 class="product-name">{{ product.product.name }}</h5>
-                            </div>
-                            <div class="product-doses">
-                                <div class="dose-item">
-                                    <span class="dose-value">{{ product|partial_load_product:treatment }} {{ product.total_dose_unit }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-            <div class="list-view-content d-none">
-                <table class="table table-stripped table-bordered table-responsive">
-                    <thead>
-                    <tr>
-                        <th scope="col">Producto</th>
-                        <th scope="col">Cantidad</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for product in products %}
-                    <tr>
-                        <th scope="row">{{ product.product.name }}</th>
-                        <td>{{ product|partial_load_product:treatment }}{{ product.total_dose_unit }}</td>
-                    </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
+                <h5 class="mb-0"><i class="fa fa-fill-drip me-1"></i>
+                    + 1 máquina parcial con <strong>{{ load_info.partial_water }} L</strong> de agua
+                </h5>
             </div>
         </div>
         {% endif %}
         {% endwith %}
 
-        <div class="alert alert-info">
+        <div class="alert alert-info mb-0">
             <i class="fa fa-circle-info me-2"></i>
             <strong>Nota:</strong>
             Asegúrese de aplicar los productos en el orden indicado.
@@ -276,7 +152,6 @@
             const container = document.getElementById('export-container');
             const pdfButton = document.getElementById('export-pdf');
             const imageButton = document.getElementById('export-image');
-            const viewSwitcher = document.querySelector('.view-switcher');
 
             // Función para exportar como imagen PNG
             imageButton.addEventListener('click', function() {
@@ -284,17 +159,11 @@
                 this.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Generando...';
                 this.disabled = true;
 
-                // Hide view switcher before capture
-                viewSwitcher.classList.add('d-none');
-
                 html2canvas(container, {
                     scale: 2, // Mejor calidad
                     logging: false,
                     useCORS: true
                 }).then(canvas => {
-                    // Restore view switcher
-                    viewSwitcher.classList.remove('d-none');
-
                     // Crear enlace de descarga
                     const link = document.createElement('a');
                     link.download = 'instrucciones-tratamiento-{{ treatment.id }}.png';
@@ -312,17 +181,11 @@
                 this.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Generando...';
                 this.disabled = true;
 
-                // Hide view switcher before capture
-                viewSwitcher.classList.add('d-none');
-
                 html2canvas(container, {
                     scale: 2,
                     logging: false,
                     useCORS: true
                 }).then(canvas => {
-                    // Restore view switcher
-                    viewSwitcher.classList.remove('d-none');
-
                     const { jsPDF } = window.jspdf;
 
                     // Crear PDF con dimensiones A4
@@ -349,49 +212,6 @@
                 });
             });
         }, 500);
-    });
-</script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Get view elements
-        const cardViewBtn = document.getElementById('cardViewBtn');
-        const listViewBtn = document.getElementById('listViewBtn');
-
-        // Toggle between views
-        cardViewBtn.addEventListener('click', function() {
-            // Show all card views, hide all list views
-            document.querySelectorAll('.card-view-content').forEach(el => el.classList.remove('d-none'));
-            document.querySelectorAll('.list-view-content').forEach(el => el.classList.add('d-none'));
-
-            // Update button states
-            cardViewBtn.classList.add('active');
-            listViewBtn.classList.remove('active');
-
-            // Store preference in localStorage
-            localStorage.setItem('treatmentExportViewPreference', 'card');
-        });
-
-        listViewBtn.addEventListener('click', function() {
-            // Hide all card views, show all list views
-            document.querySelectorAll('.card-view-content').forEach(el => el.classList.add('d-none'));
-            document.querySelectorAll('.list-view-content').forEach(el => el.classList.remove('d-none'));
-
-            // Update button states
-            listViewBtn.classList.add('active');
-            cardViewBtn.classList.remove('active');
-
-            // Store preference in localStorage
-            localStorage.setItem('treatmentExportViewPreference', 'list');
-        });
-
-        // Check for stored preference and apply it
-        const storedPreference = localStorage.getItem('treatmentExportViewPreference');
-        if (storedPreference === 'list') {
-            document.querySelectorAll('.card-view-content').forEach(el => el.classList.add('d-none'));
-            document.querySelectorAll('.list-view-content').forEach(el => el.classList.remove('d-none'));
-            listViewBtn.classList.add('active');
-            cardViewBtn.classList.remove('active');
-        }
     });
 </script>
 </body>
