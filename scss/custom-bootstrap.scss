@@ -137,6 +137,28 @@ $input-focus-box-shadow: 0 0 0 0.2rem rgba($primary, 0.2);
   }
 }
 
+// ── iOS auto-zoom fix ─────────────────────────────────────────────────────────
+// iOS Safari hace zoom automático en cualquier input con font-size < 16px.
+// $font-size-base es 15px, así que forzamos 16px en inputs sólo en móvil.
+@media (max-width: 767.98px) {
+  .form-control,
+  .form-select,
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="time"],
+  select,
+  textarea {
+    font-size: 1rem !important; // 16px mínimo — previene zoom automático en iOS Safari
+  }
+}
+
 // ── CSS variables (disponibles en todos los CSS externos) ─────────────────────
 :root {
   --primary:        #{$primary};

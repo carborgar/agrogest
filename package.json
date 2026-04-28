@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "Farm management application",
   "scripts": {
-    "build:css": "sass static/scss/custom.scss:static/css/custom-bootstrap.min.css --style compressed --no-source-map",
-    "watch:css": "sass --watch static/scss/custom.scss:static/css/custom-bootstrap.min.css --style expanded"
+    "build:css": "sass scss/custom-bootstrap.scss:static/css/custom-bootstrap.min.css --style compressed --no-source-map",
+    "watch:css": "sass --watch scss/custom-bootstrap.scss:static/css/custom-bootstrap.min.css --style expanded"
   },
   "dependencies": {
     "bootstrap": "^5.3.3",
