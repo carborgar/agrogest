@@ -136,7 +136,7 @@
                 </div>
 
                 <!-- Main info -->
-                <div class="flex-fill min-width-0">
+                <div class="flex-fill overflow-hidden">
                     <div class="d-flex align-items-baseline gap-2 flex-wrap">
                         <span class="fw-semibold text-truncate">{{ product.name }}</span>
                         <span class="badge bg-primary-subtle text-primary-emphasis rounded-pill small">{{ product.product_type.name }}</span>
@@ -160,14 +160,20 @@
                         {% endif %}
                     </div>
                     {% if product.comments %}
-                    <div class="text-muted small mt-1 text-truncate" title="{{ product.comments }}">
-                        <i class="fa fa-comment fa-xs me-1 opacity-50"></i>{{ product.comments }}
-                    </div>
+                    <button type="button"
+                            class="btn btn-link p-0 text-start text-muted small mt-1 d-flex align-items-center gap-1 w-100 comment-trigger"
+                            style="text-decoration:none; max-width:100%;"
+                            data-comment="{{ product.comments }}"
+                            data-product="{{ product.name }}">
+                        <i class="fa fa-comment fa-xs opacity-50 flex-shrink-0"></i>
+                        <span class="text-truncate flex-fill" style="text-decoration:underline; text-decoration-style:dotted; text-underline-offset:3px;">{{ product.comments }}</span>
+                        <i class="fa fa-up-right-from-square fa-xs opacity-40 flex-shrink-0"></i>
+                    </button>
                     {% endif %}
                 </div>
 
                 <!-- Price -->
-                <div class="flex-shrink-0 text-end d-none d-sm-block" style="min-width: 70px;">
+                <div class="flex-shrink-0 text-end" style="min-width: 70px;">
                     {% if product.price %}
                     <span class="fw-semibold text-dark small">{{ product.price }}€/ud</span>
                     {% else %}
@@ -212,6 +218,24 @@
     {% csrf_token %}
 </form>
 
+<!-- Modal comentario -->
+<div class="modal fade" id="commentModal" tabindex="-1" aria-labelledby="commentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-1">
+                <div>
+                    <p class="text-muted small mb-0"><i class="fa fa-comment me-1 opacity-50"></i>Comentario</p>
+                    <h6 class="modal-title fw-semibold" id="commentModalLabel"></h6>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-2">
+                <p id="commentModalText" class="text-muted mb-0" style="white-space:pre-wrap; line-height:1.6;"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -234,6 +258,16 @@
         });
         document.getElementById('appFilter').addEventListener('change', function () {
             document.getElementById('filterForm').submit();
+        });
+
+        // Modal de comentarios
+        const commentModal = new bootstrap.Modal(document.getElementById('commentModal'));
+        document.querySelectorAll('.comment-trigger').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                document.getElementById('commentModalLabel').textContent = btn.dataset.product;
+                document.getElementById('commentModalText').textContent = btn.dataset.comment;
+                commentModal.show();
+            });
         });
     });
 </script>
