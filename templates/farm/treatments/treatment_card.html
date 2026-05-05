@@ -66,11 +66,11 @@
                     </button>
                     {% endif %}
                 </div>
-                {% if products|length > 1 %}
+                {% if products %}
                 <button class="btn btn-link btn-sm p-0 text-muted small"
                         data-bs-target="#productsModal{{ treatment.id }}"
                         data-bs-toggle="modal">
-                    <i class="fa fa-flask me-1"></i>Ver {{ products|length }} productos
+                    <i class="fa fa-flask me-1"></i>Ver {{ products|length }} producto{{ products|length|pluralize }}
                 </button>
                 {% endif %}
             </div>
