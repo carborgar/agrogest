@@ -175,11 +175,11 @@ class Product(OrganizationOwnedModel):
     product_type = models.ForeignKey(ProductType, on_delete=models.RESTRICT)
 
     # Spraying-specific dose fields
-    spraying_dose = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    spraying_dose = models.DecimalField(max_digits=10, decimal_places=4, blank=True, null=True)
     spraying_dose_type = models.CharField(max_length=20, choices=SPRAYING_DOSE_TYPE_CHOICES, blank=True, null=True)
 
     # Fertigation-specific dose fields
-    fertigation_dose = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    fertigation_dose = models.DecimalField(max_digits=10, decimal_places=4, blank=True, null=True)
     fertigation_dose_type = models.CharField(max_length=20, choices=FERTIGATION_DOSE_TYPE_CHOICES, blank=True, null=True)
 
     comments = models.TextField(blank=True)
@@ -236,12 +236,14 @@ class Product(OrganizationOwnedModel):
     def full_spraying_dose(self):
         if not self.supports_spraying:
             return None
-        return f"{self.spraying_dose} {self.get_dose_type_name('spraying')}"
+        dose_str = f"{self.spraying_dose:.4f}".rstrip('0').rstrip('.')
+        return f"{dose_str} {self.get_dose_type_name('spraying')}"
 
     def full_fertigation_dose(self):
         if not self.supports_fertigation:
             return None
-        return f"{self.fertigation_dose} {self.get_dose_type_name('fertigation')}"
+        dose_str = f"{self.fertigation_dose:.4f}".rstrip('0').rstrip('.')
+        return f"{dose_str} {self.get_dose_type_name('fertigation')}"
 
 
 class Treatment(OrganizationOwnedModel):
@@ -383,7 +385,7 @@ class Treatment(OrganizationOwnedModel):
         elif 'pct' in dose_type:
             result = float(dose) * partial_water / 100
 
-        return round(result, 1)
+        return round(result, 4)
 
     def is_fertigation(self):
         return self.type == 'fertigation'
@@ -486,9 +488,9 @@ class Treatment(OrganizationOwnedModel):
 class TreatmentProduct(OrganizationOwnedModel):
     treatment = models.ForeignKey("Treatment", on_delete=models.CASCADE)
     product = models.ForeignKey("Product", on_delete=models.RESTRICT)
-    dose = models.DecimalField(max_digits=10, decimal_places=2)
+    dose = models.DecimalField(max_digits=10, decimal_places=4)
     dose_type = models.CharField(max_length=20)
-    total_dose = models.DecimalField(max_digits=10, decimal_places=2)
+    total_dose = models.DecimalField(max_digits=10, decimal_places=4)
     total_dose_unit = models.CharField(max_length=10, choices=[('L', 'Litros'), ('kg', 'Kilogramos')])
 
     # Nuevos campos de precio
@@ -554,7 +556,7 @@ class TreatmentProduct(OrganizationOwnedModel):
         else:
             return None
 
-        return round(value, 1)
+        return round(value, 4)
 
     def save(self, *args, **kwargs):
         # Calculamos la dosis total antes de guardar
@@ -605,7 +607,7 @@ class TreatmentProduct(OrganizationOwnedModel):
         else:
             result = Decimal(0)
 
-        self.total_dose = round(result, 1)
+        self.total_dose = round(result, 4)
 
     def calculate_dose_from_total(self):
         """Calcula la dosis basada en la dosis total y los parámetros del tratamiento"""
@@ -623,7 +625,7 @@ class TreatmentProduct(OrganizationOwnedModel):
         else:
             result = Decimal(0)
 
-        self.dose = round(result, 1)
+        self.dose = round(result, 4)
 
 
 class Expense(OrganizationOwnedModel):

@@ -218,7 +218,7 @@
                                         <h5 class="product-name" style="font-size:0.85rem">{{ p.product.name }}</h5>
                                     </div>
                                     <div class="fw-bold text-primary" style="font-size:1.1rem">
-                                        {{ p.get_dose_per_load }} {{ p.total_dose_unit }}
+                                        {{ p.get_dose_per_load|floatformat:"2" }} {{ p.total_dose_unit }}
                                     </div>
                                 </div>
                             </div>
@@ -279,11 +279,11 @@
                     <div class="product-doses">
                         <div class="dose-item">
                             <span class="dose-label">Dosis</span>
-                            <span class="dose-value">{{ product.dose }} {{ product.dose_type|dose_type }}</span>
+                            <span class="dose-value">{{ product.dose|fmt_dose }} {{ product.dose_type|dose_type }}</span>
                         </div>
                         <div class="dose-item">
                             <span class="dose-label">Total</span>
-                            <span class="dose-value">{{ product.total_dose }} {{ product.total_dose_unit }}</span>
+                            <span class="dose-value">{{ product.total_dose|floatformat:"2" }} {{ product.total_dose_unit }}</span>
                         </div>
                     </div>
                     <!-- Precios: secundarios, colapsados por defecto en móvil -->
@@ -291,15 +291,15 @@
                     <div class="product-cost-row">
                         <span class="product-cost-item">
                             <span class="dose-label">€/ud</span>
-                            <span class="dose-value">{{ product.unit_price }}€</span>
+                            <span class="dose-value">{{ product.unit_price|floatformat:"2" }}€</span>
                         </span>
                         <span class="product-cost-item">
                             <span class="dose-label">€/ha</span>
-                            <span class="dose-value text-success">{{ product.price_per_ha }}€</span>
+                            <span class="dose-value text-success">{{ product.price_per_ha|floatformat:"2" }}€</span>
                         </span>
                         <span class="product-cost-item">
                             <span class="dose-label">Total</span>
-                            <span class="dose-value fw-bold text-success">{{ product.total_price }}€</span>
+                            <span class="dose-value fw-bold text-success">{{ product.total_price|floatformat:"2" }}€</span>
                         </span>
                     </div>
                     {% endif %}

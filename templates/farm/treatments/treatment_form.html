@@ -270,7 +270,7 @@
                     <label class="form-label small fw-semibold text-muted">Dosis</label>
                     <input class="form-control product-dose" id="id_treatmentproduct_set-INDEX-dose"
                            name="treatmentproduct_set-INDEX-dose"
-                           step="0.01"
+                           step="0.001"
                            type="number">
                 </div>
                 <div class="dose-info machine-dose-line d-none">
@@ -283,7 +283,7 @@
                     <label class="form-label small fw-semibold text-muted">Total parcela</label>
                     <input class="form-control total-dose-input" id="id_treatmentproduct_set-INDEX-total_dose"
                            name="treatmentproduct_set-INDEX-total_dose"
-                           step="0.01"
+                           step="0.001"
                            type="number">
                 </div>
             </div>
@@ -739,7 +739,7 @@
                 dosePerHa = (totalDose * 2000) / totalWater;
             }
 
-            doseInput.value = dosePerHa.toFixed(2);
+            doseInput.value = dosePerHa.toFixed(3);
 
             calculateMachineDoses();
         }
@@ -761,10 +761,10 @@
             // Si contiene un punto decimal
             if (value.includes('.')) {
                 const parts = value.split('.');
-                // Si hay más de dos decimales después del punto
-                if (parts[1] && parts[1].length > 2) {
-                    // Truncar a dos decimales
-                    input.value = `${parts[0]}.${parts[1].substring(0, 2)}`;
+                // Si hay más de tres decimales después del punto
+                if (parts[1] && parts[1].length > 3) {
+                    // Truncar a tres decimales
+                    input.value = `${parts[0]}.${parts[1].substring(0, 3)}`;
                 }
             }
         }

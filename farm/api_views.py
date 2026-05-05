@@ -8,6 +8,13 @@ from django.utils.dateparse import parse_date
 from .models import Field, Machine, Product, Treatment, TreatmentProduct
 
 
+def _fmt_dose(value):
+    """Formatea un Decimal de dosis eliminando ceros finales innecesarios."""
+    if value is None:
+        return None
+    return f"{value:.4f}".rstrip('0').rstrip('.')
+
+
 def get_fields(request):
     fields = Field.ownership_objects.get_queryset_for_user(request.user)
     fields_data = [
@@ -44,7 +51,7 @@ def get_products(request, application_type):
         {
             'id': product.id,
             'name': product.name,
-            'dose': product.get_dose(application_type),
+            'dose': _fmt_dose(product.get_dose(application_type)),
             'dose_type': product.get_dose_type(application_type),
             'dose_type_display': product.get_dose_type_name(application_type),
 
@@ -127,10 +134,10 @@ def treatment_detail(request, treatment_id):
                 {
                     'id': tp.product.id,
                     'name': tp.product.name,
-                    'dose': tp.dose,
+                    'dose': _fmt_dose(tp.dose),
                     'dose_type': tp.dose_type,
                     'dose_type_display': dict(tp.product.ALL_DOSE_TYPE_CHOICES).get(tp.dose_type, ''),
-                    'total_dose': tp.total_dose,
+                    'total_dose': _fmt_dose(tp.total_dose),
                     'total_dose_unit': tp.total_dose_unit
                 } for tp in products
             ]

@@ -66,14 +66,31 @@ class TreatmentForm(forms.ModelForm):
         return cleaned_data
 
 
+def _normalize_dose(value):
+    """Devuelve la dosis como string sin ceros finales, máx 3 decimales para display."""
+    if value is None:
+        return value
+    return f"{value:.3f}".rstrip('0').rstrip('.')
+
+
 class TreatmentProductForm(forms.ModelForm):
     class Meta:
         model = TreatmentProduct
         fields = ['product', 'dose', 'total_dose']
         widgets = {
-            'dose': forms.NumberInput(attrs={'step': '0.01'}),
-            'total_dose': forms.NumberInput(attrs={'step': '0.01'}),
+            'dose': forms.NumberInput(attrs={'step': '0.001'}),
+            'total_dose': forms.NumberInput(attrs={'step': '0.001'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Normalizar visualización de dosis para no mostrar ceros finales (ej: 0.075 en vez de 0.0750)
+        if self.instance and self.instance.pk:
+            if self.instance.dose:
+                self.initial['dose'] = _normalize_dose(self.instance.dose)
+            if self.instance.total_dose is not None:
+                # total_dose se muestra con 2 decimales en el formulario
+                self.initial['total_dose'] = f"{self.instance.total_dose:.2f}"
 
     def validate_unique(self):
         """
@@ -88,8 +105,8 @@ class TreatmentProductForm(forms.ModelForm):
     def clean_dose(self):
         dose = self.cleaned_data.get('dose')
         if dose is not None:
-            # Redondear a 2 decimales, que es la precisión que tiene el modelo
-            dose = dose.quantize(Decimal('0.01'), rounding=ROUND_UP)
+            # Redondear a 3 decimales (ej: 0.075 kg/1000L)
+            dose = dose.quantize(Decimal('0.001'), rounding=ROUND_UP)
         return dose
 
 
@@ -311,9 +328,9 @@ class ProductForm(NoPlaceholderModelForm):
             'product_type': forms.Select(attrs={'class': 'form-select'}),
             'comments': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
-            'spraying_dose': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'spraying_dose': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001', 'min': '0'}),
             'spraying_dose_type': forms.Select(attrs={'class': 'form-select'}),
-            'fertigation_dose': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'fertigation_dose': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001', 'min': '0'}),
             'fertigation_dose_type': forms.Select(attrs={'class': 'form-select'}),
         }
 
@@ -329,6 +346,13 @@ class ProductForm(NoPlaceholderModelForm):
         self.fields['spraying_dose_type'].required = False
         self.fields['fertigation_dose'].required = False
         self.fields['fertigation_dose_type'].required = False
+
+        # Normalizar visualización de dosis: quitar ceros finales (ej: 0.075, no 0.0750)
+        if self.instance and self.instance.pk:
+            if self.instance.spraying_dose:
+                self.initial['spraying_dose'] = _normalize_dose(self.instance.spraying_dose)
+            if self.instance.fertigation_dose:
+                self.initial['fertigation_dose'] = _normalize_dose(self.instance.fertigation_dose)
 
     def clean_spraying_dose(self):
         dose = self.cleaned_data.get('spraying_dose')

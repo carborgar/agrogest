@@ -53,7 +53,7 @@
             <div class="mb-2">
                 <div class="treatment-product-chips mb-1">
                     {% for tp in products|slice:":3" %}
-                    <span class="product-chip" title="{{ tp.product.name }} — {{ tp.dose }} {{ tp.dose_type|dose_type }}">
+                    <span class="product-chip" title="{{ tp.product.name }} — {{ tp.dose|fmt_dose }} {{ tp.dose_type|dose_type }}">
                         <i class="fa fa-flask me-1 opacity-50"></i>{{ tp.product.name|truncatechars:16 }}
                     </span>
                     {% endfor %}
@@ -115,11 +115,11 @@
                             <div class="product-doses">
                                 <div class="dose-item">
                                     <span class="dose-label">Dosis</span>
-                                    <span class="dose-value">{{ tp.dose }} {{ tp.dose_type|dose_type }}</span>
+                                    <span class="dose-value">{{ tp.dose|fmt_dose }} {{ tp.dose_type|dose_type }}</span>
                                 </div>
                                 <div class="dose-item">
                                     <span class="dose-label">Total</span>
-                                    <span class="dose-value">{{ tp.total_dose }} {{ tp.total_dose_unit }}</span>
+                                    <span class="dose-value">{{ tp.total_dose|floatformat:"2" }} {{ tp.total_dose_unit }}</span>
                                 </div>
                             </div>
                         </div>

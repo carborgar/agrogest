@@ -48,3 +48,23 @@ def type_icon(type_value):
     """Devuelve el nombre del icono FontAwesome para un valor de tipo (string)."""
     return _TYPE_ICON.get(type_value, 'flask')
 
+
+@register.filter
+def fmt_dose(value):
+    """Formatea una dosis eliminando ceros finales (hasta 4 decimales).
+    Funciona correctamente con objetos Decimal que tienen ceros significativos
+    (ej: Decimal('0.0750') → '0,075').
+    """
+    if value is None:
+        return ''
+    try:
+        from decimal import Decimal
+        from django.utils.formats import number_format
+        # Normalizar: quitar ceros finales usando str formatting
+        formatted = f'{Decimal(str(value)):.4f}'.rstrip('0').rstrip('.')
+        # Volver a Decimal para que number_format aplique el separador decimal del locale
+        return number_format(Decimal(formatted), decimal_pos=len(formatted.split('.')[-1]) if '.' in formatted else 0)
+    except Exception:
+        return value
+
+

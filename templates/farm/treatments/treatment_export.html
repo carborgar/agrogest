@@ -95,7 +95,7 @@
                     {% for product in products %}
                     <tr>
                         <td>{{ product.product.name }}</td>
-                        <td>{{ product.get_dose_per_load }} {{ product.total_dose_unit }}</td>
+                        <td>{{ product.get_dose_per_load|floatformat:"2" }} {{ product.total_dose_unit }}</td>
                     </tr>
                     {% endfor %}
                     </tbody>

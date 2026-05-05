@@ -96,11 +96,11 @@
                             <div class="product-doses">
                                 <div class="dose-item">
                                     <span class="dose-label">Cantidad</span>
-                                    <span class="dose-value"><strong>{{ item.total_dose }} {{ item.unit }}</strong></span>
+                                    <span class="dose-value"><strong>{{ item.total_dose|floatformat:"2" }} {{ item.unit }}</strong></span>
                                 </div>
                                 <div class="dose-item">
                                     <span class="dose-label">Total</span>
-                                    <span class="dose-value"><strong>{{ item.total_price }} €</strong></span>
+                                    <span class="dose-value"><strong>{{ item.total_price|floatformat:"2" }} €</strong></span>
                                 </div>
                             </div>
                         </div>
@@ -123,8 +123,8 @@
                             {% for item in product_items %}
                             <tr>
                                 <td><strong>{{ item.product_name }}</strong><br>
-                                <td><strong>{{ item.total_dose }} {{ item.unit }}</strong></td>
-                                <td><strong>{{ item.total_price }} €</strong></td>
+                                <td><strong>{{ item.total_dose|floatformat:"2" }} {{ item.unit }}</strong></td>
+                                <td><strong>{{ item.total_price|floatformat:"2" }} €</strong></td>
                                 {% endfor %}
                             </tbody>
                             <tfoot>
@@ -179,8 +179,8 @@
             <td style="width: 40px; text-align: center;">□</td>
             <td>{{ item.product_name }}</td>
             <td>{{ item.product_type }}</td>
-            <td>{{ item.total_dose }} {{ item.unit }}</td>
-            <td>{{ item.total_price }} €</td>
+            <td>{{ item.total_dose|floatformat:"2" }} {{ item.unit }}</td>
+            <td>{{ item.total_price|floatformat:"2" }} €</td>
         </tr>
         {% endfor %}
         </tbody>

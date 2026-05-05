@@ -129,11 +129,11 @@
                 <div class="ti-pcard-doses">
                     <div>
                         <span class="ti-pcard-lbl">Dosis</span>
-                        <span class="ti-pcard-val">{{ tp.dose }} {{ tp.dose_type|dose_type }}</span>
+                        <span class="ti-pcard-val">{{ tp.dose|fmt_dose }} {{ tp.dose_type|dose_type }}</span>
                     </div>
                     <div>
                         <span class="ti-pcard-lbl">Total</span>
-                        <span class="ti-pcard-val">{{ tp.total_dose }} {{ tp.total_dose_unit }}</span>
+                        <span class="ti-pcard-val">{{ tp.total_dose|floatformat:"2" }} {{ tp.total_dose_unit }}</span>
                     </div>
                 </div>
             </div>
