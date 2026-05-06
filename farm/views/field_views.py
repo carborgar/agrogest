@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count, Q, Sum
@@ -15,13 +17,15 @@ class FieldListView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
+        year = date.today().year
+        year_filter = Q(treatment__date__year=year)
         return (
             Field.objects.all()
             .annotate(
-                pending_count=Count('treatment', filter=Q(treatment__status=Treatment.STATUS_PENDING)),
-                delayed_count=Count('treatment', filter=Q(treatment__status=Treatment.STATUS_DELAYED)),
-                completed_count=Count('treatment', filter=Q(treatment__status=Treatment.STATUS_COMPLETED)),
-                total_treatments=Count('treatment'),
+                pending_count=Count('treatment', filter=year_filter & Q(treatment__status=Treatment.STATUS_PENDING)),
+                delayed_count=Count('treatment', filter=year_filter & Q(treatment__status=Treatment.STATUS_DELAYED)),
+                completed_count=Count('treatment', filter=year_filter & Q(treatment__status=Treatment.STATUS_COMPLETED)),
+                total_treatments=Count('treatment', filter=year_filter),
             )
         )
 

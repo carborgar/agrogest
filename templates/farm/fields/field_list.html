@@ -142,23 +142,24 @@
                     </div>
                 </div>
 
-                <!-- Mini-indicadores de tratamientos -->
+                <!-- Mini-indicadores de tratamientos (año en curso) -->
+                {% now "Y" as current_year %}
                 <div class="field-treatment-indicators">
                     <a class="field-indicator field-indicator--danger {% if field.delayed_count == 0 %}field-indicator--zero{% endif %}"
-                       href="{% url 'treatment-list' %}?field={{ field.id }}&status=delayed"
-                       title="{{ field.delayed_count }} atrasado{{ field.delayed_count|pluralize }}">
+                       href="{% url 'treatment-list' %}?field={{ field.id }}&status=delayed&date_from={{ current_year }}-01-01&date_to={{ current_year }}-12-31"
+                       title="{{ field.delayed_count }} atrasado{{ field.delayed_count|pluralize }} (año actual)">
                         <i class="fa fa-triangle-exclamation"></i>
                         <span>{{ field.delayed_count }}</span>
                     </a>
                     <a class="field-indicator field-indicator--warning {% if field.pending_count == 0 %}field-indicator--zero{% endif %}"
-                       href="{% url 'treatment-list' %}?field={{ field.id }}&status=pending"
-                       title="{{ field.pending_count }} pendiente{{ field.pending_count|pluralize }}">
+                       href="{% url 'treatment-list' %}?field={{ field.id }}&status=pending&date_from={{ current_year }}-01-01&date_to={{ current_year }}-12-31"
+                       title="{{ field.pending_count }} pendiente{{ field.pending_count|pluralize }} (año actual)">
                         <i class="fa fa-clock"></i>
                         <span>{{ field.pending_count }}</span>
                     </a>
                     <a class="field-indicator field-indicator--success {% if field.completed_count == 0 %}field-indicator--zero{% endif %}"
-                       href="{% url 'treatment-list' %}?field={{ field.id }}&status=completed"
-                       title="{{ field.completed_count }} completado{{ field.completed_count|pluralize }}">
+                       href="{% url 'treatment-list' %}?field={{ field.id }}&status=completed&date_from={{ current_year }}-01-01&date_to={{ current_year }}-12-31"
+                       title="{{ field.completed_count }} completado{{ field.completed_count|pluralize }} (año actual)">
                         <i class="fa fa-check-circle"></i>
                         <span>{{ field.completed_count }}</span>
                     </a>
