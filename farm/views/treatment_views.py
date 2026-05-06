@@ -2,6 +2,9 @@ import logging
 from datetime import date
 from decimal import Decimal
 
+from django.db.models import DateField, ExpressionWrapper
+from django.db.models.functions import Coalesce
+
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.http import JsonResponse
@@ -31,10 +34,10 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
 
     # ── Etiquetas legibles para el selector de orden ──────────────────────────
     SORT_LABELS = {
-        'date_asc':  'Fecha: más próxima primero',
-        'date_desc': 'Fecha: más antigua primero',
-        'name_asc':  'Nombre: A → Z',
-        'name_desc': 'Nombre: Z → A',
+        'date_desc': 'Fecha: más reciente primero',
+        'date_asc':  'Fecha: más antigua primero',
+        'name_asc':  'Nombre A-Z',
+        'name_desc': 'Nombre Z-A',
     }
 
     def _get_filter_dates(self):
@@ -65,7 +68,7 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
         date_from, date_to, _, _ = self._get_filter_dates()
         product_type_filters = self.request.GET.getlist('product_types')
         search_query = self.request.GET.get('q', '').strip()
-        sort = self.request.GET.get('sort', 'date_asc')
+        sort = self.request.GET.get('sort', 'date_desc')
 
         if field_ids:
             queryset = queryset.filter(field__id__in=field_ids)
@@ -89,12 +92,18 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
             queryset = queryset.filter(name__icontains=search_query)
 
         sort_map = {
-            'date_asc': 'date',
-            'date_desc': '-date',
-            'name_asc': 'name',
+            'date_desc': '-effective_date',
+            'date_asc':  'effective_date',
+            'name_asc':  'name',
             'name_desc': '-name',
         }
-        order_field = sort_map.get(sort, 'date')
+        order_field = sort_map.get(sort, '-effective_date')
+        queryset = queryset.annotate(
+            effective_date=ExpressionWrapper(
+                Coalesce('finish_date', 'date'),
+                output_field=DateField()
+            )
+        )
         return queryset.order_by(order_field).distinct()
 
     def get_context_data(self, **kwargs):
@@ -107,7 +116,7 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
         selected_product_types = self.request.GET.getlist('product_types')
         date_from, date_to, date_from_is_default, date_to_is_default = self._get_filter_dates()
         search_query = self.request.GET.get('q', '').strip()
-        sort = self.request.GET.get('sort', 'date_asc')
+        sort = self.request.GET.get('sort', 'date_desc')
 
         context['fields'] = Field.ownership_objects.get_queryset_for_user(self.request.user)
         context['products'] = Product.ownership_objects.get_queryset_for_user(self.request.user)
@@ -127,7 +136,7 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
         context['available_fields'] = Field.ownership_objects.get_queryset_for_user(self.request.user)
         context['search_query'] = search_query
         context['sort'] = sort
-        context['sort_label'] = self.SORT_LABELS.get(sort, self.SORT_LABELS['date_asc'])
+        context['sort_label'] = self.SORT_LABELS.get(sort, self.SORT_LABELS['date_desc'])
 
         active_filter_count = (
             len(selected_fields)

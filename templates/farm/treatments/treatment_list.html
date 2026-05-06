@@ -284,15 +284,13 @@
                 <i class="fa fa-sort me-1"></i>{{ sort_label }}
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item {% if sort == 'date_asc' or not sort %}active{% endif %}"
-                       href="?{{ request.GET.urlencode }}&sort=date_asc">
-                    <div class="fw-semibold">Fecha ↑</div>
-                    <div class="text-muted small">atrasadas y más próximas primero</div>
-                </a></li>
-                <li><a class="dropdown-item {% if sort == 'date_desc' %}active{% endif %}"
+                <li><a class="dropdown-item {% if sort == 'date_desc' or not sort %}active{% endif %}"
                        href="?{{ request.GET.urlencode }}&sort=date_desc">
-                    <div class="fw-semibold">Fecha ↓</div>
-                    <div class="text-muted small">más lejanas o recientes primero</div>
+                    Fecha ↓ — más reciente primero
+                </a></li>
+                <li><a class="dropdown-item {% if sort == 'date_asc' %}active{% endif %}"
+                       href="?{{ request.GET.urlencode }}&sort=date_asc">
+                    Fecha ↑ — más antigua primero
                 </a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item {% if sort == 'name_asc' %}active{% endif %}"
