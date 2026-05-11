@@ -335,6 +335,62 @@ class CloneTreatmentView(BaseSecureViewMixin, View):
             return redirect('treatment-list')
 
 
+class RepeatTreatmentView(BaseSecureViewMixin, View):
+    """
+    Genera copias de un tratamiento en la misma parcela para un conjunto de fechas.
+    Permite seleccionar fechas individualmente o mediante un patrón recurrente
+    (ej: todos los viernes entre dos fechas).
+    """
+    template_name = 'farm/treatments/treatment_repeat.html'
+
+    def get_treatment(self, pk):
+        return get_object_or_404(Treatment, pk=pk, organization=self.request.user.organization)
+
+    def get(self, request, pk):
+        treatment = self.get_treatment(pk)
+        return render(request, self.template_name, {'treatment': treatment})
+
+    def post(self, request, pk):
+        treatment = self.get_treatment(pk)
+
+        # La lista de fechas llega como valores múltiples de 'dates'
+        raw_dates = request.POST.getlist('dates')
+
+        if not raw_dates:
+            messages.error(request, 'Debes seleccionar al menos una fecha.')
+            return render(request, self.template_name, {'treatment': treatment})
+
+        created = []
+        errors = []
+        for raw in raw_dates:
+            raw = raw.strip()
+            if not raw:
+                continue
+            try:
+                new_date = date.fromisoformat(raw)
+            except ValueError:
+                errors.append(raw)
+                continue
+            created.append(treatment.clone_to_field(treatment.field, new_date=new_date))
+
+        if errors:
+            messages.warning(request, f'Algunas fechas no eran válidas y se ignoraron: {", ".join(errors)}')
+
+        if not created:
+            messages.error(request, 'No se pudo crear ningún tratamiento. Revisa las fechas.')
+            return render(request, self.template_name, {'treatment': treatment})
+
+        if len(created) == 1:
+            messages.success(request, f'Tratamiento repetido el {created[0].date.strftime("%d/%m/%Y")}.')
+            return redirect('treatment-detail', pk=created[0].pk)
+
+        messages.success(
+            request,
+            f'Se han creado {len(created)} tratamientos para las fechas seleccionadas.'
+        )
+        return redirect('treatment-list')
+
+
 class TreatmentExportView(BaseSecureViewMixin, DetailView):
     model = Treatment
     template_name = 'farm/treatments/treatment_export.html'

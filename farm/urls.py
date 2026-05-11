@@ -6,6 +6,7 @@ from farm.views.treatment_views import (
     TreatmentListView, TreatmentDetailView, TreatmentFormView,
     FinishTreatmentView, DeleteTreatmentView, CloneTreatmentView,
     TreatmentCalendarView, TreatmentExportView, ShoppingListView,
+    RepeatTreatmentView,
 )
 from . import api_views
 from .views.chat_views import ChatView
@@ -28,6 +29,7 @@ urlpatterns = [
     path('tratamientos/<int:pk>/finalizar', FinishTreatmentView.as_view(), name='treatment-finish'),
     path('tratamientos/<int:pk>/eliminar/', DeleteTreatmentView.as_view(), name='treatment-delete'),
     path('tratamientos/<int:pk>/clonar/', CloneTreatmentView.as_view(), name='treatment-clone'),
+    path('tratamientos/<int:pk>/repetir/', RepeatTreatmentView.as_view(), name='treatment-repeat'),
     path('tratamientos/calendario/', TreatmentCalendarView.as_view(), name='treatment-calendar'),
     path('tratamientos/<int:pk>/operador/', TreatmentExportView.as_view(), name='treatment-instructions'),
     path('tratamientos/lista-compra/', ShoppingListView.as_view(), name='treatment-shopping-list'),

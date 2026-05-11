@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+{% load custom_filters %}
+
+{% block title %}Repetir — {{ treatment.name }}{% endblock %}
+{% block header %}Repetir tratamiento{% endblock %}
+
+{% block content %}
+{% with state_class=treatment|treatment_state_class %}
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+
+        <!-- Resumen del tratamiento original -->
+        <div class="card mb-4">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="treatment-icon bg-{{ state_class }} bg-opacity-10">
+                    <i class="fa fa-{{ treatment|treatment_type_icon }} text-{{ state_class }}"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="fw-bold fs-5">{{ treatment.name }}</div>
+                    <div class="text-muted small">
+                        {{ treatment.get_type_display }} &middot;
+                        <strong>{{ treatment.field.name }}</strong>
+                        {% for tp in treatment.treatmentproduct_set.all %}
+                            &middot; {{ tp.product.name }}
+                        {% endfor %}
+                    </div>
+                </div>
+                <a href="{% url 'treatment-detail' treatment.id %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fa fa-arrow-left me-1"></i>Volver
+                </a>
+            </div>
+        </div>
+
+        <form method="POST" id="repeatForm">
+            {% csrf_token %}
+            <div id="hiddenDatesContainer"></div>
+
+            <div class="row g-4">
+
+                <!-- ── Calendario ── -->
+                <div class="col-md-7">
+                    <div class="card">
+                        <div class="card-header d-flex align-items-center justify-content-between py-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnPrevMonth">
+                                <i class="fa fa-chevron-left"></i>
+                            </button>
+                            <span class="fw-semibold" id="calMonthLabel"></span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnNextMonth">
+                                <i class="fa fa-chevron-right"></i>
+                            </button>
+                        </div>
+                        <div class="card-body p-2">
+                            <table class="table table-borderless text-center mb-0">
+                                <thead>
+                                    <tr>
+                                        <th class="text-muted small fw-normal py-1">L</th>
+                                        <th class="text-muted small fw-normal py-1">M</th>
+                                        <th class="text-muted small fw-normal py-1">X</th>
+                                        <th class="text-muted small fw-normal py-1">J</th>
+                                        <th class="text-muted small fw-normal py-1">V</th>
+                                        <th class="text-muted small fw-normal py-1">S</th>
+                                        <th class="text-muted small fw-normal py-1">D</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="calBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Resumen ── -->
+                <div class="col-md-5">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center py-2">
+                            <span class="fw-semibold small">Fechas seleccionadas</span>
+                            <span class="badge bg-primary" id="dateCount">0</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <div id="dateList" style="max-height: 320px; overflow-y: auto;">
+                                <div id="emptyMsg" class="text-muted text-center py-5 fst-italic small">
+                                    <i class="fa fa-calendar-xmark fa-2x mb-2 d-block opacity-25"></i>
+                                    Ninguna fecha seleccionada
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer py-2">
+                            <button type="button" class="btn btn-link btn-sm text-danger p-0 small" id="btnClear">
+                                <i class="fa fa-trash me-1"></i>Limpiar todo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="d-flex gap-2 justify-content-end mt-4">
+                <a class="btn btn-secondary" href="{% url 'treatment-detail' treatment.id %}">Cancelar</a>
+                <button class="btn btn-primary" id="submitBtn" type="submit" disabled>
+                    <i class="fa fa-rotate me-1"></i>
+                    Crear <span id="submitCount">0</span> tratamiento<span id="submitPlural">s</span>
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+{% endwith %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const MONTHS   = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                      'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const DAY_NAMES = ['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
+
+    const selected  = new Set(); // ISO "YYYY-MM-DD"
+    const now       = new Date();
+    const todayISO  = now.toISOString().split('T')[0];
+    const originISO = '{{ treatment.date|date:"Y-m-d" }}'; // fecha del tratamiento original
+    let viewYear  = now.getFullYear();
+    let viewMonth = now.getMonth(); // 0-based
+
+    function toISO(y, m, d) {
+        return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    }
+
+    function formatDisplay(iso) {
+        const [y, m, d] = iso.split('-').map(Number);
+        const dt = new Date(y, m - 1, d);
+        const wd = DAY_NAMES[(dt.getDay() + 6) % 7];
+        return `${String(d).padStart(2,'0')}/${String(m).padStart(2,'0')}/${y} — ${wd.charAt(0).toUpperCase() + wd.slice(1)}`;
+    }
+
+    // ── Render calendar ──────────────────────────────────────
+    function renderCal() {
+        document.getElementById('calMonthLabel').textContent =
+            `${MONTHS[viewMonth]} ${viewYear}`;
+
+        const body = document.getElementById('calBody');
+        body.innerHTML = '';
+
+        const firstDay = new Date(viewYear, viewMonth, 1);
+        const lastDay  = new Date(viewYear, viewMonth + 1, 0);
+        const startWd  = (firstDay.getDay() + 6) % 7; // 0=Mon
+
+        let row = document.createElement('tr');
+        for (let i = 0; i < startWd; i++) row.appendChild(document.createElement('td'));
+
+        for (let day = 1; day <= lastDay.getDate(); day++) {
+            const iso      = toISO(viewYear, viewMonth, day);
+            const isPast   = iso < todayISO;
+            const isOrigin = iso === originISO;
+            const disabled = isPast || isOrigin;
+
+            const td = document.createElement('td');
+            td.className = 'p-0';
+
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = day;
+            btn.className = 'btn btn-sm rounded-circle cal-day';
+            btn.dataset.iso = iso;
+
+            if (disabled) {
+                btn.classList.add('btn-link', 'text-muted', 'opacity-25');
+                btn.disabled = true;
+            } else if (selected.has(iso)) {
+                btn.classList.add('btn-primary');
+            } else {
+                btn.classList.add('btn-link', 'text-body');
+                if (iso === todayISO) btn.classList.add('fw-bold', 'text-primary');
+            }
+
+            if (!disabled) btn.addEventListener('click', () => toggleDate(iso));
+            td.appendChild(btn);
+            row.appendChild(td);
+
+            if ((new Date(viewYear, viewMonth, day).getDay() + 6) % 7 === 6) {
+                body.appendChild(row);
+                row = document.createElement('tr');
+            }
+        }
+        if (row.children.length) body.appendChild(row);
+    }
+
+    // ── Toggle ───────────────────────────────────────────────
+    function toggleDate(iso) {
+        selected.has(iso) ? selected.delete(iso) : selected.add(iso);
+        renderCal();
+        renderSummary();
+    }
+
+    // ── Render summary ───────────────────────────────────────
+    function renderSummary() {
+        const sorted = Array.from(selected).sort();
+        const count  = sorted.length;
+
+        // Hidden inputs
+        const hidden = document.getElementById('hiddenDatesContainer');
+        hidden.innerHTML = '';
+        sorted.forEach(iso => {
+            const inp = document.createElement('input');
+            inp.type = 'hidden'; inp.name = 'dates'; inp.value = iso;
+            hidden.appendChild(inp);
+        });
+
+        // List
+        const list = document.getElementById('dateList');
+        list.querySelectorAll('.date-item').forEach(el => el.remove());
+        document.getElementById('emptyMsg').classList.toggle('d-none', count > 0);
+
+        sorted.forEach(iso => {
+            const div = document.createElement('div');
+            div.className = 'date-item d-flex justify-content-between align-items-center px-3 py-2 border-bottom';
+            div.innerHTML = `
+                <span class="small">
+                    <i class="fa fa-calendar-day me-2 text-primary opacity-50"></i>${formatDisplay(iso)}
+                </span>
+                <button type="button" class="btn btn-link btn-sm text-danger p-0 lh-1" title="Quitar">
+                    <i class="fa fa-xmark"></i>
+                </button>`;
+            div.querySelector('button').addEventListener('click', () => toggleDate(iso));
+            list.appendChild(div);
+        });
+
+        document.getElementById('dateCount').textContent   = count;
+        document.getElementById('submitCount').textContent  = count;
+        document.getElementById('submitPlural').textContent = count === 1 ? '' : 's';
+        document.getElementById('submitBtn').disabled       = count === 0;
+    }
+
+    // ── Nav ──────────────────────────────────────────────────
+    document.getElementById('btnPrevMonth').addEventListener('click', () => {
+        if (--viewMonth < 0) { viewMonth = 11; viewYear--; }
+        renderCal();
+    });
+    document.getElementById('btnNextMonth').addEventListener('click', () => {
+        if (++viewMonth > 11) { viewMonth = 0; viewYear++; }
+        renderCal();
+    });
+    document.getElementById('btnClear').addEventListener('click', () => {
+        selected.clear(); renderCal(); renderSummary();
+    });
+
+    renderCal();
+    renderSummary();
+})();
+</script>
+
+<style>
+.cal-day {
+    width: 34px; height: 34px;
+    font-size: .85rem; padding: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+}
+.cal-day.btn-link:hover {
+    background-color: var(--bs-primary-bg-subtle);
+    color: var(--bs-primary) !important;
+    text-decoration: none;
+}
+</style>
+{% endblock %}
+

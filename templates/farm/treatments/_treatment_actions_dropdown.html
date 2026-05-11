@@ -34,6 +34,11 @@
                 </a>
             </li>
             <li>
+                <a class="dropdown-item" href="{% url 'treatment-repeat' treatment.id %}">
+                    <i class="fa fa-rotate me-2 text-info"></i>Repetir en esta parcela
+                </a>
+            </li>
+            <li>
                 <a class="dropdown-item" href="{% url 'treatment-edit' treatment.id %}">
                     <i class="fa fa-pen me-2 text-warning"></i>Editar
                 </a>
@@ -75,6 +80,11 @@
         <li>
             <a class="dropdown-item" href="{% url 'treatment-clone' treatment.id %}">
                 <i class="fa fa-copy me-2 text-secondary"></i>Clonar en otra parcela
+            </a>
+        </li>
+        <li>
+            <a class="dropdown-item" href="{% url 'treatment-repeat' treatment.id %}">
+                <i class="fa fa-rotate me-2 text-info"></i>Repetir en esta parcela
             </a>
         </li>
         <li>
