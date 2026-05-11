@@ -130,11 +130,13 @@
                             <i class="fas fa-map-location-dot"></i>Parcelas
                         </a>
                     </li>
+                    {% if feature_weather %}
                     <li class="nav-item">
                         <a class="nav-link {% if nav_weather %}active{% endif %}" href="{% url 'weather-overview' %}">
                             <i class="fa fa-cloud-sun"></i>El Tiempo
                         </a>
                     </li>
+                    {% endif %}
                     <li class="nav-item">
                         <a aria-expanded="{% if nav_products_open %}true{% else %}false{% endif %}"
                            class="nav-link" data-bs-target="#productosMenuDesktop" data-bs-toggle="collapse" href="#">
@@ -328,11 +330,13 @@
                                 <i class="fas fa-map-location-dot"></i>Parcelas
                             </a>
                         </li>
+                        {% if feature_weather %}
                         <li class="nav-item">
                             <a class="nav-link {% if nav_weather %}active{% endif %}" href="{% url 'weather-overview' %}">
                                 <i class="fa fa-cloud-sun"></i>El Tiempo
                             </a>
                         </li>
+                        {% endif %}
                         <li class="nav-item">
                             <a aria-expanded="{% if nav_products_open %}true{% else %}false{% endif %}"
                                class="nav-link" data-bs-target="#productosMenu" data-bs-toggle="collapse" href="#">

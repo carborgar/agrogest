@@ -1,3 +1,15 @@
+def feature_flags(request):
+    """
+    Inyecta los feature flags en el contexto de todos los templates.
+    Los lee de la BD (con caché) para que los cambios sean inmediatos
+    sin necesidad de redesplegar.
+    Cada flag WEATHER → feature_weather, HARVESTS → feature_harvests, etc.
+    """
+    from core.models import get_all_flags
+    flags = get_all_flags()
+    return {f'feature_{k.lower()}': v for k, v in flags.items()}
+
+
 def sidebar_state(request):
     return {
         'sidebar_collapsed': request.COOKIES.get('sidebar_collapsed', 'false') == 'true'

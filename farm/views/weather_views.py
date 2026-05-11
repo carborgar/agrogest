@@ -1,10 +1,12 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import TemplateView
 
+from farm.mixins import FeatureFlagMixin
 from farm.models import Field
 
 
-class WeatherOverviewView(LoginRequiredMixin, TemplateView):
+class WeatherOverviewView(FeatureFlagMixin, LoginRequiredMixin, TemplateView):
+    feature_flag = 'WEATHER'
     template_name = "farm/weather_overview.html"
 
     def get_context_data(self, **kwargs):
