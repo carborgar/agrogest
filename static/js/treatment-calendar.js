@@ -80,6 +80,8 @@ document.addEventListener('DOMContentLoaded', function () {
     function loadTreatmentDetail(event) {
         const treatmentId = event.id;
         const treatmentModal = document.getElementById("treatment-detail");
+        const waterWrap = document.getElementById('water-wrap');
+        const machineWrap = document.getElementById('machine-wrap');
 
         // Mostrar información básica inmediatamente
         document.querySelector('.treatment-title').textContent = event.title;
@@ -96,6 +98,8 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('detail-machine').textContent = '—';
         document.getElementById('detail-machine-info').textContent = '';
         document.getElementById('detail-water').textContent = '—';
+        waterWrap?.classList.remove('d-none');
+        machineWrap?.classList.remove('d-none');
         document.getElementById('detail-products-list').innerHTML =
             '<div class="text-center text-muted small py-3"><i class="fa fa-spinner fa-spin me-1"></i>Cargando...</div>';
 
@@ -119,6 +123,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 // Tipo
                 document.getElementById('detail-type').textContent = data.type_display;
+                const isFertigation = data.type === 'fertigation';
 
                 // Parcela
                 document.getElementById('detail-field').textContent = data.field_name;
@@ -130,11 +135,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Maquinaria
                 document.getElementById('detail-machine').textContent = data.machine_name || 'No asignada';
                 if (data.machine_capacity) {
-                    document.getElementById('detail-machine-info').textContent = `${data.machine_capacity} litros`;
+                    document.getElementById('detail-machine-info').textContent = `${formatNumber(data.machine_capacity, 0)} litros`;
                 }
 
-                // Mojado
-                updateWaterDisplay(data.water_per_ha, data.real_water_per_ha);
+                if (isFertigation) {
+                    // En fertirrigación no aplican ni maquinaria ni mojado.
+                    waterWrap?.classList.add('d-none');
+                    machineWrap?.classList.add('d-none');
+                } else {
+                    // Mojado
+                    updateWaterDisplay(data.water_per_ha, data.real_water_per_ha);
+                }
 
                 // Productos
                 fillProducts(data.products);
@@ -146,17 +157,36 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
 
-    // Nueva función para actualizar la visualización del mojado
+    function formatNumber(value, decimals = 2) {
+        const parsed = Number(value);
+        const safe = Number.isFinite(parsed) ? parsed : 0;
+        return safe.toLocaleString('es-ES', {
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals,
+        });
+    }
+
+    function formatDose(value) {
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed)) return value ?? '0,00';
+        return formatNumber(parsed, 2);
+    }
+
     function updateWaterDisplay(estimatedWater, realWater) {
         const waterElement = document.getElementById('detail-water');
+        const estimated = Number(estimatedWater);
+        const real = Number(realWater);
+        const hasEstimated = Number.isFinite(estimated);
+        const hasReal = Number.isFinite(real);
 
         // Verificar si hay valores reales diferentes del estimado
-        if (realWater && realWater !== estimatedWater) {
+        if (hasReal && hasEstimated && real !== estimated) {
             // Mostrar el estimado tachado y el real abajo
-            waterElement.innerHTML = `<del class="info-subvalue">${estimatedWater} L/ha</del><br>${realWater} L/ha`;
+            waterElement.innerHTML = `<del class="info-subvalue">${formatNumber(estimated, 0)} L/ha</del><br>${formatNumber(real, 0)} L/ha`;
         } else {
             // Solo mostrar el valor estimado (o real si son iguales)
-            waterElement.textContent = `${estimatedWater || realWater || '0'} L/ha`;
+            const selectedValue = hasEstimated ? estimated : (hasReal ? real : 0);
+            waterElement.textContent = `${formatNumber(selectedValue, 0)} L/ha`;
         }
     }
 
@@ -172,8 +202,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     <div class="fw-semibold small text-truncate">${p.name}</div>
                 </div>
                 <div class="text-end flex-shrink-0">
-                    <div class="small fw-semibold">${p.dose} <span class="fw-normal text-muted">${p.dose_type_display}</span></div>
-                    <div class="small text-muted">${p.total_dose} ${p.total_dose_unit} total</div>
+                    <div class="small fw-semibold">${formatDose(p.dose)} <span class="fw-normal text-muted">${p.dose_type_display}</span></div>
+                    <div class="small text-muted">${formatDose(p.total_dose)} ${p.total_dose_unit} total</div>
                 </div>
             </div>
         `).join('');
