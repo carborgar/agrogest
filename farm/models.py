@@ -180,10 +180,13 @@ class Product(OrganizationOwnedModel):
 
     # Fertigation-specific dose fields
     fertigation_dose = models.DecimalField(max_digits=10, decimal_places=4, blank=True, null=True)
-    fertigation_dose_type = models.CharField(max_length=20, choices=FERTIGATION_DOSE_TYPE_CHOICES, blank=True, null=True)
+    fertigation_dose_type = models.CharField(max_length=20, choices=FERTIGATION_DOSE_TYPE_CHOICES, blank=True,
+                                             null=True)
 
     comments = models.TextField(blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    is_active = models.BooleanField(default=True, verbose_name="Activo",
+                                    help_text="Desactiva el producto para archivarlo sin eliminarlo")
 
     class Meta:
         ordering = ['name']
@@ -244,6 +247,23 @@ class Product(OrganizationOwnedModel):
             return None
         dose_str = f"{self.fertigation_dose:.4f}".rstrip('0').rstrip('.')
         return f"{dose_str} {self.get_dose_type_name('fertigation')}"
+
+
+class ProductPriceHistory(OrganizationOwnedModel):
+    """Historial de precios de un producto."""
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name='price_history'
+    )
+    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Precio (€/ud.)")
+    effective_date = models.DateField(verbose_name="Fecha")
+
+    class Meta:
+        ordering = ['-effective_date', '-created_at']
+        verbose_name = "Histórico de precio"
+        verbose_name_plural = "Histórico de precios"
+
+    def __str__(self):
+        return f"{self.product.name} – {self.price}€ ({self.effective_date})"
 
 
 class Treatment(OrganizationOwnedModel):
@@ -334,7 +354,6 @@ class Treatment(OrganizationOwnedModel):
 
     def is_delayed(self):
         return self.status == 'delayed'
-
 
     def calculate_machine_loads(self):
         """
@@ -475,7 +494,7 @@ class Treatment(OrganizationOwnedModel):
                 product=tp.product,
                 dose=tp.dose,
                 dose_type=tp.dose_type,
-                total_dose=0,           # el save() recalculará desde dose
+                total_dose=0,  # el save() recalculará desde dose
                 total_dose_unit=tp.total_dose_unit,
                 unit_price=tp.unit_price,
                 position=position,
@@ -826,4 +845,3 @@ class Harvest(OrganizationOwnedModel):
         except Exception:
             return None
         return None
-

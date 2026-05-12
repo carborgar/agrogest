@@ -303,7 +303,7 @@ class ProductForm(NoPlaceholderModelForm):
     class Meta:
         model = Product
         fields = [
-            'name', 'product_type', 'comments', 'price',
+            'name', 'product_type', 'comments', 'price', 'is_active',
             'spraying_dose', 'spraying_dose_type',
             'fertigation_dose', 'fertigation_dose_type'
         ]
@@ -312,6 +312,7 @@ class ProductForm(NoPlaceholderModelForm):
             'product_type': 'Tipo de producto',
             'comments': 'Comentarios y notas',
             'price': 'Precio por unidad (€)',
+            'is_active': 'Producto activo',
             'spraying_dose': 'Dosis',
             'spraying_dose_type': 'Tipo de dosis',
             'fertigation_dose': 'Dosis',
@@ -320,6 +321,7 @@ class ProductForm(NoPlaceholderModelForm):
         help_texts = {
             'comments': 'Información adicional sobre el producto (opcional)',
             'price': 'Precio por litro o kilogramo según corresponda',
+            'is_active': 'Desactívalo para archivarlo sin eliminar el historial de tratamientos',
             'spraying_dose': 'Cantidad recomendada para pulverización',
             'fertigation_dose': 'Cantidad recomendada para fertirrigación',
         }
@@ -328,6 +330,7 @@ class ProductForm(NoPlaceholderModelForm):
             'product_type': forms.Select(attrs={'class': 'form-select'}),
             'comments': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
             'spraying_dose': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001', 'min': '0'}),
             'spraying_dose_type': forms.Select(attrs={'class': 'form-select'}),
             'fertigation_dose': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001', 'min': '0'}),
@@ -403,6 +406,7 @@ class ProductForm(NoPlaceholderModelForm):
             self.add_error('fertigation_dose', 'Debe especificar la dosis para fertirrigación.')
 
         return cleaned_data
+
 
 
 class HarvestForm(NoPlaceholderModelForm):

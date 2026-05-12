@@ -10,8 +10,10 @@ Define las propiedades y dosis del producto para los diferentes métodos de apli
 {% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-12 col-lg-8">
+<div class="row g-4 align-items-start">
+
+    <!-- ── Columna izquierda: formulario ───────────────────────────────── -->
+    <div class="{% if object.pk %}col-12 col-xl-7{% else %}col-12 col-lg-8 mx-auto{% endif %}">
 
         <form id="productForm" method="post" novalidate>
             {% csrf_token %}
@@ -31,6 +33,29 @@ Define las propiedades y dosis del producto para los diferentes métodos de apli
                         {% bootstrap_field form.price wrapper_class="col-12 col-sm-6" addon_after="€/ud." %}
                         {% bootstrap_field form.comments wrapper_class="col-12" %}
                     </div>
+
+                    {% if object.pk %}
+                    <!-- Archive toggle -->
+                    <div class="border rounded-3 p-3 mt-3 {% if not object.is_active %}bg-warning-subtle border-warning-subtle{% else %}bg-light{% endif %}" id="archiveToggleBox">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="form-check form-switch mb-0 flex-shrink-0">
+                                {{ form.is_active }}
+                            </div>
+                            <div>
+                                <label class="form-check-label fw-semibold mb-0" for="{{ form.is_active.id_for_label }}">
+                                    <span id="archiveLabel">
+                                    {% if object.is_active %}
+                                        <i class="fa fa-check-circle text-success me-1"></i>Producto activo
+                                    {% else %}
+                                        <i class="fa fa-archive text-warning me-1"></i>Producto archivado
+                                    {% endif %}
+                                    </span>
+                                </label>
+                                <p class="text-muted small mb-0 mt-1">{{ form.is_active.help_text }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -56,7 +81,7 @@ Define las propiedades y dosis del producto para los diferentes métodos de apli
             </div>
 
             <!-- Fertigation -->
-            <div class="card border-0 shadow-sm mb-4">
+            <div class="card border-0 shadow-sm mb-3">
                 <div class="card-header bg-transparent border-bottom py-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <h6 class="mb-0 fw-semibold">
@@ -91,13 +116,131 @@ Define las propiedades y dosis del producto para los diferentes métodos de apli
                     {% endif %}
                     <button class="btn btn-primary" type="submit">
                         <i class="fa fa-save me-1"></i>
-                        {% if object.pk %}Actualizar producto{% else %}Crear producto{% endif %}
+                        {% if object.pk %}Guardar cambios{% else %}Crear producto{% endif %}
                     </button>
                 </div>
             </div>
 
         </form>
     </div>
+
+    <!-- ── Columna derecha: historial de precios (solo al editar) ──────── -->
+    {% if object.pk %}
+    <div class="col-12 col-xl-5">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent border-bottom py-3">
+                <div class="d-flex align-items-center justify-content-between">
+                    <h6 class="mb-0 fw-semibold">
+                        <i class="fa fa-chart-line text-secondary me-2"></i>Evolución del precio
+                    </h6>
+                    {% if object.price %}
+                    <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle fw-semibold fs-6 px-3 py-2">
+                        {{ object.price }} €/ud.
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card-body p-0">
+
+                {% if price_history %}
+
+                <!-- Mini chart -->
+                <div class="px-3 pt-3 pb-0">
+                    <div style="height: 100px; position: relative;">
+                        <canvas id="priceChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Min / Max stats -->
+                {% if price_max and price_min %}
+                <div class="d-flex gap-2 px-3 pt-2 pb-1">
+                    <div class="flex-fill text-center rounded-3 py-2 px-1" style="background:rgba(220,53,69,.07);">
+                        <div class="text-muted mb-1" style="font-size:.68rem; text-transform:uppercase; letter-spacing:.04em;">Máx. histórico</div>
+                        <div class="text-danger fw-semibold" style="font-size:.9rem;">
+                            <i class="fa fa-arrow-up fa-xs me-1"></i>{{ price_max.price }} €
+                        </div>
+                        <div class="text-muted" style="font-size:.7rem;">{{ price_max.effective_date|date:"d/m/Y" }}</div>
+                    </div>
+                    <div class="flex-fill text-center rounded-3 py-2 px-1" style="background:rgba(25,135,84,.07);">
+                        <div class="text-muted mb-1" style="font-size:.68rem; text-transform:uppercase; letter-spacing:.04em;">Mín. histórico</div>
+                        <div class="text-success fw-semibold" style="font-size:.9rem;">
+                            <i class="fa fa-arrow-down fa-xs me-1"></i>{{ price_min.price }} €
+                        </div>
+                        <div class="text-muted" style="font-size:.7rem;">{{ price_min.effective_date|date:"d/m/Y" }}</div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- History list with trend -->
+                <ul class="list-group list-group-flush mt-1">
+                    {% for item in history_with_trend %}
+                    <li class="list-group-item px-3 py-2 border-0">
+                        <div class="d-flex align-items-center gap-2">
+                            <!-- Timeline dot -->
+                            <div class="flex-shrink-0 d-flex align-items-center justify-content-center" style="width:14px;">
+                                <div class="rounded-circle {% if forloop.first %}bg-primary{% else %}bg-light border{% endif %}"
+                                     style="width:9px;height:9px;"></div>
+                            </div>
+                            <!-- Date -->
+                            <div class="text-muted" style="min-width:75px; font-size:.78rem;">
+                                {{ item.entry.effective_date|date:"d/m/Y" }}
+                            </div>
+                            <!-- Price + trend -->
+                            <div class="flex-fill d-flex align-items-center gap-1">
+                                <span class="fw-semibold {% if forloop.first %}text-primary{% else %}text-secondary{% endif %}"
+                                      style="font-size:.85rem;">
+                                    {{ item.entry.price }} €
+                                </span>
+                                {% if item.trend == 'up' %}
+                                <i class="fa fa-arrow-up text-danger" style="font-size:.65rem;" title="Subida"></i>
+                                {% elif item.trend == 'down' %}
+                                <i class="fa fa-arrow-down text-success" style="font-size:.65rem;" title="Bajada"></i>
+                                {% elif item.trend == 'initial' %}
+                                <span class="text-muted" style="font-size:.65rem;" title="Precio inicial">•</span>
+                                {% endif %}
+                            </div>
+                            <!-- Delete -->
+                            <form method="post"
+                                  action="{% url 'product-price-delete' item.entry.pk %}"
+                                  class="d-inline price-delete-form flex-shrink-0">
+                                {% csrf_token %}
+                                <button type="button"
+                                        class="btn btn-link p-0 text-muted price-delete-btn"
+                                        style="font-size:.7rem; line-height:1;" title="Eliminar">
+                                    <i class="fa fa-times"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+
+                {% else %}
+
+                <!-- Empty state -->
+                <div class="text-center py-5 px-4">
+                    <i class="fa fa-chart-line text-muted opacity-20 fa-2x mb-3 d-block"></i>
+                    <p class="text-muted small fw-semibold mb-1">Sin historial todavía</p>
+                    <p class="text-muted small mb-0">
+                        Modifica el precio y guarda para registrar la primera entrada.
+                    </p>
+                </div>
+
+                {% endif %}
+
+            </div>
+
+            <div class="card-footer bg-transparent border-top py-2 px-4">
+                <p class="text-muted small mb-0">
+                    <i class="fa fa-info-circle me-1 opacity-50"></i>
+                    El precio se registra automáticamente al guardar si ha cambiado.
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
 </div>
 
 <form class="d-none" id="deleteForm" method="POST">
@@ -106,6 +249,7 @@ Define las propiedades y dosis del producto para los diferentes métodos de apli
 {% endblock %}
 
 {% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <style>
     .spraying-fields,
     .fertigation-fields {
@@ -115,6 +259,9 @@ Define las propiedades y dosis del producto para los diferentes métodos de apli
     .fertigation-fields.disabled {
         opacity: 0.4;
         pointer-events: none;
+    }
+    #archiveToggleBox {
+        transition: background-color 0.3s ease;
     }
 </style>
 {% endblock %}
@@ -134,38 +281,35 @@ Define las propiedades y dosis del producto para los diferentes métodos de apli
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        const sprayingSwitch = document.getElementById('enableSpraying');
+
+        // ── Dose toggles ────────────────────────────────────────────────
+        const sprayingSwitch    = document.getElementById('enableSpraying');
         const fertigationSwitch = document.getElementById('enableFertigation');
-        const sprayingFields = document.getElementById('sprayingFields');
+        const sprayingFields    = document.getElementById('sprayingFields');
         const fertigationFields = document.getElementById('fertigationFields');
 
-        const sprayingDoseInput = document.getElementById('{{ form.spraying_dose.id_for_label }}');
-        const sprayingDoseTypeInput = document.getElementById('{{ form.spraying_dose_type.id_for_label }}');
-        const fertigationDoseInput = document.getElementById('{{ form.fertigation_dose.id_for_label }}');
+        const sprayingDoseInput      = document.getElementById('{{ form.spraying_dose.id_for_label }}');
+        const sprayingDoseTypeInput  = document.getElementById('{{ form.spraying_dose_type.id_for_label }}');
+        const fertigationDoseInput   = document.getElementById('{{ form.fertigation_dose.id_for_label }}');
         const fertigationDoseTypeInput = document.getElementById('{{ form.fertigation_dose_type.id_for_label }}');
 
         function initToggle(toggle, fields, dose, doseType) {
             const hasData = !!(dose.value || doseType.value);
             toggle.checked = hasData;
             fields.classList.toggle('disabled', !hasData);
-
             toggle.addEventListener('change', function () {
                 fields.classList.toggle('disabled', !this.checked);
-                if (!this.checked) {
-                    dose.value = '';
-                    doseType.value = '';
-                }
+                if (!this.checked) { dose.value = ''; doseType.value = ''; }
             });
         }
 
         initToggle(sprayingSwitch, sprayingFields, sprayingDoseInput, sprayingDoseTypeInput);
         initToggle(fertigationSwitch, fertigationFields, fertigationDoseInput, fertigationDoseTypeInput);
 
-        // Warn if neither method is configured on submit
         document.getElementById('productForm').addEventListener('submit', function (e) {
-            const hasSprying = sprayingDoseInput.value && sprayingDoseTypeInput.value;
+            const hasSpraying    = sprayingDoseInput.value && sprayingDoseTypeInput.value;
             const hasFertigation = fertigationDoseInput.value && fertigationDoseTypeInput.value;
-            if (!hasSprying && !hasFertigation) {
+            if (!hasSpraying && !hasFertigation) {
                 e.preventDefault();
                 showNotification({
                     icon: 'warning',
@@ -174,6 +318,91 @@ Define las propiedades y dosis del producto para los diferentes métodos de apli
                 });
             }
         });
+
+        // ── Archive toggle visual feedback ───────────────────────────────
+        const archiveSwitch = document.getElementById('{{ form.is_active.id_for_label }}');
+        const archiveBox    = document.getElementById('archiveToggleBox');
+        const archiveLabel  = document.getElementById('archiveLabel');
+
+        if (archiveSwitch && archiveBox) {
+            archiveSwitch.addEventListener('change', function () {
+                const active = this.checked;
+                archiveBox.classList.toggle('bg-warning-subtle', !active);
+                archiveBox.classList.toggle('border-warning-subtle', !active);
+                archiveBox.classList.toggle('bg-light', active);
+                if (archiveLabel) {
+                    archiveLabel.innerHTML = active
+                        ? '<i class="fa fa-check-circle text-success me-1"></i>Producto activo'
+                        : '<i class="fa fa-archive text-warning me-1"></i>Producto archivado';
+                }
+            });
+        }
+
+        // ── Price history delete confirm ─────────────────────────────────
+        document.querySelectorAll('.price-delete-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const form = btn.closest('.price-delete-form');
+                showConfirm({
+                    text: 'Se eliminará esta entrada del historial de precios.',
+                    onConfirm: () => form.submit(),
+                });
+            });
+        });
+
+        // ── Price history chart ──────────────────────────────────────────
+        {% if price_history %}
+        const priceData = {{ price_history_json|safe }};
+
+        const ctx = document.getElementById('priceChart');
+        if (ctx && priceData.length) {
+            const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 100);
+            gradient.addColorStop(0, 'rgba(13,110,253,0.15)');
+            gradient.addColorStop(1, 'rgba(13,110,253,0)');
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: priceData.map(d => d.date),
+                    datasets: [{
+                        data: priceData.map(d => d.price),
+                        borderColor: '#0d6efd',
+                        backgroundColor: gradient,
+                        fill: true,
+                        tension: 0.35,
+                        pointRadius: priceData.length === 1 ? 5 : 3,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: '#0d6efd',
+                        borderWidth: 2,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 400 },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            displayColors: false,
+                            callbacks: {
+                                title: items => items[0].label,
+                                label: item => `${item.raw} €/ud.`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: priceData.length > 1,
+                            grid: { display: false },
+                            ticks: { font: { size: 10 }, color: '#6c757d', maxTicksLimit: 4, maxRotation: 0 },
+                            border: { display: false }
+                        },
+                        y: { display: false, grace: '15%' }
+                    }
+                }
+            });
+        }
+        {% endif %}
+
     });
 </script>
 {% endblock %}

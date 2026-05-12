@@ -15,7 +15,7 @@
 
 {% block content %}
 
-<!-- Sección: Productos sin precio -->
+<!-- Sección: Productos sin precio (solo activos) -->
 {% if products_without_price %}
 <div class="card border-warning border-opacity-50 shadow-sm mb-4">
     <div class="card-header bg-warning-subtle d-flex align-items-center gap-2 py-2 px-3">
@@ -57,7 +57,7 @@
                            placeholder="Nombre del producto…"
                            type="text" value="{{ search }}">
                 </div>
-                <div class="col-6 col-md-3">
+                <div class="col-6 col-md-2">
                     <label class="form-label small text-muted mb-1" for="typeFilter">
                         <i class="fa fa-tags me-1"></i>Tipo
                     </label>
@@ -70,7 +70,7 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-6 col-md-3">
+                <div class="col-6 col-md-2">
                     <label class="form-label small text-muted mb-1" for="appFilter">
                         <i class="fa fa-spray-can me-1"></i>Aplicación
                     </label>
@@ -80,11 +80,28 @@
                         <option value="fertigation" {% if selected_application == 'fertigation' %}selected{% endif %}>Fertirrigación</option>
                     </select>
                 </div>
+                <!-- Archived toggle -->
+                <div class="col-12 col-md-2">
+                    <label class="form-label small text-muted mb-1 d-block">
+                        <i class="fa fa-archive me-1"></i>Ver archivados
+                    </label>
+                    <div class="form-check form-switch mt-1 ms-1">
+                        <input class="form-check-input" type="checkbox" id="archivedToggle"
+                               name="archived" value="1" {% if show_archived %}checked{% endif %}>
+                        <label class="form-check-label small text-muted" for="archivedToggle">
+                            {% if archived_count > 0 %}
+                                <span class="badge bg-secondary-subtle text-secondary-emphasis rounded-pill">{{ archived_count }}</span>
+                            {% else %}
+                                Ninguno
+                            {% endif %}
+                        </label>
+                    </div>
+                </div>
                 <div class="col-12 col-md-2 d-flex gap-2">
                     <button class="btn btn-primary flex-fill" type="submit">
                         <i class="fa fa-filter me-1"></i>Filtrar
                     </button>
-                    {% if search or selected_type or selected_application %}
+                    {% if search or selected_type or selected_application or show_archived %}
                     <a class="btn btn-outline-secondary" href="{% url 'product-list' %}" title="Limpiar filtros">
                         <i class="fa fa-times"></i>
                     </a>
@@ -106,6 +123,12 @@
     <a class="btn btn-outline-secondary" href="{% url 'product-list' %}">
         <i class="fa fa-times me-1"></i>Quitar filtros
     </a>
+    {% elif show_archived %}
+    <h4 class="text-muted mb-3">Sin productos archivados</h4>
+    <p class="text-muted mb-4">No hay ningún producto archivado en este momento.</p>
+    <a class="btn btn-outline-secondary" href="{% url 'product-list' %}">
+        <i class="fa fa-arrow-left me-1"></i>Ver productos activos
+    </a>
     {% else %}
     <h4 class="text-muted mb-3">No hay productos</h4>
     <p class="text-muted mb-4 lead">Comienza creando tu primer producto.</p>
@@ -116,30 +139,40 @@
 </div>
 {% else %}
 
-<div class="text-muted small mb-2 ps-1">
+<div class="text-muted small mb-2 ps-1 d-flex align-items-center gap-2">
     {% if is_paginated %}
         Mostrando {{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ paginator.count }} productos
     {% else %}
         {{ products|length }} producto{{ products|length|pluralize }}
+    {% endif %}
+    {% if show_archived %}
+    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+        <i class="fa fa-archive me-1"></i>Mostrando archivados
+    </span>
     {% endif %}
 </div>
 
 <div class="card border-0 shadow-sm">
     <ul class="list-group list-group-flush">
         {% for product in products %}
-        <li class="list-group-item px-4 py-3">
+        <li class="list-group-item px-4 py-3 {% if not product.is_active %}opacity-60{% endif %}">
             <div class="d-flex align-items-center gap-3">
 
                 <!-- Icon -->
-                <div class="flex-shrink-0 text-primary opacity-75 d-none d-sm-block">
-                    <i class="fa fa-box fa-lg"></i>
+                <div class="flex-shrink-0 {% if product.is_active %}text-primary opacity-75{% else %}text-muted opacity-40{% endif %} d-none d-sm-block">
+                    <i class="fa {% if product.is_active %}fa-box{% else %}fa-archive{% endif %} fa-lg"></i>
                 </div>
 
                 <!-- Main info -->
                 <div class="flex-fill overflow-hidden">
                     <div class="d-flex align-items-baseline gap-2 flex-wrap">
-                        <span class="fw-semibold text-truncate">{{ product.name }}</span>
+                        <span class="fw-semibold text-truncate {% if not product.is_active %}text-muted text-decoration-line-through{% endif %}">{{ product.name }}</span>
                         <span class="badge bg-primary-subtle text-primary-emphasis rounded-pill small">{{ product.product_type.name }}</span>
+                        {% if not product.is_active %}
+                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle small">
+                            <i class="fa fa-archive me-1"></i>Archivado
+                        </span>
+                        {% endif %}
                     </div>
                     <!-- Dose info -->
                     <div class="d-flex gap-3 flex-wrap mt-1">
@@ -175,7 +208,7 @@
                 <!-- Price -->
                 <div class="flex-shrink-0 text-end" style="min-width: 70px;">
                     {% if product.price %}
-                    <span class="fw-semibold text-dark small">{{ product.price }}€/ud</span>
+                    <span class="fw-semibold {% if product.is_active %}text-dark{% else %}text-muted{% endif %} small">{{ product.price }}€/ud</span>
                     {% else %}
                     <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle small">
                         <i class="fa fa-tag me-1"></i>Sin precio
@@ -238,6 +271,12 @@
 
 {% endblock %}
 
+{% block extra_head %}
+<style>
+    .opacity-60 { opacity: 0.6; }
+</style>
+{% endblock %}
+
 {% block extra_js %}
 <script>
     function confirmDelete(button) {
@@ -257,6 +296,9 @@
             document.getElementById('filterForm').submit();
         });
         document.getElementById('appFilter').addEventListener('change', function () {
+            document.getElementById('filterForm').submit();
+        });
+        document.getElementById('archivedToggle').addEventListener('change', function () {
             document.getElementById('filterForm').submit();
         });
 

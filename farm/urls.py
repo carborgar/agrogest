@@ -15,7 +15,7 @@ from .views.expense_views import ExpenseListView, ExpenseFormView, ExpenseDelete
 from .views.field_views import FieldListView, FieldCreateView, FieldUpdateView, FieldDeleteView, FieldDetailView
 from .views.harvest_views import HarvestFormView, HarvestSummaryView, HarvestDeleteView
 from .views.product_views import ProductTypeListView, ProductTypeFormView, ProductTypeDeleteView, ProductListView, \
-    ProductFormView, ProductDeleteView
+    ProductFormView, ProductDeleteView, ProductPriceHistoryDeleteView
 from .views.weather_views import WeatherOverviewView
 
 urlpatterns = [
@@ -68,6 +68,7 @@ urlpatterns = [
     path('productos/nuevo/', ProductFormView.as_view(), name='product-create'),
     path('productos/<int:pk>/editar/', ProductFormView.as_view(), name='product-edit'),
     path('productos/<int:pk>/eliminar/', ProductDeleteView.as_view(), name='product-delete'),
+    path('productos/precios/<int:pk>/eliminar/', ProductPriceHistoryDeleteView.as_view(), name='product-price-delete'),
 
     # Weather Overview
     path('tiempo/', WeatherOverviewView.as_view(), name='weather-overview'),
