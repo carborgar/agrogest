@@ -264,13 +264,23 @@ class Product(OrganizationOwnedModel):
             treatment__status=Treatment.STATUS_COMPLETED
         ).select_related('treatment__field')
 
+        updated_at = now()
+        updated_products = []
         for treatment_product in treatment_products:
             treatment_product.unit_price = self.price
             treatment_product.total_price = treatment_product.unit_price * treatment_product.total_dose
+            field_area = Decimal(treatment_product.treatment.field.area or 0)
             treatment_product.price_per_ha = (
-                treatment_product.total_price / Decimal(treatment_product.treatment.field.area)
+                treatment_product.total_price / field_area if field_area > 0 else Decimal(0)
             )
-            treatment_product.save(update_fields=['unit_price', 'total_price', 'price_per_ha', 'updated_at'])
+            treatment_product.updated_at = updated_at
+            updated_products.append(treatment_product)
+
+        if updated_products:
+            TreatmentProduct.objects.bulk_update(
+                updated_products,
+                ['unit_price', 'total_price', 'price_per_ha', 'updated_at'],
+            )
 
 
 class ProductPriceHistory(OrganizationOwnedModel):
