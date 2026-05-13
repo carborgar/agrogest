@@ -248,6 +248,30 @@ class Product(OrganizationOwnedModel):
         dose_str = f"{self.fertigation_dose:.4f}".rstrip('0').rstrip('.')
         return f"{dose_str} {self.get_dose_type_name('fertigation')}"
 
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        old_price = None
+
+        if not is_new:
+            old_price = Product.objects.filter(pk=self.pk).values_list('price', flat=True).first()
+
+        super().save(*args, **kwargs)
+
+        if is_new or old_price is None or old_price == self.price:
+            return
+
+        treatment_products = TreatmentProduct.objects.filter(product=self).exclude(
+            treatment__status=Treatment.STATUS_COMPLETED
+        ).select_related('treatment__field')
+
+        for treatment_product in treatment_products:
+            treatment_product.unit_price = self.price
+            treatment_product.total_price = treatment_product.unit_price * treatment_product.total_dose
+            treatment_product.price_per_ha = (
+                treatment_product.total_price / Decimal(treatment_product.treatment.field.area)
+            )
+            treatment_product.save(update_fields=['unit_price', 'total_price', 'price_per_ha', 'updated_at'])
+
 
 class ProductPriceHistory(OrganizationOwnedModel):
     """Historial de precios de un producto."""
