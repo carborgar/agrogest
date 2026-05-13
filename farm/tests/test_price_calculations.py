@@ -105,4 +105,5 @@ class TestPriceCalculations:
 
         assert pending_treatment_product.unit_price == Decimal('35.00')
         assert pending_treatment_product.total_price == Decimal('35.00') * pending_treatment_product.total_dose
+        assert pending_treatment_product.price_per_ha == pending_treatment_product.total_price / Decimal('4.0')
         assert completed_treatment_product.unit_price == original_completed_unit_price

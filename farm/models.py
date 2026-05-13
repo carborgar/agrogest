@@ -262,7 +262,7 @@ class Product(OrganizationOwnedModel):
 
         treatment_products = TreatmentProduct.objects.filter(product=self).exclude(
             treatment__status=Treatment.STATUS_COMPLETED
-        ).select_related('treatment__field')
+        ).select_related('treatment', 'treatment__field')
 
         updated_at = now()
         updated_products = []
