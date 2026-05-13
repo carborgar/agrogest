@@ -250,15 +250,19 @@ class Product(OrganizationOwnedModel):
 
     def save(self, *args, **kwargs):
         is_new = self.pk is None
+        update_fields = kwargs.get('update_fields')
         old_price = None
+
+        if not is_new and update_fields is not None and 'price' not in update_fields:
+            return super().save(*args, **kwargs)
 
         if not is_new:
             old_price = Product.objects.filter(pk=self.pk).values_list('price', flat=True).first()
 
-        super().save(*args, **kwargs)
+        save_result = super().save(*args, **kwargs)
 
         if is_new or old_price is None or old_price == self.price:
-            return
+            return save_result
 
         treatment_products = TreatmentProduct.objects.filter(product=self).exclude(
             treatment__status=Treatment.STATUS_COMPLETED
@@ -281,6 +285,7 @@ class Product(OrganizationOwnedModel):
                 updated_products,
                 ['unit_price', 'total_price', 'price_per_ha', 'updated_at'],
             )
+        return save_result
 
 
 class ProductPriceHistory(OrganizationOwnedModel):
