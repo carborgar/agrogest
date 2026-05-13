@@ -65,7 +65,7 @@ class IncrementalS3ManifestStaticStorage(S3ManifestStaticStorage):
         if self._existing_keys is None:
             self._preload_existing_keys()
 
-        key = self._normalize_name(self._clean_name(name))
+        key = self._normalize_name(self.clean_name(name))
         return key in self._existing_keys
 
     # ------------------------------------------------------------------
@@ -77,7 +77,7 @@ class IncrementalS3ManifestStaticStorage(S3ManifestStaticStorage):
         # Añade el fichero recién subido a la caché para evitar dobles subidas
         # dentro de la misma ejecución de collectstatic
         if self._existing_keys is not None:
-            key = self._normalize_name(self._clean_name(result))
+            key = self._normalize_name(self.clean_name(result))
             self._existing_keys.add(key)
         return result
 
