@@ -248,6 +248,48 @@ class Product(OrganizationOwnedModel):
         dose_str = f"{self.fertigation_dose:.4f}".rstrip('0').rstrip('.')
         return f"{dose_str} {self.get_dose_type_name('fertigation')}"
 
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        update_fields = kwargs.get('update_fields')
+        old_price = None
+
+        if not is_new and update_fields is not None and 'price' not in update_fields:
+            return super().save(*args, **kwargs)
+
+        if not is_new:
+            old_price = Product.objects.filter(pk=self.pk).values_list('price', flat=True).first()
+
+        save_result = super().save(*args, **kwargs)
+
+        if is_new or old_price is None or old_price == self.price:
+            return save_result
+
+        treatment_products = TreatmentProduct.objects.filter(product=self).exclude(
+            treatment__status=Treatment.STATUS_COMPLETED
+        ).select_related('treatment', 'treatment__field')
+
+        updated_at = now()
+        updated_products = []
+        for treatment_product in treatment_products:
+            treatment_product.unit_price = self.price
+            treatment_product.total_price = treatment_product.unit_price * treatment_product.total_dose
+            if treatment_product.treatment.field.area is None:
+                field_area = Decimal(0)
+            else:
+                field_area = Decimal(treatment_product.treatment.field.area)
+            treatment_product.price_per_ha = (
+                treatment_product.total_price / field_area if field_area > 0 else Decimal(0)
+            )
+            treatment_product.updated_at = updated_at
+            updated_products.append(treatment_product)
+
+        if updated_products:
+            TreatmentProduct.objects.bulk_update(
+                updated_products,
+                ['unit_price', 'total_price', 'price_per_ha', 'updated_at'],
+            )
+        return save_result
+
 
 class ProductPriceHistory(OrganizationOwnedModel):
     """Historial de precios de un producto."""
