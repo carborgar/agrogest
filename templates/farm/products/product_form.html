@@ -131,7 +131,11 @@ Define las propiedades y dosis del producto para los diferentes métodos de apli
             <div class="card-header bg-transparent border-bottom py-3">
                 <div class="d-flex align-items-center justify-content-between">
                     <h6 class="mb-0 fw-semibold">
+                        {% if price_history|length > 1 %}
                         <i class="fa fa-chart-line text-secondary me-2"></i>Evolución del precio
+                        {% else %}
+                        <i class="fa fa-tag text-secondary me-2"></i>Precio actual
+                        {% endif %}
                     </h6>
                     {% if object.price %}
                     <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle fw-semibold fs-6 px-3 py-2">
@@ -143,7 +147,7 @@ Define las propiedades y dosis del producto para los diferentes métodos de apli
 
             <div class="card-body p-0">
 
-                {% if price_history %}
+                {% if price_history|length > 1 %}
 
                 <!-- Mini chart -->
                 <div class="px-3 pt-3 pb-0">
@@ -215,6 +219,21 @@ Define las propiedades y dosis del producto para los diferentes métodos de apli
                     </li>
                     {% endfor %}
                 </ul>
+
+                {% elif price_history|length == 1 %}
+
+                <!-- Single-record state (sin histórico) -->
+                <div class="px-3 py-4">
+                    <div class="rounded-3 p-4 text-center" style="background: rgba(13,110,253,.06); border: 1px dashed rgba(13,110,253,.25);">
+                        <div class="text-muted mb-1" style="font-size:.7rem; text-transform:uppercase; letter-spacing:.05em;">Precio registrado</div>
+                        <div class="fw-bold text-primary" style="font-size:1.5rem;">{{ price_history.0.price }} €<span class="fw-normal text-muted" style="font-size:.85rem;">/ud.</span></div>
+                        <div class="text-muted mt-1" style="font-size:.78rem;"><i class="fa fa-calendar-alt me-1 opacity-50"></i>{{ price_history.0.effective_date|date:"d/m/Y" }}</div>
+                        <div class="text-muted mt-3" style="font-size:.74rem; opacity:.75;">
+                            Aún no hay evolución histórica. Cuando cambies el precio y guardes,
+                            aquí verás la tendencia y los extremos (máx./mín.).
+                        </div>
+                    </div>
+                </div>
 
                 {% else %}
 
@@ -350,11 +369,11 @@ Define las propiedades y dosis del producto para los diferentes métodos de apli
         });
 
         // ── Price history chart ──────────────────────────────────────────
-        {% if price_history %}
+        {% if price_history|length > 1 %}
         const priceData = {{ price_history_json|safe }};
 
         const ctx = document.getElementById('priceChart');
-        if (ctx && priceData.length) {
+        if (ctx && priceData.length > 1) {
             const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 100);
             gradient.addColorStop(0, 'rgba(13,110,253,0.15)');
             gradient.addColorStop(1, 'rgba(13,110,253,0)');
