@@ -273,7 +273,10 @@ class Product(OrganizationOwnedModel):
         for treatment_product in treatment_products:
             treatment_product.unit_price = self.price
             treatment_product.total_price = treatment_product.unit_price * treatment_product.total_dose
-            field_area = Decimal(treatment_product.treatment.field.area or 0)
+            if treatment_product.treatment.field.area is None:
+                field_area = Decimal(0)
+            else:
+                field_area = Decimal(treatment_product.treatment.field.area)
             treatment_product.price_per_ha = (
                 treatment_product.total_price / field_area if field_area > 0 else Decimal(0)
             )
