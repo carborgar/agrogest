@@ -28,7 +28,27 @@ jobs:
         run: |
           python manage.py makemigrations --check --dry-run
 
+      # ── Collectstatic incremental ─────────────────────────────────────────
+      # Calcula un hash de todos los ficheros estáticos fuente (static/, scss/,
+      # plantillas). Si el hash coincide con el de la última ejecución exitosa,
+      # los ficheros ya están en R2 y podemos saltarnos el paso por completo.
+      - name: Hash static sources
+        id: static-hash
+        run: |
+          HASH=$(find static/ scss/ templates/ -type f | sort | xargs sha256sum | sha256sum | cut -d' ' -f1)
+          echo "hash=$HASH" >> $GITHUB_OUTPUT
+
+      - name: Cache static marker
+        id: static-cache
+        uses: actions/cache@v4
+        with:
+          # El fichero .static-deployed actúa como marcador: si existe en caché
+          # con el mismo hash, significa que ya subimos esos ficheros a R2.
+          path: .static-deployed
+          key: static-${{ steps.static-hash.outputs.hash }}
+
       - name: Collect static
+        if: steps.static-cache.outputs.cache-hit != 'true'
         env:
           DJANGO_DEBUG: ${{ secrets.DJANGO_DEBUG }}
           DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
@@ -40,3 +60,4 @@ jobs:
           CLOUDFLARE_R2_STATICS_PUBLIC_URL: ${{ secrets.CLOUDFLARE_R2_STATICS_PUBLIC_URL }}
         run: |
           python manage.py collectstatic --noinput
+          touch .static-deployed

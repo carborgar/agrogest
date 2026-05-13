@@ -195,7 +195,11 @@ if not DEBUG and _R2_ACCOUNT_ID and _R2_BUCKET_NAME:
     # → sube a R2 y añade hash al nombre de cada fichero (cache busting automático)
     STORAGES = {
         "staticfiles": {
-            "BACKEND": "storages.backends.s3boto3.S3ManifestStaticStorage",
+            # IncrementalS3ManifestStaticStorage precarga los objetos existentes
+            # con una sola llamada list_objects_v2 en lugar de un HEAD por fichero,
+            # lo que acelera enormemente el collectstatic cuando la mayoría de
+            # estáticos ya están en R2.
+            "BACKEND": "agrogest.storage.IncrementalS3ManifestStaticStorage",
         },
         "default": {
             "BACKEND": "django.core.files.storage.FileSystemStorage",
