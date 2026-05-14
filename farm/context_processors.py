@@ -43,6 +43,7 @@ _NAV_GROUPS = {
     'nav_expense_types':{'expense-type-list', 'expense-type-create', 'expense-type-edit'},
     'nav_products':     {'product-list', 'product-create', 'product-edit'},
     'nav_product_types':{'product-type-list', 'product-type-create', 'product-type-edit'},
+    'nav_treatment_cost_admin': {'treatment-cost-admin'},
     'nav_chat':         {'chat'},
 }
 

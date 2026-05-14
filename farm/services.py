@@ -5,8 +5,164 @@ Las vistas llaman a estas funciones en lugar de mezclar lógica de negocio
 con lógica HTTP. Así, si mañana añadimos bulk-create o clone, solo
 necesitamos ampliar este módulo sin tocar las vistas.
 """
+from dataclasses import dataclass
+from datetime import date
+from decimal import Decimal
+
 from django.db import transaction
+from django.db.models import F, OuterRef, Q, Subquery, Value
+from django.db.models.functions import Coalesce
 from django.urls import reverse
+from django.utils.timezone import now
+
+from .models import ProductPriceHistory, TreatmentProduct
+
+
+@dataclass
+class TreatmentCostRecalculationImpact:
+    total_treatment_products: int
+    total_treatments: int
+
+
+@dataclass
+class TreatmentCostRecalculationResult:
+    scanned_treatment_products: int
+    scanned_treatments: int
+    updated_treatment_products: int
+    unchanged_treatment_products: int
+    failed_treatment_products: int
+
+
+def _latest_price_subquery(as_of_date):
+    return ProductPriceHistory.objects.filter(
+        product_id=OuterRef('product_id'),
+        effective_date__lte=as_of_date,
+    ).order_by('-effective_date', '-created_at').values('price')[:1]
+
+
+def _treatment_product_queryset(*, organization=None, start_date=None, end_date=None, product_id=None):
+    filters = Q()
+    if organization is not None:
+        filters &= Q(organization=organization)
+    if start_date is not None:
+        filters &= Q(treatment__date__gte=start_date)
+    if end_date is not None:
+        filters &= Q(treatment__date__lte=end_date)
+    if product_id is not None:
+        filters &= Q(product_id=product_id)
+
+    return TreatmentProduct.objects.filter(filters)
+
+
+def estimate_treatment_cost_recalculation(
+    *,
+    organization=None,
+    start_date=None,
+    end_date=None,
+    product_id=None,
+):
+    queryset = _treatment_product_queryset(
+        organization=organization,
+        start_date=start_date,
+        end_date=end_date,
+        product_id=product_id,
+    )
+    return TreatmentCostRecalculationImpact(
+        total_treatment_products=queryset.count(),
+        total_treatments=queryset.values('treatment_id').distinct().count(),
+    )
+
+
+def recalculate_treatment_costs(
+    *,
+    organization=None,
+    start_date=None,
+    end_date=None,
+    product_id=None,
+    as_of_date=None,
+    dry_run=False,
+    batch_size=500,
+):
+    as_of_date = as_of_date or date.today()
+    queryset = _treatment_product_queryset(
+        organization=organization,
+        start_date=start_date,
+        end_date=end_date,
+        product_id=product_id,
+    )
+
+    annotated_queryset = (
+        queryset
+        .select_related('treatment__field')
+        .annotate(
+            latest_price=Coalesce(
+                Subquery(_latest_price_subquery(as_of_date)),
+                F('product__price'),
+                Value(Decimal('0.00')),
+            )
+        )
+    )
+
+    updated = 0
+    unchanged = 0
+    failed = 0
+    to_update = []
+    update_timestamp = now()
+
+    for treatment_product in annotated_queryset.iterator(chunk_size=batch_size):
+        try:
+            latest_price = treatment_product.latest_price or Decimal('0.00')
+            if treatment_product.unit_price == latest_price:
+                unchanged += 1
+                continue
+
+            treatment_product.unit_price = latest_price
+            treatment_product.total_price = latest_price * treatment_product.total_dose
+
+            field_area = Decimal(str(treatment_product.treatment.field.area or 0))
+            if field_area > 0:
+                treatment_product.price_per_ha = treatment_product.total_price / field_area
+            else:
+                treatment_product.price_per_ha = Decimal('0.00')
+
+            treatment_product.updated_at = update_timestamp
+            to_update.append(treatment_product)
+
+            if len(to_update) >= batch_size:
+                if not dry_run:
+                    TreatmentProduct.objects.bulk_update(
+                        to_update,
+                        ['unit_price', 'total_price', 'price_per_ha', 'updated_at'],
+                        batch_size=batch_size,
+                    )
+                updated += len(to_update)
+                to_update.clear()
+        except Exception:
+            failed += 1
+
+    if to_update:
+        if not dry_run:
+            TreatmentProduct.objects.bulk_update(
+                to_update,
+                ['unit_price', 'total_price', 'price_per_ha', 'updated_at'],
+                batch_size=batch_size,
+            )
+        updated += len(to_update)
+
+    impact = estimate_treatment_cost_recalculation(
+        organization=organization,
+        start_date=start_date,
+        end_date=end_date,
+        product_id=product_id,
+    )
+
+    return TreatmentCostRecalculationResult(
+        scanned_treatment_products=impact.total_treatment_products,
+        scanned_treatments=impact.total_treatments,
+        updated_treatment_products=updated,
+        unchanged_treatment_products=unchanged,
+        failed_treatment_products=failed,
+    )
 
 
 @transaction.atomic
@@ -61,8 +217,6 @@ def get_shopping_list(user, field_ids=None):
         product, product_name, product_type, unit,
         total_dose, total_price, treatment_count, fields
     """
-    from decimal import Decimal
-    from .models import TreatmentProduct
 
     queryset = (
         TreatmentProduct.ownership_objects

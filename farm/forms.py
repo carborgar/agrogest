@@ -498,3 +498,38 @@ class FieldForm(NoPlaceholderModelForm):
         self.fields['geometry'].required = False
         self.fields['area'].widget.attrs['id'] = 'id_area'
 
+
+class TreatmentCostRangeForm(forms.Form):
+    start_date = forms.DateField(
+        label='Desde',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+    )
+    end_date = forms.DateField(
+        label='Hasta',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+    )
+
+    def clean(self):
+        cleaned = super().clean()
+        start_date = cleaned.get('start_date')
+        end_date = cleaned.get('end_date')
+        if start_date and end_date and start_date > end_date:
+            raise ValidationError('La fecha de inicio no puede ser posterior a la fecha fin.')
+        return cleaned
+
+
+class TreatmentCostProductForm(forms.Form):
+    product = forms.ModelChoiceField(
+        queryset=Product.objects.none(),
+        label='Producto',
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        product_queryset = kwargs.pop('product_queryset', Product.objects.none())
+        super().__init__(*args, **kwargs)
+        self.fields['product'].queryset = product_queryset
+
+
+
+

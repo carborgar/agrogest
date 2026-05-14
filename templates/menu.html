@@ -178,6 +178,18 @@
             {% endif %}
 
             <div class="nav-section">
+                <div class="nav-title">Utilidades</div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if nav_treatment_cost_admin %}active{% endif %}"
+                           href="{% url 'treatment-cost-admin' %}">
+                            <i class="fa fa-calculator"></i> Recalculo de costes
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="nav-section">
                 <div class="nav-title">Configuración</div>
                 <ul class="nav flex-column">
                     <li class="nav-item">
@@ -376,6 +388,18 @@
                     </ul>
                 </div>
                 {% endif %}
+
+                <div class="nav-section">
+                    <div class="nav-title">Utilidades</div>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link {% if nav_treatment_cost_admin %}active{% endif %}"
+                               href="{% url 'treatment-cost-admin' %}">
+                                <i class="fa fa-calculator"></i> Recalculo de costes
+                            </a>
+                        </li>
+                    </ul>
+                </div>
 
                 <div class="nav-section">
                     <div class="nav-title">Configuración</div>

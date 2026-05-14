@@ -1,5 +1,6 @@
 from django.urls import path
 
+from farm.views.admin_views import TreatmentCostRecalculationAdminView
 from farm.views.dashboard_views import FieldDashboardView, FieldCostView
 from farm.views.landing_views import LandingView
 from farm.views.treatment_views import (
@@ -33,6 +34,8 @@ urlpatterns = [
     path('tratamientos/calendario/', TreatmentCalendarView.as_view(), name='treatment-calendar'),
     path('tratamientos/<int:pk>/operador/', TreatmentExportView.as_view(), name='treatment-instructions'),
     path('tratamientos/lista-compra/', ShoppingListView.as_view(), name='treatment-shopping-list'),
+    path('administracion/recalculo-costes-tratamientos/', TreatmentCostRecalculationAdminView.as_view(),
+         name='treatment-cost-admin'),
 
     path('cosechas/nuevo/', HarvestFormView.as_view(), name='harvest-create'),
     path('cosechas/resumen/', HarvestSummaryView.as_view(), name='harvest-summary'),
