@@ -116,6 +116,10 @@ class ProductFormView(BaseSecureProductFormMixin, SuccessMessageMixin, UpdateVie
         # Solo asignar la organización al crear; en edición el objeto ya la tiene de BD
         if self.creating:
             form.instance.organization = self.request.user.organization
+            # En el alta el switch de archivado no se muestra; si no llega en POST,
+            # mantenemos el valor por defecto (activo).
+            if 'is_active' not in form.data:
+                form.instance.is_active = True
 
         # Detectar cambio de precio para auto-registrar en historial
         old_price = None
@@ -209,7 +213,6 @@ class ProductPriceHistoryDeleteView(OwnershipRequiredMixin, View):
         product_pk = entry.product_id
         entry.delete()
         messages.success(request, 'Entrada del historial eliminada.')
-        return HttpResponseRedirect(reverse('product-edit', kwargs={'pk': product_pk}))
         return HttpResponseRedirect(reverse('product-edit', kwargs={'pk': product_pk}))
 
 
