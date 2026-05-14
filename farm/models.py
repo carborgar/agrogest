@@ -264,9 +264,17 @@ class Product(OrganizationOwnedModel):
         if is_new or old_price is None or old_price == self.price:
             return save_result
 
-        treatment_products = TreatmentProduct.objects.filter(product=self).exclude(
-            treatment__status=Treatment.STATUS_COMPLETED
-        ).select_related('treatment', 'treatment__field')
+        # Si el precio anterior era 0, hay que corregir también los tratamientos
+        # completados (el dato estaba vacío, no era un precio real).
+        # En el resto de cambios de precio sólo se actualizan los no completados.
+        if old_price == 0:
+            treatment_products = TreatmentProduct.objects.filter(
+                product=self, unit_price=0
+            ).select_related('treatment', 'treatment__field')
+        else:
+            treatment_products = TreatmentProduct.objects.filter(product=self).exclude(
+                treatment__status=Treatment.STATUS_COMPLETED
+            ).select_related('treatment', 'treatment__field')
 
         updated_at = now()
         updated_products = []

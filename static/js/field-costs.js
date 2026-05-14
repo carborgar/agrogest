@@ -102,6 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateDashboard(data);
                 renderFieldCards(data.fields);
                 updateCharts(data);
+                renderNoPriceWarning(data.no_price_products || []);
             })
             .catch(error => {
                 console.error('Error cargando datos:', error);
@@ -552,5 +553,62 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function clamp(num) {
         return Math.min(Math.max(num, 0), 255);
+    }
+
+    // Aviso de productos sin precio
+    function renderNoPriceWarning(products) {
+        const container = document.getElementById('noPriceWarning');
+        if (!container) return;
+
+        if (!products || products.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+
+        const totalTreatments = products.reduce((sum, p) => sum + p.treatment_count, 0);
+        const warningId = 'noPriceDetails';
+
+        const rows = products.map(p => {
+            const fieldList = p.fields.join(', ');
+            const treatLabel = p.treatment_count === 1 ? 'tratamiento' : 'tratamientos';
+            return `<li class="mb-1">
+                <strong>${p.name}</strong>
+                <span class="text-muted ms-1">— ${p.treatment_count} ${treatLabel} en: ${fieldList}</span>
+            </li>`;
+        }).join('');
+
+        container.innerHTML = `
+            <div class="alert alert-warning mb-0" role="alert">
+                <div class="d-flex align-items-start gap-3">
+                    <i class="fa fa-triangle-exclamation fa-lg mt-1 flex-shrink-0"></i>
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <div>
+                                <strong>${products.length} producto${products.length > 1 ? 's' : ''} sin precio</strong>
+                                <span class="text-muted ms-2 small">·
+                                    ${totalTreatments} tratamiento${totalTreatments !== 1 ? 's' : ''} afectado${totalTreatments !== 1 ? 's' : ''}
+                                </span>
+                            </div>
+                            <button class="btn btn-sm btn-outline-warning" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#${warningId}" aria-expanded="false">
+                                Ver detalle <i class="fa fa-chevron-down fa-xs ms-1"></i>
+                            </button>
+                        </div>
+                        <p class="mb-1 mt-1 small">
+                            Estos productos no tienen precio configurado. El coste total mostrado
+                            <strong>no incluye su valor real</strong> y puede estar subestimado.
+                        </p>
+                        <div class="collapse" id="${warningId}">
+                            <ul class="mb-2 mt-2 small ps-3">
+                                ${rows}
+                            </ul>
+                        </div>
+                        <a href="/productos/" class="alert-link small">
+                            Actualizar precios <i class="fa fa-arrow-right fa-xs ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 });

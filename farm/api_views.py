@@ -203,12 +203,15 @@ def field_costs_data(request):
         # Si solo hay un campo, reutilizamos su desglose de productos
         general_product_breakdown = field_costs[0]['product_breakdown'] if field_costs else []
 
+    no_price_products = get_no_price_products(request.user, fields, start_date, end_date)
+
     return JsonResponse({
         'fields': field_costs,
         'total_area': total_area,
         'total_cost': float(total_cost),
         'cost_per_ha': float(total_cost / total_area) if total_area > 0 else 0,
-        'product_breakdown': general_product_breakdown
+        'product_breakdown': general_product_breakdown,
+        'no_price_products': no_price_products,
     })
 
 
@@ -311,3 +314,45 @@ def get_field_product_breakdown(user, fields_or_field, start_date, end_date):
     breakdown.sort(key=lambda x: x['total'], reverse=True)
 
     return breakdown
+
+
+def get_no_price_products(user, fields, start_date, end_date):
+    """
+    Devuelve la lista de productos sin precio (unit_price == 0) que aparecen en los
+    tratamientos del rango de fechas, junto con cuántos tratamientos y parcelas les afectan.
+    """
+    queryset = (
+        TreatmentProduct.ownership_objects
+        .get_queryset_for_user(user)
+        .filter(
+            treatment__date__gte=start_date,
+            treatment__date__lte=end_date,
+            treatment__field__in=fields,
+            unit_price=0,
+        )
+        .select_related('product', 'treatment', 'treatment__field')
+    )
+
+    aggregated = {}
+    for tp in queryset:
+        pid = tp.product_id
+        if pid not in aggregated:
+            aggregated[pid] = {
+                'name': tp.product.name,
+                'treatments': set(),
+                'fields': set(),
+            }
+        aggregated[pid]['treatments'].add(tp.treatment_id)
+        aggregated[pid]['fields'].add(tp.treatment.field.name)
+
+    result = [
+        {
+            'name': data['name'],
+            'treatment_count': len(data['treatments']),
+            'fields': sorted(data['fields']),
+        }
+        for data in aggregated.values()
+    ]
+    result.sort(key=lambda x: x['name'])
+    return result
+
