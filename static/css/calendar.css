@@ -112,6 +112,7 @@
 .field-filter-item:has(input:checked) {
     background-color: rgba(46, 125, 50, 0.08);
 }
+
 @media (max-width: 768px) {
     .fc-toolbar.fc-header-toolbar {
         flex-direction: column;
@@ -124,5 +125,3 @@
         padding: 3px 0;
     }
 }
-
-

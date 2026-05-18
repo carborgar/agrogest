@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', function () {
         themeSystem: 'bootstrap5',
         initialView: 'dayGridMonth',
         locale: 'es',
+        height: 'auto',
         headerToolbar: {
             left: 'prevYear,prev,next,nextYear today',
             center: 'title',
