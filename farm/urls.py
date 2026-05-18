@@ -2,6 +2,7 @@ from django.urls import path
 
 from farm.views.admin_views import TreatmentCostRecalculationAdminView
 from farm.views.dashboard_views import FieldDashboardView, FieldCostView
+from farm.views.stats_views import YearlyStatsView
 from farm.views.landing_views import LandingView
 from farm.views.treatment_views import (
     TreatmentListView, TreatmentDetailView, TreatmentFormView,
@@ -87,4 +88,7 @@ urlpatterns = [
 
     # AI Assistant
     path('asistente/', ChatView.as_view(), name='chat'),
+
+    # Estadísticas anuales
+    path('estadisticas/', YearlyStatsView.as_view(), name='yearly-stats'),
 ]

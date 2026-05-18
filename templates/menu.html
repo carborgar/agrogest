@@ -126,6 +126,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {% if nav_stats %}active{% endif %}" href="{% url 'yearly-stats' %}">
+                            <i class="fa fa-chart-line"></i>Estadísticas
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if nav_fields %}active{% endif %}" href="{% url 'field-list' %}">
                             <i class="fas fa-map-location-dot"></i>Parcelas
                         </a>
@@ -335,6 +340,11 @@
                             <a class="nav-link {% if nav_harvests %}active{% endif %}"
                                href="{% url 'harvest-summary' %}">
                                 <i class="fa fa-apple-whole"></i>Cosechas
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if nav_stats %}active{% endif %}" href="{% url 'yearly-stats' %}">
+                                <i class="fa fa-chart-line"></i>Estadísticas
                             </a>
                         </li>
                         <li class="nav-item">
