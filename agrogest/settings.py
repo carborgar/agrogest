@@ -118,6 +118,34 @@ DATABASES = {
     )
 }
 
+# Caché por defecto: simple en memoria del proceso.
+# Arquitectura de caché según entorno:
+#
+# - DESARROLLO (DEBUG=True):
+#   Backend: LocMemCache (en memoria del proceso)
+#   Ubicación: agrogest-dev-cache
+#   Nota: cada reinicio limpia la caché, pero no necesita BD extra
+#
+# - PRODUCCIÓN/VERCEL (DEBUG=False):
+#   Backend: DatabaseCache (tabla en la BD PostgreSQL que ya tienes en Aiven)
+#   Ubicación: agrogest_cache
+#   Compartida entre lambdas, persiste entre invocaciones
+#   Requerido: python manage.py createcachetable agrogest_cache (una sola vez)
+_CACHE_BACKEND = os.environ.get(
+    "DJANGO_CACHE_BACKEND",
+    "django.core.cache.backends.db.DatabaseCache" if not DEBUG else "django.core.cache.backends.locmem.LocMemCache"
+)
+_CACHE_LOCATION = os.environ.get("DJANGO_CACHE_LOCATION", "agrogest_cache" if not DEBUG else "agrogest-dev-cache")
+_CACHE_TIMEOUT = int(os.environ.get("DJANGO_CACHE_TIMEOUT", "300"))
+
+CACHES = {
+    "default": {
+        "BACKEND": _CACHE_BACKEND,
+        "LOCATION": _CACHE_LOCATION,
+        "TIMEOUT": _CACHE_TIMEOUT,
+    }
+}
+
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
 
@@ -252,6 +280,14 @@ GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-flash-lite-latest")
 
 AEMET_API_KEY = os.environ.get("AEMET_API_KEY", "")
 GEMINI_DAILY_LIMIT = int(os.environ.get("GEMINI_DAILY_LIMIT", "50"))
+
+# AEMET: token único global para toda la app
+# - AEMET_RATE_LIMIT_PER_MINUTE: margen de seguridad interno (< 40/min oficial)
+# - AEMET_WEATHER_CACHE_TTL: caché "fresca" por municipio
+# - AEMET_WEATHER_STALE_TTL: caché de respaldo si saltan límites o hay caídas
+AEMET_RATE_LIMIT_PER_MINUTE = int(os.environ.get("AEMET_RATE_LIMIT_PER_MINUTE", "30"))
+AEMET_WEATHER_CACHE_TTL = int(os.environ.get("AEMET_WEATHER_CACHE_TTL", "1800"))
+AEMET_WEATHER_STALE_TTL = int(os.environ.get("AEMET_WEATHER_STALE_TTL", "21600"))
 
 LOGGING = {
     "version": 1,
