@@ -17,78 +17,10 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import date
-
 from django.conf import settings
-from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
 AEMET_BASE = "https://opendata.aemet.es/opendata"
-
-# Caché de previsión por municipio (token único global para toda la app)
-_WEATHER_CACHE_KEY = "aemet_weather_muni:{cod}"
-_WEATHER_STALE_CACHE_KEY = "aemet_weather_muni_stale:{cod}"
-
-# Límite de seguridad por minuto (por debajo del límite oficial de AEMET)
-_RATE_LIMIT_BUCKET_KEY = "aemet_global_req:{bucket}"
-_RATE_LIMIT_WINDOW_SECONDS = 70
-
-
-class AemetRateLimitExceeded(Exception):
-    """Se supera el límite interno de peticiones por minuto a AEMET."""
-
-
-def _minute_bucket_utc() -> str:
-    return time.strftime("%Y%m%d%H%M", time.gmtime())
-
-
-def _cache_get_safe(key, default=None):
-    try:
-        return cache.get(key, default)
-    except Exception:
-        logger.warning("Cache GET failed for key=%s (backend may be unavailable)", key)
-        return default
-
-
-def _cache_set_safe(key, value, timeout):
-    try:
-        cache.set(key, value, timeout=timeout)
-    except Exception:
-        logger.warning("Cache SET failed for key=%s (backend may be unavailable)", key)
-
-
-def _cache_add_safe(key, value, timeout) -> bool:
-    try:
-        return bool(cache.add(key, value, timeout=timeout))
-    except Exception:
-        logger.warning("Cache ADD failed for key=%s (backend may be unavailable)", key)
-        return False
-
-
-def _cache_incr_safe(key) -> int | None:
-    try:
-        return int(cache.incr(key))
-    except Exception:
-        logger.warning("Cache INCR failed for key=%s (backend may be unavailable)", key)
-        return None
-
-
-def _allow_aemet_request() -> bool:
-    """Controla el número de requests AEMET/min usando la caché de Django."""
-    limit = int(getattr(settings, "AEMET_RATE_LIMIT_PER_MINUTE", 30))
-    if limit <= 0:
-        return True
-
-    key = _RATE_LIMIT_BUCKET_KEY.format(bucket=_minute_bucket_utc())
-    if _cache_add_safe(key, 1, timeout=_RATE_LIMIT_WINDOW_SECONDS):
-        return True
-
-    current = _cache_incr_safe(key)
-    if current is None:
-        # Fallback best-effort si no hay operaciones atómicas disponibles.
-        current = int(_cache_get_safe(key, 0) or 0) + 1
-        _cache_set_safe(key, current, timeout=_RATE_LIMIT_WINDOW_SECONDS)
-
-    return current <= limit
 # Caché en memoria del catálogo de municipios
 _municipios_cache: list | None = None
 _municipios_ts: float = 0
@@ -192,9 +124,6 @@ def _http_get(url: str, timeout: int = 10):
 
 def _aemet_fetch(path: str):
     """Doble petición AEMET: meta → datos URL → datos reales."""
-    if not _allow_aemet_request():
-        raise AemetRateLimitExceeded("AEMET rate limit interno alcanzado (meta)")
-
     meta = _http_get(f"{AEMET_BASE}{path}")
     if not meta:
         return None
@@ -204,10 +133,6 @@ def _aemet_fetch(path: str):
     datos_url = meta.get("datos")
     if not datos_url:
         return None
-
-    if not _allow_aemet_request():
-        raise AemetRateLimitExceeded("AEMET rate limit interno alcanzado (datos)")
-
     return _http_get(datos_url)
 
 
@@ -691,31 +616,14 @@ def get_weather_for_field(field) -> dict | None:
         return None
     cod = municipio["cod"]
     logger.debug("AEMET: municipio=%s (%s)", municipio["nombre"], cod)
-
-    cache_ttl = int(getattr(settings, "AEMET_WEATHER_CACHE_TTL", 1800))
-    stale_ttl = int(getattr(settings, "AEMET_WEATHER_STALE_TTL", 21600))
-    cache_key = _WEATHER_CACHE_KEY.format(cod=cod)
-    stale_cache_key = _WEATHER_STALE_CACHE_KEY.format(cod=cod)
-
-    cached_weather = _cache_get_safe(cache_key)
-    if cached_weather:
-        return cached_weather
-
-    stale_cached_weather = _cache_get_safe(stale_cache_key)
-
     # ── Datos ──
-    try:
-        horaria_raw = _aemet_fetch(f"/api/prediccion/especifica/municipio/horaria/{cod}")
-        hourly_list = _parse_horaria(horaria_raw) if horaria_raw else []
-        diaria_raw = _aemet_fetch(f"/api/prediccion/especifica/municipio/diaria/{cod}")
-        daily_summary = _parse_diaria(diaria_raw) if diaria_raw else []
-    except AemetRateLimitExceeded:
-        logger.warning("AEMET: límite interno alcanzado para municipio %s (%s)", municipio["nombre"], cod)
-        return stale_cached_weather
-
+    horaria_raw = _aemet_fetch(f"/api/prediccion/especifica/municipio/horaria/{cod}")
+    hourly_list = _parse_horaria(horaria_raw) if horaria_raw else []
+    diaria_raw = _aemet_fetch(f"/api/prediccion/especifica/municipio/diaria/{cod}")
+    daily_summary = _parse_diaria(diaria_raw) if diaria_raw else []
     if not hourly_list and not daily_summary:
         logger.warning("AEMET: sin datos para municipio %s (%s)", municipio["nombre"], cod)
-        return stale_cached_weather
+        return None
     # ── Construir daily list ──
     days_map: dict[str, list] = {}
     for h in hourly_list:
@@ -818,7 +726,7 @@ def get_weather_for_field(field) -> dict | None:
                 "n_hours_generated": len([h for h in hourly_list if h["date"] == (h0.get("fecha", "")[:10])]),
             }
 
-    weather_payload = {
+    return {
         "lat": round(lat, 5),
         "lon": round(lon, 5),
         "timezone": "Europe/Madrid",
@@ -835,8 +743,3 @@ def get_weather_for_field(field) -> dict | None:
             "sample_horaria": sample_hora_raw,
         },
     }
-
-    _cache_set_safe(cache_key, weather_payload, timeout=cache_ttl)
-    _cache_set_safe(stale_cache_key, weather_payload, timeout=stale_ttl)
-    return weather_payload
-
