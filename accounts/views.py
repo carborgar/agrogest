@@ -6,13 +6,14 @@ from django.shortcuts import render
 from django.urls import reverse_lazy
 from django.views.generic import ListView, UpdateView
 
-from accounts.forms import NotificationPreferencesForm
+from accounts.forms import NotificationPreferencesForm, EmailOrUsernameAuthenticationForm
 from accounts.models import Notification, NotificationPreferences
 
 
 class CustomLoginView(LoginView):
     template_name = 'accounts/login.html'
     redirect_authenticated_user = True
+    form_class = EmailOrUsernameAuthenticationForm
 
     def get_success_url(self):
         next_url = self.request.POST.get('next') or self.request.GET.get('next')
