@@ -15,12 +15,12 @@ class EmailOrUsernameModelBackend(ModelBackend):
 
         # Intentar buscar el usuario por username o email
         try:
-            user = UserModel.objects.get(username=username)
+            user = UserModel.objects.get(username__iexact=username)
         except UserModel.DoesNotExist:
             try:
                 user = UserModel.objects.get(email__iexact=username)
             except UserModel.DoesNotExist:
-                UserModel().set_password(password)  # mitigación de timing attack
+                UserModel().set_password(password)  # mitigacion de timing attack
                 return None
             except UserModel.MultipleObjectsReturned:
                 return None
