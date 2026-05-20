@@ -168,6 +168,9 @@
                             <td class="text-end td-pt-total-cell" style="white-space:nowrap; vertical-align:top">
                                 <span class="td-pt-total-val">{{ item.total_dose|floatformat:"2" }}</span>
                                 <span class="td-pt-unit">{{ item.unit }}</span>
+                                {% if item.total_price %}
+                                <div class="td-pt-meta text-success">{{ item.total_price|floatformat:"2" }}€</div>
+                                {% endif %}
                                 {% if item.total_price_per_ha %}
                                 <div class="td-pt-meta text-success">{{ item.total_price_per_ha|floatformat:"2" }}€/ha
                                 </div>
