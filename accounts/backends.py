@@ -20,10 +20,12 @@ class EmailOrUsernameModelBackend(ModelBackend):
             try:
                 user = UserModel.objects.get(email__iexact=username)
             except UserModel.DoesNotExist:
-                UserModel().set_password(password)  # mitigacion de timing attack
+                UserModel().set_password(password)  # mitigación de timing attack
                 return None
             except UserModel.MultipleObjectsReturned:
                 return None
+        except UserModel.MultipleObjectsReturned:
+            return None
 
         if user.check_password(password) and self.user_can_authenticate(user):
             return user
