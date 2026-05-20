@@ -55,11 +55,11 @@ def _treatment_product_queryset(*, organization=None, start_date=None, end_date=
 
 
 def estimate_treatment_cost_recalculation(
-    *,
-    organization=None,
-    start_date=None,
-    end_date=None,
-    product_id=None,
+        *,
+        organization=None,
+        start_date=None,
+        end_date=None,
+        product_id=None,
 ):
     queryset = _treatment_product_queryset(
         organization=organization,
@@ -74,14 +74,14 @@ def estimate_treatment_cost_recalculation(
 
 
 def recalculate_treatment_costs(
-    *,
-    organization=None,
-    start_date=None,
-    end_date=None,
-    product_id=None,
-    as_of_date=None,
-    dry_run=False,
-    batch_size=500,
+        *,
+        organization=None,
+        start_date=None,
+        end_date=None,
+        product_id=None,
+        as_of_date=None,
+        dry_run=False,
+        batch_size=500,
 ):
     as_of_date = as_of_date or date.today()
     queryset = _treatment_product_queryset(
@@ -201,21 +201,23 @@ def save_treatment_with_products(treatment_form, products_formset):
     return treatment
 
 
-def get_shopping_list(user, field_ids=None):
+def get_shopping_list(user, field_ids=None, treatment_ids=None):
     """
     Devuelve un listado agregado de productos necesarios para los
     tratamientos pendientes/atrasados del usuario.
 
     Parámetros
     ----------
-    user       : usuario autenticado
-    field_ids  : lista de IDs de parcela para filtrar (None = todas)
+    user           : usuario autenticado
+    field_ids      : lista de IDs de parcela para filtrar (None = todas)
+    treatment_ids  : lista de IDs de tratamiento para filtrar (None = todos)
 
     Devuelve
     --------
     list[dict] ordenada por nombre de producto, con las claves:
         product, product_name, product_type, unit,
-        total_dose, total_price, treatment_count, fields
+        total_dose, total_price, treatment_count, fields,
+        breakdown: list[{field, treatment, dose, unit}]
     """
 
     queryset = (
@@ -223,10 +225,14 @@ def get_shopping_list(user, field_ids=None):
         .get_queryset_for_user(user)
         .filter(treatment__status__in=['pending', 'delayed'])
         .select_related('product', 'product__product_type', 'treatment', 'treatment__field')
+        .order_by('treatment__field__name', 'treatment__date')
     )
 
     if field_ids:
         queryset = queryset.filter(treatment__field_id__in=field_ids)
+
+    if treatment_ids:
+        queryset = queryset.filter(treatment_id__in=treatment_ids)
 
     product_totals = {}
     for item in queryset:
@@ -241,17 +247,69 @@ def get_shopping_list(user, field_ids=None):
                 'total_price': Decimal('0'),
                 'treatment_count': 0,
                 'fields': set(),
+                'breakdown': [],
             }
         product_totals[key]['total_dose'] += item.total_dose
         product_totals[key]['total_price'] += item.total_price
         product_totals[key]['treatment_count'] += 1
         product_totals[key]['fields'].add(item.treatment.field.name)
+        product_totals[key]['breakdown'].append({
+            'field': item.treatment.field.name,
+            'field_area': Decimal(str(item.treatment.field.area)) if item.treatment.field.area else Decimal('0'),
+            'treatment': item.treatment.name,
+            'dose': round(item.total_dose, 2),
+            'unit': item.total_dose_unit,
+            'price': item.total_price,
+        })
 
     result = []
     for data in product_totals.values():
         data['fields'] = ', '.join(sorted(data['fields']))
         data['total_dose'] = round(data['total_dose'], 2)
         data['total_price'] = round(data['total_price'], 2)
+
+        # Agrupar breakdown por parcela (para mostrar total por parcela + detalle)
+        field_groups: dict = {}
+        for b in data['breakdown']:
+            fn = b['field']
+            if fn not in field_groups:
+                field_groups[fn] = {
+                    'field': fn,
+                    'field_total': Decimal('0'),
+                    'field_price': Decimal('0'),
+                    'field_area': b['field_area'],
+                    'unit': b['unit'],
+                    'treatments': [],
+                }
+            field_groups[fn]['field_total'] += b['dose']
+            field_groups[fn]['field_price'] += b.get('price', Decimal('0'))
+            field_groups[fn]['treatments'].append({
+                'treatment': b['treatment'],
+                'dose': b['dose'],
+            })
+
+        # Calcular €/ha del producto: precio total / suma de ha únicas involucradas
+        unique_ha = sum(
+            fg['field_area'] for fg in field_groups.values() if fg['field_area']
+        )
+        data['total_price_per_ha'] = (
+            round(data['total_price'] / unique_ha, 2) if unique_ha else Decimal('0')
+        )
+
+        data['breakdown_by_field'] = sorted(
+            [
+                {
+                    **fg,
+                    'field_total': round(fg['field_total'], 2),
+                    'field_price': round(fg['field_price'], 2),
+                    'price_per_ha': round(fg['field_price'] / fg['field_area'], 2)
+                    if fg['field_area'] else Decimal('0'),
+                }
+                for fg in field_groups.values()
+            ],
+            key=lambda x: x['field'],
+        )
+
         result.append(data)
 
     result.sort(key=lambda x: x['product_name'])
@@ -275,5 +333,3 @@ def clone_treatment(treatment, target_field, new_date=None, new_name=None):
     El nuevo Treatment creado.
     """
     return treatment.clone_to_field(target_field, new_date, new_name)
-
-

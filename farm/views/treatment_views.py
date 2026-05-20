@@ -2,20 +2,19 @@ import logging
 from datetime import date
 from decimal import Decimal
 
-from django.db.models import DateField, ExpressionWrapper
-from django.db.models.functions import Coalesce
-
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
+from django.db.models import DateField, ExpressionWrapper
+from django.db.models.functions import Coalesce
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views import View
+from django.views.decorators.http import require_POST
 from django.views.generic import ListView, DetailView, TemplateView
 from django.views.generic.edit import UpdateView
-from django.views.decorators.http import require_POST
 
 from farm.forms import TreatmentForm, TreatmentProductFormSet
 from farm.mixins import BaseSecureViewMixin
@@ -408,14 +407,31 @@ class ShoppingListView(BaseSecureViewMixin, ListView):
     template_name = 'farm/treatments/shopping_list.html'
     context_object_name = 'product_items'
 
+    def _selected_treatments(self):
+        return [tid for tid in self.request.GET.getlist('treatment') if tid.isdigit()]
+
+    def _selected_fields(self):
+        return [fid for fid in self.request.GET.getlist('field') if fid.isdigit()]
+
     def get_queryset(self):
-        selected_fields = [fid for fid in self.request.GET.getlist('field') if fid.isdigit()]
-        return get_shopping_list(self.request.user, field_ids=selected_fields or None)
+        return get_shopping_list(
+            self.request.user,
+            field_ids=self._selected_fields() or None,
+            treatment_ids=self._selected_treatments() or None,
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['fields'] = Field.objects.filter(organization=self.request.user.organization)
-        context['selected_fields'] = [fid for fid in self.request.GET.getlist('field') if fid.isdigit()]
+        context['selected_fields'] = self._selected_fields()
+        context['selected_treatments'] = self._selected_treatments()
+        context['available_treatments'] = (
+            Treatment.ownership_objects
+            .get_queryset_for_user(self.request.user)
+            .filter(status__in=['pending', 'delayed'])
+            .select_related('field')
+            .order_by('date')
+        )
         total_price = sum(item['total_price'] for item in self.object_list)
         context['total_price'] = round(total_price, 2)
         context['total_count'] = len(self.object_list)

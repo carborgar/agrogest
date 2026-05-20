@@ -1311,6 +1311,7 @@ a.filter-active-chip:hover {
     background: var(--bs-warning-bg-subtle, #fff3cd);
     border-color: var(--bs-warning-border-subtle, #ffe69c);
 }
+
 .product-total-block--warning .product-total-unit,
 .product-total-block--warning .product-total-hero,
 .product-total-block--warning .product-total-unit-label {
@@ -1321,10 +1322,114 @@ a.filter-active-chip:hover {
     .product-total-hero {
         font-size: 1.3rem;
     }
+
     .product-total-block {
         min-width: 74px;
         padding: 0.45rem 0.65rem;
     }
+}
+
+/* ═══════════════════════════════════════════════
+   SHOPPING LIST — sl-* namespace
+═══════════════════════════════════════════════ */
+
+/* Panel izquierdo sticky en desktop */
+@media (min-width: 768px) {
+    .col-md-4 .card,
+    .col-lg-3 .card {
+        position: sticky;
+        top: 1rem;
+    }
+}
+
+.sl-treatment-list {
+    max-height: 55vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.sl-treatment-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.65rem 1rem;
+    border-bottom: 1px solid #f1f3f5;
+    cursor: pointer;
+    transition: background 0.1s;
+    user-select: none;
+}
+
+.sl-treatment-item:last-child {
+    border-bottom: none;
+}
+
+.sl-treatment-item:hover {
+    background: #f8f9fa;
+}
+
+.sl-treatment-item--selected {
+    background: #eff6ff;
+    border-bottom-color: #dbeafe;
+}
+
+.sl-treatment-item--selected:hover {
+    background: #dbeafe;
+}
+
+.sl-cb {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--bs-primary);
+    cursor: pointer;
+}
+
+.sl-treatment-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.sl-treatment-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #212529;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sl-treatment-meta {
+    font-size: 0.72rem;
+    color: #868e96;
+    margin-top: 0.05rem;
+}
+
+.sl-breakdown-line {
+    font-size: 0.7rem;
+    color: #868e96;
+    margin-top: 0.1rem;
+    line-height: 1.4;
+    padding-left: 0.75rem;
+}
+
+/* Línea de total por parcela — dato clave para repartir */
+.sl-field-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 0.3rem;
+    padding: 0.18rem 0.5rem;
+    background: #f1f5f9;
+    border-radius: 5px;
+    font-size: 0.75rem;
+}
+
+.sl-field-total {
+    font-weight: 700;
+    color: #1e40af;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 /* ═══════════════════════════════════════════════
@@ -1337,6 +1442,311 @@ a.filter-active-chip:hover {
 
 .rotate-180 {
     transform: rotate(180deg);
+}
+
+/* ═══════════════════════════════════════════════
+   TREATMENT DETAIL v2 — td-* namespace
+═══════════════════════════════════════════════ */
+
+/* ── Meta grid (replaces info strip) ── */
+.td-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.4rem;
+}
+
+@media (min-width: 480px) {
+    .td-meta-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (min-width: 768px) {
+    .td-meta-grid {
+        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    }
+}
+
+.td-meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding: 0.55rem 0.75rem;
+    border-radius: 10px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    min-width: 0;
+}
+
+.td-meta-item--water {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+}
+
+.td-meta-item--cost {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+}
+
+.td-meta-label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #9ca3af;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.td-meta-label i {
+    font-size: 0.6rem;
+}
+
+.td-meta-value {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #111827;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.td-meta-item--water .td-meta-value {
+    color: #1d4ed8;
+}
+
+.td-meta-item--cost .td-meta-value {
+    color: #15803d;
+}
+
+.td-meta-sub {
+    font-size: 0.7rem;
+    color: #6c757d;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Instructions bar: mojado highlight + compact loads */
+.td-instr-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.55rem 0.85rem;
+    background: #f0f6ff;
+    border: 1px solid #d0e4ff;
+    border-radius: 10px;
+}
+
+/* Water/mojado metric — highlighted */
+.td-instr-water {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.3rem;
+    font-size: 0.82rem;
+    color: #0866cc;
+    font-weight: 600;
+}
+
+.td-instr-water i {
+    font-size: 0.8rem;
+    color: #3d9bff;
+    align-self: center;
+}
+
+.td-instr-water-val {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.td-instr-water-orig {
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: #6c757d;
+}
+
+/* Vertical divider between water and loads */
+.td-instr-bar .td-instr-water + .td-instr-loads::before {
+    content: '';
+    display: inline-block;
+    width: 1px;
+    height: 1.1em;
+    background: #c0d8f5;
+    margin-right: 0.5rem;
+    vertical-align: middle;
+}
+
+/* Compact loads summary */
+.td-instr-loads {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    font-size: 0.82rem;
+    color: #495057;
+}
+
+.td-instr-loads-sub {
+    font-weight: 400;
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+
+/* Coloured column headers in td-pt */
+.td-pt-th-primary {
+    color: var(--bs-primary, #0d6efd) !important;
+}
+
+.td-pt-th-warning {
+    color: var(--bs-warning-text-emphasis, #664d03) !important;
+}
+
+/* ═══════════════════════════════════════════════
+   PRODUCTS TABLE — td-pt
+═══════════════════════════════════════════════ */
+.td-pt {
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.td-pt thead tr {
+    border-bottom: 1px solid #e9ecef;
+}
+
+.td-pt thead th {
+    padding: 0.4rem 1rem;
+    font-size: 0.67rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #868e96;
+    background: #f8f9fa;
+    white-space: nowrap;
+}
+
+.td-pt tbody tr {
+    border-bottom: 1px solid #f1f3f5;
+    transition: background 0.1s;
+}
+
+.td-pt tbody tr:last-child {
+    border-bottom: none;
+}
+
+.td-pt tbody tr:hover {
+    background: #fafbfc;
+}
+
+.td-pt tbody td {
+    padding: 0.6rem 1rem;
+    vertical-align: middle;
+}
+
+.td-pt tfoot tr {
+    border-top: 2px solid #e9ecef;
+    background: #f8f9fa;
+}
+
+.td-pt tfoot td {
+    padding: 0.5rem 1rem;
+}
+
+.td-pt-name {
+    font-weight: 600;
+    color: #212529;
+    line-height: 1.3;
+}
+
+.td-pt-meta {
+    font-size: 0.72rem;
+    color: #868e96;
+    margin-top: 0.08rem;
+    line-height: 1.3;
+}
+
+.td-pt-dose {
+    color: #495057;
+    font-size: 0.82rem;
+    white-space: nowrap;
+}
+
+.td-pt-total-cell {
+    vertical-align: middle;
+}
+
+.td-pt-total-val {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--bs-primary, #0d6efd);
+}
+
+/* Total del campo (columna secundaria): menos peso visual que Por dep. */
+.td-pt-total-secondary {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #495057;
+}
+
+/* Cost summary below table */
+.td-cost-summary {
+    display: flex;
+    align-items: center;
+    padding: 0.35rem 0.75rem;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+    font-size: 0.82rem;
+}
+
+.td-pt-unit {
+    font-size: 0.72rem;
+    color: #868e96;
+    margin-left: 0.1rem;
+}
+
+.td-pt-cost-cell {
+    vertical-align: middle;
+}
+
+.td-pt-foot {
+    font-size: 0.82rem;
+}
+
+.td-pt-foot-label {
+    color: #6c757d;
+    font-size: 0.8rem;
+    vertical-align: middle;
+}
+
+/* Sticky action bar (mobile) */
+.td-sticky-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1020;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1rem;
+    background: rgba(255, 255, 255, 0.97);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-top: 1px solid #e9ecef;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* Add bottom gap when sticky bar is visible */
+@media (max-width: 767px) {
+    .content {
+        padding-bottom: 5.5rem;
+    }
 }
 
 /* ── Mobile ── */
