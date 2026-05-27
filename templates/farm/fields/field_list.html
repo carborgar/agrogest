@@ -128,6 +128,14 @@
                 </div>
             </div>
 
+                {% if field.storage_point %}
+                <div class="px-3 pt-2">
+                    <span class="badge bg-light text-dark border">
+                        <i class="fa fa-warehouse me-1 text-primary"></i>{{ field.storage_point.name }}
+                    </span>
+                </div>
+                {% endif %}
+
             <!-- Datos principales -->
             <div class="field-card-body">
                 <div class="field-stats-row">

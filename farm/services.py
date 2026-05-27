@@ -217,14 +217,15 @@ def get_shopping_list(user, field_ids=None, treatment_ids=None):
     list[dict] ordenada por nombre de producto, con las claves:
         product, product_name, product_type, unit,
         total_dose, total_price, treatment_count, fields,
-        breakdown: list[{field, treatment, dose, unit}]
+        breakdown: list[{field, treatment, dose, unit}],
+        distribution_groups: list[{name, is_manual, group_total, unit, fields}]
     """
 
     queryset = (
         TreatmentProduct.ownership_objects
         .get_queryset_for_user(user)
         .filter(treatment__status__in=['pending', 'delayed'])
-        .select_related('product', 'product__product_type', 'treatment', 'treatment__field')
+        .select_related('product', 'product__product_type', 'treatment', 'treatment__field', 'treatment__field__storage_point')
         .order_by('treatment__field__name', 'treatment__date')
     )
 
@@ -254,8 +255,11 @@ def get_shopping_list(user, field_ids=None, treatment_ids=None):
         product_totals[key]['treatment_count'] += 1
         product_totals[key]['fields'].add(item.treatment.field.name)
         product_totals[key]['breakdown'].append({
+            'field_id': item.treatment.field.id,
             'field': item.treatment.field.name,
             'field_area': Decimal(str(item.treatment.field.area)) if item.treatment.field.area else Decimal('0'),
+            'storage_point_id': item.treatment.field.storage_point_id,
+            'storage_point_name': item.treatment.field.storage_point.name if item.treatment.field.storage_point_id else None,
             'treatment': item.treatment.name,
             'dose': round(item.total_dose, 2),
             'unit': item.total_dose_unit,
@@ -274,10 +278,13 @@ def get_shopping_list(user, field_ids=None, treatment_ids=None):
             fn = b['field']
             if fn not in field_groups:
                 field_groups[fn] = {
+                    'field_id': b['field_id'],
                     'field': fn,
                     'field_total': Decimal('0'),
                     'field_price': Decimal('0'),
                     'field_area': b['field_area'],
+                    'storage_point_id': b['storage_point_id'],
+                    'storage_point_name': b['storage_point_name'],
                     'unit': b['unit'],
                     'treatments': [],
                 }
@@ -308,6 +315,49 @@ def get_shopping_list(user, field_ids=None, treatment_ids=None):
                 for fg in field_groups.values()
             ],
             key=lambda x: x['field'],
+        )
+
+        # Agrupar por casetilla para facilitar el reparto.
+        # Las parcelas sin casetilla se dejan como grupo manual individual.
+        distribution_groups: dict = {}
+        for field_group in data['breakdown_by_field']:
+            if field_group.get('storage_point_id'):
+                group_key = f"sp-{field_group['storage_point_id']}"
+                if group_key not in distribution_groups:
+                    distribution_groups[group_key] = {
+                        'name': field_group['storage_point_name'],
+                        'is_manual': False,
+                        'group_total': Decimal('0'),
+                        'group_price': Decimal('0'),
+                        'unit': field_group['unit'],
+                        'fields': [],
+                    }
+            else:
+                group_key = f"field-{field_group['field_id']}"
+                distribution_groups[group_key] = {
+                    'name': field_group['field'],
+                    'is_manual': True,
+                    'group_total': field_group['field_total'],
+                    'group_price': field_group['field_price'],
+                    'unit': field_group['unit'],
+                    'fields': [field_group],
+                }
+
+            if not distribution_groups[group_key]['is_manual']:
+                distribution_groups[group_key]['group_total'] += field_group['field_total']
+                distribution_groups[group_key]['group_price'] += field_group['field_price']
+                distribution_groups[group_key]['fields'].append(field_group)
+
+        data['distribution_groups'] = sorted(
+            [
+                {
+                    **group,
+                    'group_total': round(group['group_total'], 2),
+                    'group_price': round(group['group_price'], 2),
+                }
+                for group in distribution_groups.values()
+            ],
+            key=lambda g: (g['is_manual'], g['name'].lower()),
         )
 
         result.append(data)

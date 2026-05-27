@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}Casetillas{% endblock %}
+{% block header %}Casetillas de riego{% endblock %}
+{% block sub_header %}Agrupa parcelas por punto de reparto para preparar compras más rápido{% endblock %}
+
+{% block actions %}
+<a class="btn btn-outline-secondary" href="{% url 'field-list' %}">
+    <i class="fa fa-map me-1"></i>Mis parcelas
+</a>
+<a class="btn btn-primary ms-2" href="{% url 'storage-point-create' %}">
+    <i class="fa fa-plus me-1"></i>Nueva casetilla
+</a>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+.sp-stats-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+@media (max-width:575px) { .sp-stats-bar { grid-template-columns: repeat(2, 1fr); } }
+.sp-stat-tile {
+    background: #fff;
+    border-radius: 14px;
+    padding: 1.1rem 1.25rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,.06);
+    display: flex;
+    align-items: center;
+    gap: .85rem;
+}
+.sp-stat-icon {
+    width: 42px; height: 42px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; flex-shrink: 0;
+}
+.sp-stat-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color: #6c757d; }
+.sp-stat-value { font-size: 1.7rem; font-weight: 750; line-height: 1; }
+
+.sp-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.25rem;
+}
+.sp-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 14px rgba(0,0,0,.06);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    transition: transform .2s, box-shadow .2s;
+}
+.sp-card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(0,0,0,.11); }
+.sp-card-accent {
+    height: 5px;
+    background: linear-gradient(90deg, #52B788 0%, #2D6A4F 100%);
+}
+.sp-card-top {
+    padding: 1.1rem 1.25rem 0;
+    display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem;
+}
+.sp-card-avatar {
+    width: 48px; height: 48px;
+    border-radius: 13px;
+    background: linear-gradient(135deg, #52B788 0%, #2D6A4F 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; font-weight: 800; color: #fff;
+    flex-shrink: 0;
+}
+.sp-card-name { font-size: 1.05rem; font-weight: 700; color: #1a2e1e; margin-bottom: .15rem; }
+.sp-card-notes {
+    font-size: .78rem; color: #6c757d;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.sp-card-badge {
+    padding: .25rem .6rem;
+    border-radius: 30px; font-size: .68rem; font-weight: 600; flex-shrink: 0; white-space: nowrap;
+}
+.sp-card-badge--active { background: rgba(25,135,84,.12); color: #146b3a; }
+.sp-card-badge--empty  { background: rgba(0,0,0,.06); color: #6c757d; }
+.sp-card-body { padding: .9rem 1.25rem; flex: 1; }
+.sp-card-counter { display: flex; align-items: center; gap: .4rem; font-size: .82rem; color: #6c757d; }
+.sp-card-counter strong { color: #212529; }
+.sp-field-chips { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .55rem; }
+.sp-field-chip {
+    background: rgba(82,183,136,.1); color: #2D6A4F;
+    border-radius: 20px; padding: .2rem .55rem;
+    font-size: .71rem; font-weight: 600;
+    display: flex; align-items: center; gap: .2rem;
+}
+.sp-card-footer {
+    padding: .8rem 1.25rem;
+    border-top: 1px solid rgba(0,0,0,.05);
+    background: #fafafa;
+    border-radius: 0 0 16px 16px;
+    display: flex; gap: .5rem;
+}
+.sp-card-footer .btn { font-size: .8rem; }
+.sp-empty { text-align: center; padding: 4rem 1rem; }
+.sp-empty-icon {
+    width: 72px; height: 72px;
+    background: linear-gradient(135deg, rgba(82,183,136,.15) 0%, rgba(45,106,79,.08) 100%);
+    border-radius: 20px; display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; color: #52B788; margin: 0 auto 1.25rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="sp-stats-bar">
+    <div class="sp-stat-tile">
+        <div class="sp-stat-icon" style="background:rgba(82,183,136,.15);color:#2D6A4F">
+            <i class="fa fa-warehouse"></i>
+        </div>
+        <div>
+            <div class="sp-stat-label">Casetillas</div>
+            <div class="sp-stat-value">{{ storage_points|length }}</div>
+        </div>
+    </div>
+    <div class="sp-stat-tile">
+        <div class="sp-stat-icon" style="background:rgba(255,193,7,.15);color:#856404">
+            <i class="fa fa-map-location-dot"></i>
+        </div>
+        <div>
+            <div class="sp-stat-label">Sin casetilla</div>
+            <div class="sp-stat-value">{{ unassigned_fields_count }}</div>
+        </div>
+    </div>
+    <div class="sp-stat-tile">
+        <div class="sp-stat-icon" style="background:rgba(13,110,253,.12);color:var(--bs-primary)">
+            <i class="fa fa-layer-group"></i>
+        </div>
+        <div>
+            <div class="sp-stat-label">Total parcelas</div>
+            <div class="sp-stat-value">{{ total_fields_count }}</div>
+        </div>
+    </div>
+</div>
+
+{% if not storage_points %}
+<div class="card">
+    <div class="card-body sp-empty">
+        <div class="sp-empty-icon"><i class="fa fa-warehouse"></i></div>
+        <h5 class="fw-bold mb-2">Todavía no hay casetillas</h5>
+        <p class="text-muted mb-4 mx-auto" style="max-width:420px">
+            Crea la primera y asígnale parcelas para que la pantalla de
+            <strong>Compras</strong> calcule automáticamente cuánto llevar a cada punto de reparto.
+        </p>
+        <a class="btn btn-primary btn-lg px-4" href="{% url 'storage-point-create' %}">
+            <i class="fa fa-plus me-2"></i>Crear primera casetilla
+        </a>
+    </div>
+</div>
+{% else %}
+<div class="sp-grid">
+    {% for sp in storage_points %}
+    <div class="sp-card">
+        <div class="sp-card-accent"></div>
+        <div class="sp-card-top">
+            <div class="d-flex align-items-start gap-3 min-w-0">
+                <div class="sp-card-avatar">{{ sp.name|first|upper }}</div>
+                <div class="min-w-0">
+                    <div class="sp-card-name">{{ sp.name }}</div>
+                    {% if sp.notes %}
+                    <div class="sp-card-notes">{{ sp.notes }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            <span class="sp-card-badge {% if sp.fields_count %}sp-card-badge--active{% else %}sp-card-badge--empty{% endif %}">
+                {% if sp.fields_count %}{{ sp.fields_count }} parcela{{ sp.fields_count|pluralize }}{% else %}Sin parcelas{% endif %}
+            </span>
+        </div>
+
+        <div class="sp-card-body">
+            {% if sp.fields_count %}
+            <div class="sp-card-counter">
+                <i class="fa fa-map text-muted" style="font-size:.75rem"></i>
+                <span><strong>{{ sp.fields_count }}</strong> parcela{{ sp.fields_count|pluralize }} asignada{{ sp.fields_count|pluralize }}</span>
+            </div>
+            <div class="sp-field-chips">
+                {% for field in sp.fields.all|slice:":4" %}
+                <span class="sp-field-chip"><i class="fa fa-leaf" style="font-size:.6rem;opacity:.7"></i>{{ field.name }}</span>
+                {% endfor %}
+                {% if sp.fields_count > 4 %}
+                <span class="sp-field-chip" style="background:rgba(0,0,0,.06);color:#6c757d">+{{ sp.fields_count|add:"-4" }} más</span>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="text-muted small mt-1">
+                <i class="fa fa-circle-info me-1 text-primary"></i>Pulsa <strong>Asignar parcelas</strong> para asociar campos.
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="sp-card-footer">
+            <a class="btn btn-primary btn-sm flex-fill" href="{% url 'storage-point-detail' sp.pk %}">
+                <i class="fa fa-link me-1"></i>Asignar parcelas
+            </a>
+            <a class="btn btn-outline-secondary btn-sm" href="{% url 'storage-point-edit' sp.pk %}" title="Editar">
+                <i class="fa fa-edit"></i>
+            </a>
+            {% if not sp.has_fields %}
+            <button class="btn btn-outline-danger btn-sm"
+                    data-url="{% url 'storage-point-delete' sp.pk %}"
+                    onclick="confirmDelete(this)" title="Eliminar">
+                <i class="fa fa-trash"></i>
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<form class="d-none" id="deleteForm" method="POST">{% csrf_token %}</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function confirmDelete(button) {
+    const url = button.getAttribute('data-url');
+    showConfirm({
+        text: 'Se eliminará la casetilla permanentemente. Las parcelas quedarán sin casetilla asignada.',
+        onConfirm: () => {
+            const form = document.getElementById('deleteForm');
+            form.action = url;
+            form.submit();
+        }
+    });
+}
+</script>
+{% endblock %}

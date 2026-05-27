@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+
+{% block title %}{% if form.instance.pk %}Editar casetilla{% else %}Nueva casetilla{% endif %}{% endblock %}
+{% block header %}{% if form.instance.pk %}Editar casetilla{% else %}Nueva casetilla{% endif %}{% endblock %}
+{% block sub_header %}Define un punto de reparto para agrupar parcelas{% endblock %}
+
+{% block extra_head %}
+<style>
+.spf-header-icon {
+    width: 64px; height: 64px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #52B788 0%, #2D6A4F 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem; color: #fff;
+    margin-bottom: 1.25rem;
+}
+.spf-tip {
+    background: rgba(82,183,136,.1);
+    border-left: 3px solid #52B788;
+    border-radius: 0 10px 10px 0;
+    padding: .75rem 1rem;
+    font-size: .82rem; color: #2D6A4F;
+    margin-top: .5rem;
+}
+.spf-tip i { opacity: .8; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6 col-xl-5">
+        <div class="card border-0" style="border-radius:18px; box-shadow:0 4px 28px rgba(0,0,0,.09);">
+            <div class="card-body p-4 p-md-5">
+
+                <div class="spf-header-icon mx-auto text-center" style="width:64px">
+                    <i class="fa fa-warehouse"></i>
+                </div>
+                <h5 class="fw-bold text-center mb-1">
+                    {% if form.instance.pk %}Editando: {{ form.instance.name }}{% else %}Nueva casetilla{% endif %}
+                </h5>
+                <p class="text-muted text-center small mb-4">
+                    {% if form.instance.pk %}Actualiza el nombre o las notas de esta casetilla.
+                    {% else %}Después podrás asignarle parcelas desde el detalle.{% endif %}
+                </p>
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="{{ form.name.id_for_label }}">
+                            Nombre de la casetilla <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white"><i class="fa fa-warehouse text-muted"></i></span>
+                            {{ form.name }}
+                        </div>
+                        {% if form.name.errors %}
+                        <div class="invalid-feedback d-block">{{ form.name.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="{{ form.notes.id_for_label }}">
+                            Notas <span class="text-muted fw-normal">(opcional)</span>
+                        </label>
+                        {{ form.notes }}
+                        {% if form.notes.errors %}
+                        <div class="invalid-feedback d-block">{{ form.notes.errors|join:", " }}</div>
+                        {% endif %}
+                        <div class="spf-tip mt-2">
+                            <i class="fa fa-lightbulb me-1"></i>
+                            Añade aquí la ubicación, número de llave, o cualquier dato que te ayude a identificarla en campo.
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-4 pt-2">
+                        <a class="btn btn-outline-secondary" href="{% url 'storage-point-list' %}">
+                            <i class="fa fa-arrow-left me-1"></i>Volver
+                        </a>
+                        <button class="btn btn-primary px-4" type="submit">
+                            <i class="fa fa-save me-1"></i>
+                            {% if form.instance.pk %}Actualizar{% else %}Crear casetilla{% endif %}
+                        </button>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

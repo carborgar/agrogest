@@ -21,6 +21,7 @@ class FieldListView(LoginRequiredMixin, ListView):
         year_filter = Q(treatment__date__year=year)
         return (
             Field.objects.all()
+            .select_related('storage_point')
             .annotate(
                 pending_count=Count('treatment', filter=year_filter & Q(treatment__status=Treatment.STATUS_PENDING)),
                 delayed_count=Count('treatment', filter=year_filter & Q(treatment__status=Treatment.STATUS_DELAYED)),
@@ -108,6 +109,11 @@ class FieldCreateView(LoginRequiredMixin, CreateView):
         messages.success(self.request, 'Parcela creada con éxito.')
         return super().form_valid(form)
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
 
 class FieldUpdateView(LoginRequiredMixin, UpdateView):
     model = Field
@@ -120,6 +126,11 @@ class FieldUpdateView(LoginRequiredMixin, UpdateView):
     def form_valid(self, form):
         messages.success(self.request, 'Parcela actualizada con éxito.')
         return super().form_valid(form)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
 
 
 class FieldDeleteView(LoginRequiredMixin, DeleteView):

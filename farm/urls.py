@@ -18,6 +18,12 @@ from .views.field_views import FieldListView, FieldCreateView, FieldUpdateView, 
 from .views.harvest_views import HarvestFormView, HarvestSummaryView, HarvestDeleteView
 from .views.product_views import ProductTypeListView, ProductTypeFormView, ProductTypeDeleteView, ProductListView, \
     ProductFormView, ProductDeleteView, ProductPriceHistoryDeleteView
+from .views.storage_point_views import (
+    StoragePointListView,
+    StoragePointFormView,
+    StoragePointDetailView,
+    StoragePointDeleteView,
+)
 from .views.weather_views import WeatherOverviewView
 
 urlpatterns = [
@@ -48,6 +54,11 @@ urlpatterns = [
     path('parcelas/<int:pk>/', FieldDetailView.as_view(), name='field-detail'),
     path('parcelas/<int:pk>/editar/', FieldUpdateView.as_view(), name='field-edit'),
     path('parcelas/<int:pk>/eliminar/', FieldDeleteView.as_view(), name='field-delete'),
+    path('parcelas/casetillas/', StoragePointListView.as_view(), name='storage-point-list'),
+    path('parcelas/casetillas/nueva/', StoragePointFormView.as_view(), name='storage-point-create'),
+    path('parcelas/casetillas/<int:pk>/', StoragePointDetailView.as_view(), name='storage-point-detail'),
+    path('parcelas/casetillas/<int:pk>/editar/', StoragePointFormView.as_view(), name='storage-point-edit'),
+    path('parcelas/casetillas/<int:pk>/eliminar/', StoragePointDeleteView.as_view(), name='storage-point-delete'),
 
     # Expense Management
     path('gastos/gestionar/', ExpenseListView.as_view(), name='expense-list'),

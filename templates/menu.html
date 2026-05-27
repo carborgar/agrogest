@@ -131,9 +131,26 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if nav_fields %}active{% endif %}" href="{% url 'field-list' %}">
-                            <i class="fas fa-map-location-dot"></i>Parcelas
+                        <a aria-expanded="{% if nav_fields_open %}true{% else %}false{% endif %}"
+                           class="nav-link" data-bs-target="#parcelasMenuDesktop" data-bs-toggle="collapse" href="#">
+                            <i class="fas fa-map-location-dot"></i> Parcelas<i class="fas fa-chevron-down chevron"></i>
                         </a>
+                        <div class="collapse nav-submenu {% if nav_fields_open %}show{% endif %}"
+                             id="parcelasMenuDesktop">
+                            <ul class="nav flex-column">
+                                <li class="nav-item">
+                                    <a class="nav-link {% if nav_fields %}active{% endif %}" href="{% url 'field-list' %}">
+                                        <i class="fa fa-map"></i> Parcelas
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link {% if nav_storage_points %}active{% endif %}"
+                                       href="{% url 'storage-point-list' %}">
+                                        <i class="fa fa-warehouse"></i> Casetillas
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
                     </li>
                     {% if feature_weather %}
                     <li class="nav-item">
@@ -348,9 +365,27 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {% if nav_fields %}active{% endif %}" href="{% url 'field-list' %}">
+                            <a aria-expanded="{% if nav_fields_open %}true{% else %}false{% endif %}"
+                               class="nav-link" data-bs-target="#parcelasMobileMenu" data-bs-toggle="collapse" href="#">
                                 <i class="fas fa-map-location-dot"></i>Parcelas
+                                <i class="fas fa-chevron-down chevron"></i>
                             </a>
+                            <div class="collapse nav-submenu {% if nav_fields_open %}show{% endif %}"
+                                 id="parcelasMobileMenu">
+                                <ul class="nav flex-column">
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if nav_fields %}active{% endif %}" href="{% url 'field-list' %}">
+                                            <i class="fa fa-map"></i> Parcelas
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if nav_storage_points %}active{% endif %}"
+                                           href="{% url 'storage-point-list' %}">
+                                            <i class="fa fa-warehouse"></i> Casetillas
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
                         </li>
                         {% if feature_weather %}
                         <li class="nav-item">

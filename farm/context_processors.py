@@ -34,6 +34,7 @@ def unread_notifications(request):
 _NAV_GROUPS = {
     'nav_home':         {'field_list'},
     'nav_fields':       {'field-list', 'field-create', 'field-detail', 'field-edit'},
+    'nav_storage_points': {'storage-point-list', 'storage-point-create', 'storage-point-detail', 'storage-point-edit'},
     'nav_treatments':   {'treatment-list', 'treatment-create', 'treatment-detail'},
     'nav_calendar':     {'treatment-calendar'},
     'nav_costs':        {'field-costs'},
@@ -59,4 +60,5 @@ def active_nav(request):
     ctx = {key: url_name in names for key, names in _NAV_GROUPS.items()}
     ctx['nav_gastos_open']   = ctx['nav_costs'] or ctx['nav_expenses']
     ctx['nav_products_open'] = ctx['nav_products'] or ctx['nav_product_types']
+    ctx['nav_fields_open'] = ctx['nav_fields'] or ctx['nav_storage_points']
     return ctx

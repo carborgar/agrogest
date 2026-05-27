@@ -7,7 +7,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from accounts.models import Organization
-from farm.models import Field, Machine, ProductType, Product, Treatment, TreatmentProduct
+from farm.models import Field, Machine, ProductType, Product, Treatment, TreatmentProduct, StoragePoint
 
 User = get_user_model()
 
@@ -100,3 +100,51 @@ class ShoppingListViewTest(TestCase):
         content = response.content.decode()
         self.assertRegex(content, r"20[,.]00€")
         self.assertRegex(content, r"15[,.]00€")
+
+    def test_shopping_list_groups_distribution_by_storage_point(self):
+        storage_point = StoragePoint.objects.create(
+            name='Injeros',
+            organization=self.organization,
+        )
+        self.field.storage_point = storage_point
+        self.field.save(update_fields=['storage_point'])
+
+        field_2 = Field.objects.create(
+            name='Parcela Sin Casetilla',
+            area=1,
+            crop='Olivo',
+            planting_year=2022,
+            organization=self.organization,
+        )
+        treatment_2 = Treatment.objects.create(
+            name='Tratamiento manual',
+            type='spraying',
+            date=date.today() + timedelta(days=2),
+            field=field_2,
+            machine=self.machine,
+            water_per_ha=1000,
+            organization=self.organization,
+        )
+        treatment_product = self.treatment.treatmentproduct_set.first()
+        TreatmentProduct.objects.create(
+            treatment=treatment_2,
+            product=treatment_product.product,
+            dose=Decimal('1.00'),
+            total_dose=Decimal('1.00'),
+            dose_type='l_per_ha',
+            total_dose_unit='L',
+            unit_price=Decimal('10.00'),
+            organization=self.organization,
+        )
+
+        response = self.client.get(
+            reverse('treatment-shopping-list'),
+            {'treatment': [str(self.treatment.pk), str(treatment_2.pk)]},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn('Injeros', content)
+        self.assertIn('Parcela Sin Casetilla', content)
+        self.assertIn('Manual', content)
+

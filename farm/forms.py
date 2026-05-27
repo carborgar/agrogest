@@ -8,7 +8,7 @@ from django.forms import BaseInlineFormSet
 from django.forms import inlineformset_factory
 
 from core.forms import NoPlaceholderModelForm
-from .models import Treatment, TreatmentProduct, Expense, Product, Harvest, ProductType, Field
+from .models import Treatment, TreatmentProduct, Expense, Product, Harvest, ProductType, Field, StoragePoint
 
 
 class TreatmentForm(forms.ModelForm):
@@ -475,28 +475,59 @@ _year_choices = [(y, y) for y in range(_current_year, _current_year - 10, -1)]
 class FieldForm(NoPlaceholderModelForm):
     class Meta:
         model = Field
-        fields = ['name', 'crop', 'area', 'planting_year', 'geometry']
+        fields = ['name', 'crop', 'area', 'planting_year', 'storage_point', 'geometry']
         labels = {
             'name': 'Nombre',
             'crop': 'Cultivo',
             'planting_year': 'Año de siembra',
             'area': 'Superficie (ha)',
+            'storage_point': 'Casetilla de riego',
             'geometry': 'Geometría',
         }
         help_texts = {
             'area': 'Se usa para cálculos de costos y tratamientos.',
+            'storage_point': 'Opcional. Sirve para agrupar el reparto en compras.',
         }
         widgets = {
             'planting_year': forms.Select(choices=_year_choices),
+            'storage_point': forms.Select(attrs={'class': 'form-select'}),
             'geometry': forms.HiddenInput(),
         }
 
     def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
             field.widget.attrs.update({'class': 'form-control'})
         self.fields['geometry'].required = False
         self.fields['area'].widget.attrs['id'] = 'id_area'
+        self.fields['storage_point'].required = False
+        self.fields['storage_point'].widget.attrs['class'] = 'form-select'
+
+        if user and getattr(user, 'organization', None):
+            self.fields['storage_point'].queryset = StoragePoint.objects.filter(
+                organization=user.organization
+            ).order_by('name')
+        else:
+            self.fields['storage_point'].queryset = StoragePoint.objects.none()
+
+
+class StoragePointForm(NoPlaceholderModelForm):
+    class Meta:
+        model = StoragePoint
+        fields = ['name', 'notes']
+        labels = {
+            'name': 'Nombre',
+            'notes': 'Notas',
+        }
+        help_texts = {
+            'name': 'Ej: Injeros, Vegueta, Pitas.',
+            'notes': 'Opcional. Referencias útiles para el operario.',
+        }
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
 
 
 class TreatmentCostRangeForm(forms.Form):

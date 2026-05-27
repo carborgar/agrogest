@@ -22,11 +22,36 @@ class OrganizationOwnedModel(models.Model):
         abstract = True
 
 
+class StoragePoint(OrganizationOwnedModel):
+    name = models.CharField(max_length=100)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['name']
+        constraints = [
+            models.UniqueConstraint(fields=['organization', 'name'], name='unique_storage_point_per_org'),
+        ]
+
+    def __str__(self):
+        return self.name
+
+    def can_be_deleted(self):
+        return not self.fields.exists()
+
+
 class Field(OrganizationOwnedModel):
     name = models.CharField(max_length=100)
     area = models.FloatField()  # en hectáreas
     crop = models.CharField(max_length=100)
     planting_year = models.IntegerField()
+    storage_point = models.ForeignKey(
+        'farm.StoragePoint',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='fields',
+        verbose_name='Casetilla',
+    )
     # Geometría de la parcela almacenada como GeoJSON (opcional)
     geometry = models.TextField(blank=True, help_text="GeoJSON del contorno de la parcela")
 
