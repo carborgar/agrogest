@@ -30,10 +30,13 @@ _PREF_FIELD = {
 }
 
 
-def notify_org_users(event_type, title, body='', link='', organization=None):
+def notify_org_users(event_type, title, body='', link='', organization=None, html_body=''):
     """
     Para cada usuario de la organización, comprueba su preferencia de canal
     y crea notificación inbox y/o envía email según corresponda.
+
+    html_body: HTML enriquecido para el cuerpo del email. Si se omite, se usa
+               el texto plano de body. El inbox siempre recibe body (texto plano).
     """
     if organization is None:
         return
@@ -59,7 +62,7 @@ def notify_org_users(event_type, title, body='', link='', organization=None):
             ))
 
         if channel in (NotificationPreferences.CHANNEL_EMAIL, NotificationPreferences.CHANNEL_BOTH):
-            _send_email(user=user, title=title, body=body, link=link)
+            _send_email(user=user, title=title, body=body, link=link, html_body=html_body)
 
     if inbox_to_create:
         Notification.objects.bulk_create(inbox_to_create)
@@ -67,14 +70,14 @@ def notify_org_users(event_type, title, body='', link='', organization=None):
 
 # ── Email ─────────────────────────────────────────────────────────────────────
 
-def _send_email(user, title, body, link=''):
+def _send_email(user, title, body, link='', html_body=''):
     """Envía el email de notificación via Resend (o el backend Django si no hay key)."""
     if not user.email:
         return
 
     site_url = getattr(settings, 'SITE_URL', 'http://localhost:8000').rstrip('/')
     absolute_link = (site_url + link) if link else ''
-    html = _build_email_html(title=title, body=body, link=absolute_link)
+    html = _build_email_html(title=title, body=body, link=absolute_link, html_body=html_body)
 
     resend_key = getattr(settings, 'RESEND_API_KEY', '')
 
@@ -108,7 +111,7 @@ def _send_email(user, title, body, link=''):
             logger.exception('Error enviando email a %s', user.email)
 
 
-def _build_email_html(title, body, link=''):
+def _build_email_html(title, body, link='', html_body=''):
     link_block = ''
     if link:
         link_block = (
@@ -117,6 +120,11 @@ def _build_email_html(title, body, link=''):
             f'background:#1a2332;color:white;text-decoration:none;border-radius:6px;'
             f'font-size:.875rem;font-weight:600;">Ver detalle →</a></p>'
         )
+
+    if html_body:
+        body_block = f'<div style="margin:0;color:#475569;line-height:1.65;font-size:.9rem;">{html_body}</div>'
+    else:
+        body_block = f'<p style="margin:0;color:#475569;line-height:1.65;font-size:.9rem;">{body}</p>'
 
     return f"""<!DOCTYPE html>
 <html lang="es">
@@ -128,7 +136,7 @@ def _build_email_html(title, body, link=''):
     </div>
     <div style="padding:32px;">
       <h2 style="margin:0 0 12px;font-size:1.05rem;font-weight:700;">{title}</h2>
-      <p style="margin:0;color:#475569;line-height:1.65;font-size:.9rem;">{body}</p>
+      {body_block}
       {link_block}
     </div>
     <div style="padding:16px 32px;background:#f8faff;border-top:1px solid #e2e8f0;font-size:.75rem;color:#94a3b8;">
