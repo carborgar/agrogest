@@ -72,10 +72,10 @@ def build_treatment_email_html(treatment, extra_rows=None):
             f'<tr>'
             f'<td style="{_ROW_STYLE}color:#1a2332;">{tp.product.name}</td>'
             f'<td style="{_ROW_STYLE}color:#475569;text-align:right;">'
-            f'{tp.dose:f}'.rstrip('0').rstrip('.') + f' {tp.dose_type}'
+            f'{tp.dose:g} {tp.dose_type}'
             f'</td>'
             f'<td style="{_ROW_STYLE}color:#475569;text-align:right;">'
-            f'{tp.total_dose:f}'.rstrip('0').rstrip('.') + f' {tp.total_dose_unit}'
+            f'{tp.total_dose:g} {tp.total_dose_unit}'
             f'</td>'
             f'</tr>'
             for tp in products
