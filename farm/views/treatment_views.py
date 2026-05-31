@@ -264,12 +264,22 @@ class FinishTreatmentView(BaseSecureViewMixin, View):
 
         from accounts.models import Notification
         from accounts.notification_service import notify_org_users
+        from farm.services import build_treatment_email_html
+        products = list(treatment.treatmentproduct_set.select_related('product').order_by('position'))
+        product_names = ', '.join(tp.product.name for tp in products) if products else 'Sin productos'
+        extra_rows = [('Fecha de finalización', treatment.finish_date.strftime('%d/%m/%Y'))]
+        if treatment.is_spraying() and treatment.real_water_per_ha:
+            extra_rows.append(('Mojado real', f'{treatment.real_water_per_ha} L/ha'))
         notify_org_users(
             event_type=Notification.EVENT_TREATMENT_FINISHED,
             title=f'Tratamiento finalizado: {treatment.name}',
-            body=f'El tratamiento "{treatment.name}" en {treatment.field.name} ha sido marcado como completado.',
+            body=(
+                f'El tratamiento "{treatment.name}" en {treatment.field.name} ha sido marcado como completado.'
+                + (f' Productos: {product_names}.' if products else '')
+            ),
             link=reverse('treatment-detail', kwargs={'pk': treatment.pk}),
             organization=treatment.organization,
+            html_body=build_treatment_email_html(treatment, extra_rows=extra_rows),
         )
 
         return JsonResponse({'success': True})

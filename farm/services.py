@@ -18,6 +18,90 @@ from django.utils.timezone import now
 from .models import ProductPriceHistory, TreatmentProduct
 
 
+# ── Utilidades de email ────────────────────────────────────────────────────────
+
+_ROW_STYLE = 'padding:6px 10px;border-bottom:1px solid #e2e8f0;'
+_HEADER_STYLE = (
+    'padding:6px 10px;background:#f1f5f9;font-weight:600;'
+    'font-size:.8rem;color:#64748b;text-transform:uppercase;letter-spacing:.04em;'
+)
+
+
+def build_treatment_email_html(treatment, extra_rows=None):
+    """
+    Construye el bloque HTML de detalle de un tratamiento para emails.
+
+    Incluye: parcela, tipo, fecha, mojado (si procede) y tabla de productos.
+
+    Parámetros
+    ----------
+    treatment  : instancia de Treatment (con treatmentproduct_set disponible)
+    extra_rows : lista de tuplas (etiqueta, valor) adicionales a incluir antes
+                 del bloque de productos, o None.
+
+    Devuelve
+    --------
+    str con el HTML del bloque de detalle.
+    """
+    # ── Filas de metadatos ────────────────────────────────────────────────────
+    meta_rows = [
+        ('Parcela', f"{treatment.field.name} ({treatment.field.area} ha)"),
+        ('Tipo', treatment.get_type_display()),
+        ('Fecha planificada', treatment.date.strftime('%d/%m/%Y')),
+    ]
+    if treatment.is_spraying() and treatment.water_per_ha:
+        meta_rows.append(('Mojado', f"{treatment.water_per_ha} L/ha"))
+    if extra_rows:
+        meta_rows.extend(extra_rows)
+
+    meta_html = ''.join(
+        f'<tr>'
+        f'<td style="{_ROW_STYLE}font-weight:600;width:40%;color:#1a2332;">{label}</td>'
+        f'<td style="{_ROW_STYLE}color:#475569;">{value}</td>'
+        f'</tr>'
+        for label, value in meta_rows
+    )
+
+    # ── Tabla de productos ────────────────────────────────────────────────────
+    products = list(
+        treatment.treatmentproduct_set.select_related('product').order_by('position')
+    )
+
+    if products:
+        product_rows = ''.join(
+            f'<tr>'
+            f'<td style="{_ROW_STYLE}color:#1a2332;">{tp.product.name}</td>'
+            f'<td style="{_ROW_STYLE}color:#475569;text-align:right;">'
+            f'{tp.dose:g} {tp.dose_type}'
+            f'</td>'
+            f'<td style="{_ROW_STYLE}color:#475569;text-align:right;">'
+            f'{tp.total_dose:g} {tp.total_dose_unit}'
+            f'</td>'
+            f'</tr>'
+            for tp in products
+        )
+        products_block = (
+            f'<p style="margin:16px 0 6px;font-weight:600;font-size:.9rem;">Productos</p>'
+            f'<table style="width:100%;border-collapse:collapse;font-size:.875rem;">'
+            f'<thead><tr>'
+            f'<th style="{_HEADER_STYLE}text-align:left;">Producto</th>'
+            f'<th style="{_HEADER_STYLE}text-align:right;">Dosis</th>'
+            f'<th style="{_HEADER_STYLE}text-align:right;">Total</th>'
+            f'</tr></thead>'
+            f'<tbody>{product_rows}</tbody>'
+            f'</table>'
+        )
+    else:
+        products_block = ''
+
+    return (
+        f'<table style="width:100%;border-collapse:collapse;font-size:.875rem;margin-bottom:4px;">'
+        f'<tbody>{meta_html}</tbody>'
+        f'</table>'
+        f'{products_block}'
+    )
+
+
 @dataclass
 class TreatmentCostRecalculationImpact:
     total_treatment_products: int
@@ -190,12 +274,18 @@ def save_treatment_with_products(treatment_form, products_formset):
     if is_new:
         from accounts.models import Notification
         from accounts.notification_service import notify_org_users
+        products = list(treatment.treatmentproduct_set.select_related('product').order_by('position'))
+        product_names = ', '.join(tp.product.name for tp in products) if products else 'Sin productos'
         notify_org_users(
             event_type=Notification.EVENT_TREATMENT_CREATED,
             title=f'Nuevo tratamiento: {treatment.name}',
-            body=f'Se ha creado el tratamiento "{treatment.name}" en la parcela {treatment.field.name}.',
+            body=(
+                f'Se ha creado el tratamiento "{treatment.name}" en la parcela {treatment.field.name}.'
+                + (f' Productos: {product_names}.' if products else '')
+            ),
             link=reverse('treatment-detail', kwargs={'pk': treatment.pk}),
             organization=treatment.organization,
+            html_body=build_treatment_email_html(treatment),
         )
 
     return treatment
