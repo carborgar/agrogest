@@ -260,14 +260,21 @@ class FinishTreatmentView(BaseSecureViewMixin, View):
         if not finish_date:
             return JsonResponse({'success': False}, status=400)
 
-        treatment.finish_treatment(finish_date, real_water_used)
+        from datetime import date
+        try:
+            finish_date_obj = date.fromisoformat(finish_date) if finish_date else None
+        except (ValueError, TypeError):
+            finish_date_obj = None
+
+        treatment.finish_treatment(finish_date_obj, real_water_used)
 
         from accounts.models import Notification
         from accounts.notification_service import notify_org_users
         from farm.services import build_treatment_email_html
         products = list(treatment.treatmentproduct_set.select_related('product').order_by('position'))
         product_names = ', '.join(tp.product.name for tp in products) if products else 'Sin productos'
-        extra_rows = [('Fecha de finalización', treatment.finish_date.strftime('%d/%m/%Y'))]
+        finish_date_display = finish_date_obj.strftime('%d/%m/%Y') if finish_date_obj else ''
+        extra_rows = [('Fecha de finalización', finish_date_display)]
         if treatment.is_spraying() and treatment.real_water_per_ha:
             extra_rows.append(('Mojado real', f'{treatment.real_water_per_ha} L/ha'))
         notify_org_users(
