@@ -15,10 +15,12 @@ from django.db.models.functions import Coalesce
 from django.urls import reverse
 from django.utils.timezone import now
 
-from .models import ProductPriceHistory, TreatmentProduct
+from .models import Product, ProductPriceHistory, TreatmentProduct
 
 
 # ── Utilidades de email ────────────────────────────────────────────────────────
+
+_DOSE_TYPE_LABELS = dict(Product.ALL_DOSE_TYPE_CHOICES)
 
 _ROW_STYLE = 'padding:6px 10px;border-bottom:1px solid #e2e8f0;'
 _HEADER_STYLE = (
@@ -72,10 +74,10 @@ def build_treatment_email_html(treatment, extra_rows=None):
             f'<tr>'
             f'<td style="{_ROW_STYLE}color:#1a2332;">{tp.product.name}</td>'
             f'<td style="{_ROW_STYLE}color:#475569;text-align:right;">'
-            f'{tp.dose:g} {tp.dose_type}'
+            f'{float(tp.dose):g} {_DOSE_TYPE_LABELS.get(tp.dose_type, tp.dose_type)}'
             f'</td>'
             f'<td style="{_ROW_STYLE}color:#475569;text-align:right;">'
-            f'{tp.total_dose:g} {tp.total_dose_unit}'
+            f'{float(tp.total_dose):g} {tp.total_dose_unit}'
             f'</td>'
             f'</tr>'
             for tp in products
