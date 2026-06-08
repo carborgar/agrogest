@@ -1,18 +1,29 @@
-<!-- Mobile Navbar -->
-<nav class="navbar mobile-navbar d-md-none">
-    <div class="container-fluid">
-        <button class="btn btn-outline-primary" data-bs-target="#sidebarOffcanvas" data-bs-toggle="offcanvas"
-                type="button">
-            <i class="fas fa-bars"></i>
-        </button>
-        <span class="navbar-brand mb-0">AgroGest</span>
-        <!-- Mobile User section -->
+{# ─── Mobile Top Navbar ─────────────────────────────────────────────────── #}
+<nav class="mobile-navbar d-md-none">
+    <div class="container-fluid d-flex align-items-center justify-content-between px-3">
+        <div class="d-flex align-items-center gap-2">
+            <svg fill="none" height="26" viewBox="0 0 34 34" width="26" xmlns="http://www.w3.org/2000/svg">
+                <path d="M17 4 C17 4 9 9.5 9 16.5 C9 20.9 12.6 24.5 17 24.5 C21.4 24.5 25 20.9 25 16.5 C25 9.5 17 4 17 4Z"
+                      fill="url(#bmt)"/>
+                <path d="M17 4.5 L17 24" stroke="rgba(255,255,255,0.22)" stroke-linecap="round" stroke-width="0.8"/>
+                <path d="M17 25.5 C14.8 27.8 13.5 29.2 13.5 30.3 C13.5 31.8 15.1 33 17 33 C18.9 33 20.5 31.8 20.5 30.3 C20.5 29.2 19.2 27.8 17 25.5Z"
+                      fill="#D4A017"/>
+                <defs>
+                    <linearGradient gradientUnits="userSpaceOnUse" id="bmt" x1="17" x2="17" y1="4" y2="24.5">
+                        <stop stop-color="#52B788"/>
+                        <stop offset="1" stop-color="#2D6A4F"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+            <span class="navbar-brand mb-0 ms-1">AgroGest</span>
+        </div>
         <div class="dropdown">
-            <button class="btn btn-outline-primary position-relative" data-bs-toggle="dropdown" type="button">
-                <i class="fas fa-user"></i>
+            <button aria-label="Perfil de usuario" class="btn-ghost-nav position-relative" data-bs-toggle="dropdown"
+                    type="button">
+                <i class="fas fa-user-circle" style="font-size:1.35rem;"></i>
                 {% if unread_notifications_count %}
                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary"
-                      style="font-size:.6rem;">
+                      style="font-size:.55rem; min-width:16px; height:16px; display:flex; align-items:center; justify-content:center; padding:0 4px;">
                     {{ unread_notifications_count }}
                 </span>
                 {% endif %}
@@ -47,20 +58,22 @@
     </div>
 </nav>
 
-<!-- Desktop Sidebar -->
-<div class="sidebar-desktop d-none d-md-block">
+
+{# ─── Desktop Sidebar ─────────────────────────────────────────────────────── #}
+<div class="sidebar-desktop d-none d-md-block" id="sidebarDesktop">
     <div class="sidebar-content">
-        <!-- Brand -->
-        <a class="brand" href="#">
+
+        {# Brand #}
+        <a class="brand" href="{% url 'field_list' %}">
             <div class="brand-icon">
-                <svg viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg" width="34" height="34">
+                <svg fill="none" height="34" viewBox="0 0 34 34" width="34" xmlns="http://www.w3.org/2000/svg">
                     <path d="M17 4 C17 4 9 9.5 9 16.5 C9 20.9 12.6 24.5 17 24.5 C21.4 24.5 25 20.9 25 16.5 C25 9.5 17 4 17 4Z"
                           fill="url(#bmd)"/>
-                    <path d="M17 4.5 L17 24" stroke="rgba(255,255,255,0.22)" stroke-width="0.8" stroke-linecap="round"/>
+                    <path d="M17 4.5 L17 24" stroke="rgba(255,255,255,0.22)" stroke-linecap="round" stroke-width="0.8"/>
                     <path d="M17 25.5 C14.8 27.8 13.5 29.2 13.5 30.3 C13.5 31.8 15.1 33 17 33 C18.9 33 20.5 31.8 20.5 30.3 C20.5 29.2 19.2 27.8 17 25.5Z"
                           fill="#D4A017"/>
                     <defs>
-                        <linearGradient id="bmd" x1="17" y1="4" x2="17" y2="24.5" gradientUnits="userSpaceOnUse">
+                        <linearGradient gradientUnits="userSpaceOnUse" id="bmd" x1="17" x2="17" y1="4" y2="24.5">
                             <stop stop-color="#52B788"/>
                             <stop offset="1" stop-color="#2D6A4F"/>
                         </linearGradient>
@@ -70,173 +83,28 @@
             <h4 class="brand-text">AgroGest</h4>
         </a>
 
-        <!-- Navigation Container -->
+        {# Navegación #}
         <div class="nav-container desktop-menu-nav-container">
-            <!-- Main Navigation -->
-            <div class="nav-section">
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link {% if nav_home %}active{% endif %}" href="{% url 'field_list' %}">
-                            <i class="fas fa-house"></i>Inicio
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if nav_treatments %}active{% endif %}" href="{% url 'treatment-list' %}">
-                            <i class="fas fa-droplet"></i>Tratamientos
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if nav_calendar %}active{% endif %}"
-                           href="{% url 'treatment-calendar' %}">
-                            <i class="fas fa-calendar-days"></i>Calendario
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a aria-expanded="{% if nav_gastos_open %}true{% else %}false{% endif %}"
-                           class="nav-link" data-bs-target="#gastosMenu" data-bs-toggle="collapse" href="#">
-                            <i class="fa fa-coins"></i>Gastos
-                            <i class="fas fa-chevron-down chevron"></i>
-                        </a>
-                        <div class="collapse nav-submenu {% if nav_gastos_open %}show{% endif %}" id="gastosMenu">
-                            <ul class="nav flex-column">
-                                <li class="nav-item">
-                                    <a class="nav-link {% if nav_costs %}active{% endif %}"
-                                       href="{% url 'field-costs' %}">
-                                        <i class="fa fa-chart-bar"></i> Informe
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link {% if nav_expenses %}active{% endif %}"
-                                       href="{% url 'expense-list' %}">
-                                        <i class="fa fa-receipt"></i> Gestionar gastos
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if nav_shopping %}active{% endif %}"
-                           href="{% url 'treatment-shopping-list' %}">
-                            <i class="fa fa-shopping-cart"></i>Compras
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if nav_harvests %}active{% endif %}" href="{% url 'harvest-summary' %}">
-                            <i class="fa fa-apple-whole"></i>Cosechas
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if nav_stats %}active{% endif %}" href="{% url 'yearly-stats' %}">
-                            <i class="fa fa-chart-line"></i>Estadísticas
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a aria-expanded="{% if nav_fields_open %}true{% else %}false{% endif %}"
-                           class="nav-link" data-bs-target="#parcelasMenuDesktop" data-bs-toggle="collapse" href="#">
-                            <i class="fas fa-map-location-dot"></i> Parcelas<i class="fas fa-chevron-down chevron"></i>
-                        </a>
-                        <div class="collapse nav-submenu {% if nav_fields_open %}show{% endif %}"
-                             id="parcelasMenuDesktop">
-                            <ul class="nav flex-column">
-                                <li class="nav-item">
-                                    <a class="nav-link {% if nav_fields %}active{% endif %}" href="{% url 'field-list' %}">
-                                        <i class="fa fa-map"></i> Parcelas
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link {% if nav_storage_points %}active{% endif %}"
-                                       href="{% url 'storage-point-list' %}">
-                                        <i class="fa fa-warehouse"></i> Casetillas
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </li>
-                    {% if feature_weather %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if nav_weather %}active{% endif %}" href="{% url 'weather-overview' %}">
-                            <i class="fa fa-cloud-sun"></i>El Tiempo
-                        </a>
-                    </li>
-                    {% endif %}
-                    <li class="nav-item">
-                        <a aria-expanded="{% if nav_products_open %}true{% else %}false{% endif %}"
-                           class="nav-link" data-bs-target="#productosMenuDesktop" data-bs-toggle="collapse" href="#">
-                            <i class="fa fa-box"></i> Productos<i class="fas fa-chevron-down chevron"></i>
-                        </a>
-                        <div class="collapse nav-submenu {% if nav_products_open %}show{% endif %}"
-                             id="productosMenuDesktop">
-                            <ul class="nav flex-column">
-                                <li class="nav-item">
-                                    <a class="nav-link {% if nav_products %}active{% endif %}"
-                                       href="{% url 'product-list' %}">
-                                        <i class="fa fa-flask"></i> Productos
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link {% if nav_product_types %}active{% endif %}"
-                                       href="{% url 'product-type-list' %}">
-                                        <i class="fa fa-tags"></i> Tipos de producto
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </li>
-                </ul>
-            </div>
+            {% include "_nav_items.html" with suffix="desktop" %}
 
-            {% if gemini_configured %}
+            {# Botón de colapsar al final del nav #}
             <div class="nav-section">
-                <div class="nav-title">Herramientas</div>
                 <ul class="nav flex-column">
                     <li class="nav-item">
-                        <a class="nav-link {% if nav_chat %}active{% endif %}" href="{% url 'chat' %}">
-                            <i class="fa fa-robot"></i>Asistente IA
-                            <span class="badge bg-warning text-dark ms-auto" style="font-size:0.6rem;vertical-align:middle;">BETA</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-            {% endif %}
-
-            <div class="nav-section">
-                <div class="nav-title">Utilidades</div>
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link {% if nav_treatment_cost_admin %}active{% endif %}"
-                           href="{% url 'treatment-cost-admin' %}">
-                            <i class="fa fa-calculator"></i> Recalculo de costes
-                        </a>
-                    </li>
-                </ul>
-            </div>
-
-            <div class="nav-section">
-                <div class="nav-title">Configuración</div>
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link d-flex align-items-center justify-content-between"
-                           href="{% url 'accounts:notification-inbox' %}">
-                            <span><i class="fas fa-bell me-1"></i>Notificaciones</span>
-                            {% if unread_notifications_count %}
-                            <span class="badge rounded-pill bg-primary ms-auto" style="font-size:.65rem;">{{ unread_notifications_count }}</span>
-                            {% endif %}
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if nav_expense_types %}active{% endif %}"
-                           href="{% url 'expense-type-list' %}">
-                            <i class="fa fa-tags"></i> Tipos de gasto
-                        </a>
+                        <button class="nav-link sidebar-collapse-btn w-100" id="sidebarCollapseBtn"
+                                title="Colapsar menú" type="button">
+                            <i class="fas fa-chevron-left"></i>
+                            <span class="nav-link-text">Colapsar</span>
+                        </button>
                     </li>
                 </ul>
             </div>
         </div>
 
-        <!-- User Menu -->
+        {# User Menu #}
         <div class="user-menu">
             <a class="user-profile" data-bs-toggle="dropdown" href="#">
-.                <div class="user-avatar">
+                <div class="user-avatar">
                     <i class="fa fa-user"></i>
                     {% if unread_notifications_count %}
                     <span class="user-avatar-badge">{{ unread_notifications_count }}</span>
@@ -246,7 +114,7 @@
                     <h6>{{ user.first_name|default:user.username }}</h6>
                     <small>Usuario</small>
                 </div>
-                <i class="fas fa-ellipsis-v ms-auto"></i>
+                <i class="fas fa-ellipsis-v ms-auto user-ellipsis"></i>
             </a>
             <ul class="dropdown-menu dropdown-menu-end">
                 <li>
@@ -274,22 +142,24 @@
                 </li>
             </ul>
         </div>
+
     </div>
 </div>
 
-<!-- Mobile Offcanvas -->
+
+{# ─── Mobile Offcanvas ────────────────────────────────────────────────────── #}
 <div class="offcanvas offcanvas-start" id="sidebarOffcanvas" tabindex="-1">
     <div class="offcanvas-header">
         <div class="d-flex align-items-center">
             <div class="brand-icon me-2">
-                <svg viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg" width="34" height="34">
+                <svg fill="none" height="34" viewBox="0 0 34 34" width="34" xmlns="http://www.w3.org/2000/svg">
                     <path d="M17 4 C17 4 9 9.5 9 16.5 C9 20.9 12.6 24.5 17 24.5 C21.4 24.5 25 20.9 25 16.5 C25 9.5 17 4 17 4Z"
                           fill="url(#bmm)"/>
-                    <path d="M17 4.5 L17 24" stroke="rgba(255,255,255,0.22)" stroke-width="0.8" stroke-linecap="round"/>
+                    <path d="M17 4.5 L17 24" stroke="rgba(255,255,255,0.22)" stroke-linecap="round" stroke-width="0.8"/>
                     <path d="M17 25.5 C14.8 27.8 13.5 29.2 13.5 30.3 C13.5 31.8 15.1 33 17 33 C18.9 33 20.5 31.8 20.5 30.3 C20.5 29.2 19.2 27.8 17 25.5Z"
                           fill="#D4A017"/>
                     <defs>
-                        <linearGradient id="bmm" x1="17" y1="4" x2="17" y2="24.5" gradientUnits="userSpaceOnUse">
+                        <linearGradient gradientUnits="userSpaceOnUse" id="bmm" x1="17" x2="17" y1="4" y2="24.5">
                             <stop stop-color="#52B788"/>
                             <stop offset="1" stop-color="#2D6A4F"/>
                         </linearGradient>
@@ -298,175 +168,62 @@
             </div>
             <h5 class="offcanvas-title mb-0">AgroGest</h5>
         </div>
-        <button class="btn-close btn-close-white" data-bs-dismiss="offcanvas" type="button"></button>
+        <button aria-label="Cerrar" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"
+                type="button"></button>
     </div>
     <div class="offcanvas-body">
         <div class="sidebar-content">
             <div class="nav-container">
-                <!-- Main Navigation -->
-                <div class="nav-section">
-                    <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link {% if nav_home %}active{% endif %}" href="{% url 'field_list' %}">
-                                <i class="fas fa-house"></i>Inicio
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if nav_treatments %}active{% endif %}"
-                               href="{% url 'treatment-list' %}">
-                                <i class="fas fa-droplet"></i>Tratamientos
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if nav_calendar %}active{% endif %}"
-                               href="{% url 'treatment-calendar' %}">
-                                <i class="fas fa-calendar-days"></i>Calendario
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a aria-expanded="{% if nav_gastos_open %}true{% else %}false{% endif %}"
-                               class="nav-link" data-bs-target="#gastosMobileMenu" data-bs-toggle="collapse" href="#">
-                                <i class="fa fa-coins"></i>Gastos
-                                <i class="fas fa-chevron-down chevron"></i>
-                            </a>
-                            <div class="collapse nav-submenu {% if nav_gastos_open %}show{% endif %}"
-                                 id="gastosMobileMenu">
-                                <ul class="nav flex-column">
-                                    <li class="nav-item">
-                                        <a class="nav-link {% if nav_costs %}active{% endif %}"
-                                           href="{% url 'field-costs' %}">
-                                            <i class="fa fa-chart-bar"></i> Informe
-                                        </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link {% if nav_expenses %}active{% endif %}"
-                                           href="{% url 'expense-list' %}">
-                                            <i class="fa fa-receipt"></i> Gestionar gastos
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if nav_shopping %}active{% endif %}"
-                               href="{% url 'treatment-shopping-list' %}">
-                                <i class="fa fa-shopping-cart"></i>Compras
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if nav_harvests %}active{% endif %}"
-                               href="{% url 'harvest-summary' %}">
-                                <i class="fa fa-apple-whole"></i>Cosechas
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if nav_stats %}active{% endif %}" href="{% url 'yearly-stats' %}">
-                                <i class="fa fa-chart-line"></i>Estadísticas
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a aria-expanded="{% if nav_fields_open %}true{% else %}false{% endif %}"
-                               class="nav-link" data-bs-target="#parcelasMobileMenu" data-bs-toggle="collapse" href="#">
-                                <i class="fas fa-map-location-dot"></i>Parcelas
-                                <i class="fas fa-chevron-down chevron"></i>
-                            </a>
-                            <div class="collapse nav-submenu {% if nav_fields_open %}show{% endif %}"
-                                 id="parcelasMobileMenu">
-                                <ul class="nav flex-column">
-                                    <li class="nav-item">
-                                        <a class="nav-link {% if nav_fields %}active{% endif %}" href="{% url 'field-list' %}">
-                                            <i class="fa fa-map"></i> Parcelas
-                                        </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link {% if nav_storage_points %}active{% endif %}"
-                                           href="{% url 'storage-point-list' %}">
-                                            <i class="fa fa-warehouse"></i> Casetillas
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
-                        </li>
-                        {% if feature_weather %}
-                        <li class="nav-item">
-                            <a class="nav-link {% if nav_weather %}active{% endif %}" href="{% url 'weather-overview' %}">
-                                <i class="fa fa-cloud-sun"></i>El Tiempo
-                            </a>
-                        </li>
-                        {% endif %}
-                        <li class="nav-item">
-                            <a aria-expanded="{% if nav_products_open %}true{% else %}false{% endif %}"
-                               class="nav-link" data-bs-target="#productosMenu" data-bs-toggle="collapse" href="#">
-                                <i class="fa fa-box"></i> Productos<i class="fas fa-chevron-down chevron"></i>
-                            </a>
-                            <div class="collapse nav-submenu {% if nav_products_open %}show{% endif %}"
-                                 id="productosMenu">
-                                <ul class="nav flex-column">
-                                    <li class="nav-item">
-                                        <a class="nav-link {% if nav_products %}active{% endif %}"
-                                           href="{% url 'product-list' %}">
-                                            <i class="fa fa-flask"></i> Productos
-                                        </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link {% if nav_product_types %}active{% endif %}"
-                                           href="{% url 'product-type-list' %}">
-                                            <i class="fa fa-tags"></i> Tipos de producto
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
+                {% include "_nav_items.html" with suffix="mobile" %}
+            </div>
 
-                {% if gemini_configured %}
-                <div class="nav-section">
-                    <div class="nav-title">Herramientas</div>
-                    <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link {% if nav_chat %}active{% endif %}" href="{% url 'chat' %}">
-                                <i class="fa fa-robot"></i>Asistente IA
-                                <span class="badge bg-warning text-dark ms-auto" style="font-size:0.6rem;vertical-align:middle;">BETA</span>
-                            </a>
-                        </li>
-                    </ul>
+            {# Footer de usuario en el offcanvas #}
+            <div class="offcanvas-user-footer">
+                <div class="user-avatar-sm">
+                    <i class="fa fa-user"></i>
                 </div>
-                {% endif %}
-
-                <div class="nav-section">
-                    <div class="nav-title">Utilidades</div>
-                    <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link {% if nav_treatment_cost_admin %}active{% endif %}"
-                               href="{% url 'treatment-cost-admin' %}">
-                                <i class="fa fa-calculator"></i> Recalculo de costes
-                            </a>
-                        </li>
-                    </ul>
+                <div style="flex:1; min-width:0;">
+                    <div class="offcanvas-username">{{ user.first_name|default:user.username }}</div>
+                    <a class="offcanvas-prefs-link" href="{% url 'accounts:notification-preferences' %}">
+                        Preferencias
+                    </a>
                 </div>
-
-                <div class="nav-section">
-                    <div class="nav-title">Configuración</div>
-                    <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link d-flex align-items-center justify-content-between"
-                               href="{% url 'accounts:notification-inbox' %}">
-                                <span><i class="fas fa-bell me-2"></i>Notificaciones</span>
-                                {% if unread_notifications_count %}
-                                <span class="badge rounded-pill bg-primary" style="font-size:.65rem;">{{ unread_notifications_count }}</span>
-                                {% endif %}
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if nav_expense_types %}active{% endif %}"
-                               href="{% url 'expense-type-list' %}">
-                                <i class="fa fa-tags"></i> Tipos de gasto
-                            </a>
-                        </li>
-                    </ul>
-                </div>
+                <form action="{% url 'accounts:logout' %}" class="ms-auto" method="post">
+                    {% csrf_token %}
+                    <button class="btn-logout-offcanvas" title="Cerrar sesión" type="submit">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </form>
             </div>
         </div>
     </div>
 </div>
+
+
+{# ─── Mobile Bottom Tab Bar ───────────────────────────────────────────────── #}
+<nav aria-label="Navegación principal" class="bottom-tab-bar d-md-none">
+    <a class="tab-item {% if nav_home %}active{% endif %}" href="{% url 'field_list' %}">
+        <i class="fas fa-house"></i>
+        <span>Inicio</span>
+    </a>
+    <a class="tab-item {% if nav_treatments %}active{% endif %}" href="{% url 'treatment-list' %}">
+        <i class="fas fa-droplet"></i>
+        <span>Tratamientos</span>
+    </a>
+    <a class="tab-item {% if nav_calendar %}active{% endif %}" href="{% url 'treatment-calendar' %}">
+        <i class="fas fa-calendar-days"></i>
+        <span>Calendario</span>
+    </a>
+    <a class="tab-item {% if nav_products or nav_product_types %}active{% endif %}" href="{% url 'product-list' %}">
+        <i class="fa fa-box"></i>
+        <span>Productos</span>
+    </a>
+    <button aria-label="Más opciones"
+            class="tab-item {% if not nav_home and not nav_treatments and not nav_calendar and not nav_products and not nav_product_types %}active{% endif %}"
+            data-bs-target="#sidebarOffcanvas"
+            data-bs-toggle="offcanvas"
+            type="button">
+        <i class="fas fa-bars"></i>
+        <span>Más</span>
+    </button>
+</nav>

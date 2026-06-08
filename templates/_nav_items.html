@@ -1,0 +1,223 @@
+{# ─── Partial: ítems de navegación compartidos ───────────────────────────── #}
+{# Uso: {% include "_nav_items.html" with suffix="desktop|mobile" %}          #}
+{# Todas las variables de contexto (nav_home, nav_treatments…) se heredan.    #}
+{# "suffix" diferencia los IDs de submenús en desktop vs. offcanvas.          #}
+
+<div class="nav-section">
+    <ul class="nav flex-column">
+
+        <li class="nav-item">
+            <a class="nav-link {% if nav_home %}active{% endif %}"
+               href="{% url 'field_list' %}" data-label="Inicio">
+                <i class="fas fa-house"></i>
+                <span class="nav-link-text">Inicio</span>
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link {% if nav_treatments %}active{% endif %}"
+               href="{% url 'treatment-list' %}" data-label="Tratamientos">
+                <i class="fas fa-droplet"></i>
+                <span class="nav-link-text">Tratamientos</span>
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link {% if nav_calendar %}active{% endif %}"
+               href="{% url 'treatment-calendar' %}" data-label="Calendario">
+                <i class="fas fa-calendar-days"></i>
+                <span class="nav-link-text">Calendario</span>
+            </a>
+        </li>
+
+        {# ── Gastos (colapsable) ── #}
+        <li class="nav-item">
+            <a class="nav-link"
+               aria-expanded="{% if nav_gastos_open %}true{% else %}false{% endif %}"
+               data-bs-toggle="collapse"
+               data-bs-target="#gastosMenu{{ suffix }}"
+               href="#"
+               data-label="Gastos">
+                <i class="fa fa-coins"></i>
+                <span class="nav-link-text">Gastos</span>
+                <i class="fas fa-chevron-down chevron"></i>
+            </a>
+            <div class="collapse nav-submenu {% if nav_gastos_open %}show{% endif %}"
+                 id="gastosMenu{{ suffix }}">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if nav_costs %}active{% endif %}"
+                           href="{% url 'field-costs' %}">
+                            <i class="fa fa-chart-bar"></i>
+                            <span class="nav-link-text">Informe</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if nav_expenses %}active{% endif %}"
+                           href="{% url 'expense-list' %}">
+                            <i class="fa fa-receipt"></i>
+                            <span class="nav-link-text">Gestionar gastos</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link {% if nav_shopping %}active{% endif %}"
+               href="{% url 'treatment-shopping-list' %}" data-label="Compras">
+                <i class="fa fa-shopping-cart"></i>
+                <span class="nav-link-text">Compras</span>
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link {% if nav_harvests %}active{% endif %}"
+               href="{% url 'harvest-summary' %}" data-label="Cosechas">
+                <i class="fa fa-apple-whole"></i>
+                <span class="nav-link-text">Cosechas</span>
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link {% if nav_stats %}active{% endif %}"
+               href="{% url 'yearly-stats' %}" data-label="Estadísticas">
+                <i class="fa fa-chart-line"></i>
+                <span class="nav-link-text">Estadísticas</span>
+            </a>
+        </li>
+
+        {# ── Parcelas (colapsable) ── #}
+        <li class="nav-item">
+            <a class="nav-link"
+               aria-expanded="{% if nav_fields_open %}true{% else %}false{% endif %}"
+               data-bs-toggle="collapse"
+               data-bs-target="#parcelasMenu{{ suffix }}"
+               href="#"
+               data-label="Parcelas">
+                <i class="fas fa-map-location-dot"></i>
+                <span class="nav-link-text">Parcelas</span>
+                <i class="fas fa-chevron-down chevron"></i>
+            </a>
+            <div class="collapse nav-submenu {% if nav_fields_open %}show{% endif %}"
+                 id="parcelasMenu{{ suffix }}">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if nav_fields %}active{% endif %}"
+                           href="{% url 'field-list' %}">
+                            <i class="fa fa-map"></i>
+                            <span class="nav-link-text">Parcelas</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if nav_storage_points %}active{% endif %}"
+                           href="{% url 'storage-point-list' %}">
+                            <i class="fa fa-warehouse"></i>
+                            <span class="nav-link-text">Casetillas</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </li>
+
+        {% if feature_weather %}
+        <li class="nav-item">
+            <a class="nav-link {% if nav_weather %}active{% endif %}"
+               href="{% url 'weather-overview' %}" data-label="El Tiempo">
+                <i class="fa fa-cloud-sun"></i>
+                <span class="nav-link-text">El Tiempo</span>
+            </a>
+        </li>
+        {% endif %}
+
+        {# ── Productos (colapsable) ── #}
+        <li class="nav-item">
+            <a class="nav-link"
+               aria-expanded="{% if nav_products_open %}true{% else %}false{% endif %}"
+               data-bs-toggle="collapse"
+               data-bs-target="#productosMenu{{ suffix }}"
+               href="#"
+               data-label="Productos">
+                <i class="fa fa-box"></i>
+                <span class="nav-link-text">Productos</span>
+                <i class="fas fa-chevron-down chevron"></i>
+            </a>
+            <div class="collapse nav-submenu {% if nav_products_open %}show{% endif %}"
+                 id="productosMenu{{ suffix }}">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if nav_products %}active{% endif %}"
+                           href="{% url 'product-list' %}">
+                            <i class="fa fa-flask"></i>
+                            <span class="nav-link-text">Productos</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if nav_product_types %}active{% endif %}"
+                           href="{% url 'product-type-list' %}">
+                            <i class="fa fa-tags"></i>
+                            <span class="nav-link-text">Tipos de producto</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </li>
+
+    </ul>
+</div>
+
+{% if gemini_configured %}
+<div class="nav-section">
+    <div class="nav-title"><span class="nav-link-text">Herramientas</span></div>
+    <ul class="nav flex-column">
+        <li class="nav-item">
+            <a class="nav-link {% if nav_chat %}active{% endif %}"
+               href="{% url 'chat' %}" data-label="Asistente IA">
+                <i class="fa fa-robot"></i>
+                <span class="nav-link-text">Asistente IA
+                    <span class="badge bg-warning text-dark ms-1" style="font-size:0.6rem;">BETA</span>
+                </span>
+            </a>
+        </li>
+    </ul>
+</div>
+{% endif %}
+
+<div class="nav-section">
+    <div class="nav-title"><span class="nav-link-text">Utilidades</span></div>
+    <ul class="nav flex-column">
+        <li class="nav-item">
+            <a class="nav-link {% if nav_treatment_cost_admin %}active{% endif %}"
+               href="{% url 'treatment-cost-admin' %}" data-label="Recalculo">
+                <i class="fa fa-calculator"></i>
+                <span class="nav-link-text">Recalculo de costes</span>
+            </a>
+        </li>
+    </ul>
+</div>
+
+<div class="nav-section">
+    <div class="nav-title"><span class="nav-link-text">Configuración</span></div>
+    <ul class="nav flex-column">
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'accounts:notification-inbox' %}"
+               data-label="Notificaciones">
+                <i class="fas fa-bell"></i>
+                <span class="nav-link-text">Notificaciones</span>
+                {% if unread_notifications_count %}
+                <span class="badge rounded-pill bg-primary ms-auto" style="font-size:.65rem;">
+                    {{ unread_notifications_count }}
+                </span>
+                {% endif %}
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if nav_expense_types %}active{% endif %}"
+               href="{% url 'expense-type-list' %}" data-label="Tipos de gasto">
+                <i class="fa fa-tags"></i>
+                <span class="nav-link-text">Tipos de gasto</span>
+            </a>
+        </li>
+    </ul>
+</div>
+
