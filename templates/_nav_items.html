@@ -173,10 +173,12 @@
         <li class="nav-item">
             <a class="nav-link {% if nav_chat %}active{% endif %}"
                href="{% url 'chat' %}" data-label="Asistente IA">
-                <i class="fa fa-robot"></i>
-                <span class="nav-link-text">Asistente IA
-                    <span class="badge bg-warning text-dark ms-1" style="font-size:0.6rem;">BETA</span>
+                <span class="nav-icon-wrap nav-icon-wrap--beta">
+                    <i class="fa fa-robot"></i>
+                    <span class="nav-beta-collapsed">BETA</span>
                 </span>
+                <span class="nav-link-text">Asistente IA</span>
+                <span class="badge bg-warning text-dark ms-auto nav-beta-expanded" style="font-size:0.6rem;">BETA</span>
             </a>
         </li>
     </ul>
@@ -202,12 +204,15 @@
         <li class="nav-item">
             <a class="nav-link" href="{% url 'accounts:notification-inbox' %}"
                data-label="Notificaciones">
-                <i class="fas fa-bell"></i>
+                <span class="nav-icon-wrap">
+                    <i class="fas fa-bell"></i>
+                    {% if unread_notifications_count %}
+                    <span class="nav-icon-badge">{{ unread_notifications_count }}</span>
+                    {% endif %}
+                </span>
                 <span class="nav-link-text">Notificaciones</span>
                 {% if unread_notifications_count %}
-                <span class="badge rounded-pill bg-primary ms-auto" style="font-size:.65rem;">
-                    {{ unread_notifications_count }}
-                </span>
+                <span class="badge rounded-pill bg-primary ms-auto nav-notif-expanded" style="font-size:.65rem;">{{ unread_notifications_count }}</span>
                 {% endif %}
             </a>
         </li>

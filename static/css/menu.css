@@ -264,6 +264,49 @@ body {
     background: var(--accent);
 }
 
+/* ── Icon wrap ────────────────────────────────────────────────────────────── */
+
+.nav-icon-wrap {
+    position: relative;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.nav-icon-wrap i {
+    font-size: 14px;
+    opacity: .8;
+    width: auto;
+}
+.nav-link:hover .nav-icon-wrap i,
+.nav-link.active .nav-icon-wrap i { opacity: 1; }
+
+/* Badge de notificaciones: oculto en expandido, arriba-derecha en colapsado */
+.nav-icon-badge {
+    display: none;
+    position: absolute;
+    top: -7px;
+    right: -8px;
+    min-width: 15px;
+    height: 15px;
+    border-radius: 8px;
+    background: #3b82f6;
+    color: #fff;
+    font-size: .52rem;
+    font-weight: 700;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    line-height: 1;
+    pointer-events: none;
+}
+
+/* Badge BETA: a la derecha en expandido, oculto en expandido (el otro aparece en colapsado) */
+.nav-beta-collapsed { display: none; }
+.nav-beta-expanded  { display: inline-block; flex-shrink: 0; }
+
 /* ── Submenú ──────────────────────────────────────────────────────────────── */
 
 .nav-submenu .nav-link {
@@ -370,6 +413,7 @@ html.sidebar-collapsed .sidebar-desktop .chevron {
 
 html.sidebar-collapsed .sidebar-desktop .nav-link {
     justify-content: center;
+    gap: 0;
     padding: .58rem 0;
     overflow: visible;          /* permite que el tooltip sobresalga */
 }
@@ -398,31 +442,61 @@ html.sidebar-collapsed .sidebar-desktop .nav-submenu {
     display: none !important;
 }
 
-/* ── Tooltip modo colapsado ───────────────────────────────────────────────── */
-
-html.sidebar-collapsed .sidebar-desktop .nav-link[data-label]:hover::after {
-    content: attr(data-label);
-    position: absolute;
-    left: calc(100% + 10px);
-    top: 50%;
-    transform: translateY(-50%);
-    background: #1e293b;
-    color: #f8fafc;
-    padding: 5px 12px;
-    border-radius: 8px;
-    font-size: .78rem;
-    font-weight: 500;
-    white-space: nowrap;
-    z-index: 9999;
-    pointer-events: none;
-    box-shadow: 0 4px 20px rgba(0,0,0,.3);
-    /* Pequeña animación de entrada */
-    animation: tooltip-in .12s ease-out;
+/* Ocultar títulos de sección y eliminar su espacio */
+html.sidebar-collapsed .sidebar-desktop .nav-title {
+    display: none;
+}
+html.sidebar-collapsed .sidebar-desktop .nav-section {
+    padding-top: 0;
+    padding-bottom: 0;
 }
 
-@keyframes tooltip-in {
-    from { opacity: 0; transform: translateY(-50%) translateX(-4px); }
-    to   { opacity: 1; transform: translateY(-50%) translateX(0); }
+/* Evitar que el margin-left:auto del chevron desplace el icono hacia la izquierda */
+html.sidebar-collapsed .sidebar-desktop .nav-link .chevron {
+    margin-left: 0;
+}
+
+/* Notificaciones colapsado: badge arriba-derecha del icono campana */
+html.sidebar-collapsed .sidebar-desktop .nav-icon-badge {
+    display: flex;
+}
+html.sidebar-collapsed .sidebar-desktop .nav-notif-expanded {
+    display: none !important;
+}
+
+/* BETA colapsado: badge centrado debajo del icono robot */
+html.sidebar-collapsed .sidebar-desktop .nav-icon-wrap--beta {
+    flex-direction: column;
+    align-items: center;
+    width: auto;
+    height: auto;
+    gap: 2px;
+}
+html.sidebar-collapsed .sidebar-desktop .nav-beta-collapsed {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .42rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    line-height: 1.3;
+    padding: 1px 4px;
+    border-radius: 3px;
+    white-space: nowrap;
+    pointer-events: none;
+    background: #ffc107;
+    color: #212529;
+}
+html.sidebar-collapsed .sidebar-desktop .nav-beta-expanded {
+    display: none !important;
+}
+
+/* ── Botón colapsar (fuera del nav-container) ─────────────────────────────── */
+
+.sidebar-collapse-section {
+    border-top: 1px solid var(--border-subtle);
+    padding: .35rem .6rem;
+    flex-shrink: 0;
 }
 
 /* ── Mobile Navbar (liquid glass) ────────────────────────────────────────── */

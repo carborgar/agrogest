@@ -86,19 +86,15 @@
         {# Navegación #}
         <div class="nav-container desktop-menu-nav-container">
             {% include "_nav_items.html" with suffix="desktop" %}
+        </div>
 
-            {# Botón de colapsar al final del nav #}
-            <div class="nav-section">
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <button class="nav-link sidebar-collapse-btn w-100" id="sidebarCollapseBtn"
-                                title="Colapsar menú" type="button">
-                            <i class="fas fa-chevron-left"></i>
-                            <span class="nav-link-text">Colapsar</span>
-                        </button>
-                    </li>
-                </ul>
-            </div>
+        {# Botón colapsar — fijo antes del usuario, no scrollea #}
+        <div class="sidebar-collapse-section">
+            <button class="nav-link sidebar-collapse-btn w-100" id="sidebarCollapseBtn"
+                    title="Colapsar menú" type="button">
+                <i class="fas fa-chevron-left"></i>
+                <span class="nav-link-text">Colapsar</span>
+            </button>
         </div>
 
         {# User Menu #}
