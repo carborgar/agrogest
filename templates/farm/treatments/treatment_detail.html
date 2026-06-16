@@ -7,12 +7,14 @@
 
 {% block header %}{{ treatment.name }}{% endblock %}
 {% block sub_header %}
-<span class="badge bg-{{ treatment|treatment_state_class }} me-2">{{ treatment.get_status_display }}</span>
-{{ treatment.field.name }} · {{ treatment.get_type_display }}
+<span class="badge bg-{{ treatment|treatment_state_class }} me-2 text-success-emphasis">{{ treatment.get_status_display }}</span>
+<i class="bi bi-dot"></i>
+{{ treatment.field.name }} <i class="bi bi-dot"></i>
+{{ treatment.get_type_display }}
 {% endblock %}
 
 {% block actions %}
-{% include 'farm/treatments/_treatment_actions_dropdown.html' with treatment=treatment btn_class="btn-primary" hide_primary=True %}
+{% include 'farm/treatments/_treatment_actions_dropdown.html' with treatment=treatment hide_primary=True %}
 {% endblock %}
 
 {% block content %}

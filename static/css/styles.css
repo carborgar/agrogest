@@ -15,9 +15,21 @@ html, body {
 /* ═══════════════════════════════════════════
    PAGE HEADER (common to all pages)
 ═══════════════════════════════════════════ */
+
+/*
+ * El header rompe el padding del main-content con márgenes negativos
+ * para ocupar el 100% del content area (respetando la sidebar).
+ * El padding interior iguala al padding del main-content para que
+ * el texto quede alineado con el contenido de abajo.
+ */
 .page-header {
-    padding-bottom: 1rem;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+    background: #ffffff;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    padding: 1.1rem var(--main-pad, 24px);
+    margin-top: calc(-1 * var(--main-pad, 24px));
+    margin-left: calc(-1 * var(--main-pad, 24px));
+    margin-right: calc(-1 * var(--main-pad, 24px));
+    margin-bottom: 0;
 }
 
 .page-header-main {
@@ -30,27 +42,26 @@ html, body {
 
 .page-header-text {
     flex: 1;
-    min-width: 0; /* allow text to shrink/truncate */
+    min-width: 0;
 }
 
 .page-title {
-    font-size: clamp(1.4rem, 3vw, 2rem);
-    line-height: 1.2;
-    /* truncate very long names on mobile */
+    font-size: clamp(1.5rem, 2.5vw, 2.0rem);
+    line-height: 1.25;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-/* sub_header content: subtitle below the title */
+/* sub_header: subtítulo debajo del título */
 .page-subtitle {
     color: #6c757d;
-    font-size: 0.9rem;
-    margin-top: 0.2rem;
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 0.25rem;
+    gap: 0.3rem;
 }
 
 .page-subtitle:empty {
@@ -62,6 +73,11 @@ html, body {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+}
+
+/* Zona de contenido debajo del header */
+.page-content {
+    padding-top: 1.5rem;
 }
 
 @media (max-width: 575px) {

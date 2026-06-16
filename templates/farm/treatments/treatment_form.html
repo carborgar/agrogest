@@ -3,6 +3,8 @@
 {% load static %}
 {% load django_bootstrap5 %}
 
+{% block header %}{% if form.instance.pk %}Editar tratamiento{% else %}Nuevo tratamiento{% endif %}{% endblock %}
+
 {% block extra_head %}
 <style>
     .btn-add {

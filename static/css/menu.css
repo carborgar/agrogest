@@ -68,16 +68,18 @@ body {
 /* ── Main content ─────────────────────────────────────────────────────────── */
 
 .main-content {
+    --main-pad: 24px;
     margin-left: var(--active-sidebar-width);
-    padding: 24px;
+    padding: var(--main-pad);
     flex: 1;
     transition: margin-left var(--sidebar-transition);
 }
 
 @media (max-width: 767.98px) {
     .main-content {
+        --main-pad: 16px;
         margin-left: 0;
-        padding: 16px;
+        padding: var(--main-pad);
         /* Espacio para la bottom tab bar + safe area del iPhone */
         padding-bottom: calc(76px + env(safe-area-inset-bottom));
     }

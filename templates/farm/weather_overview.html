@@ -2,36 +2,11 @@
 
 {% block title %}El Tiempo – AgroGest{% endblock %}
 
+{% block header %}<i class="fa fa-cloud-sun me-2 text-success"></i>El tiempo en tus parcelas{% endblock %}
+{% block sub_header %}<span id="wov-subtitle">Cargando previsión AEMET…</span>{% endblock %}
+
 {% block extra_head %}
 <style>
-/* ── Page header ───────────────────────────────────────────────── */
-.weather-page-header {
-    background: linear-gradient(135deg, #1b5e20 0%, #43a047 100%);
-    border-radius: 16px;
-    padding: 1.5rem 2rem;
-    color: #fff;
-    margin-bottom: 1.5rem;
-    position: relative;
-    overflow: hidden;
-}
-.weather-page-header::before {
-    content: '';
-    position: absolute;
-    top: -30px; right: -30px;
-    width: 180px; height: 180px;
-    border-radius: 50%;
-    background: rgba(255,255,255,.07);
-}
-.weather-page-header::after {
-    content: '';
-    position: absolute;
-    bottom: -40px; right: 60px;
-    width: 120px; height: 120px;
-    border-radius: 50%;
-    background: rgba(255,255,255,.05);
-}
-.weather-page-title { font-size: 1.5rem; font-weight: 700; margin: 0; }
-.weather-page-subtitle { opacity: .8; font-size: .9rem; margin-top: .2rem; }
 
 /* ── Municipality card ─────────────────────────────────────────── */
 .muni-card {
@@ -333,16 +308,6 @@
 
 {% block content %}
 
-<!-- ── Header ───────────────────────────────────────────────────── -->
-<div class="weather-page-header">
-    <div class="d-flex align-items-center gap-3">
-        <i class="fa fa-cloud-sun" style="font-size:2rem;opacity:.9"></i>
-        <div>
-            <p class="weather-page-title">El Tiempo en tus parcelas</p>
-            <p class="weather-page-subtitle" id="wov-subtitle">Cargando previsión AEMET…</p>
-        </div>
-    </div>
-</div>
 
 <!-- ── Geo info banner ──────────────────────────────────────────── -->
 <div class="geo-info-banner">
