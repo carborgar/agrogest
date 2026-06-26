@@ -83,19 +83,37 @@
                     {% endif %}
                 </div>
             </div>
+            <!-- Mojado -->
+            {% if treatment.water_per_ha %}
+            <div class="d-flex align-items-center gap-2">
+                <span class="detail-stat-icon bg-primary bg-opacity-10 text-primary m-0"
+                      style="width:28px;height:28px;font-size:.8rem">
+                    <i class="fa fa-fill-drip"></i>
+                </span>
+                <div>
+                    <div class="detail-stat-label mb-0">Mojado</div>
+                    {% if treatment.real_water_per_ha and treatment.real_water_per_ha != treatment.water_per_ha %}
+                    <div class="detail-stat-value" style="font-size:.95rem">
+                        <span class="text-decoration-line-through text-muted me-1 fw-normal" style="font-size:.85rem">{{ treatment.water_per_ha }}</span>
+                        <span class="text-success">{{ treatment.actual_water_per_ha }} L/ha</span>
+                    </div>
+                    {% else %}
+                    <div class="detail-stat-value" style="font-size:.95rem">{{ treatment.actual_water_per_ha }} L/ha</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════
-     INSTRUCCIONES + SIDEBAR
-     Mobile: instrucciones primero (order-1), sidebar después (order-2)
-     Desktop: sidebar derecha (order-md-1), instrucciones izquierda (order-md-2)
+     INSTRUCCIONES
 ═══════════════════════════════════════════════════════ -->
 <div class="row g-4 mb-4">
 
-    <!-- Instrucciones (mobile: primero / desktop: izquierda) -->
-    <div class="col-md-8 col-lg-9 order-1">
+    <!-- Instrucciones -->
+    <div class="col-12">
 
         <div class="card">
             <div class="card-header d-flex align-items-center gap-2">
@@ -230,89 +248,6 @@
                     <div>Asegúrese de aplicar los productos en el orden indicado y con el equipo de protección
                         adecuado.
                     </div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- Sidebar: maquinaria + timeline (mobile: segundo / desktop: izquierda) -->
-    <div class="col-md-4 col-lg-3 order-2">
-
-        <!-- Machine / water card -->
-        {% if treatment.machine or treatment.water_per_ha %}
-        <div class="card mb-3">
-            <div class="card-header d-flex align-items-center gap-2">
-                <i class="fa fa-tractor text-primary"></i>
-                <span class="fw-semibold">Maquinaria y mojado</span>
-            </div>
-            <div class="card-body p-0">
-                {% if treatment.machine %}
-                <div class="info-item-vertical is-inline border-bottom">
-                    <span class="info-label"><i class="fa fa-tractor me-2"></i>Maquinaria</span>
-                    <span class="info-value text-end">
-                        {{ treatment.machine.name }}
-                        <span class="info-subvalue d-block">{{ treatment.machine.capacity }} litros/depósito</span>
-                    </span>
-                </div>
-                {% endif %}
-                {% if treatment.water_per_ha %}
-                <div class="info-item-vertical is-inline">
-                    <span class="info-label"><i class="fa fa-fill-drip me-2"></i>Mojado</span>
-                    <span class="info-value text-end">
-                        {% if treatment.real_water_per_ha and treatment.real_water_per_ha != treatment.water_per_ha %}
-                        <span class="text-decoration-line-through text-muted me-2">{{ treatment.water_per_ha }} L/ha</span>
-                        <span class="text-success fw-bold">{{ treatment.actual_water_per_ha }} L/ha</span>
-                        {% else %}
-                        {{ treatment.actual_water_per_ha }} L/ha
-                        {% endif %}
-                    </span>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Timeline -->
-        <div class="card">
-            <div class="card-header d-flex align-items-center gap-2">
-                <i class="fa fa-timeline text-primary"></i>
-                <span class="fw-semibold">Línea de tiempo</span>
-            </div>
-            <div class="card-body">
-                <div class="treatment-timeline is-compact">
-                    <div class="timeline-item done">
-                        <div class="timeline-dot bg-primary"></div>
-                        <div class="timeline-content">
-                            <div class="timeline-label small">Programado</div>
-                            <div class="timeline-date small">{{ treatment.date|date:"d/m/Y" }}</div>
-                        </div>
-                    </div>
-                    {% if treatment.finish_date %}
-                    <div class="timeline-item done">
-                        <div class="timeline-dot bg-success"></div>
-                        <div class="timeline-content">
-                            <div class="timeline-label text-success small">Finalizado</div>
-                            <div class="timeline-date small">{{ treatment.finish_date|date:"d/m/Y" }}</div>
-                        </div>
-                    </div>
-                    {% elif treatment.status == 'delayed' %}
-                    <div class="timeline-item">
-                        <div class="timeline-dot bg-danger"></div>
-                        <div class="timeline-content">
-                            <div class="timeline-label text-danger small">Atrasado {{ treatment.days_delayed }} días</div>
-                            <div class="timeline-date text-muted small">Pendiente de finalizar</div>
-                        </div>
-                    </div>
-                    {% else %}
-                    <div class="timeline-item">
-                        <div class="timeline-dot bg-warning"></div>
-                        <div class="timeline-content">
-                            <div class="timeline-label text-warning small">Pendiente</div>
-                            <div class="timeline-date text-muted small">{{ treatment.date_status_display }}</div>
-                        </div>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
