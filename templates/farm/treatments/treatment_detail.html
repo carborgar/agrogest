@@ -25,82 +25,42 @@
 ═══════════════════════════════════════════════════════ -->
 <div class="card mb-3">
     <div class="card-body py-2 px-3">
-        <div class="d-flex flex-wrap align-items-center gap-3 gap-md-4">
-            <!-- Estado -->
-            <div class="d-flex align-items-center gap-2">
-                <span class="detail-stat-icon bg-{{ state_class }} bg-opacity-10 text-{{ state_class }} m-0"
-                      style="width:28px;height:28px;font-size:.8rem">
-                    <i class="fa fa-clipboard-check"></i>
-                </span>
-                <div>
-                    <div class="detail-stat-label mb-0">Estado</div>
-                    <div class="detail-stat-value text-{{ state_class }}" style="font-size:.95rem">
-                        {{ treatment.get_status_display }}
-                    </div>
-                </div>
-            </div>
+        <div class="d-flex flex-wrap gap-3 gap-md-4">
             <!-- Fecha -->
-            <div class="d-flex align-items-center gap-2">
-                <span class="detail-stat-icon bg-primary bg-opacity-10 text-primary m-0"
-                      style="width:28px;height:28px;font-size:.8rem">
-                    <i class="fa fa-calendar-alt"></i>
-                </span>
-                <div>
-                    <div class="detail-stat-label mb-0">Fecha programada</div>
-                    <div class="detail-stat-value" style="font-size:.95rem">{{ treatment.date|date:"d/m/Y" }}</div>
+            <div>
+                <div class="text-uppercase text-muted fw-normal" style="font-size:.68rem;letter-spacing:.07em">Fecha</div>
+                <div class="fw-semibold" style="font-size:.95rem">
+                    {{ treatment.date|date:"d/m/Y" }}
                     {% if treatment.finish_date %}
-                    <div class="detail-stat-sub text-success mb-0">
-                        <i class="fa fa-check me-1"></i>{{ treatment.finish_date|date:"d/m/Y" }}
-                    </div>
+                    <span class="text-success fw-normal ms-1" style="font-size:.85rem"><i class="fa fa-check"></i> {{ treatment.finish_date|date:"d/m/Y" }}</span>
                     {% endif %}
                 </div>
             </div>
             <!-- Parcela -->
-            <div class="d-flex align-items-center gap-2">
-                <span class="detail-stat-icon bg-success bg-opacity-10 text-success m-0"
-                      style="width:28px;height:28px;font-size:.8rem">
-                    <i class="fa fa-map-marked-alt"></i>
-                </span>
-                <div>
-                    <div class="detail-stat-label mb-0">Parcela</div>
-                    <div class="detail-stat-value" style="font-size:.95rem">{{ treatment.field.name }}</div>
-                    <div class="detail-stat-sub mb-0">{{ treatment.field.crop }} · {{ treatment.field.area }} ha</div>
+            <div>
+                <div class="text-uppercase text-muted fw-normal" style="font-size:.68rem;letter-spacing:.07em">Parcela</div>
+                <div class="fw-semibold" style="font-size:.95rem">
+                    {{ treatment.field.name }}<span class="text-muted fw-normal"> · {{ treatment.field.area }} ha</span>
                 </div>
             </div>
             <!-- Productos -->
-            <div class="d-flex align-items-center gap-2">
-                <span class="detail-stat-icon bg-warning bg-opacity-10 text-warning m-0"
-                      style="width:28px;height:28px;font-size:.8rem">
-                    <i class="fa fa-flask"></i>
-                </span>
-                <div>
-                    <div class="detail-stat-label mb-0">Productos</div>
-                    <div class="detail-stat-value" style="font-size:.95rem">{{ products|length }}</div>
-                    {% if total_cost %}
-                    <div class="detail-stat-sub text-success fw-semibold mb-0">
-                        <i class="fa fa-euro-sign me-1"></i>{{ total_cost }}€ total
-                    </div>
-                    {% endif %}
+            <div>
+                <div class="text-uppercase text-muted fw-normal" style="font-size:.68rem;letter-spacing:.07em">Productos</div>
+                <div class="fw-semibold" style="font-size:.95rem">
+                    {{ products|length }}{% if total_cost %}<span class="text-success fw-normal"> · {{ total_cost }}€</span>{% endif %}
                 </div>
             </div>
             <!-- Mojado -->
             {% if treatment.water_per_ha %}
-            <div class="d-flex align-items-center gap-2">
-                <span class="detail-stat-icon bg-primary bg-opacity-10 text-primary m-0"
-                      style="width:28px;height:28px;font-size:.8rem">
-                    <i class="fa fa-fill-drip"></i>
-                </span>
-                <div>
-                    <div class="detail-stat-label mb-0">Mojado</div>
-                    {% if treatment.real_water_per_ha and treatment.real_water_per_ha != treatment.water_per_ha %}
-                    <div class="detail-stat-value" style="font-size:.95rem">
-                        <span class="text-decoration-line-through text-muted me-1 fw-normal" style="font-size:.85rem">{{ treatment.water_per_ha }}</span>
-                        <span class="text-success">{{ treatment.actual_water_per_ha }} L/ha</span>
-                    </div>
-                    {% else %}
-                    <div class="detail-stat-value" style="font-size:.95rem">{{ treatment.actual_water_per_ha }} L/ha</div>
-                    {% endif %}
+            <div>
+                <div class="text-uppercase text-muted fw-normal" style="font-size:.68rem;letter-spacing:.07em">Mojado</div>
+                {% if treatment.real_water_per_ha and treatment.real_water_per_ha != treatment.water_per_ha %}
+                <div class="fw-semibold" style="font-size:.95rem">
+                    <span class="text-decoration-line-through text-muted fw-normal me-1" style="font-size:.85rem">{{ treatment.water_per_ha }}</span><span class="text-success">{{ treatment.actual_water_per_ha }} L/ha</span>
                 </div>
+                {% else %}
+                <div class="fw-semibold" style="font-size:.95rem">{{ treatment.actual_water_per_ha }} L/ha</div>
+                {% endif %}
             </div>
             {% endif %}
         </div>
@@ -262,7 +222,7 @@
 <div class="card mb-4">
     <div class="card-header d-flex align-items-center gap-2">
         <i class="fa fa-flask text-primary"></i>
-        <span class="fw-semibold">Productos aplicados</span>
+        <span class="fw-semibold">Productos y costes</span>
         <span class="badge bg-primary rounded-pill">{{ products|length }}</span>
     </div>
     <div class="card-body p-0">
