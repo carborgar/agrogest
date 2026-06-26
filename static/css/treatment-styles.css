@@ -1773,3 +1773,16 @@ a.filter-active-chip:hover {
     }
 }
 
+/* ═══════════════════════════════════════════════
+   TREATMENT DETAIL — COMPACT
+═══════════════════════════════════════════════ */
+.info-item-vertical.is-inline {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: .4rem .75rem;
+}
+
+.info-item-vertical.is-inline .info-label { margin-bottom: 0; }
+
+.treatment-timeline.is-compact .timeline-item { padding-bottom: .6rem; }
