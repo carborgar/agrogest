@@ -88,7 +88,7 @@
             <div class="card-header d-flex align-items-center justify-content-between">
                 <div class="d-flex align-items-center gap-2">
                     <span class="dashboard-section-dot bg-danger"></span>
-                    <span class="fw-semibold">Tratamientos atrasados</span>
+                    <span>Tratamientos atrasados</span>
                     {% if delayed_treatments_count %}
                     <span class="badge bg-danger rounded-pill">{{ delayed_treatments_count }}</span>
                     {% endif %}
@@ -122,7 +122,7 @@
             <div class="card-header d-flex align-items-center justify-content-between">
                 <div class="d-flex align-items-center gap-2">
                     <span class="dashboard-section-dot bg-warning"></span>
-                    <span class="fw-semibold">Próximos {{ upcoming_days }} días</span>
+                    <span>Próximos {{ upcoming_days }} días</span>
                     {% if pending_treatments_count %}
                     <span class="badge bg-warning text-dark rounded-pill">{{ pending_treatments_count }}</span>
                     {% endif %}

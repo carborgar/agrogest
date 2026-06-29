@@ -137,8 +137,8 @@
   {% if not single_field_selected %}
   <div class="col-12 col-lg-4">
     <div class="card shadow-sm border-0">
-      <div class="card-header bg-transparent border-bottom py-2 px-3">
-        <span class="fw-semibold"><i class="fa fa-layer-group me-2 text-muted"></i>Por parcela</span>
+      <div class="card-header">
+        <i class="fa fa-layer-group me-2 text-muted"></i>Por parcela
       </div>
       <div class="card-body p-0">
         {% for fg in field_groups %}
@@ -172,8 +172,8 @@
   {# Registros — único markup para todos los tamaños #}
   <div class="col-12 {% if not single_field_selected %}col-lg-8{% endif %}">
     <div class="card shadow-sm border-0">
-      <div class="card-header bg-transparent border-bottom py-2 px-3 d-flex justify-content-between align-items-center">
-        <span class="fw-semibold"><i class="fa fa-list me-2 text-muted"></i>Registros</span>
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fa fa-list me-2"></i>Registros</span>
         <span class="badge bg-secondary" id="harvest-count">{{ harvests|length }}</span>
       </div>
       {# Cabecera de columnas — visible desde sm #}

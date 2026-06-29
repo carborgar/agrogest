@@ -66,7 +66,9 @@ body {
 .desktop-menu-nav-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 4px; }
 
 /* ── Main content ─────────────────────────────────────────────────────────── */
-
+body {
+    background-color: #FAF9F5;
+}
 .main-content {
     --main-pad: 24px;
     margin-left: var(--active-sidebar-width);
@@ -81,7 +83,7 @@ body {
         margin-left: 0;
         padding: var(--main-pad);
         /* Espacio para la bottom tab bar + safe area del iPhone */
-        padding-bottom: calc(76px + env(safe-area-inset-bottom));
+        /*padding-bottom: calc(76px + env(safe-area-inset-bottom));*/
     }
 }
 

@@ -13,18 +13,16 @@ Define las propiedades y dosis del producto para los diferentes métodos de apli
 <div class="row g-4 align-items-start">
 
     <!-- ── Columna izquierda: formulario ───────────────────────────────── -->
-    <div class="{% if object.pk %}col-12 col-xl-7{% else %}col-12 col-lg-8 mx-auto{% endif %}">
+    <div class="{% if object.pk and price_history|length > 0 %}col-12 col-xl-7{% else %}col-12 col-lg-8 mx-auto{% endif %}">
 
         <form id="productForm" method="post" novalidate>
             {% csrf_token %}
             {% bootstrap_form_errors form %}
 
             <!-- Basic info -->
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-header bg-transparent border-bottom py-3">
-                    <h6 class="mb-0 fw-semibold">
-                        <i class="fa fa-info-circle text-primary me-2"></i>Información básica
-                    </h6>
+            <div class="card mb-3">
+                <div class="card-header">
+                    <span><i class="fa fa-info-circle me-2"></i>Información básica</span>
                 </div>
                 <div class="card-body">
                     <div class="row g-3">
@@ -36,13 +34,15 @@ Define las propiedades y dosis del producto para los diferentes métodos de apli
 
                     {% if object.pk %}
                     <!-- Archive toggle -->
-                    <div class="border rounded-3 p-3 mt-3 {% if not object.is_active %}bg-warning-subtle border-warning-subtle{% else %}bg-light{% endif %}" id="archiveToggleBox">
+                    <div class="border rounded-3 p-3 mt-3 {% if not object.is_active %}bg-warning-subtle border-warning-subtle{% else %}bg-light{% endif %}"
+                         id="archiveToggleBox">
                         <div class="d-flex align-items-center gap-3">
                             <div class="form-check form-switch mb-0 flex-shrink-0">
                                 {{ form.is_active }}
                             </div>
                             <div>
-                                <label class="form-check-label fw-semibold mb-0" for="{{ form.is_active.id_for_label }}">
+                                <label class="form-check-label fw-semibold mb-0"
+                                       for="{{ form.is_active.id_for_label }}">
                                     <span id="archiveLabel">
                                     {% if object.is_active %}
                                         <i class="fa fa-check-circle text-success me-1"></i>Producto activo
@@ -60,12 +60,10 @@ Define las propiedades y dosis del producto para los diferentes métodos de apli
             </div>
 
             <!-- Spraying -->
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-header bg-transparent border-bottom py-3">
+            <div class="card mb-3">
+                <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0 fw-semibold">
-                            <i class="fa fa-spray-can text-info me-2"></i>Pulverización
-                        </h6>
+                        <span><i class="fa fa-spray-can text-primary me-2"></i>Pulverización</span>
                         <div class="form-check form-switch mb-0">
                             <input class="form-check-input" id="enableSpraying" role="switch" type="checkbox">
                             <label class="form-check-label small text-muted" for="enableSpraying">Habilitar</label>
@@ -81,12 +79,10 @@ Define las propiedades y dosis del producto para los diferentes métodos de apli
             </div>
 
             <!-- Fertigation -->
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-header bg-transparent border-bottom py-3">
+            <div class="card mb-3">
+                <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0 fw-semibold">
-                            <i class="fa fa-droplet text-success me-2"></i>Fertirrigación
-                        </h6>
+                        <span><i class="fa fa-droplet text-info me-2"></i>Fertirrigación</span>
                         <div class="form-check form-switch mb-0">
                             <input class="form-check-input" id="enableFertigation" role="switch" type="checkbox">
                             <label class="form-check-label small text-muted" for="enableFertigation">Habilitar</label>
@@ -127,136 +123,154 @@ Define las propiedades y dosis del producto para los diferentes métodos de apli
     <!-- ── Columna derecha: historial de precios (solo al editar) ──────── -->
     {% if object.pk %}
     <div class="col-12 col-xl-5">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-transparent border-bottom py-3">
-                <div class="d-flex align-items-center justify-content-between">
-                    <h6 class="mb-0 fw-semibold">
-                        {% if price_history|length > 1 %}
-                        <i class="fa fa-chart-line text-secondary me-2"></i>Evolución del precio
-                        {% else %}
-                        <i class="fa fa-tag text-secondary me-2"></i>Precio actual
-                        {% endif %}
-                    </h6>
-                    {% if object.price %}
-                    <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle fw-semibold fs-6 px-3 py-2">
-                        {{ object.price }} €/ud.
-                    </span>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="card-body p-0">
-
-                {% if price_history|length > 1 %}
-
-                <!-- Mini chart -->
-                <div class="px-3 pt-3 pb-0">
-                    <div style="height: 100px; position: relative;">
-                        <canvas id="priceChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Min / Max stats -->
-                {% if price_max and price_min %}
-                <div class="d-flex gap-2 px-3 pt-2 pb-1">
-                    <div class="flex-fill text-center rounded-3 py-2 px-1" style="background:rgba(220,53,69,.07);">
-                        <div class="text-muted mb-1" style="font-size:.68rem; text-transform:uppercase; letter-spacing:.04em;">Máx. histórico</div>
-                        <div class="text-danger fw-semibold" style="font-size:.9rem;">
-                            <i class="fa fa-arrow-up fa-xs me-1"></i>{{ price_max.price }} €
-                        </div>
-                        <div class="text-muted" style="font-size:.7rem;">{{ price_max.effective_date|date:"d/m/Y" }}</div>
-                    </div>
-                    <div class="flex-fill text-center rounded-3 py-2 px-1" style="background:rgba(25,135,84,.07);">
-                        <div class="text-muted mb-1" style="font-size:.68rem; text-transform:uppercase; letter-spacing:.04em;">Mín. histórico</div>
-                        <div class="text-success fw-semibold" style="font-size:.9rem;">
-                            <i class="fa fa-arrow-down fa-xs me-1"></i>{{ price_min.price }} €
-                        </div>
-                        <div class="text-muted" style="font-size:.7rem;">{{ price_min.effective_date|date:"d/m/Y" }}</div>
-                    </div>
+        <div class="row justify-content-center">
+            <div class="col-12 col-lg-6">
+                {% if object.price %}
+                <div class="card p-4 mb-3">
+                    <p class="text-uppercase text-muted fw-semibold mb-1 ls-1">Precio actual</p>
+                    <h2 class="fw-bold mb-1 text-primary">{{ object.price }} €/ud.</h2>
+                    <p class="text-muted mb-0" style="font-size: 0.95rem;">
+                        {{ price_history.0.effective_date|date:"d/m/Y" }}
+                    </p>
                 </div>
                 {% endif %}
+            </div>
+        </div>
 
-                <!-- History list with trend -->
-                <ul class="list-group list-group-flush mt-1">
-                    {% for item in history_with_trend %}
-                    <li class="list-group-item px-3 py-2 border-0">
-                        <div class="d-flex align-items-center gap-2">
-                            <!-- Timeline dot -->
-                            <div class="flex-shrink-0 d-flex align-items-center justify-content-center" style="width:14px;">
-                                <div class="rounded-circle {% if forloop.first %}bg-primary{% else %}bg-light border{% endif %}"
-                                     style="width:9px;height:9px;"></div>
+        {% if price_history|length > 0 %}
+        <div class="row">
+            <div class="col-12">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <span><i class="bi bi-graph-up me-2"></i>Evolución del precio</span>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if price_history|length > 1 %}
+                        <!-- Mini chart -->
+                        <div class="px-3 pt-3 pb-0">
+                            <div style="height: 100px; position: relative;">
+                                <canvas id="priceChart"></canvas>
                             </div>
-                            <!-- Date -->
-                            <div class="text-muted" style="min-width:75px; font-size:.78rem;">
-                                {{ item.entry.effective_date|date:"d/m/Y" }}
+                        </div>
+
+                        <!-- Min / Max stats -->
+                        {% if price_max and price_min %}
+                        <div class="d-flex gap-2 px-3 pt-2 pb-1">
+                            <div class="flex-fill text-center rounded-3 py-2 px-1"
+                                 style="background:rgba(220,53,69,.07);">
+                                <div class="text-muted mb-1"
+                                     style="font-size:.68rem; text-transform:uppercase; letter-spacing:.04em;">
+                                    Máx. histórico
+                                </div>
+                                <div class="text-danger fw-semibold" style="font-size:.9rem;">
+                                    <i class="fa fa-arrow-up fa-xs me-1"></i>{{ price_max.price }} €
+                                </div>
+                                <div class="text-muted" style="font-size:.7rem;">
+                                    {{ price_max.effective_date|date:"d/m/Y" }}
+                                </div>
                             </div>
-                            <!-- Price + trend -->
-                            <div class="flex-fill d-flex align-items-center gap-1">
+                            <div class="flex-fill text-center rounded-3 py-2 px-1"
+                                 style="background:rgba(25,135,84,.07);">
+                                <div class="text-muted mb-1"
+                                     style="font-size:.68rem; text-transform:uppercase; letter-spacing:.04em;">
+                                    Mín. histórico
+                                </div>
+                                <div class="text-success fw-semibold" style="font-size:.9rem;">
+                                    <i class="fa fa-arrow-down fa-xs me-1"></i>{{ price_min.price }} €
+                                </div>
+                                <div class="text-muted" style="font-size:.7rem;">
+                                    {{ price_min.effective_date|date:"d/m/Y" }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- History list with trend -->
+                        <ul class="list-group list-group-flush mt-1">
+                            {% for item in history_with_trend %}
+                            <li class="list-group-item px-3 py-2 border-0">
+                                <div class="d-flex align-items-center gap-2">
+                                    <!-- Timeline dot -->
+                                    <div class="flex-shrink-0 d-flex align-items-center justify-content-center"
+                                         style="width:14px;">
+                                        <div class="rounded-circle {% if forloop.first %}bg-primary{% else %}bg-light border{% endif %}"
+                                             style="width:9px;height:9px;"></div>
+                                    </div>
+                                    <!-- Date -->
+                                    <div class="text-muted" style="min-width:75px; font-size:.78rem;">
+                                        {{ item.entry.effective_date|date:"d/m/Y" }}
+                                    </div>
+                                    <!-- Price + trend -->
+                                    <div class="flex-fill d-flex align-items-center gap-1">
                                 <span class="fw-semibold {% if forloop.first %}text-primary{% else %}text-secondary{% endif %}"
                                       style="font-size:.85rem;">
                                     {{ item.entry.price }} €
                                 </span>
-                                {% if item.trend == 'up' %}
-                                <i class="fa fa-arrow-up text-danger" style="font-size:.65rem;" title="Subida"></i>
-                                {% elif item.trend == 'down' %}
-                                <i class="fa fa-arrow-down text-success" style="font-size:.65rem;" title="Bajada"></i>
-                                {% elif item.trend == 'initial' %}
-                                <span class="text-muted" style="font-size:.65rem;" title="Precio inicial">•</span>
-                                {% endif %}
+                                        {% if item.trend == 'up' %}
+                                        <i class="fa fa-arrow-up text-danger" style="font-size:.65rem;"
+                                           title="Subida"></i>
+                                        {% elif item.trend == 'down' %}
+                                        <i class="fa fa-arrow-down text-success" style="font-size:.65rem;"
+                                           title="Bajada"></i>
+                                        {% elif item.trend == 'initial' %}
+                                        <span class="text-muted" style="font-size:.65rem;"
+                                              title="Precio inicial">•</span>
+                                        {% endif %}
+                                    </div>
+                                    <!-- Delete -->
+                                    <form method="post"
+                                          action="{% url 'product-price-delete' item.entry.pk %}"
+                                          class="d-inline price-delete-form flex-shrink-0">
+                                        {% csrf_token %}
+                                        <button type="button"
+                                                class="btn btn-link p-0 text-muted price-delete-btn"
+                                                style="font-size:.7rem; line-height:1;" title="Eliminar">
+                                            <i class="fa fa-times"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+
+                        {% elif price_history|length == 1 %}
+
+                        <!-- Single-record state (sin histórico) -->
+                        <div class="px-3 py-4">
+                            <div class="rounded-3 p-4 text-center"
+                                 style="background: rgba(13,110,253,.06); border: 1px dashed rgba(13,110,253,.25);">
+                                <div class=" mt-3" style="font-size:.74rem; opacity:.75;">
+                                    Aún no hay evolución histórica. Cuando cambies el precio y guardes,
+                                    aquí verás la tendencia y los extremos (máx./mín.).
+                                </div>
                             </div>
-                            <!-- Delete -->
-                            <form method="post"
-                                  action="{% url 'product-price-delete' item.entry.pk %}"
-                                  class="d-inline price-delete-form flex-shrink-0">
-                                {% csrf_token %}
-                                <button type="button"
-                                        class="btn btn-link p-0 text-muted price-delete-btn"
-                                        style="font-size:.7rem; line-height:1;" title="Eliminar">
-                                    <i class="fa fa-times"></i>
-                                </button>
-                            </form>
                         </div>
-                    </li>
-                    {% endfor %}
-                </ul>
 
-                {% elif price_history|length == 1 %}
+                        {% else %}
 
-                <!-- Single-record state (sin histórico) -->
-                <div class="px-3 py-4">
-                    <div class="rounded-3 p-4 text-center" style="background: rgba(13,110,253,.06); border: 1px dashed rgba(13,110,253,.25);">
-                        <div class="text-muted mb-1" style="font-size:.7rem; text-transform:uppercase; letter-spacing:.05em;">Precio registrado</div>
-                        <div class="fw-bold text-primary" style="font-size:1.5rem;">{{ price_history.0.price }} €<span class="fw-normal text-muted" style="font-size:.85rem;">/ud.</span></div>
-                        <div class="text-muted mt-1" style="font-size:.78rem;"><i class="fa fa-calendar-alt me-1 opacity-50"></i>{{ price_history.0.effective_date|date:"d/m/Y" }}</div>
-                        <div class="text-muted mt-3" style="font-size:.74rem; opacity:.75;">
-                            Aún no hay evolución histórica. Cuando cambies el precio y guardes,
-                            aquí verás la tendencia y los extremos (máx./mín.).
+                        <!-- Empty state -->
+                        <div class="text-center py-5 px-4">
+                            <i class="fa fa-chart-line text-muted opacity-20 fa-2x mb-3 d-block"></i>
+                            <p class="text-muted small fw-semibold mb-1">Sin historial todavía</p>
+                            <p class="text-muted small mb-0">
+                                Modifica el precio y guarda para registrar la primera entrada.
+                            </p>
                         </div>
+
+                        {% endif %}
+
+                    </div>
+
+                    <div class="card-footer bg-transparent border-top py-2 px-4">
+                        <p class="text-muted small mb-0">
+                            <i class="fa fa-info-circle me-1 opacity-50"></i>
+                            El precio se registra automáticamente al guardar si ha cambiado.
+                        </p>
                     </div>
                 </div>
-
-                {% else %}
-
-                <!-- Empty state -->
-                <div class="text-center py-5 px-4">
-                    <i class="fa fa-chart-line text-muted opacity-20 fa-2x mb-3 d-block"></i>
-                    <p class="text-muted small fw-semibold mb-1">Sin historial todavía</p>
-                    <p class="text-muted small mb-0">
-                        Modifica el precio y guarda para registrar la primera entrada.
-                    </p>
-                </div>
-
-                {% endif %}
-
-            </div>
-
-            <div class="card-footer bg-transparent border-top py-2 px-4">
-                <p class="text-muted small mb-0">
-                    <i class="fa fa-info-circle me-1 opacity-50"></i>
-                    El precio se registra automáticamente al guardar si ha cambiado.
-                </p>
             </div>
         </div>
+        {% endif %}
     </div>
     {% endif %}
 
@@ -274,11 +288,13 @@ Define las propiedades y dosis del producto para los diferentes métodos de apli
     .fertigation-fields {
         transition: opacity 0.2s ease;
     }
+
     .spraying-fields.disabled,
     .fertigation-fields.disabled {
         opacity: 0.4;
         pointer-events: none;
     }
+
     #archiveToggleBox {
         transition: background-color 0.3s ease;
     }
@@ -302,14 +318,14 @@ Define las propiedades y dosis del producto para los diferentes métodos de apli
     document.addEventListener('DOMContentLoaded', function () {
 
         // ── Dose toggles ────────────────────────────────────────────────
-        const sprayingSwitch    = document.getElementById('enableSpraying');
+        const sprayingSwitch = document.getElementById('enableSpraying');
         const fertigationSwitch = document.getElementById('enableFertigation');
-        const sprayingFields    = document.getElementById('sprayingFields');
+        const sprayingFields = document.getElementById('sprayingFields');
         const fertigationFields = document.getElementById('fertigationFields');
 
-        const sprayingDoseInput      = document.getElementById('{{ form.spraying_dose.id_for_label }}');
-        const sprayingDoseTypeInput  = document.getElementById('{{ form.spraying_dose_type.id_for_label }}');
-        const fertigationDoseInput   = document.getElementById('{{ form.fertigation_dose.id_for_label }}');
+        const sprayingDoseInput = document.getElementById('{{ form.spraying_dose.id_for_label }}');
+        const sprayingDoseTypeInput = document.getElementById('{{ form.spraying_dose_type.id_for_label }}');
+        const fertigationDoseInput = document.getElementById('{{ form.fertigation_dose.id_for_label }}');
         const fertigationDoseTypeInput = document.getElementById('{{ form.fertigation_dose_type.id_for_label }}');
 
         function initToggle(toggle, fields, dose, doseType) {
@@ -318,7 +334,10 @@ Define las propiedades y dosis del producto para los diferentes métodos de apli
             fields.classList.toggle('disabled', !hasData);
             toggle.addEventListener('change', function () {
                 fields.classList.toggle('disabled', !this.checked);
-                if (!this.checked) { dose.value = ''; doseType.value = ''; }
+                if (!this.checked) {
+                    dose.value = '';
+                    doseType.value = '';
+                }
             });
         }
 
@@ -326,7 +345,7 @@ Define las propiedades y dosis del producto para los diferentes métodos de apli
         initToggle(fertigationSwitch, fertigationFields, fertigationDoseInput, fertigationDoseTypeInput);
 
         document.getElementById('productForm').addEventListener('submit', function (e) {
-            const hasSpraying    = sprayingDoseInput.value && sprayingDoseTypeInput.value;
+            const hasSpraying = sprayingDoseInput.value && sprayingDoseTypeInput.value;
             const hasFertigation = fertigationDoseInput.value && fertigationDoseTypeInput.value;
             if (!hasSpraying && !hasFertigation) {
                 e.preventDefault();
@@ -340,8 +359,8 @@ Define las propiedades y dosis del producto para los diferentes métodos de apli
 
         // ── Archive toggle visual feedback ───────────────────────────────
         const archiveSwitch = document.getElementById('{{ form.is_active.id_for_label }}');
-        const archiveBox    = document.getElementById('archiveToggleBox');
-        const archiveLabel  = document.getElementById('archiveLabel');
+        const archiveBox = document.getElementById('archiveToggleBox');
+        const archiveLabel = document.getElementById('archiveLabel');
 
         if (archiveSwitch && archiveBox) {
             archiveSwitch.addEventListener('change', function () {
@@ -369,8 +388,10 @@ Define las propiedades y dosis del producto para los diferentes métodos de apli
         });
 
         // ── Price history chart ──────────────────────────────────────────
+        // @formatter:off
         {% if price_history|length > 1 %}
         const priceData = {{ price_history_json|safe }};
+        // @formatter:on
 
         const ctx = document.getElementById('priceChart');
         if (ctx && priceData.length > 1) {
@@ -397,9 +418,9 @@ Define las propiedades y dosis del producto para los diferentes métodos de apli
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    animation: { duration: 400 },
+                    animation: {duration: 400},
                     plugins: {
-                        legend: { display: false },
+                        legend: {display: false},
                         tooltip: {
                             displayColors: false,
                             callbacks: {
@@ -411,17 +432,18 @@ Define las propiedades y dosis del producto para los diferentes métodos de apli
                     scales: {
                         x: {
                             display: priceData.length > 1,
-                            grid: { display: false },
-                            ticks: { font: { size: 10 }, color: '#6c757d', maxTicksLimit: 4, maxRotation: 0 },
-                            border: { display: false }
+                            grid: {display: false},
+                            ticks: {font: {size: 10}, color: '#6c757d', maxTicksLimit: 4, maxRotation: 0},
+                            border: {display: false}
                         },
-                        y: { display: false, grace: '15%' }
+                        y: {display: false, grace: '15%'}
                     }
                 }
             });
         }
+        // @formatter:off
         {% endif %}
-
+        // @formatter:on
     });
 </script>
 {% endblock %}

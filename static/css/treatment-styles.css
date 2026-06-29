@@ -844,13 +844,6 @@ a.filter-active-chip:hover {
 }
 
 /* ═══════════════════════════════════════════════
-   CARD BODY card-header cleanup for detail
-═══════════════════════════════════════════════ */
-.card-header {
-    padding: 0.85rem 1rem;
-}
-
-/* ═══════════════════════════════════════════════
    TREATMENT CARD META layout
 ═══════════════════════════════════════════════ */
 .treatment-card-meta .treatment-property {

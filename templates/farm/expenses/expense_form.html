@@ -21,7 +21,7 @@
     }
 
     .option-card:hover {
-        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
     }
 
     .option-card.selected {
@@ -62,9 +62,9 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-lg-10">
-        <div class="card shadow-sm border-0 rounded-lg">
-            <div class="card-header bg-primary text-white py-3">
-                <h2 class="mb-0 fs-3">{{ form.instance.pk|yesno:"Editar,Añadir" }} gasto</h2>
+        <div class="card">
+            <div class="card-header">
+                {{ form.instance.pk|yesno:"Editar,Añadir" }} gasto
             </div>
             <div class="card-body p-4">
                 <form id="expenseForm" method="post">
@@ -241,9 +241,14 @@
 {% block extra_js %}
 <script>
     // Pasar datos del backend al JavaScript
-    window.fieldAreas = {{ field_areas|safe }};
+    window.fieldAreas = {
+    {
+        field_areas | safe
+    }
+    }
+    ;
 
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         const calculationModeInput = document.getElementById('id_calculation_mode');
         const fieldSelect = document.getElementById('id_field');
         const quantityInput = document.getElementById('id_quantity');
@@ -256,7 +261,7 @@
 
         // Manejar selección de opciones
         document.querySelectorAll('.calculation-option').forEach(option => {
-            option.addEventListener('click', function() {
+            option.addEventListener('click', function () {
                 const mode = this.dataset.mode;
                 selectCalculationMode(mode);
             });
@@ -350,7 +355,7 @@
             amountInput.value = total.toFixed(2);
         }
 
-        function currentMode(){
+        function currentMode() {
             return calculationModeInput.value || 'total';
         }
 

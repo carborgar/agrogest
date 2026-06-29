@@ -14,7 +14,7 @@
 {% block content %}
 
 {# ── FILTROS ─────────────────────────────────────────────────────── #}
-<div class="card shadow-sm border-0 mb-4">
+<div class="card mb-4">
     <div class="card-body py-3">
         <form method="get">
             <div class="row g-3 align-items-end">
@@ -25,9 +25,14 @@
                         <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start filter-dd-btn{% if selected_field_ids %} filter-dd-btn--active{% endif %}"
                                 type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
                             <span class="filter-dd-label">
-                                {% if selected_field_ids %}{{ selected_field_ids|length }} parcela{{ selected_field_ids|length|pluralize }}{% else %}Todas las parcelas…{% endif %}
+                                {% if selected_field_ids %}
+                                {{ selected_field_ids|length }} parcela{{ selected_field_ids|length|pluralize }}
+                                {% else %}Todas las parcelas…
+                                {% endif %}
                             </span>
-                            {% if selected_field_ids %}<span class="badge bg-primary flex-shrink-0">{{ selected_field_ids|length }}</span>{% endif %}
+                            {% if selected_field_ids %}
+                            <span class="badge bg-primary flex-shrink-0">{{ selected_field_ids|length }}</span>
+                            {% endif %}
                         </button>
                         <div class="dropdown-menu filter-dd-menu p-2">
                             {% for f in fields %}
@@ -48,9 +53,13 @@
                         <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start filter-dd-btn{% if selected_type_ids %} filter-dd-btn--active{% endif %}"
                                 type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
                             <span class="filter-dd-label">
-                                {% if selected_type_ids %}{{ selected_type_ids|length }} tipo{{ selected_type_ids|length|pluralize }}{% else %}Todos los tipos…{% endif %}
+                                {% if selected_type_ids %}
+                                {{ selected_type_ids|length }} tipo{{ selected_type_ids|length|pluralize }}
+                                {% else %}Todos los tipos…
+                                {% endif %}
                             </span>
-                            {% if selected_type_ids %}<span class="badge bg-primary flex-shrink-0">{{ selected_type_ids|length }}</span>{% endif %}
+                            {% if selected_type_ids %}<span class="badge bg-primary flex-shrink-0">{{ selected_type_ids|length }}</span>
+                            {% endif %}
                         </button>
                         <div class="dropdown-menu filter-dd-menu p-2">
                             {% for et in expense_types %}
@@ -102,7 +111,7 @@
 {# ── MÉTRICAS ─────────────────────────────────────────────────────── #}
 <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">
-        <div class="card border-0 shadow-sm h-100">
+        <div class="card h-100">
             <div class="card-body d-flex align-items-center gap-3 py-3">
                 <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
                      style="width:42px;height:42px">
@@ -116,7 +125,7 @@
         </div>
     </div>
     <div class="col-6 col-md-3">
-        <div class="card border-0 shadow-sm h-100">
+        <div class="card h-100">
             <div class="card-body d-flex align-items-center gap-3 py-3">
                 <div class="rounded-circle bg-danger bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
                      style="width:42px;height:42px">
@@ -137,7 +146,9 @@
 <div class="empty-state text-center py-5">
     <i class="fa fa-receipt fa-3x text-muted opacity-50 mb-3 d-block"></i>
     <h5 class="text-muted">No hay gastos registrados</h5>
-    <p class="text-muted small mb-3">{% if filter_params %}Prueba a cambiar los filtros{% else %}Crea tu primer gasto{% endif %}</p>
+    <p class="text-muted small mb-3">
+        {% if filter_params %}Prueba a cambiar los filtros{% else %}Crea tu primer gasto{% endif %}
+    </p>
     {% if not filter_params %}
     <a class="btn btn-primary" href="{% url 'expense-create' %}">
         <i class="fa fa-plus me-2"></i>Nuevo gasto
@@ -145,8 +156,8 @@
     {% endif %}
 </div>
 {% else %}
-<div class="card shadow-sm border-0">
-    <div class="card-header bg-transparent border-bottom py-2 px-3 d-flex justify-content-between align-items-center">
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
         <span class="fw-semibold"><i class="fa fa-list me-2 text-muted"></i>Registros</span>
         <span class="badge bg-secondary" id="expense-count">{{ expense_count }}</span>
     </div>
@@ -175,9 +186,11 @@
                 <div class="flex-shrink-0 text-center" style="min-width:44px">
                     <div class="fw-bold lh-1" style="font-size:.95rem">{{ expense.payment_date|date:"d" }}</div>
                     <div class="text-muted text-uppercase lh-1"
-                         style="font-size:.75rem">{{ expense.payment_date|date:"M" }}</div>
+                         style="font-size:.75rem">{{ expense.payment_date|date:"M" }}
+                    </div>
                     <div class="text-muted lh-1 d-none d-sm-block"
-                         style="font-size:.7rem">{{ expense.payment_date|date:"Y" }}</div>
+                         style="font-size:.7rem">{{ expense.payment_date|date:"Y" }}
+                    </div>
                 </div>
 
                 {# Parcela + descripción #}
@@ -189,7 +202,8 @@
                     {% if expense.description %}
                     <div class="text-muted mt-1 lh-sm text-truncate"
                          style="font-size:.85rem;max-width:260px"
-                         title="{{ expense.description }}">{{ expense.description }}</div>
+                         title="{{ expense.description }}">{{ expense.description }}
+                    </div>
                     {% endif %}
                 </div>
 

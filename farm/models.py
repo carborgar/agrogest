@@ -547,6 +547,25 @@ class Treatment(OrganizationOwnedModel):
             else:
                 return 'danger'
 
+    @property
+    def water_changed(self):
+        return (
+                self.real_water_per_ha is not None
+                and self.real_water_per_ha != self.water_per_ha
+        )
+
+    @property
+    def display_water_per_ha(self):
+        return self.actual_water_per_ha if self.water_changed else self.water_per_ha
+
+    @property
+    def date_changed(self):
+        return self.finish_date and self.finish_date != self.date
+
+    @property
+    def display_date(self):
+        return self.finish_date if self.date_changed else self.date
+
     @transaction.atomic
     def clone_to_field(self, target_field, new_date=None, new_name=None):
         """

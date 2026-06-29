@@ -13,9 +13,9 @@
 
 <div class="row g-4">
     <div class="col-12 col-xl-6">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-transparent border-bottom py-3">
-                <h6 class="mb-0 fw-semibold"><i class="fa fa-calendar-day text-primary me-2"></i>Recalcular por rango de fechas</h6>
+        <div class="card">
+            <div class="card-header">
+                <i class="fa fa-calendar-day text-primary me-2"></i>Recalcular por rango de fechas
             </div>
             <div class="card-body">
                 <form class="mb-3" method="post">
@@ -34,8 +34,10 @@
                 {% if range_preview %}
                 <div class="alert alert-warning" role="alert">
                     <div class="fw-semibold mb-1">Impacto estimado</div>
-                    <div class="small">Tratamientos afectados: <strong>{{ range_preview.total_treatments }}</strong></div>
-                    <div class="small">Lineas de producto a revisar: <strong>{{ range_preview.total_treatment_products }}</strong></div>
+                    <div class="small">Tratamientos afectados: <strong>{{ range_preview.total_treatments }}</strong>
+                    </div>
+                    <div class="small">Lineas de producto a revisar:
+                        <strong>{{ range_preview.total_treatment_products }}</strong></div>
                 </div>
 
                 <form class="execute-heavy-form mt-3" data-scope="rango" method="post">
@@ -44,9 +46,13 @@
                     <input name="start_date" type="hidden" value="{{ range_form.start_date.value|default_if_none:'' }}">
                     <input name="end_date" type="hidden" value="{{ range_form.end_date.value|default_if_none:'' }}">
 
-                    <button %} %}disabled{% 0 class="btn btn-danger w-100" endif if range_preview.total_treatment_products == type="submit" {%>
-                        <i class="fa fa-calculator me-1"></i>Ejecutar recalculo por rango
-                    </button>
+                    {% if range_preview.total_treatment_products == 0 %}
+                    <button class="btn btn-danger w-100" type="submit" disabled>
+                        {% else %}
+                        <button class="btn btn-danger w-100" type="submit">
+                            {% endif %}
+                            <i class="fa fa-calculator me-1"></i>Ejecutar recalculo por rango
+                        </button>
                 </form>
                 {% endif %}
             </div>
@@ -54,9 +60,9 @@
     </div>
 
     <div class="col-12 col-xl-6">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-transparent border-bottom py-3">
-                <h6 class="mb-0 fw-semibold"><i class="fa fa-box text-primary me-2"></i>Recalcular por producto</h6>
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="fa fa-box text-primary me-2"></i>Recalcular por producto
             </div>
             <div class="card-body">
                 <form class="mb-3" method="post">
@@ -72,8 +78,12 @@
                 {% if product_preview %}
                 <div class="alert alert-warning" role="alert">
                     <div class="fw-semibold mb-1">Impacto estimado para {{ product_preview.product.name }}</div>
-                    <div class="small">Tratamientos afectados: <strong>{{ product_preview.impact.total_treatments }}</strong></div>
-                    <div class="small">Lineas de producto a revisar: <strong>{{ product_preview.impact.total_treatment_products }}</strong></div>
+                    <div class="small">Tratamientos afectados:
+                        <strong>{{ product_preview.impact.total_treatments }}</strong>
+                    </div>
+                    <div class="small">Lineas de producto a revisar:
+                        <strong>{{ product_preview.impact.total_treatment_products }}</strong>
+                    </div>
                 </div>
 
                 <form class="execute-heavy-form mt-3" data-scope="producto" method="post">
@@ -81,9 +91,13 @@
                     <input name="action" type="hidden" value="execute_product">
                     <input name="product" type="hidden" value="{{ product_preview.product.id }}">
 
-                    <button %} %}disabled{% 0 class="btn btn-danger w-100" endif if product_preview.impact.total_treatment_products == type="submit" {%>
-                        <i class="fa fa-calculator me-1"></i>Ejecutar recalculo por producto
-                    </button>
+                    {% if range_preview.total_treatment_products == 0 %}
+                    <button class="btn btn-danger w-100" type="submit" disabled>
+                        {% else %}
+                        <button class="btn btn-danger w-100" type="submit">
+                            {% endif %}
+                            <i class="fa fa-calculator me-1"></i>Ejecutar recalculo por producto
+                        </button>
                 </form>
                 {% endif %}
             </div>
@@ -94,24 +108,24 @@
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('.execute-heavy-form').forEach(function (form) {
-        form.addEventListener('submit', function (event) {
-            event.preventDefault();
-            const scope = form.dataset.scope || 'seleccion';
-            showConfirm({
-                title: 'Confirmar recalculo',
-                text: `Se van a actualizar costes de tratamientos por ${scope}. Esta accion puede tardar varios minutos.`,
-                confirmText: 'Si, recalcular',
-                cancelText: 'Cancelar',
-                onConfirm: () => {
-                    showLoading('Recalculando costes...', `Procesando tratamientos por ${scope}. Este proceso puede tardar varios minutos.`);
-                    form.submit();
-                }
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.execute-heavy-form').forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+                const scope = form.dataset.scope || 'seleccion';
+                showConfirm({
+                    title: 'Confirmar recalculo',
+                    text: `Se van a actualizar costes de tratamientos por ${scope}. Esta accion puede tardar varios minutos.`,
+                    confirmText: 'Si, recalcular',
+                    cancelText: 'Cancelar',
+                    onConfirm: () => {
+                        showLoading('Recalculando costes...', `Procesando tratamientos por ${scope}. Este proceso puede tardar varios minutos.`);
+                        form.submit();
+                    }
+                });
             });
         });
     });
-});
 </script>
 {% endblock %}
 

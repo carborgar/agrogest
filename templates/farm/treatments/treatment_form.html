@@ -36,10 +36,7 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col">
-        <div class="card shadow-sm border-0 rounded-lg">
-            <div class="card-header bg-primary text-white py-3">
-                <h2 class="mb-0 fs-3">{{ form_title|default:'Nuevo tratamiento' }}</h2>
-            </div>
+        <div class="card">
             <div class="card-body">
                 {% bootstrap_form_errors form %}
                 {% bootstrap_formset_errors products_formset %}
@@ -60,10 +57,9 @@
 
                     <!-- Step 1: Información General -->
                     <div class="step" id="step1">
-                        <div class="card border-0 shadow-sm">
-                            <div class="card-header bg-light py-3">
-                                <h3 class="m-0 fs-4 text-primary"><i class="fa-solid fa-circle-info"></i> Información
-                                    General</h3>
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fa-solid fa-circle-info me-2"></i>Información General
                             </div>
                             <div class="card-body">
                                 <div class="row g-3">
@@ -131,7 +127,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="card-footer bg-white py-3">
+                            <div class="card-footer">
                                 <div class="d-flex gap-2">
                                     <a class="btn btn-outline-secondary"
                                        href="{% if is_edit %}{% url 'treatment-detail' pk=form.instance.pk %}{% else %}{% url 'treatment-list' %}{% endif %}">
@@ -149,14 +145,15 @@
 
                     <!-- Step 2: Productos -->
                     <div class="step d-none" id="step2">
-                        <div class="card border-0 shadow-sm">
-                            <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center">
-                                <h3 class="m-0 fs-4 text-primary"><i class="fa-solid fa-box"></i> Productos</h3>
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fa-solid fa-box me-2"></i>Productos
                             </div>
                             <div class="card-body">
                                 {{ products_formset.management_form }}
 
-                                <div class="alert alert-danger d-none align-items-center gap-2 mb-3" id="productsError" role="alert">
+                                <div class="alert alert-danger d-none align-items-center gap-2 mb-3" id="productsError"
+                                     role="alert">
                                     <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
                                     <span id="productsErrorMessage"></span>
                                 </div>
@@ -175,14 +172,14 @@
                                         {{ form.id }}
                                         {{ form.DELETE|add_class:"d-none delete-input" }}
 
-                                         <div class="row">
-                                             <div class="col-12 col-md-6 col-lg-4">
-                                                 <div class="mb-3">
-                                                     <label class="form-label small fw-semibold text-muted">Producto</label>
-                                                     {{ form.product|add_class:"form-select product-select" }}
-                                                 </div>
+                                        <div class="row">
+                                            <div class="col-12 col-md-6 col-lg-4">
+                                                <div class="mb-3">
+                                                    <label class="form-label small fw-semibold text-muted">Producto</label>
+                                                    {{ form.product|add_class:"form-select product-select" }}
+                                                </div>
 
-                                                 <div class="dose-info d-none">
+                                                <div class="dose-info d-none">
                                                     <strong>Dosis recomendada:</strong>
                                                     <span class="recommended-dose">-</span>
                                                 </div>
@@ -200,7 +197,8 @@
                                             </div>
                                             <div class="col-12 col-md-6 col-lg-4">
                                                 <div class="mb-3">
-                                                    <label class="form-label small fw-semibold text-muted">Total parcela</label>
+                                                    <label class="form-label small fw-semibold text-muted">Total
+                                                        parcela</label>
                                                     {{ form.total_dose|add_class:"form-control total-dose-input" }}
                                                 </div>
                                             </div>
@@ -213,7 +211,7 @@
                                     Añadir Producto
                                 </button>
                             </div>
-                            <div class="card-footer bg-white py-3">
+                            <div class="card-footer py-3">
                                 <div class="d-flex gap-2">
                                     <a class="btn btn-outline-secondary"
                                        href="{% if is_edit %}{% url 'treatment-detail' pk=form.instance.pk %}{% else %}{% url 'treatment-list' %}{% endif %}">
@@ -299,7 +297,9 @@
     document.addEventListener('DOMContentLoaded', async () => {
         // Variables globales
         let fields = {}, machines = {}, products = new Map();
+        // @formatter:off
         const isEdit = {{ is_edit|yesno:"true,false" }};
+        // @formatter:on
         const formContainer = document.getElementById('treatmentForm');
         let formCount = parseInt(formContainer.dataset.formCount);
         let lastModifiedField = new Map(); // Para trackear el último campo modificado por fila
@@ -402,19 +402,19 @@
 
         function initProductSelect(selectElement) {
             if (ssInstances.has(selectElement)) return;
-            const ss = new SearchableSelect(selectElement, { placeholder: 'Buscar producto…' });
+            const ss = new SearchableSelect(selectElement, {placeholder: 'Buscar producto…'});
             ssInstances.set(selectElement, ss);
         }
 
         function updateProductSelectOptions(selectElement, restoreValue) {
-            const items = Array.from(products.values()).map(p => ({ value: p.id, text: p.name }));
+            const items = Array.from(products.values()).map(p => ({value: p.id, text: p.name}));
             const ss = ssInstances.get(selectElement);
             if (ss) {
                 ss.setOptions(items, restoreValue || null);
             } else {
                 // fallback sin instancia
                 selectElement.innerHTML = '<option value=""></option>';
-                items.forEach(({ value, text }) => {
+                items.forEach(({value, text}) => {
                     const opt = document.createElement('option');
                     opt.value = String(value);
                     opt.textContent = text;
@@ -423,6 +423,7 @@
                 selectElement.value = restoreValue ? String(restoreValue) : '';
             }
         }
+
         // ─────────────────────────────────────────────────────────────
 
         function updateProductsTableOptions() {
@@ -446,7 +447,7 @@
             document.getElementById('productsErrorMessage').textContent = message;
             errorDiv.classList.remove('d-none');
             errorDiv.classList.add('d-flex');
-            errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            errorDiv.scrollIntoView({behavior: 'smooth', block: 'nearest'});
         }
 
         function clearProductsError() {
@@ -502,6 +503,7 @@
                 clearProductsError();
             }
         }
+
         // ───────────────────────────────────────────────────────────────
 
         // Funciones para actualizar información
@@ -925,8 +927,10 @@
                 elements.machineSelect.disabled = true;
                 elements.waterPerHaInput.disabled = true;
                 return;
-            } else {
+            } else if (selectedType === 'spraying') {
                 elements.conditionalFields.classList.remove('d-none');
+            } else {
+                elements.conditionalFields.classList.add('d-none');
             }
 
             if (selectedType === 'spraying') {
@@ -1118,7 +1122,9 @@
         checkStep1Completion();
 
         // Si hay errores en el formset de productos (tras un envío fallido), ir al paso 2
+        // @formatter:off
         const hasFormsetErrors = {{ has_formset_errors|yesno:"true,false" }};
+        // @formatter:on
         if (hasFormsetErrors) {
             showStep(2);
         }

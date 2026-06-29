@@ -5,8 +5,8 @@
 
     {# ── SIDEBAR DE FILTROS ─────────────────────────────────────────── #}
     <div class="col-12 col-md-3">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-transparent border-bottom d-flex justify-content-between align-items-center py-2 px-3">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <span class="fw-semibold small"><i class="fa fa-filter me-2 text-muted"></i>Filtros</span>
                 <button aria-controls="filterCollapse"
                         aria-expanded="false" class="btn btn-sm btn-link p-0 d-md-none text-muted"
@@ -20,19 +20,25 @@
 
                     {# Parcelas #}
                     <div class="mb-3">
-                        <div class="small fw-semibold text-muted text-uppercase mb-2" style="font-size:.7rem;letter-spacing:.05em">Parcelas</div>
+                        <div class="small fw-semibold text-muted text-uppercase mb-2"
+                             style="font-size:.7rem;letter-spacing:.05em">Parcelas
+                        </div>
                         <div class="d-flex flex-column gap-1" id="field-filters">
-                            <label class="d-flex align-items-center gap-2 py-1 px-2 rounded field-filter-item cursor-pointer active" style="cursor:pointer">
-                                <input checked class="form-check-input m-0 flex-shrink-0" id="filter-all" type="checkbox" value="all">
+                            <label class="d-flex align-items-center gap-2 py-1 px-2 rounded field-filter-item cursor-pointer active"
+                                   style="cursor:pointer">
+                                <input checked class="form-check-input m-0 flex-shrink-0" id="filter-all"
+                                       type="checkbox" value="all">
                                 <span class="small">Todas</span>
                             </label>
                             {% for field in fields %}
-                            <label class="d-flex align-items-center gap-2 py-1 px-2 rounded field-filter-item" style="cursor:pointer">
+                            <label class="d-flex align-items-center gap-2 py-1 px-2 rounded field-filter-item"
+                                   style="cursor:pointer">
                                 <input class="form-check-input m-0 flex-shrink-0 field-checkbox"
                                        id="filter-field-{{ field.id }}"
                                        type="checkbox" value="{{ field.id }}">
                                 <span class="small text-truncate">{{ field.name }}</span>
-                                <span class="badge bg-light text-muted border ms-auto fw-normal" style="font-size:.65rem">{{ field.area }} ha</span>
+                                <span class="badge bg-light text-muted border ms-auto fw-normal"
+                                      style="font-size:.65rem">{{ field.area }} ha</span>
                             </label>
                             {% endfor %}
                         </div>
@@ -42,14 +48,17 @@
 
                     {# Tipo #}
                     <div class="mb-3">
-                        <div class="small fw-semibold text-muted text-uppercase mb-2" style="font-size:.7rem;letter-spacing:.05em">Tipo</div>
+                        <div class="small fw-semibold text-muted text-uppercase mb-2"
+                             style="font-size:.7rem;letter-spacing:.05em">Tipo
+                        </div>
                         <div class="d-flex flex-column gap-1" id="treatment-type-filters">
                             {% for type_value, type_name in treatment_types %}
                             <label class="d-flex align-items-center gap-2 py-1 px-2 rounded" style="cursor:pointer">
                                 <input checked
                                        class="form-check-input m-0 flex-shrink-0 treatment-type-checkbox"
                                        id="filter-type-{{ type_value }}" type="checkbox" value="{{ type_value }}">
-                                <i class="fa fa-{{ type_value|type_icon }} text-muted" style="width:14px;text-align:center"></i>
+                                <i class="fa fa-{{ type_value|type_icon }} text-muted"
+                                   style="width:14px;text-align:center"></i>
                                 <span class="small">{{ type_name }}</span>
                             </label>
                             {% endfor %}
@@ -60,7 +69,9 @@
 
                     {# Leyenda #}
                     <div class="mb-3">
-                        <div class="small fw-semibold text-muted text-uppercase mb-2" style="font-size:.7rem;letter-spacing:.05em">Estado</div>
+                        <div class="small fw-semibold text-muted text-uppercase mb-2"
+                             style="font-size:.7rem;letter-spacing:.05em">Estado
+                        </div>
                         <div class="d-flex flex-column gap-1">
                             <div class="d-flex align-items-center gap-2 small">
                                 <span class="calendar-legend-dot" style="background:var(--bs-warning)"></span>Pendiente
@@ -149,7 +160,8 @@
                 </div>
 
                 {# Productos #}
-                <div class="fw-semibold small text-muted text-uppercase mb-2" style="font-size:.7rem;letter-spacing:.05em">
+                <div class="fw-semibold small text-muted text-uppercase mb-2"
+                     style="font-size:.7rem;letter-spacing:.05em">
                     <i class="fa fa-box me-1"></i>Productos
                 </div>
                 <div class="d-flex flex-column gap-2" id="detail-products-list">
