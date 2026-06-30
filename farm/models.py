@@ -377,6 +377,11 @@ class Treatment(OrganizationOwnedModel):
     def save(self, *args, **kwargs):
         self.organization = self.field.organization  # Asignar la organización de la parcela
 
+        # Si se borra finish_date, el tratamiento deja de estar completado:
+        # limpiar real_water_per_ha para que los costes se recalculen con el agua planificada.
+        if not self.is_fertigation() and self.finish_date is None:
+            self.real_water_per_ha = None
+
         # Determinamos si es un nuevo objeto o uno existente
         is_new = self.pk is None
 
