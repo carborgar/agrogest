@@ -59,7 +59,7 @@
         <div class="d-flex flex-wrap gap-3 mt-1" style="font-size:0.9rem;">
             <span><i class="fa fa-clipboard-check me-1"></i><strong>{{ treatment.name }}</strong></span>
             <span><i class="fa fa-map-marked-alt me-1"></i>{{ treatment.field.name }}
-                ({{ treatment.field.crop }}, {{ treatment.field.area }} ha)</span>
+                ({{ treatment.field.crop }}, {{ treatment.effective_area }} ha{% if treatment.is_partial_treatment %} de {{ treatment.field.area }} ha{% endif %})</span>
             {% if treatment.machine %}
             <span><i class="fa fa-fill-drip me-1"></i>
                 {% if treatment.real_water_per_ha and treatment.real_water_per_ha != treatment.water_per_ha %}

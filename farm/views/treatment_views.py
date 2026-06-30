@@ -178,11 +178,12 @@ class TreatmentDetailView(BaseSecureViewMixin, DetailView):
 
         total_cost = sum(product.total_price for product in products)
         cost_per_ha = 0
-        if self.object.field and self.object.field.area > 0:
-            cost_per_ha = total_cost / Decimal(self.object.field.area)
+        if self.object.effective_area and self.object.effective_area > 0:
+            cost_per_ha = total_cost / Decimal(self.object.effective_area)
 
         context['total_cost'] = total_cost
         context['cost_per_ha'] = cost_per_ha
+
         context['available_fields'] = (
             Field.ownership_objects
             .get_queryset_for_user(self.request.user)
@@ -277,6 +278,10 @@ class FinishTreatmentView(BaseSecureViewMixin, View):
         extra_rows = [('Fecha de finalización', finish_date_display)]
         if treatment.is_spraying() and treatment.real_water_per_ha:
             extra_rows.append(('Mojado real', f'{treatment.real_water_per_ha} L/ha'))
+        if treatment.is_partial_treatment:
+            extra_rows.append(('Área tratada', f'{treatment.applied_area} ha de {treatment.field.area} ha'))
+        if treatment.zone_notes:
+            extra_rows.append(('Zona', treatment.zone_notes))
         notify_org_users(
             event_type=Notification.EVENT_TREATMENT_FINISHED,
             title=f'Tratamiento finalizado: {treatment.name}',

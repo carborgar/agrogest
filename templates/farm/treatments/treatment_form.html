@@ -100,6 +100,42 @@
                                     </div>
                                 </div>
 
+                                <!-- Tratamiento parcial (collapse opcional) -->
+                                <div class="mt-2">
+                                    <a class="text-muted small text-decoration-none" data-bs-toggle="collapse"
+                                       href="#partialTreatmentCollapse" role="button"
+                                       aria-expanded="{% if form.applied_area.value or form.zone_notes.value or form.applied_area.errors %}true{% else %}false{% endif %}"
+                                       aria-controls="partialTreatmentCollapse">
+                                        <i class="bi bi-chevron-right me-1" id="partialCollapseIcon"></i>Tratamiento
+                                        parcial <span class="text-muted">(opcional)</span>
+                                    </a>
+                                    <div class="collapse {% if form.applied_area.value or form.zone_notes.value or form.applied_area.errors %}show{% endif %}"
+                                         id="partialTreatmentCollapse">
+                                        <div class="row g-3 mt-1">
+                                            <div class="col-md-6 col-lg-4">
+                                                <div class="form-floating mb-3">
+                                                    {{ form.applied_area|add_class:"form-control" }}
+                                                    <label for="{{ form.applied_area.id_for_label }}">Área tratada
+                                                        (ha)</label>
+                                                </div>
+                                                <div class="form-text" id="appliedAreaInfo">Opcional. Dejar vacío si se
+                                                    trata la parcela completa.
+                                                </div>
+                                                {% if form.applied_area.errors %}
+                                                <div class="text-danger small mt-1">{{ form.applied_area.errors }}</div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-md-6 col-lg-4">
+                                                <div class="form-floating mb-3">
+                                                    {{ form.zone_notes|add_class:"form-control" }}
+                                                    <label for="{{ form.zone_notes.id_for_label }}">Zona tratada</label>
+                                                </div>
+                                                <div class="form-text">Opcional. Ej: zona norte, sector 3...</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <!-- Campos condicionales (aparecen según el tipo seleccionado) -->
                                 <div class="mt-3 d-none" id="conditionalFields">
                                     <hr class="text-muted">
@@ -510,6 +546,13 @@
         function updateFieldInfo() {
             const field = fields[elements.fieldSelect.value];
             elements.fieldInfo.textContent = field ? `Área: ${field.area} ha - Cultivo: ${field.crop}` : '';
+            const appliedAreaInput = document.getElementById('{{ form.applied_area.id_for_label }}');
+            const appliedAreaInfo = document.getElementById('appliedAreaInfo');
+            if (appliedAreaInput && appliedAreaInfo) {
+                appliedAreaInfo.textContent = field
+                    ? `Opcional. Máximo: ${field.area} ha (área total de la parcela).`
+                    : 'Opcional. Dejar vacío si se trata la parcela completa.';
+            }
             calculateTotalDoses();
             checkStep1Completion();
         }
@@ -599,6 +642,10 @@
             const field = fields[elements.fieldSelect.value];
             const waterPerHa = parseFloat(elements.waterPerHaInput.value) || 0;
             if (!field) return;
+            const appliedAreaInput = document.getElementById('{{ form.applied_area.id_for_label }}');
+            const appliedAreaVal = appliedAreaInput ? parseFloat(appliedAreaInput.value) : NaN;
+            const effectiveArea = (!isNaN(appliedAreaVal) && appliedAreaVal > 0 && appliedAreaVal < field.area)
+                ? appliedAreaVal : field.area;
 
             document.querySelectorAll('.product-form').forEach((card, index) => {
                 if (isRowMarkedForDeletion(card)) {
@@ -630,12 +677,12 @@
 
                 const product = getProduct(productId);
                 const doseType = product.dose_type;
-                const totalWater = field.area * waterPerHa;
+                const totalWater = effectiveArea * waterPerHa;
                 const unit = doseType.includes('kg') ? 'kg' : 'L';
                 let totalDose = 0;
 
                 if (doseType.includes('_per_ha')) {
-                    totalDose = dose * field.area;
+                    totalDose = dose * effectiveArea;
                 } else if (doseType.includes('_per_1000l')) {
                     totalDose = (dose / 1000) * totalWater;
                 } else if (doseType.includes('_per_2000l')) {
@@ -731,12 +778,17 @@
                 return;
             }
 
+            const appliedAreaInput2 = document.getElementById('{{ form.applied_area.id_for_label }}');
+            const appliedAreaVal2 = appliedAreaInput2 ? parseFloat(appliedAreaInput2.value) : NaN;
+            const effectiveArea2 = (!isNaN(appliedAreaVal2) && appliedAreaVal2 > 0 && appliedAreaVal2 < field.area)
+                ? appliedAreaVal2 : field.area;
+
             const doseType = getProduct(productId).dose_type;
-            const totalWater = field.area * waterPerHa;
+            const totalWater = effectiveArea2 * waterPerHa;
             let dosePerHa = 0;
 
             if (doseType.includes('_per_ha')) {
-                dosePerHa = totalDose / field.area;
+                dosePerHa = totalDose / effectiveArea2;
             } else if (doseType.includes('_per_1000l')) {
                 dosePerHa = (totalDose * 1000) / totalWater;
             } else if (doseType.includes('_per_2000l')) {
@@ -1008,6 +1060,16 @@
                 }
             }
 
+            // Validar área parcial
+            const appliedAreaVal = parseFloat(document.getElementById('{{ form.applied_area.id_for_label }}').value);
+            const selectedField = fields[elements.fieldSelect.value];
+            if (!isNaN(appliedAreaVal) && appliedAreaVal > 0 && selectedField && appliedAreaVal > selectedField.area) {
+                event.preventDefault();
+                alert(`El área tratada (${appliedAreaVal} ha) no puede superar el área de la parcela (${selectedField.area} ha).`);
+                showStep(1);
+                return false;
+            }
+
             // Validar que al menos hay un producto
             const validProducts = getVisibleRows().filter(row => {
                 const productSelect = row.querySelector('.product-select');
@@ -1042,6 +1104,18 @@
 
             return true;
         }
+
+        // Rotar icono del collapse de tratamiento parcial
+        document.getElementById('partialTreatmentCollapse').addEventListener('show.bs.collapse', () => {
+            document.getElementById('partialCollapseIcon').classList.replace('bi-chevron-right', 'bi-chevron-down');
+        });
+        document.getElementById('partialTreatmentCollapse').addEventListener('hide.bs.collapse', () => {
+            document.getElementById('partialCollapseIcon').classList.replace('bi-chevron-down', 'bi-chevron-right');
+        });
+
+        // Recalcular dosis cuando cambia el área parcial
+        const appliedAreaEl = document.getElementById('{{ form.applied_area.id_for_label }}');
+        if (appliedAreaEl) appliedAreaEl.addEventListener('input', calculateTotalDoses);
 
         // Añadir event listeners
         elements.fieldSelect.addEventListener('change', updateFieldInfo);

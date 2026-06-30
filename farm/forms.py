@@ -30,7 +30,11 @@ class TreatmentForm(forms.ModelForm):
 
     class Meta:
         model = Treatment
-        fields = ['name', 'type', 'date', 'field', 'machine', 'water_per_ha', 'finish_date']
+        fields = ['name', 'type', 'date', 'field', 'machine', 'water_per_ha', 'finish_date',
+                  'applied_area', 'zone_notes']
+        widgets = {
+            'applied_area': forms.NumberInput(attrs={'step': '0.01'}),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -62,6 +66,14 @@ class TreatmentForm(forms.ModelForm):
             cleaned_data['machine'] = None
             if water_per_ha is None:  # Solo establecer si es None para no sobreescribir valores existentes
                 cleaned_data['water_per_ha'] = 0
+
+        applied_area = cleaned_data.get('applied_area')
+        field = cleaned_data.get('field')
+        if applied_area and field and applied_area > field.area:
+            self.add_error(
+                'applied_area',
+                f'El área parcial ({applied_area} ha) no puede superar el área de la parcela ({field.area} ha)'
+            )
 
         return cleaned_data
 

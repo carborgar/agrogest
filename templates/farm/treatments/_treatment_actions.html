@@ -2,7 +2,7 @@
 <script>
     function finishTreatment_{{ treatment.id }}() {
         const treatmentId = {{ treatment.id }};
-        const fieldArea = parseFloat('{{ treatment.field.area }}'.replace(',', '.'));
+        const fieldArea = parseFloat('{{ treatment.effective_area }}'.replace(',', '.'));
         const isFertigation = {{ treatment.is_fertigation|yesno:"true,false" }};
         const waterPerHa = {{ treatment.water_per_ha|default:0 }};
 

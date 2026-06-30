@@ -306,10 +306,10 @@ class Product(OrganizationOwnedModel):
         for treatment_product in treatment_products:
             treatment_product.unit_price = self.price
             treatment_product.total_price = treatment_product.unit_price * treatment_product.total_dose
-            if treatment_product.treatment.field.area is None:
+            if treatment_product.treatment.effective_area is None:
                 field_area = Decimal(0)
             else:
-                field_area = Decimal(treatment_product.treatment.field.area)
+                field_area = Decimal(treatment_product.treatment.effective_area)
             treatment_product.price_per_ha = (
                 treatment_product.total_price / field_area if field_area > 0 else Decimal(0)
             )
@@ -369,6 +369,14 @@ class Treatment(OrganizationOwnedModel):
     water_per_ha = models.IntegerField(help_text="Litros de agua por hectárea", null=True, blank=True)
     real_water_per_ha = models.IntegerField(help_text="Mojado real usado por hectárea (en litros)", null=True,
                                             blank=True)
+    applied_area = models.FloatField(
+        null=True, blank=True,
+        help_text="Hectáreas realmente tratadas. Dejar vacío si se trató la parcela completa."
+    )
+    zone_notes = models.CharField(
+        max_length=200, blank=True,
+        help_text="Zona o sector tratado (ej: 'zona norte', 'sector 3'). Opcional."
+    )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
 
     def __str__(self):
@@ -391,7 +399,8 @@ class Treatment(OrganizationOwnedModel):
             needs_recalculation = (
                     old_obj.actual_water_per_ha() != self.actual_water_per_ha() or
                     old_obj.real_water_per_ha != self.real_water_per_ha or
-                    old_obj.field_id != self.field_id
+                    old_obj.field_id != self.field_id or
+                    old_obj.applied_area != self.applied_area
             )
         else:
             needs_recalculation = True
@@ -442,7 +451,7 @@ class Treatment(OrganizationOwnedModel):
         if not self.machine or not self.actual_water_per_ha() or self.type != 'spraying':
             return None
 
-        field_area = self.field.area
+        field_area = self.effective_area
         water_per_ha = self.actual_water_per_ha()
         machine_capacity = self.machine.capacity
 
@@ -501,6 +510,15 @@ class Treatment(OrganizationOwnedModel):
 
     def water_per_ha_changed(self):
         return self.water_per_ha != self.actual_water_per_ha()
+
+    @property
+    def is_partial_treatment(self):
+        return bool(self.applied_area and self.applied_area < self.field.area)
+
+    @property
+    def effective_area(self):
+        """Área efectiva del tratamiento: applied_area si está definida, si no field.area."""
+        return self.applied_area if self.applied_area else self.field.area
 
     def finish_treatment(self, finish_date, real_water_per_ha=None):
         """
@@ -707,11 +725,11 @@ class TreatmentProduct(OrganizationOwnedModel):
             self.unit_price = self.product.price  # Solo si aún no estaba puesto (caso creación)
 
         self.total_price = self.unit_price * self.total_dose
-        self.price_per_ha = self.total_price / Decimal(self.treatment.field.area)
+        self.price_per_ha = self.total_price / Decimal(self.treatment.effective_area)
 
     def calculate_total_dose(self):
         """Calcula la dosis total basada en el tipo de dosis y los parámetros del tratamiento"""
-        field_area = Decimal(self.treatment.field.area)
+        field_area = Decimal(self.treatment.effective_area)
         water_per_ha = Decimal(self.treatment.actual_water_per_ha())
 
         if self.dose_type in ['kg_per_1000l', 'l_per_1000l']:
@@ -729,7 +747,7 @@ class TreatmentProduct(OrganizationOwnedModel):
 
     def calculate_dose_from_total(self):
         """Calcula la dosis basada en la dosis total y los parámetros del tratamiento"""
-        field_area = Decimal(self.treatment.field.area)
+        field_area = Decimal(self.treatment.effective_area)
         water_per_ha = Decimal(self.treatment.actual_water_per_ha())
 
         if self.dose_type in ['kg_per_1000l', 'l_per_1000l']:
