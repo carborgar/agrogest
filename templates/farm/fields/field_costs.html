@@ -13,22 +13,27 @@
         font-size: 0.8rem;
         text-decoration: none;
     }
+
     .product-details-toggle:hover {
         text-decoration: underline;
     }
+
     .product-type-header {
         background-color: #f8f9fa;
         padding: 10px 15px;
         border-radius: 4px;
         margin-bottom: 10px;
     }
+
     .product-item {
         padding: 6px 10px;
         border-bottom: 1px solid #f0f0f0;
     }
+
     .product-item:last-child {
         border-bottom: none;
     }
+
     .progress {
         height: 8px;
     }
@@ -36,99 +41,142 @@
 {% endblock %}
 
 {% block content %}
-<div class="row d-flex align-items-stretch">
-    <!-- Tarjeta de filtros -->
-    <div class="col-md-4 mb-4">
-        <div class="card h-100">
-            <div class="card-body">
-                <h5 class="card-title mb-4">Filtros</h5>
-                <div class="row mb-3">
-                    <div class="col">
-                        <label class="form-label small" for="dateFrom">Desde</label>
-                        <input class="form-control form-control-sm" id="dateFrom" type="date">
-                    </div>
-                    <div class="col">
-                        <label class="form-label small" for="dateTo">Hasta</label>
-                        <input class="form-control form-control-sm" id="dateTo" type="date">
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label small" for="fieldSelector">Parcelas</label>
-                    <div class="dropdown filter-check-dropdown w-100" id="fieldSelectorDropdown">
-                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start filter-dd-btn"
-                                type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
-                            <span class="filter-dd-label">Todas las parcelas…</span>
-                        </button>
-                        <div class="dropdown-menu filter-dd-menu p-2">
-                            <input type="text" class="form-control form-control-sm mb-2 filter-dd-search" placeholder="Buscar…" autocomplete="off">
-                            <div class="filter-dd-options">
+
+{# ── FILTROS ─────────────────────────────────────────────────────── #}
+<div class="card mb-4">
+    <div class="card-body py-3">
+        <div class="row g-3 align-items-end">
+            {# Parcela — dropdown + checkboxes #}
+            <div class="col-12 col-md-3">
+                <label class="form-label small fw-semibold text-muted mb-1">Parcela</label>
+                <div class="dropdown filter-check-dropdown w-100" id="fieldSelectorDropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start filter-dd-btn"
+                            data-bs-auto-close="outside" data-bs-toggle="dropdown" type="button">
+                        <span class="filter-dd-label">Todas las parcelas…</span>
+                    </button>
+                    <div class="dropdown-menu filter-dd-menu p-2">
+                        <input autocomplete="off" class="form-control form-control-sm mb-2 filter-dd-search"
+                               placeholder="Buscar…" type="text">
+                        <div class="filter-dd-options">
                             {% for f in fields %}
                             <div class="form-check mb-1">
-                                <input class="form-check-input fieldcost-check" type="checkbox"
-                                       value="{{ f.id }}" id="fc-{{ f.id }}">
+                                <input class="form-check-input fieldcost-check" id="fc-{{ f.id }}"
+                                       type="checkbox" value="{{ f.id }}">
                                 <label class="form-check-label small" for="fc-{{ f.id }}">{{ f.name }}</label>
                             </div>
                             {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label small" for="viewMode">Mostrar valores en</label>
-                    <select class="form-select form-select-sm" id="viewMode">
-                        <option value="cost">Euros (€)</option>
-                        <option value="quantity">Cantidades (kg/L)</option>
-                    </select>
-                </div>
-                <button class="btn btn-primary btn-sm w-100" id="applyDateFilter">Aplicar filtro</button>
-                <div class="d-flex flex-wrap gap-2 mt-3" id="quickYearsContainer">
-                    <span class="small text-muted align-self-center me-1 w-100">Año rápido:</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tarjeta de estadísticas -->
-    <div class="col-md-8 mb-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title mb-4">Resumen de gastos</h5>
-                <div class="row">
-                    <div class="col-sm-6 mb-3">
-                        <div class="stat-card">
-                            <div class="stat-card-value" id="totalCost">-</div>
-                            <div class="stat-card-label">Gasto total (€)</div>
-                        </div>
-                    </div>
-                    <div class="col-sm-6 mb-3">
-                        <div class="stat-card">
-                            <div class="stat-card-value" id="costPerHa">-</div>
-                            <div class="stat-card-label">€/hectárea</div>
-                        </div>
-                    </div>
-                    <div class="col-sm-6 mb-3">
-                        <div class="stat-card">
-                            <div class="stat-card-value" id="totalArea">-</div>
-                            <div class="stat-card-label">Hectáreas</div>
-                        </div>
-                    </div>
-                    <div class="col-sm-6 mb-3">
-                        <div class="stat-card">
-                            <div class="stat-card-value" id="fieldCount">-</div>
-                            <div class="stat-card-label">Parcelas</div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            {# Mostrar valores en #}
+            <div class="col-12 col-md-3">
+                <label class="form-label small fw-semibold text-muted mb-1" for="viewMode">Mostrar valores en</label>
+                <select class="form-select" id="viewMode">
+                    <option value="cost">Euros (€)</option>
+                    <option value="quantity">Cantidades (kg/L)</option>
+                </select>
+            </div>
+
+            <div class="col-6 col-md-2">
+                <label class="form-label small fw-semibold text-muted mb-1" for="dateFrom">Desde</label>
+                <input class="form-control" id="dateFrom" type="date">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small fw-semibold text-muted mb-1" for="dateTo">Hasta</label>
+                <input class="form-control" id="dateTo" type="date">
+            </div>
+
+            <div class="col-6 col-md-1">
+                <button class="btn btn-primary w-100" id="applyDateFilter" type="button">
+                    <i class="fa fa-search me-1 d-none d-md-inline"></i>Filtrar
+                </button>
+            </div>
+            <div class="col-6 col-md-1">
+                <button class="btn btn-outline-secondary w-100" id="resetFiltersBtn" title="Limpiar filtros"
+                        type="button">
+                    <i class="fa fa-rotate-left"></i>
+                </button>
+            </div>
+        </div>
+
+        {# Accesos rápidos de año — rellenados por field-costs.js #}
+        <div class="d-flex flex-wrap gap-2 mt-3" id="quickYearsContainer">
+            <span class="small text-muted align-self-center me-1 w-100">Año rápido:</span>
         </div>
     </div>
-
 </div>
 
-<!-- Aviso productos sin precio (renderizado por JS) -->
-<div id="noPriceWarning" class="mb-4"></div>
+{# ── RESUMEN DE GASTOS ───────────────────────────────────────────── #}
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title mb-4">Resumen de gastos</h5>
+        <div class="row g-3">
+            <div class="col-6 col-md-3">
+                <div class="card h-100">
+                    <div class="card-body d-flex align-items-center gap-3 py-3">
+                        <div class="rounded-circle bg-danger bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
+                             style="width:42px;height:42px">
+                            <i class="fa fa-euro-sign text-danger"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="small text-muted lh-1 mb-1">Gasto total</div>
+                            <div class="fs-5 fw-bold lh-1" id="totalCost">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card h-100">
+                    <div class="card-body d-flex align-items-center gap-3 py-3">
+                        <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
+                             style="width:42px;height:42px">
+                            <i class="fa fa-chart-line text-primary"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="small text-muted lh-1 mb-1">€/hectárea</div>
+                            <div class="fs-5 fw-bold lh-1" id="costPerHa">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card h-100">
+                    <div class="card-body d-flex align-items-center gap-3 py-3">
+                        <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
+                             style="width:42px;height:42px">
+                            <i class="fa fa-seedling text-success"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="small text-muted lh-1 mb-1">Hectáreas</div>
+                            <div class="fs-5 fw-bold lh-1" id="totalArea">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card h-100">
+                    <div class="card-body d-flex align-items-center gap-3 py-3">
+                        <div class="rounded-circle bg-warning bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
+                             style="width:42px;height:42px">
+                            <i class="fa fa-layer-group text-warning"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="small text-muted lh-1 mb-1">Parcelas</div>
+                            <div class="fs-5 fw-bold lh-1" id="fieldCount">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-<!-- Gráficos -->
+{# Aviso productos sin precio (renderizado por JS) #}
+<div class="mb-4" id="noPriceWarning"></div>
+
+{# ── GRÁFICOS ─────────────────────────────────────────────────────── #}
 <div class="row">
     <div class="col-md-6 mb-4">
         <div class="card h-100">
@@ -190,7 +238,7 @@
     </div>
 </div>
 
-<!-- Grid View of Parcelas -->
+{# ── GRID DE PARCELAS ────────────────────────────────────────────── #}
 <div class="row" id="fieldsContainer">
     <div class="text-center py-5">
         <div class="spinner-border text-primary" role="status">
@@ -206,13 +254,43 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 <script src="{% static 'js/field-costs.js' %}"></script>
 <script>
-    // Recargar datos al cambiar los checkboxes de parcelas
     document.addEventListener('DOMContentLoaded', () => {
+        // Recargar datos al cambiar los checkboxes de parcelas
         document.querySelectorAll('.fieldcost-check').forEach(cb => {
             cb.addEventListener('change', () => {
                 if (typeof loadFieldCostsData === 'function') loadFieldCostsData();
             });
         });
+
+        // Limpiar filtros — vuelve al estado inicial (año en curso, todas las parcelas, modo € )
+        const resetBtn = document.getElementById('resetFiltersBtn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                const currentYear = new Date().getFullYear();
+                const dateFrom = document.getElementById('dateFrom');
+                const dateTo = document.getElementById('dateTo');
+
+                dateFrom.value = `${currentYear}-01-01`;
+                dateTo.value = `${currentYear}-12-31`;
+                document.getElementById('viewMode').value = 'cost';
+                document.querySelectorAll('.fieldcost-check').forEach(cb => {
+                    cb.checked = false;
+                });
+
+                const ddLabel = document.querySelector('#fieldSelectorDropdown .filter-dd-label');
+                if (ddLabel) ddLabel.textContent = 'Todas las parcelas…';
+
+                const ddSearch = document.querySelector('#fieldSelectorDropdown .filter-dd-search');
+                if (ddSearch) ddSearch.value = '';
+
+                // Marcar el botón del año en curso como activo entre los accesos rápidos
+                document.querySelectorAll('#quickYearsContainer .quick-year-btn').forEach(b => {
+                    b.className = `btn btn-sm quick-year-btn ${b.dataset.year == currentYear ? 'btn-primary' : 'btn-outline-secondary'}`;
+                });
+
+                if (typeof loadFieldCostsData === 'function') loadFieldCostsData();
+            });
+        }
     });
 </script>
 {% endblock %}
