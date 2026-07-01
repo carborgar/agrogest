@@ -28,7 +28,8 @@
                 <i class="bi bi-geo-alt me-1"></i> Parcela
             </p>
             <p class="fw-bold mb-0">{{ treatment.field.name }}
-                <span class="text-muted">· {{ treatment.field.area }} ha</span>
+                <span class="text-muted">· {{ treatment.effective_area }} ha</span>
+                {% if treatment.is_partial_treatment %}<span class="text-muted small">(de {{ treatment.field.area }} ha)</span>{% endif %}
             </p>
         </div>
 
@@ -39,7 +40,10 @@
             </p>
             <p class="fw-bold mb-0">{{ products|length }}
                 {% if total_cost %}
-                <span class="text-success fw-bold"> · {{ total_cost }}€</span>
+                <span class="{% if treatment.is_partial_treatment %}text-warning{% else %}text-success{% endif %} fw-bold"> · {{ total_cost }}€</span>
+                {% endif %}
+                {% if treatment.is_partial_treatment %}
+                <span class="text-muted small d-block">{{ treatment.applied_area }} ha{% if treatment.zone_notes %} · {{ treatment.zone_notes }}{% endif %}</span>
                 {% endif %}
             </p>
         </div>
@@ -99,11 +103,11 @@
                     {% if treatment.is_spraying and treatment.machine %}
                     {% with load_info=treatment.calculate_machine_loads %}
                     <strong>{{ load_info.total_water }} L</strong> de agua
-                    para <strong>{{ treatment.field.area }} ha</strong>
+                    para <strong>{{ treatment.effective_area }} ha</strong>
                     a <strong>{{ treatment.actual_water_per_ha }} L/ha</strong>
                     {% endwith %}
                     {% elif treatment.is_fertigation %}
-                    Fertirrigación para <strong>{{ treatment.field.area }} ha</strong>
+                    Fertirrigación para <strong>{{ treatment.effective_area }} ha</strong>
                     en <strong>{{ treatment.field.name }}</strong>
                     {% endif %}
                 </div>
@@ -320,10 +324,18 @@
             <div class="card p-4 mb-3">
                 {% if total_cost %}
                 <p class="text-uppercase text-muted fw-semibold mb-1 ls-1">Coste Total</p>
-                <h2 class="fw-bold mb-1 text-primary">{{ total_cost }}€</h2>
+                <h2 class="fw-bold mb-1 {% if treatment.is_partial_treatment %}text-warning{% else %}text-primary{% endif %}">{{ total_cost }}€</h2>
                 <p class="text-muted mb-0" style="font-size: 0.95rem;">
                     {{ cost_per_ha|floatformat:2 }} €/ha · {{ products|length }} productos
                 </p>
+                {% if treatment.is_partial_treatment %}
+                <p class="mb-0 mt-1" style="font-size: 0.85rem;">
+                    <span class="text-warning-emphasis">
+                        <i class="bi bi-exclamation-triangle me-1"></i>{{ treatment.applied_area }} ha de {{ treatment.field.area }} ha
+                        {% if treatment.zone_notes %} · {{ treatment.zone_notes }}{% endif %}
+                    </span>
+                </p>
+                {% endif %}
                 {% endif %}
             </div>
         </div>
@@ -358,6 +370,21 @@
                         <span class="text-muted"> · {{ treatment.field.area }} ha</span>
                     </span>
                     </div>
+                    {% if treatment.is_partial_treatment %}
+                    <div class="d-flex justify-content-between align-items-center py-3 border-bottom">
+                        <span class="text-muted">Área tratada</span>
+                        <span class="fw-semibold text-warning">
+                            {{ treatment.applied_area }} ha
+                            <span class="text-muted small">de {{ treatment.field.area }} ha</span>
+                        </span>
+                    </div>
+                    {% if treatment.zone_notes %}
+                    <div class="d-flex justify-content-between align-items-center py-3 border-bottom">
+                        <span class="text-muted">Zona</span>
+                        <span class="fw-semibold">{{ treatment.zone_notes }}</span>
+                    </div>
+                    {% endif %}
+                    {% endif %}
                     <div class="d-flex justify-content-between align-items-center py-3">
                         <span class="text-muted">Productos</span>
                         <span class="fw-semibold">{{ products|length }}
@@ -446,9 +473,13 @@
         <!-- ── Footer coste total ── -->
         {% if total_cost %}
         <div class="d-flex justify-content-between align-items-end border-top px-3 py-3">
-            <span class="text-muted">Coste total</span>
+            <span class="text-muted">Coste total
+                {% if treatment.is_partial_treatment %}
+                <br><span class="small text-warning">{{ treatment.applied_area }} ha{% if treatment.zone_notes %} · {{ treatment.zone_notes }}{% endif %}</span>
+                {% endif %}
+            </span>
             <div class="text-end">
-                <div class="fw-bold text-success lh-1" style="font-size:1.4rem">{{ total_cost }}€</div>
+                <div class="fw-bold {% if treatment.is_partial_treatment %}text-warning{% else %}text-success{% endif %} lh-1" style="font-size:1.4rem">{{ total_cost }}€</div>
                 <div class="text-muted mt-1" style="font-size:.8rem">{{ cost_per_ha|floatformat:2 }} €/ha</div>
             </div>
         </div>

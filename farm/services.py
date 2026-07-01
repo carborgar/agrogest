@@ -47,7 +47,7 @@ def build_treatment_email_html(treatment, extra_rows=None):
     """
     # ── Filas de metadatos ────────────────────────────────────────────────────
     meta_rows = [
-        ('Parcela', f"{treatment.field.name} ({treatment.field.area} ha)"),
+        ('Parcela', f"{treatment.field.name} ({treatment.effective_area} ha)"),
         ('Tipo', treatment.get_type_display()),
         ('Fecha planificada', treatment.date.strftime('%d/%m/%Y')),
     ]
@@ -205,7 +205,7 @@ def recalculate_treatment_costs(
             treatment_product.unit_price = latest_price
             treatment_product.total_price = latest_price * treatment_product.total_dose
 
-            field_area = Decimal(str(treatment_product.treatment.field.area or 0))
+            field_area = Decimal(str(treatment_product.treatment.effective_area or 0))
             if field_area > 0:
                 treatment_product.price_per_ha = treatment_product.total_price / field_area
             else:
