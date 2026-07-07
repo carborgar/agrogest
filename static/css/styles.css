@@ -167,28 +167,30 @@ footer a:hover {
 
 /* Estilos generales para toda la app*/
 .card {
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.05);
+    background: #fff;
+    border-radius: 24px;
+    overflow: hidden;
+    margin-bottom: 16px;
+    box-shadow: 0 6px 15px #e8ebe2;
     transition: transform 0.3s, box-shadow 0.3s;
-    background-color: #FFFFFF;
-    border: 1px solid #D9D6CE;
-    border-radius: 12px;
+    border: 0;
+
+}
+
+.card-header {
+    background: #fff;
+    border-bottom: 1px solid #e8ebe2;
+    font-weight: 700 !important;
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    padding: 12px 18px;
+    font-size: 13px;
 }
 
 .floating-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 12px 20px rgba(0, 0, 0, 0.1);
-}
-
-.card-header {
-    border-radius: 12px 12px 0 0 !important;
-    background-color: #f0ede8;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    text-transform: uppercase !important;
-    font-weight: 500 !important;
-    color: var(--bs-secondary-color) !important;
-    margin-bottom: 0;
-    box-shadow: var(--bs-box-shadow-sm) !important;
-    overflow: hidden !important;
 }
 
 .badge-status {
@@ -233,7 +235,7 @@ footer a:hover {
     #filterCollapse {
         padding-top: 0.5rem;
         margin-top: 0.5rem;
-        border-top: 1px solid rgba(0, 0, 0, 0.05);
+        border-top: 1px solid #e8ebe2;
     }
 }
 
@@ -266,7 +268,7 @@ footer a:hover {
     border-radius: 6px;
     padding: 15px;
     text-align: center;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 6px #e8ebe2;
 }
 
 .stat-card-value {
@@ -292,9 +294,11 @@ footer a:hover {
 }
 
 .alert {
-    border-radius: 10px;
-    padding: 1rem;
-    border-left: 4px solid;
+    border-radius: 14px;
+    padding: 0.8rem 1rem;
+    font-size: 14px;
+    gap: 9px;
+    margin-bottom: 16px;
 }
 
 .action-btn {
@@ -310,7 +314,7 @@ footer a:hover {
 
 .results-header {
     padding: 16px 20px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid #e8ebe2;
 }
 
 /* Estilos para el panel de filtros */
@@ -382,7 +386,7 @@ footer a:hover {
 .filter-body {
     padding: 20px;
     background-color: #ffffff;
-    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    border-top: 1px solid #e8ebe2;
 }
 
 .form-check-input:checked {
@@ -509,7 +513,7 @@ footer a:hover {
     align-items: center;
     gap: 0.85rem;
     border: 1px solid rgba(0, 0, 0, 0.07);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 1px 4px #e8ebe2;
     transition: box-shadow 0.2s, transform 0.2s;
     position: relative;
     overflow: hidden;
@@ -662,7 +666,7 @@ a:hover .dashboard-stat-card {
     align-items: center;
     gap: 0.75rem;
     padding: 0.75rem 1rem;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid #e8ebe2;
     transition: background 0.15s;
 }
 
@@ -769,7 +773,7 @@ a:hover .dashboard-treatment-row {
     align-items: center;
     gap: 0.75rem;
     padding: 1rem 1rem 0.75rem;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid #e8ebe2;
 }
 
 .field-card-icon {
@@ -824,7 +828,7 @@ a:hover .dashboard-treatment-row {
 }
 
 .field-actions-btn:hover {
-    background: rgba(0, 0, 0, 0.05);
+    background: #e8ebe2;
     border-color: rgba(0, 0, 0, 0.1);
     color: #212529;
 }
@@ -920,7 +924,7 @@ a:hover .dashboard-treatment-row {
 
 /* cuando el count es 0: gris y no tan destacado */
 .field-indicator--zero {
-    background: rgba(0, 0, 0, 0.05);
+    background: #e8ebe2;
     color: #adb5bd;
 }
 
@@ -935,7 +939,7 @@ a:hover .dashboard-treatment-row {
 /* ── Footer ── */
 .field-card-footer {
     padding: 0.75rem 1rem;
-    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    border-top: 1px solid #e8ebe2;
     background: #fafafa;
     border-radius: 0 0 12px 12px;
 }

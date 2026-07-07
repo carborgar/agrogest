@@ -1,0 +1,128 @@
+{% load custom_filters %}
+{% load treatment_filters %}
+{% load mathfilters %}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center {% if is_partial %}text-bg-warning{% else %}text-bg-success{% endif %}">
+
+        {% if is_partial %}
+        <span><i class="fa-solid fa-fill-drip me-1"></i>Depósito parcial</span>
+        <span>{{ load_info.partial_water }} L</span>
+
+        {% elif treatment.is_fertigation %}
+        <span><i class="fa-solid fa-flask me-1"></i>Productos</span>
+
+        {% else %}
+        <span><i class="fa-solid fa-tractor me-1"></i>Depósitos completos</span>
+
+        {% if treatment.machine %}
+        <span>{{ treatment.machine.capacity }} L × {{ load_info.full_loads }}</span>
+        {% endif %}
+        {% endif %}
+    </div>
+
+    <div class="card-body px-0">
+        <!-- Mobile -->
+        <div class="d-md-none">
+            {% for p in products %}
+            <div class="px-3 py-2{% if not forloop.last %} border-bottom{% endif %}">
+                <div class="d-flex justify-content-between align-items-start gap-3">
+                    <div>
+                        <div class="fw-semibold">{{ p.product.name }}</div>
+
+                        <div class="text-uppercase text-muted"
+                             style="font-size:.72rem;letter-spacing:.06em">
+                            {{ p.product.product_type.name }}
+                        </div>
+
+                        <div class="text-muted mt-1" style="font-size:.8rem">
+                            {{ p.dose|fmt_dose }} {{ p.dose_type|dose_type }}
+                        </div>
+                    </div>
+
+                    <div class="text-end flex-shrink-0">
+                        <div class="fw-bold {% if is_partial %}text-warning{% else %}text-success{% endif %}"
+                             style="font-size:1.05rem">
+                            {% if is_partial %}
+                            {{ p|partial_load_product:treatment|floatformat:"2" }}
+                            {% else %}
+                            {{ p.get_dose_per_load|floatformat:"2" }}
+                            {% endif %}
+                            {{ p.total_dose_unit }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Desktop -->
+        <table class="table table-borderless mb-0 d-none d-md-table" style="--bs-table-bg:#fff">
+            <thead>
+            <tr class="border-bottom">
+                <th class="ps-3 py-2 text-uppercase text-muted" style="font-size:.68rem;letter-spacing:.07em">Producto
+                </th>
+                <th class="py-2 text-uppercase text-muted" style="font-size:.68rem;letter-spacing:.07em">Categoría</th>
+                <th class="py-2 text-end text-uppercase text-muted" style="font-size:.68rem;letter-spacing:.07em">
+                    Dosis
+                </th>
+                <th class="pe-3 py-2 text-end text-uppercase text-muted" style="font-size:.68rem;letter-spacing:.07em">
+                    Cantidad
+                </th>
+                <th class="pe-3 py-2 text-end text-uppercase text-muted" style="font-size:.68rem;letter-spacing:.07em">
+                    €/UD
+                </th>
+                <th class="pe-3 py-2 text-end text-uppercase text-muted" style="font-size:.68rem;letter-spacing:.07em">
+                    €/HA
+                </th>
+                <th class="pe-3 py-2 text-end text-uppercase text-muted" style="font-size:.68rem;letter-spacing:.07em">€
+                    TOTAL
+                </th>
+            </tr>
+            </thead>
+
+            <tbody>
+            {% for p in products %}
+            <tr class="{% if not forloop.last %}border-bottom border-light-subtle{% endif %}">
+                <td class="ps-3 fw-semibold align-middle">{{ p.product.name }}</td>
+
+                <td class="align-middle">
+                    {{ p.product.product_type.name }}
+                </td>
+
+                <td class="text-end align-middle">
+                    {{ p.dose|fmt_dose }} {{ p.dose_type|dose_type }}
+                </td>
+
+                <td class="pe-3 fw-bold text-end align-middle {% if is_partial %}text-warning{% else %}text-success{% endif %}">
+                    {% if is_partial %}
+                    {{ p|partial_load_product:treatment|floatformat:"2" }}
+                    {% else %}
+                    {{ p.get_dose_per_load|floatformat:"2" }}
+                    {% endif %}
+                    {{ p.total_dose_unit }}
+                </td>
+
+                <td class="pe-3 text-end align-middle">
+                    {% if p.unit_price > 0 %}
+                    {{ p.unit_price|floatformat:"2" }}€
+                    {% endif %}
+                </td>
+
+                <td class="pe-3 text-end align-middle">
+                    {% if p.unit_price > 0 %}
+                    {{ p.price_per_ha|floatformat:"2" }}€
+                    {% endif %}
+                </td>
+
+                <td class="pe-3 text-end fw-bold align-middle {% if is_partial %}text-warning{% else %}text-success{% endif %}">
+                    {% if p.unit_price > 0 %}
+                    {{ p.total_price|floatformat:"2" }}€
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>

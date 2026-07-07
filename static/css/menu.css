@@ -67,7 +67,7 @@ body {
 
 /* ── Main content ─────────────────────────────────────────────────────────── */
 body {
-    background-color: #FAF9F5;
+    background: #F5F7F3;
 }
 .main-content {
     --main-pad: 24px;

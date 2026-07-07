@@ -29,7 +29,8 @@
             </p>
             <p class="fw-bold mb-0">{{ treatment.field.name }}
                 <span class="text-muted">· {{ treatment.effective_area }} ha</span>
-                {% if treatment.is_partial_treatment %}<span class="text-muted small">(de {{ treatment.field.area }} ha)</span>{% endif %}
+                {% if treatment.is_partial_treatment %}<span
+                        class="text-muted small">(de {{ treatment.field.area }} ha)</span>{% endif %}
             </p>
         </div>
 
@@ -93,261 +94,62 @@
     <!-- Instrucciones -->
     <div class="col-12 col-lg-9">
 
-        <div class="card">
-            <div class="card-header d-flex align-items-center gap-2">
-                <i class="bi bi-list-task me-2"></i>Instrucciones para operador
-            </div>
-            <div class="card-body">
-                <div class="alert alert-info mb-3">
-                    <i class="fa fa-info-circle me-2"></i>
-                    {% if treatment.is_spraying and treatment.machine %}
-                    {% with load_info=treatment.calculate_machine_loads %}
-                    <strong>{{ load_info.total_water }} L</strong> de agua
-                    para <strong>{{ treatment.effective_area }} ha</strong>
-                    a <strong>{{ treatment.actual_water_per_ha }} L/ha</strong>
-                    {% endwith %}
-                    {% elif treatment.is_fertigation %}
-                    Fertirrigación para <strong>{{ treatment.effective_area }} ha</strong>
-                    en <strong>{{ treatment.field.name }}</strong>
-                    {% endif %}
-                </div>
+        {% with load_info=treatment.calculate_machine_loads %}
 
-                {% with load_info=treatment.calculate_machine_loads %}
-                {% if treatment.is_fertigation or load_info.full_loads > 0 %}
-                <div class="rounded-2 border border-success-subtle mb-3 overflow-hidden">
-                    <div class="d-flex align-items-center gap-2 px-3 py-2 bg-success-subtle">
-                        {% if treatment.is_fertigation %}
-                        <span class="badge bg-success"><i class="fa fa-droplet me-1"></i>Dosis a aplicar</span>
-                        {% else %}
-                        <span class="badge bg-success">
-                            <i class="fa fa-tractor me-1"></i>
-                            {# @formatter:off #}
-                            Depósito{{ load_info.full_loads|pluralize }} completo{{ load_info.full_loads|pluralize }}
-                            {# @formatter:on #}
-                        </span>
-                        {% if treatment.machine %}
-                        <span class="text-success-emphasis">
-                            {{ treatment.machine.capacity }} L × {{ load_info.full_loads }}
-                        </span>
-                        {% endif %}
-                        {% endif %}
-                    </div>
-                    <!-- Mobile: card-list -->
-                    <div class="d-md-none">
-                        {% for p in products %}
-                        <div class="px-3 py-2{% if not forloop.last %} border-bottom{% endif %}">
-                            <div class="d-flex justify-content-between align-items-start gap-3">
-                                <div>
-                                    <div class="fw-semibold">{{ p.product.name }}</div>
-                                    <div class="text-uppercase text-muted"
-                                         style="font-size:.72rem;letter-spacing:.06em">{{ p.product.product_type.name }}
-                                    </div>
-                                    <div class="text-muted mt-1" style="font-size:.8rem">{{ p.dose|fmt_dose }}
-                                        {{ p.dose_type|dose_type }}
-                                    </div>
-                                </div>
-                                <div class="text-end flex-shrink-0">
-                                    <div class="fw-bold text-success" style="font-size:1.05rem">
-                                        {{ p.get_dose_per_load|floatformat:"2" }} {{ p.total_dose_unit }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    <!-- Desktop: table -->
-                    <table class="table table-borderless mb-0 d-none d-md-table" style="--bs-table-bg: #fff">
-                        <thead>
-                        <tr class="border-bottom">
-                            <th class="ps-3 py-2 text-uppercase text-muted"
-                                style="font-size:.68rem;letter-spacing:.07em">Producto
-                            </th>
-                            <th class="py-2 text-uppercase text-muted"
-                                style="font-size:.68rem;letter-spacing:.07em">Categoría
-                            </th>
-                            <th class="py-2 text-end text-uppercase text-muted"
-                                style="font-size:.68rem;letter-spacing:.07em">Dosis
-                            </th>
-                            <th class="pe-3 py-2 text-end text-uppercase text-muted"
-                                style="font-size:.68rem;letter-spacing:.07em">Cantidad
-                            </th>
-                            <th class="pe-3 py-2 text-end text-uppercase text-muted"
-                                style="font-size:.68rem;letter-spacing:.07em">€/UD
-                            </th>
-                            <th class="pe-3 py-2 text-end text-uppercase text-muted"
-                                style="font-size:.68rem;letter-spacing:.07em">€/HA
-                            </th>
-                            <th class="pe-3 py-2 text-end text-uppercase text-muted"
-                                style="font-size:.68rem;letter-spacing:.07em">€ TOTAL
-                            </th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for p in products %}
-                        <tr class="{% if not forloop.last %}border-bottom border-light-subtle{% endif %}">
-                            <td class="ps-3 fw-semibold align-middle">{{ p.product.name }}</td>
-                            <td class="text-muted align-middle">{{ p.product.product_type.name }}</td>
-                            <td class="text-end text-muted align-middle">
-                                {{ p.dose|fmt_dose }} {{ p.dose_type|dose_type }}
-                            </td>
-                            <td class="pe-3 fw-semibold text-end align-middle">
-                                {{ p.get_dose_per_load|floatformat:"2" }} {{ p.total_dose_unit }}
-                            </td>
-                            <td class="pe-3 text-end align-middle text-muted">
-                                {% if p.unit_price > 0 %}
-                                {{ p.unit_price|floatformat:"2" }}€
-                                {% endif %}
-                            </td>
-                            <td class="pe-3 text-end align-middle text-muted">
-                                {% if p.unit_price > 0 %}
-                                {{ p.price_per_ha|floatformat:"2" }}€
-                                {% endif %}
-                            </td>
-                            <td class="pe-3 text-end fw-bold text-success align-middle">
-                                {% if p.unit_price > 0 %}
-                                {{ p.total_price|floatformat:"2" }}€
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% endif %}
+        <div class="alert alert-info mb-3">
+            <i class="fa-solid fa-circle-info me-2"></i>
 
-                {% if load_info.partial_load %}
-                <div class="rounded-2 border border-warning-subtle mb-3 overflow-hidden">
-                    <div class="d-flex align-items-center gap-2 px-3 py-2 bg-warning-subtle">
-                        <span class="badge bg-warning text-dark">
-                            <i class="fa fa-fill-drip me-1"></i>Depósito parcial
-                        </span>
-                        <span class="text-warning-emphasis">{{ load_info.partial_water }} L</span>
-                    </div>
-                    <!-- Mobile: card-list -->
-                    <div class="d-md-none">
-                        {% for p in products %}
-                        <div class="px-3 py-2{% if not forloop.last %} border-bottom{% endif %}">
-                            <div class="d-flex justify-content-between align-items-start gap-3">
-                                <div>
-                                    <div class="fw-semibold">{{ p.product.name }}</div>
-                                    <div class="text-uppercase text-muted"
-                                         style="font-size:.72rem;letter-spacing:.06em">{{ p.product.product_type.name }}
-                                    </div>
-                                    <div class="text-muted mt-1" style="font-size:.8rem">
-                                        {{ p.dose|fmt_dose }} {{ p.dose_type|dose_type }}
-                                    </div>
-                                </div>
-                                <div class="text-end flex-shrink-0">
-                                    <div class="fw-bold text-warning" style="font-size:1.05rem">
-                                        {{ p|partial_load_product:treatment|floatformat:"2" }} {{ p.total_dose_unit }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    <!-- Desktop: table -->
-                    <table class="table table-sm table-borderless table-responsive mb-0 d-none d-md-table"
-                           style="--bs-table-bg: #fff">
-                        <thead>
-                        <tr class="border-bottom">
-                            <th class="ps-3 py-2 text-uppercase text-muted"
-                                style="font-size:.68rem;letter-spacing:.07em">Producto
-                            </th>
-                            <th class="py-2 text-uppercase text-muted"
-                                style="font-size:.68rem;letter-spacing:.07em">Categoría
-                            </th>
-                            <th class="py-2 text-end text-uppercase text-muted"
-                                style="font-size:.68rem;letter-spacing:.07em">Dosis
-                            </th>
-                            <th class="pe-3 py-2 text-end text-uppercase text-muted"
-                                style="font-size:.68rem;letter-spacing:.07em">Cantidad
-                            </th>
-                            <th class="pe-3 py-2 text-end text-uppercase text-muted"
-                                style="font-size:.68rem;letter-spacing:.07em">€/UD
-                            </th>
-                            <th class="pe-3 py-2 text-end text-uppercase text-muted"
-                                style="font-size:.68rem;letter-spacing:.07em">€/HA
-                            </th>
-                            <th class="pe-3 py-2 text-end text-uppercase text-muted"
-                                style="font-size:.68rem;letter-spacing:.07em">€ TOTAL
-                            </th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for p in products %}
-                        <tr class="{% if not forloop.last %}border-bottom border-light-subtle{% endif %}">
-                            <td class="ps-3 fw-semibold align-middle">{{ p.product.name }}</td>
-                            <td class="text-muted align-middle">{{ p.product.product_type.name }}</td>
-                            <td class="text-end text-muted align-middle">
-                                {{ p.dose|fmt_dose }} {{ p.dose_type|dose_type }}
-                            </td>
-                            <td class="pe-3 text-end fw-bold text-warning align-middle">
-                                {{ p|partial_load_product:treatment|floatformat:"2" }} {{ p.total_dose_unit }}
-                            </td>
-                            <td class="pe-3 text-end align-middle text-muted">
-                                {% if p.unit_price > 0 %}
-                                {{ p.unit_price|floatformat:"2" }}€
-                                {% endif %}
-                            </td>
-                            <td class="pe-3 text-end align-middle text-muted">
-                                {% if p.unit_price > 0 %}
-                                {{ p.price_per_ha|floatformat:"2" }}€
-                                {% endif %}
-                            </td>
-                            <td class="pe-3 text-end fw-bold text-success align-middle">
-                                {% if p.unit_price > 0 %}
-                                {{ p.total_price|floatformat:"2" }}€
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% endif %}
-                {% endwith %}
+            {% if treatment.is_spraying and treatment.machine %}
+            <strong>{{ load_info.total_water }} L</strong> de agua para <strong>{{ treatment.effective_area }}
+            ha</strong>
+            a <strong>{{ treatment.actual_water_per_ha }} L/ha</strong>
 
-                <div class="alert alert-light border d-flex align-items-start gap-2 mb-0">
-                    <i class="fa fa-circle-info text-muted mt-1"></i>
-                    <div>Asegúrese de aplicar los productos en el orden indicado y con el equipo de protección
-                        adecuado.
-                    </div>
-                </div>
+            {% elif treatment.is_fertigation %}
+            Fertirrigación para <strong>{{ treatment.effective_area }} ha</strong>
+            en <strong>{{ treatment.field.name }}</strong>
+            {% endif %}
+        </div>
+
+        {% if treatment.is_fertigation or load_info.full_loads > 0 %}
+
+        {# @formatter:off #}
+        {% include "farm/treatments/_products_card.html" with treatment=treatment load_info=load_info products=products is_partial=False %}
+        {% if load_info.partial_load %}
+            {% include "farm/treatments/_products_card.html" with treatment=treatment load_info=load_info products=products is_partial=True %}
+        {% endif %}
+        {# @formatter:on #}
+
+        {% endif %}
+
+        <div class="alert alert-light border d-flex align-items-start gap-2 mb-0" style="background-color:#fff;">
+            <i class="fa fa-circle-info mt-1 text-warning"></i>
+            <div>Asegúrese de aplicar los productos en el orden indicado y con el equipo de protección
+                adecuado.
             </div>
         </div>
 
+        {% endwith %}
     </div>
 
     <div class="col-12 col-lg-3 d-none d-lg-block">
-        <div class="col-12">
-            <div class="card p-4 mb-3">
+        <div class="card">
+            <div class="card-header"><span><i class="fa-solid fa-info-circle me-1"></i>Detalles</span></div>
+            <div class="px-4">
                 {% if total_cost %}
-                <p class="text-uppercase text-muted fw-semibold mb-1 ls-1">Coste Total</p>
-                <h2 class="fw-bold mb-1 {% if treatment.is_partial_treatment %}text-warning{% else %}text-primary{% endif %}">{{ total_cost }}€</h2>
-                <p class="text-muted mb-0" style="font-size: 0.95rem;">
-                    {{ cost_per_ha|floatformat:2 }} €/ha · {{ products|length }} productos
-                </p>
-                {% if treatment.is_partial_treatment %}
-                <p class="mb-0 mt-1" style="font-size: 0.85rem;">
-                    <span class="text-warning-emphasis">
-                        <i class="bi bi-exclamation-triangle me-1"></i>{{ treatment.applied_area }} ha de {{ treatment.field.area }} ha
-                        {% if treatment.zone_notes %} · {{ treatment.zone_notes }}{% endif %}
+                <div class="d-flex justify-content-between align-items-center py-3 border-bottom">
+                    <span class="text-muted">Coste total</span>
+                    <span class="d-flex flex-column align-items-end">
+                        <span class="fw-semibold fs-5 {% if treatment.is_partial_treatment %}text-warning{% else %}text-primary{% endif %}">{{ total_cost }}€</span>
+                        <span class="text-muted mb-0" style="font-size: 0.95rem;">
+                            {{ cost_per_ha|floatformat:2 }} €/ha
+                        </span>
                     </span>
-                </p>
+                </div>
                 {% endif %}
-                {% endif %}
-            </div>
-        </div>
 
-        <div class="col-12">
-
-            <div class="card">
-                <div class="card-header"><i class="bi bi-info-circle me-2"></i>Detalles</div>
-                <div class="px-4">
-                    <div class="d-flex justify-content-between align-items-center py-3 border-bottom">
-                        <span class="text-muted">Fecha</span>
-                        <span class="d-flex flex-column align-items-end">
+                <div class="d-flex justify-content-between align-items-center py-3 border-bottom">
+                    <span class="text-muted">Fecha</span>
+                    <span class="d-flex flex-column align-items-end">
                         {% if treatment.date_changed %}
                         <span class="fw-bold text-muted small text-decoration-line-through">
                             {{ treatment.date|date:"d/m/Y" }}
@@ -362,41 +164,34 @@
                         </span>
                         {% endif %}
                     </span>
-                    </div>
+                </div>
 
-                    <div class="d-flex justify-content-between align-items-center py-3 border-bottom">
-                        <span class="text-muted">Parcela</span>
-                        <span class="fw-semibold">{{ treatment.field.name }}
+                <div class="d-flex justify-content-between align-items-center py-3 border-bottom">
+                    <span class="text-muted">Parcela</span>
+                    <span class="fw-semibold">{{ treatment.field.name }}
                         <span class="text-muted"> · {{ treatment.field.area }} ha</span>
                     </span>
-                    </div>
-                    {% if treatment.is_partial_treatment %}
-                    <div class="d-flex justify-content-between align-items-center py-3 border-bottom">
-                        <span class="text-muted">Área tratada</span>
-                        <span class="fw-semibold text-warning">
-                            {{ treatment.applied_area }} ha
-                            <span class="text-muted small">de {{ treatment.field.area }} ha</span>
-                        </span>
-                    </div>
-                    {% if treatment.zone_notes %}
-                    <div class="d-flex justify-content-between align-items-center py-3 border-bottom">
-                        <span class="text-muted">Zona</span>
-                        <span class="fw-semibold">{{ treatment.zone_notes }}</span>
-                    </div>
-                    {% endif %}
-                    {% endif %}
-                    <div class="d-flex justify-content-between align-items-center py-3">
-                        <span class="text-muted">Productos</span>
-                        <span class="fw-semibold">{{ products|length }}
-                        {% if total_cost %}
-                        <span class="text-success"> · {{ total_cost }}€</span>
-                        {% endif %}
-                    </span>
-                    </div>
-                    {% if treatment.water_per_ha %}
-                    <div class="d-flex justify-content-between align-items-center py-3 border-top">
-                        <span class="text-muted">Mojado</span>
-                        <span class="d-flex flex-column align-items-end">
+                </div>
+                {% if treatment.is_partial_treatment %}
+                <div class="d-flex justify-content-between align-items-center py-3 border-bottom">
+                    <span class="text-muted">Área tratada</span>
+                    <span class="fw-semibold text-warning">
+                                {{ treatment.applied_area }} ha
+                                <span class="text-muted small">de {{ treatment.field.area }} ha</span>
+                            </span>
+                </div>
+                {% if treatment.zone_notes %}
+                <div class="d-flex justify-content-between align-items-center py-3 border-bottom">
+                    <span class="text-muted">Zona</span>
+                    <span class="fw-semibold">{{ treatment.zone_notes }}</span>
+                </div>
+                {% endif %}
+                {% endif %}
+
+                {% if treatment.water_per_ha %}
+                <div class="d-flex justify-content-between align-items-center py-3">
+                    <span class="text-muted">Mojado</span>
+                    <span class="d-flex flex-column align-items-end">
                         {% if treatment.water_changed %}
                         <span class="fw-bold text-muted small text-decoration-line-through">
                             {{ treatment.water_per_ha }} L/Ha
@@ -411,9 +206,8 @@
                         </span>
                         {% endif %}
                     </span>
-                    </div>
-                    {% endif %}
                 </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -425,8 +219,7 @@
 ═══════════════════════════════════════════════════════ -->
 <div class="card mb-4 d-md-none">
     <div class="card-header d-flex align-items-center gap-2">
-        <i class="fa fa-flask me-2"></i>Productos y costes
-        <span class="badge bg-primary rounded-pill">{{ products|length }}</span>
+        <i class="fa-solid fa-euro me-1"></i>Costes
     </div>
     <div class="card-body p-0">
 
@@ -479,7 +272,9 @@
                 {% endif %}
             </span>
             <div class="text-end">
-                <div class="fw-bold {% if treatment.is_partial_treatment %}text-warning{% else %}text-success{% endif %} lh-1" style="font-size:1.4rem">{{ total_cost }}€</div>
+                <div class="fw-bold {% if treatment.is_partial_treatment %}text-warning{% else %}text-success{% endif %} lh-1"
+                     style="font-size:1.4rem">{{ total_cost }}€
+                </div>
                 <div class="text-muted mt-1" style="font-size:.8rem">{{ cost_per_ha|floatformat:2 }} €/ha</div>
             </div>
         </div>
