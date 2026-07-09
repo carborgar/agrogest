@@ -25,28 +25,30 @@
         <!-- Parcela -->
         <div class="col-6">
             <p class="text-uppercase text-muted small fw-semibold mb-1">
-                <i class="bi bi-geo-alt me-1"></i> Parcela
+                <i class="fa-solid fa-location-dot me-1"></i>Superficie
             </p>
-            <p class="fw-bold mb-0">{{ treatment.field.name }}
-                <span class="text-muted">· {{ treatment.effective_area }} ha</span>
-                {% if treatment.is_partial_treatment %}<span
-                        class="text-muted small">(de {{ treatment.field.area }} ha)</span>{% endif %}
+            <p class="fw-bold mb-0">{{ treatment.field.name }}</p>
+            <p class="mb-0">{{ treatment.effective_area }} ha
+                {% if treatment.is_partial_treatment %} de {{ treatment.field.area }} ha{% endif %}
             </p>
+
+            {% if treatment.is_partial_treatment and treatment.zone_notes %}
+            <p class="text-muted small mb-0 mt-1"><strong>Zona:</strong> {{ treatment.zone_notes }}</p>
+            {% endif %}
         </div>
 
-        <!-- Productos -->
+        <!-- Coste -->
         <div class="col-6">
             <p class="text-uppercase text-muted small fw-semibold mb-1">
-                <i class="bi bi-box me-1"></i> Productos
+                <i class="fa-solid fa-euro-sign me-1"></i>Coste
             </p>
-            <p class="fw-bold mb-0">{{ products|length }}
-                {% if total_cost %}
-                <span class="{% if treatment.is_partial_treatment %}text-warning{% else %}text-success{% endif %} fw-bold"> · {{ total_cost }}€</span>
-                {% endif %}
-                {% if treatment.is_partial_treatment %}
-                <span class="text-muted small d-block">{{ treatment.applied_area }} ha{% if treatment.zone_notes %} · {{ treatment.zone_notes }}{% endif %}</span>
-                {% endif %}
-            </p>
+            {% if total_cost %}
+            <p class="fw-bold mb-0{% if treatment.is_partial_treatment %} text-warning{% else %} text-success{% endif %}">
+                {{ total_cost }}€</p>
+            <p class="text-muted small mb-0">{{ cost_per_ha|floatformat:2 }} €/ha</p>
+            {% else %}
+            <p class="text-muted small mb-0">Sin coste</p>
+            {% endif %}
         </div>
 
         <div class="col-12">
@@ -56,7 +58,7 @@
         <!-- Fecha -->
         <div class="col-6">
             <p class="text-uppercase text-muted small fw-semibold mb-1">
-                <i class="bi bi-calendar3 me-1"></i> Fecha
+                <i class="fa-solid fa-calendar me-1"></i>Fecha
             </p>
             {% if treatment.date_changed %}
             <p class="fw-bold mb-0 text-decoration-line-through">{{ treatment.date|date:"d/m/Y" }}</p>
@@ -71,14 +73,14 @@
         {% if treatment.water_per_ha %}
         <div class="col-6">
             <p class="text-uppercase text-muted small fw-semibold mb-1">
-                <i class="bi bi-droplet me-1"></i> Mojado
+                <i class="fa-solid fa-droplet me-1"></i>Mojado
             </p>
             {% if treatment.water_changed %}
             <p class="fw-bold mb-0 text-decoration-line-through">{{ treatment.water_per_ha }} L/Ha</p>
             <p class="mb-0"><span class="fw-semibold text-success">{{ treatment.display_water_per_ha }} L/Ha</span></p>
             {% else %}
             <span class="fw-bold">
-                {{ treatment.water_per_ha }}
+                {{ treatment.water_per_ha }} L/Ha
             </span>
             {% endif %}
         </div>
@@ -87,12 +89,139 @@
 </div>
 
 <!-- ═══════════════════════════════════════════════════════
+     DETALLES — Desktop cards (lg+)
+═══════════════════════════════════════════════════════ -->
+<div class="row g-3 mb-4 d-none d-lg-flex">
+
+    <!-- 1. Coste total -->
+    {% if total_cost %}
+    <div class="col-6 col-lg-4">
+        <div class="card border-0 h-100 text-white position-relative overflow-hidden" style="background-color:#1c2b1c;">
+            <div class="card-body d-flex flex-column justify-content-center py-3 px-4">
+                <p class="text-uppercase fw-semibold mb-2"
+                   style="font-size:.7rem;letter-spacing:.08em;color:rgba(255,255,255,.55);">
+                    Coste total
+                </p>
+
+                <p class="fw-bold mb-1{% if treatment.is_partial_treatment %} text-warning{% endif %}"
+                   style="font-size:2.2rem;line-height:1.1;">
+                    {{ total_cost }}€
+                </p>
+
+                <p class="mb-0 small" style="color:rgba(255,255,255,.65);">
+                    {{ cost_per_ha|floatformat:2 }} €/ha ·
+                    {{ products|length }} producto{{ products|length|pluralize:"s" }}
+                </p>
+
+                <i class="fa fa-euro card-icon-bg"></i>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 2. Parcela / Superficie -->
+    <div class="col-6 col-lg-2">
+        <div class="card border-0 h-100">
+            <div class="card-body p-3 pb-0">
+                <div class="rounded-2 d-inline-flex align-items-center justify-content-center mb-2"
+                     style="width:2rem;height:2rem;background:#e8f5e9;">
+                    <i class="fa-solid fa-ruler-combined" style="color:#388e3c;font-size:.9rem;"></i>
+                </div>
+                <p class="text-uppercase text-muted fw-semibold mb-1 ls-1" style="font-size:.7rem;">Superficie</p>
+                {% if treatment.is_partial_treatment %}
+                <p class="fw-bold fs-3 mb-0 text-warning lh-1">{{ treatment.applied_area }} ha</p>
+                <p class="text-muted small mb-0 mt-1">{{ treatment.field.name }}{% if treatment.zone_notes %} ·
+                    {{ treatment.zone_notes }}{% endif %}</p>
+                <p class="text-muted small mb-0">de {{ treatment.field.area }} ha totales</p>
+                {% else %}
+                <p class="fw-bold fs-3 mb-0 lh-1">{{ treatment.effective_area }} ha</p>
+                <p class="text-muted small mb-0 mt-1">{{ treatment.field.name }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Programado -->
+    <div class="col-6 col-lg-2">
+        <div class="card border-0 h-100">
+            <div class="card-body p-3 pb-0">
+                <div class="rounded-2 d-inline-flex align-items-center justify-content-center mb-2"
+                     style="width:2rem;height:2rem;background:#fff3e0;">
+                    <i class="fa-regular fa-clock" style="color:#e65100;font-size:.9rem;"></i>
+                </div>
+                <p class="text-uppercase text-muted fw-semibold mb-1 ls-1" style="font-size:.7rem;">Programado</p>
+                <p class="fw-bold fs-5 mb-1">{{ treatment.date|date:"d/m/Y" }}</p>
+                {% if treatment.status == 'delayed' %}
+                <span class="badge bg-danger-subtle text-danger-emphasis" style="font-size:.7rem;">+{{ treatment.days_delayed }} días de retraso</span>
+                {% elif treatment.status == 'pending' %}
+                {% if treatment.days_until == 0 %}
+                <span class="badge bg-success-subtle text-success-emphasis" style="font-size:.7rem;">Hoy</span>
+                {% else %}
+                <span class="text-muted small">En {{ treatment.days_until }} día{{ treatment.days_until|pluralize:"s" }}</span>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Ejecutado (oculto si pendiente) -->
+    <div class="col-6 col-lg-2">
+        <div class="card border-0 h-100{% if not treatment.finish_date %} invisible{% endif %}">
+            <div class="card-body p-3 pb-0">
+                <div class="rounded-2 d-inline-flex align-items-center justify-content-center mb-2"
+                     style="width:2rem;height:2rem;background:#e8f5e9;">
+                    <i class="fa-solid fa-check" style="color:#2e7d32;font-size:.9rem;"></i>
+                </div>
+                <p class="text-uppercase text-muted fw-semibold mb-1 ls-1" style="font-size:.7rem;">Ejecutado</p>
+                {% if treatment.finish_date %}
+                <p class="fw-bold fs-5 mb-1">{{ treatment.finish_date|date:"d/m/Y" }}</p>
+                {% if treatment.execution_delay_days %}
+                {% if treatment.execution_delay_days > 0 %}
+                <span class="badge bg-danger-subtle text-danger-emphasis" style="font-size:.7rem;">+{{ treatment.execution_delay_days }} día{{ treatment.execution_delay_days|pluralize:"s" }} de retraso</span>
+                {% else %}
+                <span class="badge bg-success-subtle text-success-emphasis" style="font-size:.7rem;">{{ treatment.execution_delay_days|cut:"-" }} día{{ treatment.execution_delay_days|cut:"-"|pluralize:"s" }} antes</span>
+                {% endif %}
+                {% else %}
+                <span class="badge bg-success-subtle text-success-emphasis" style="font-size:.7rem;"><i
+                        class="bi bi-check me-1"></i>En plazo</span>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Mojado (oculto en fertirrigación) -->
+    <div class="col-6 col-lg-2">
+        <div class="card border-0 h-100{% if not treatment.water_per_ha %} invisible{% endif %}">
+            <div class="card-body p-3 pb-0">
+                <div class="rounded-2 d-inline-flex align-items-center justify-content-center mb-2"
+                     style="width:2rem;height:2rem;background:#e3f2fd;">
+                    <i class="fa-solid fa-droplet" style="color:#1565c0;font-size:.9rem;"></i>
+                </div>
+                <p class="text-uppercase text-muted fw-semibold mb-1 ls-1" style="font-size:.7rem;">Mojado</p>
+                {% if treatment.water_per_ha %}
+                {% if treatment.water_changed %}
+                <p class="fw-semibold text-muted text-decoration-line-through mb-0" style="font-size:.9rem;">
+                    {{ treatment.water_per_ha }} L/Ha
+                </p>
+                <p class="fw-bold text-success mb-0" style="font-size:1.2rem;">{{ treatment.display_water_per_ha }}
+                    L/Ha</p>
+                {% else %}
+                <p class="fw-bold fs-5 mb-0">{{ treatment.water_per_ha }} L/Ha</p>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
      INSTRUCCIONES
 ═══════════════════════════════════════════════════════ -->
 <div class="row g-4 mb-4">
 
-    <!-- Instrucciones -->
-    <div class="col-12 col-lg-9">
+    <div class="col-12">
 
         {% with load_info=treatment.calculate_machine_loads %}
 
@@ -131,86 +260,6 @@
         {% endwith %}
     </div>
 
-    <div class="col-12 col-lg-3 d-none d-lg-block">
-        <div class="card">
-            <div class="card-header"><span><i class="fa-solid fa-info-circle me-1"></i>Detalles</span></div>
-            <div class="px-4">
-                {% if total_cost %}
-                <div class="d-flex justify-content-between align-items-center py-3 border-bottom">
-                    <span class="text-muted">Coste total</span>
-                    <span class="d-flex flex-column align-items-end">
-                        <span class="fw-semibold fs-5 {% if treatment.is_partial_treatment %}text-warning{% else %}text-primary{% endif %}">{{ total_cost }}€</span>
-                        <span class="text-muted mb-0" style="font-size: 0.95rem;">
-                            {{ cost_per_ha|floatformat:2 }} €/ha
-                        </span>
-                    </span>
-                </div>
-                {% endif %}
-
-                <div class="d-flex justify-content-between align-items-center py-3 border-bottom">
-                    <span class="text-muted">Fecha</span>
-                    <span class="d-flex flex-column align-items-end">
-                        {% if treatment.date_changed %}
-                        <span class="fw-bold text-muted small text-decoration-line-through">
-                            {{ treatment.date|date:"d/m/Y" }}
-                        </span>
-
-                        <span class="fw-semibold text-success">
-                            {{ treatment.display_date|date:"d/m/Y" }}
-                        </span>
-                        {% else %}
-                        <span class="fw-bold">
-                            {{ treatment.date|date:"d/m/Y" }}
-                        </span>
-                        {% endif %}
-                    </span>
-                </div>
-
-                <div class="d-flex justify-content-between align-items-center py-3 border-bottom">
-                    <span class="text-muted">Parcela</span>
-                    <span class="fw-semibold">{{ treatment.field.name }}
-                        <span class="text-muted"> · {{ treatment.field.area }} ha</span>
-                    </span>
-                </div>
-                {% if treatment.is_partial_treatment %}
-                <div class="d-flex justify-content-between align-items-center py-3 border-bottom">
-                    <span class="text-muted">Área tratada</span>
-                    <span class="fw-semibold text-warning">
-                                {{ treatment.applied_area }} ha
-                                <span class="text-muted small">de {{ treatment.field.area }} ha</span>
-                            </span>
-                </div>
-                {% if treatment.zone_notes %}
-                <div class="d-flex justify-content-between align-items-center py-3 border-bottom">
-                    <span class="text-muted">Zona</span>
-                    <span class="fw-semibold">{{ treatment.zone_notes }}</span>
-                </div>
-                {% endif %}
-                {% endif %}
-
-                {% if treatment.water_per_ha %}
-                <div class="d-flex justify-content-between align-items-center py-3">
-                    <span class="text-muted">Mojado</span>
-                    <span class="d-flex flex-column align-items-end">
-                        {% if treatment.water_changed %}
-                        <span class="fw-bold text-muted small text-decoration-line-through">
-                            {{ treatment.water_per_ha }} L/Ha
-                        </span>
-
-                        <span class="fw-semibold text-success">
-                            {{ treatment.display_water_per_ha }} L/Ha
-                        </span>
-                        {% else %}
-                        <span class="fw-bold">
-                            {{ treatment.water_per_ha }} L/Ha
-                        </span>
-                        {% endif %}
-                    </span>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════
@@ -238,7 +287,7 @@
                             </span>
                         {% endif %}
                     </div>
-                    <div class="text-uppercase text-muted" style="font-size:.72rem;letter-spacing:.06em">
+                    <div class="text-uppercase text-muted" style="font-size:.72rem;letter-spacing:1px">
                         {{ product.product.product_type.name }}
                     </div>
                     <div class="text-muted mt-1" style="font-size:.8rem">

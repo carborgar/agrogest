@@ -559,6 +559,14 @@ class Treatment(OrganizationOwnedModel):
         return 0
 
     @property
+    def execution_delay_days(self):
+        """Días de diferencia entre fecha de ejecución y fecha programada.
+        Positivo = retraso, negativo = adelanto. None si no aplica."""
+        if self.finish_date and self.finish_date != self.date:
+            return (self.finish_date - self.date).days
+        return None
+
+    @property
     def alert_level(self):
         if self.status == self.STATUS_PENDING:
             return 'info'

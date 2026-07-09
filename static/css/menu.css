@@ -22,7 +22,7 @@ html.sidebar-collapsed {
 }
 
 body {
-    background-color: #f1f5f9;
+    background: #F5F7F3;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -66,9 +66,6 @@ body {
 .desktop-menu-nav-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 4px; }
 
 /* ── Main content ─────────────────────────────────────────────────────────── */
-body {
-    background: #F5F7F3;
-}
 .main-content {
     --main-pad: 24px;
     margin-left: var(--active-sidebar-width);

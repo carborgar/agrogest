@@ -1,6 +1,18 @@
+@font-face {
+    font-family: "Inter";
+    src: url("/static/fonts/InterDisplay-Regular.woff2") format("woff2");
+    font-weight: 400;
+}
+
+@font-face {
+    font-family: "Inter";
+    src: url("/static/fonts/InterDisplay-Medium.woff2") format("woff2");
+    font-weight: 500;
+}
+
 html, body {
     height: 100%;
-    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+    font-family: "Inter", system-ui, sans-serif;
 }
 
 /* ── Fix: varios componentes heredan body-bg (gris) por defecto en Bootstrap 5 ── */
@@ -1087,4 +1099,19 @@ a:hover .dashboard-treatment-row {
     font-size: 0.875rem;
     color: #6c757d;
     font-style: italic;
+}
+
+.ls-1{
+    letter-spacing:1px
+}
+
+.card-icon-bg {
+    position: absolute;
+    right: -8px;
+    bottom: -18px;
+    font-size: 7rem;
+    color: rgba(255, 255, 255, 0.06);
+    transform: rotate(-15deg);
+    pointer-events: none;
+    line-height: 1;
 }
