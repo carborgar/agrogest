@@ -456,6 +456,13 @@ footer a:hover {
    FILTER BAR — dropdown + checkboxes
    Componente reutilizable en todas las páginas
 ═══════════════════════════════════════════ */
+
+/* El .card tiene overflow:hidden para redondear esquinas, lo que recorta
+   el dropdown-menu al desplegarse. Se desactiva solo en la card que lo contiene. */
+.card:has(.filter-check-dropdown) {
+    overflow: visible;
+}
+
 .filter-check-dropdown .filter-dd-btn {
     display: flex;
     align-items: center;
@@ -490,6 +497,7 @@ footer a:hover {
 }
 
 .filter-dd-menu {
+    width: 100%;
     min-width: 200px;
     max-height: 260px;
     overflow-y: auto;
