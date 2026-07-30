@@ -166,11 +166,11 @@
 
     <!-- 4. Ejecutado (oculto si pendiente) -->
     <div class="col-6 col-lg-2">
-        <div class="card border-0 h-100{% if not treatment.finish_date %} invisible{% endif %}">
+        <div class="card border-0 h-100">
             <div class="card-body p-3 pb-0">
                 <div class="rounded-2 d-inline-flex align-items-center justify-content-center mb-2"
                      style="width:2rem;height:2rem;background:#e8f5e9;">
-                    <i class="fa-solid fa-check" style="color:#2e7d32;font-size:.9rem;"></i>
+                    <i class="fa-solid {% if not treatment.finish_date %}fa-hourglass-half{% else %}fa-check{% endif %}" style="color:#2e7d32;font-size:.9rem;"></i>
                 </div>
                 <p class="text-uppercase text-muted fw-semibold mb-1 ls-1" style="font-size:.7rem;">Ejecutado</p>
                 {% if treatment.finish_date %}
@@ -185,6 +185,8 @@
                 <span class="badge bg-success-subtle text-success-emphasis" style="font-size:.7rem;"><i
                         class="bi bi-check me-1"></i>En plazo</span>
                 {% endif %}
+                {% else %}
+                <p class="fw-bold fs-5 mb-1 text-muted">Pendiente</p>
                 {% endif %}
             </div>
         </div>
