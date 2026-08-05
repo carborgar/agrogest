@@ -126,10 +126,18 @@
                     </span>
                     {% endif %}
                 </div>
-                <button class="btn btn-outline-secondary btn-sm d-print-none"
-                        onclick="window.print(); return false;">
-                    <i class="fa fa-print me-1"></i>Imprimir
-                </button>
+                <div class="d-flex gap-2">
+                    {% if product_items|length > 1 %}
+                    <button class="btn btn-outline-secondary btn-sm d-print-none" id="sl-toggle-all"
+                            type="button" data-state="collapsed">
+                        <i class="fa fa-down-left-and-up-right-to-center me-1"></i>Expandir todo
+                    </button>
+                    {% endif %}
+                    <button class="btn btn-outline-secondary btn-sm d-print-none"
+                            onclick="window.print(); return false;">
+                        <i class="fa fa-print me-1"></i>Imprimir
+                    </button>
+                </div>
             </div>
 
             <!-- ── Tarjetas de producto ──────────────────────────── -->
@@ -137,7 +145,14 @@
             <div class="sl-product-card mb-3">
 
                 <!-- Cabecera del producto -->
-                <div class="sl-product-header">
+                <div class="sl-product-header {% if item.distribution_groups %}sl-product-header--toggle{% endif %}"
+                     {% if item.distribution_groups %}
+                     role="button"
+                     data-bs-toggle="collapse"
+                     data-bs-target="#sl-product-body-{{ forloop.counter }}"
+                     aria-expanded="false"
+                     aria-controls="sl-product-body-{{ forloop.counter }}"
+                     {% endif %}>
                     <div class="sl-product-avatar">
                         <i class="fa fa-flask"></i>
                     </div>
@@ -151,10 +166,15 @@
                         <div class="sl-product-price">{{ item.total_price|floatformat:"2" }}€</div>
                         {% endif %}
                     </div>
+                    {% if item.distribution_groups %}
+                    <i class="fa fa-chevron-down ms-2 text-muted sl-product-chevron d-print-none"
+                       style="font-size:.75rem; transition:transform .2s"></i>
+                    {% endif %}
                 </div>
 
                 <!-- Grupos de distribución (casetillas) -->
                 {% if item.distribution_groups %}
+                <div class="collapse" id="sl-product-body-{{ forloop.counter }}">
                 <div class="sl-groups">
                     {% for group in item.distribution_groups %}
                     <div class="sl-group">
@@ -205,6 +225,7 @@
                         {% endif %}
                     </div>
                     {% endfor %}
+                </div>
                 </div>
                 {% endif %}
 
@@ -257,6 +278,10 @@
     padding: 1rem 1.1rem;
     border-bottom: 1px solid rgba(0,0,0,.06);
 }
+.sl-product-header--toggle { cursor: pointer; }
+.sl-product-header--toggle:hover { background: rgba(0,0,0,.015); }
+.sl-product-header--toggle[aria-expanded="true"] { border-bottom-color: rgba(0,0,0,.06); }
+.sl-product-header--toggle[aria-expanded="true"] .sl-product-chevron { transform: rotate(180deg); }
 .sl-product-avatar {
     width: 38px; height: 38px; border-radius: 10px;
     background: linear-gradient(135deg, rgba(13,110,253,.15) 0%, rgba(13,110,253,.07) 100%);
@@ -329,6 +354,14 @@
             max-width: 100% !important;
             flex: none !important;
         }
+
+        /* Al imprimir, las tarjetas de producto siempre van expandidas */
+        .sl-product-card .collapse {
+            display: block !important;
+            height: auto !important;
+            visibility: visible !important;
+        }
+        .sl-product-header--toggle { cursor: default !important; }
     }
 </style>
 {% endblock %}
@@ -403,6 +436,20 @@
         }
 
         updateBadge();
+
+        // ── Expandir / colapsar todas las tarjetas de producto ─────────
+        const toggleAllBtn = document.getElementById('sl-toggle-all');
+        toggleAllBtn?.addEventListener('click', function () {
+            const expanding = this.dataset.state === 'collapsed';
+            document.querySelectorAll('.sl-product-card .collapse').forEach(el => {
+                const instance = bootstrap.Collapse.getOrCreateInstance(el, {toggle: false});
+                expanding ? instance.show() : instance.hide();
+            });
+            this.dataset.state = expanding ? 'expanded' : 'collapsed';
+            this.innerHTML = expanding
+                ? '<i class="fa fa-up-right-and-down-left-from-center me-1"></i>Colapsar todo'
+                : '<i class="fa fa-down-left-and-up-right-to-center me-1"></i>Expandir todo';
+        });
     });
 </script>
 {% endblock %}
