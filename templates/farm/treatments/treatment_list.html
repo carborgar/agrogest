@@ -304,6 +304,11 @@
             </ul>
         </div>
 
+        {# Export button #}
+        <a href="{% url 'treatment-export-excel' %}?{{ request.GET.urlencode }}" class="btn btn-outline-success btn-sm" title="Exportar a Excel">
+            <i class="fa fa-file-excel me-1"></i>Exportar
+        </a>
+
         {# View switcher #}
         <div class="view-switcher">
             <button type="button" class="btn view-btn active" id="cardViewBtn" title="Vista tarjetas">

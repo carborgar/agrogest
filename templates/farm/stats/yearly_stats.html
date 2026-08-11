@@ -13,7 +13,7 @@
 {% endblock %}
 
 {% block actions %}
-<div class="d-flex gap-2 align-items-center">
+<div class="d-flex gap-2 align-items-center flex-wrap">
     <form method="get" class="d-flex align-items-center gap-2 mb-0">
         <label class="form-label mb-0 fw-semibold text-muted small">Año:</label>
         <select name="year" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
@@ -22,6 +22,10 @@
             {% endfor %}
         </select>
     </form>
+
+    <a href="{% url 'treatment-export-excel' %}?year={{ selected_year }}{% for t in selected_types %}&type={{ t }}{% endfor %}{% for f in selected_fields %}&field={{ f }}{% endfor %}" class="btn btn-outline-success btn-sm" title="Exportar a Excel">
+        <i class="fa fa-file-excel me-1"></i>Exportar
+    </a>
 </div>
 {% endblock %}
 

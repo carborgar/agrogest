@@ -8,7 +8,7 @@ from farm.views.treatment_views import (
     TreatmentListView, TreatmentDetailView, TreatmentFormView,
     FinishTreatmentView, DeleteTreatmentView, CloneTreatmentView,
     TreatmentCalendarView, TreatmentExportView, ShoppingListView,
-    RepeatTreatmentView,
+    RepeatTreatmentView, TreatmentExcelExportView,
 )
 from . import api_views
 from .views.chat_views import ChatView
@@ -41,6 +41,7 @@ urlpatterns = [
     path('tratamientos/calendario/', TreatmentCalendarView.as_view(), name='treatment-calendar'),
     path('tratamientos/<int:pk>/operador/', TreatmentExportView.as_view(), name='treatment-instructions'),
     path('tratamientos/lista-compra/', ShoppingListView.as_view(), name='treatment-shopping-list'),
+    path('tratamientos/exportar-excel/', TreatmentExcelExportView.as_view(), name='treatment-export-excel'),
     path('administracion/recalculo-costes-tratamientos/', TreatmentCostRecalculationAdminView.as_view(),
          name='treatment-cost-admin'),
 

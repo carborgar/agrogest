@@ -16,6 +16,7 @@ boto3
 django-watchman
 google-genai
 resend
+openpyxl
 
 # Dependencies for testing
 pytest

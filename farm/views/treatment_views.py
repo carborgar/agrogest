@@ -459,3 +459,101 @@ class ShoppingListView(BaseSecureViewMixin, ListView):
         context['total_count'] = len(self.object_list)
         return context
 
+
+class TreatmentExcelExportView(BaseSecureViewMixin, View):
+    """Exporta tratamientos filtrados a Excel para contabilidad."""
+    
+    def get(self, request):
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from django.http import HttpResponse
+        
+        # Reutilizar la lógica de filtrado de TreatmentListView
+        list_view = TreatmentListView()
+        list_view.request = request
+        queryset = list_view.get_queryset()
+        
+        # Crear workbook
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Tratamientos"
+        
+        # Estilos
+        header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+        header_font = Font(bold=True, color="FFFFFF", size=11)
+        border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+        
+        # Headers
+        headers = [
+            "Fecha",
+            "Parcela",
+            "Tipo",
+            "Nombre",
+            "Estado",
+            "Productos",
+            "Costo Total",
+            "Área (ha)",
+            "Notas"
+        ]
+        ws.append(headers)
+        
+        # Aplicar estilos al header
+        for cell in ws[1]:
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            cell.border = border
+        
+        # Datos
+        for treatment in queryset:
+            # Calcular costo total de productos
+            total_cost = sum(tp.total_price for tp in treatment.treatmentproduct_set.all())
+            
+            # Obtener productos
+            products = ", ".join([
+                f"{tp.product.name}" for tp in treatment.treatmentproduct_set.all()
+            ])
+            
+            row = [
+                treatment.date.strftime("%d/%m/%Y") if treatment.date else "",
+                treatment.field.name,
+                dict(Treatment.TYPE_CHOICES).get(treatment.type, treatment.type),
+                treatment.name,
+                dict(Treatment.STATUS_CHOICES).get(treatment.status, treatment.status),
+                products,
+                f"{total_cost:.2f}€",
+                treatment.applied_area or "",
+                treatment.zone_notes or "",
+            ]
+            ws.append(row)
+            
+            # Aplicar estilos a datos
+            for cell in ws[ws.max_row]:
+                cell.border = border
+                cell.alignment = Alignment(horizontal="left", vertical="top", wrap_text=True)
+        
+        # Ajustar ancho de columnas
+        ws.column_dimensions['A'].width = 12  # Fecha
+        ws.column_dimensions['B'].width = 15  # Parcela
+        ws.column_dimensions['C'].width = 12  # Tipo
+        ws.column_dimensions['D'].width = 20  # Nombre
+        ws.column_dimensions['E'].width = 12  # Estado
+        ws.column_dimensions['F'].width = 30  # Productos
+        ws.column_dimensions['G'].width = 12  # Costo
+        ws.column_dimensions['H'].width = 10  # Área
+        ws.column_dimensions['I'].width = 25  # Notas
+        
+        # Crear respuesta HTTP
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename="tratamientos.xlsx"'
+        wb.save(response)
+        return response
+
+
