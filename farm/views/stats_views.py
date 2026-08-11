@@ -34,20 +34,44 @@ class YearlyStatsView(OwnershipRequiredMixin, TemplateView):
         context["available_years"] = available_years
         context["current_year"] = current_year
 
-        # ── Base querysets ────────────────────────────────────────────────
+        # ── Filtros por tipo y parcelas ───────────────────────────────────
         org = user.organization
         fields_qs = Field.objects.filter(organization=org)
+        
+        # Obtener tipos de tratamiento y parcelas disponibles
+        context["type_choices"] = Treatment.TYPE_CHOICES
+        context["fields"] = fields_qs
+        
+        # Procesar filtros seleccionados
+        selected_types = self.request.GET.getlist("type")
+        selected_fields = self.request.GET.getlist("field")
+        context["selected_types"] = selected_types
+        context["selected_fields"] = selected_fields
+
+        # ── Base querysets ────────────────────────────────────────────────
         treatments_qs = Treatment.objects.filter(
             organization=org,
             finish_date__year=selected_year,
             status=Treatment.STATUS_COMPLETED,
         ).select_related("field", "machine")
+        
+        # Aplicar filtros
+        if selected_types:
+            treatments_qs = treatments_qs.filter(type__in=selected_types)
+        if selected_fields:
+            treatments_qs = treatments_qs.filter(field_id__in=selected_fields)
 
         treatment_products_qs = TreatmentProduct.objects.filter(
             treatment__organization=org,
             treatment__finish_date__year=selected_year,
             treatment__status=Treatment.STATUS_COMPLETED,
         ).select_related("product", "product__product_type", "treatment__field")
+        
+        # Aplicar filtros a treatment_products_qs
+        if selected_types:
+            treatment_products_qs = treatment_products_qs.filter(treatment__type__in=selected_types)
+        if selected_fields:
+            treatment_products_qs = treatment_products_qs.filter(treatment__field_id__in=selected_fields)
 
         # ── KPIs principales ──────────────────────────────────────────────
         total_treatments = treatments_qs.count()
