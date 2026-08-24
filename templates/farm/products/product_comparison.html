@@ -2,7 +2,7 @@
 
 {% block header %}Comparativa de productos{% endblock %}
 
-{% block sub_header %}Añade varias alternativas para una misma necesidad y descubre cuál sale más económica por hectárea.{% endblock %}
+{% block sub_header %}Añade varias alternativas para una misma necesidad y descubre cuál sale más económica.{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -39,7 +39,7 @@
         outline: 1px solid var(--bs-success, #198754);
     }
 
-    .application-result .cost-value {
+    .application-result .cost-per-ha {
         font-size: 1.15rem;
         font-weight: 700;
     }
@@ -61,13 +61,28 @@
 
 {% block content %}
 
-<div class="alert alert-secondary small d-flex align-items-center gap-2 mb-3">
-    <i class="fa fa-circle-info flex-shrink-0"></i>
-    <span>
-        Para productos que se dosifican por volumen de caldo (L/1000L, kg/1000L o %) se asume un depósito
-        de 2000 L mojando a razón de 1000 L/ha, para poder comparar todo en €/ha. Puedes ajustar la dosis
-        de cada producto si vas a echar más o menos cantidad.
-    </span>
+<!-- Parámetros del tratamiento -->
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-3">
+        <div class="row g-3 align-items-end">
+            <div class="col-6 col-md-3">
+                <label class="form-label small text-muted mb-1" for="compareArea">
+                    <i class="fa fa-ruler-combined me-1"></i>Hectáreas a tratar
+                </label>
+                <input class="form-control" id="compareArea" min="0.01" step="0.01" type="number" value="1">
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label small text-muted mb-1" for="compareWater">
+                    <i class="fa fa-tint me-1"></i>Mojado (L/ha)
+                </label>
+                <input class="form-control" id="compareWater" min="0" step="1" type="number" value="1000">
+            </div>
+            <div class="col-12 col-md-6 text-muted small">
+                El mojado solo afecta a los productos dosificados por volumen de caldo (L/1000L, kg/1000L o %);
+                los dosificados por hectárea no lo necesitan.
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="row g-3" id="comparisonContainer"></div>
@@ -118,9 +133,17 @@
             <input class="form-control application-dose-input" step="0.01" type="number">
             <span class="input-group-text application-unit">-</span>
         </div>
-        <div class="d-flex justify-content-between align-items-end">
+        <div class="d-flex justify-content-between small text-muted mb-1">
+            <span>Dosis total</span>
+            <span class="application-total-dose">-</span>
+        </div>
+        <div class="d-flex justify-content-between small text-muted mb-2">
+            <span>Coste total tratamiento</span>
+            <span class="application-total-cost">-</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-end border-top pt-2">
             <span class="text-muted small">Coste / ha</span>
-            <span class="cost-value text-primary application-cost">-</span>
+            <span class="cost-per-ha text-primary application-cost-per-ha">-</span>
         </div>
     </div>
 </template>
@@ -130,11 +153,6 @@
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', async () => {
-        // Asunciones para poder comparar en €/ha productos dosificados por volumen de caldo.
-        const TANK_LITERS = 2000;
-        const WATER_PER_HA = 1000;
-        const HA_PER_TANK = TANK_LITERS / WATER_PER_HA;
-
         const APPLICATION_LABELS = {spraying: 'Pulverización', fertigation: 'Fertirrigación'};
 
         const container = document.getElementById('comparisonContainer');
@@ -142,6 +160,8 @@
         const rowTemplate = document.getElementById('comparisonRowTemplate');
         const resultTemplate = document.getElementById('applicationResultTemplate');
         const addBtn = document.getElementById('addComparisonProduct');
+        const areaInput = document.getElementById('compareArea');
+        const waterInput = document.getElementById('compareWater');
         const ssInstances = new Map();
 
         let products = new Map();
@@ -164,6 +184,14 @@
             });
 
             products = merged;
+        }
+
+        function getArea() {
+            return parseFloat(areaInput.value) || 1;
+        }
+
+        function getWaterPerHa() {
+            return parseFloat(waterInput.value) || 1000;
         }
 
         function getRows() {
@@ -192,40 +220,59 @@
             ss.setOptions(items, restoreValue || null);
         }
 
-        // Coste por hectárea para una dosis dada. Los tipos "_per_ha" no necesitan asunciones;
-        // los de volumen de caldo (L/1000L, kg/1000L, %) se traducen a €/ha vía el depósito de referencia.
-        function costPerHa(price, doseType, dose) {
+        // Misma fórmula que TreatmentProduct.calculate_total_dose()/calculate_prices() en farm/models.py:
+        // los tipos "_per_ha" solo necesitan el área; los de volumen de caldo (L/1000L, kg/1000L, %)
+        // necesitan además el agua total (área × mojado).
+        function calculateDoseAndCost(price, doseType, dose, area, waterPerHa) {
             if (!dose) return null;
 
+            let totalDose;
             if (doseType.includes('_per_ha')) {
-                return dose * price;
-            }
-
-            let tankQuantity;
-            if (doseType === 'l_per_1000l' || doseType === 'kg_per_1000l') {
-                tankQuantity = (dose / 1000) * TANK_LITERS;
-            } else if (doseType === 'pct') {
-                tankQuantity = (dose / 100) * TANK_LITERS;
+                totalDose = dose * area;
             } else {
-                return null;
+                const totalWater = area * waterPerHa;
+                if (doseType === 'l_per_1000l' || doseType === 'kg_per_1000l') {
+                    totalDose = (dose / 1000) * totalWater;
+                } else if (doseType === 'pct') {
+                    totalDose = (dose / 100) * totalWater;
+                } else {
+                    return null;
+                }
             }
 
-            return (tankQuantity * price) / HA_PER_TANK;
+            const totalCost = totalDose * price;
+            return {totalDose, totalCost, costPerHa: totalCost / area};
         }
 
-        function recomputeBlockCost(block, price) {
+        function recomputeBlock(block, price) {
             const doseType = block.dataset.doseType;
+            const unit = block.querySelector('.application-unit').textContent;
             const dose = parseFloat(block.querySelector('.application-dose-input').value);
-            const cost = costPerHa(price, doseType, dose);
-            const costEl = block.querySelector('.application-cost');
+            const result = calculateDoseAndCost(price, doseType, dose, getArea(), getWaterPerHa());
 
-            if (cost === null || !price) {
-                costEl.textContent = '-';
+            const totalDoseEl = block.querySelector('.application-total-dose');
+            const totalCostEl = block.querySelector('.application-total-cost');
+            const costPerHaEl = block.querySelector('.application-cost-per-ha');
+
+            if (!result || !price) {
+                totalDoseEl.textContent = '-';
+                totalCostEl.textContent = '-';
+                costPerHaEl.textContent = '-';
                 delete block.dataset.cost;
-            } else {
-                costEl.textContent = `${cost.toFixed(2)} €/ha`;
-                block.dataset.cost = cost;
+                return;
             }
+
+            totalDoseEl.textContent = `${result.totalDose.toFixed(2)} ${unit}`;
+            totalCostEl.textContent = `${result.totalCost.toFixed(2)} €`;
+            costPerHaEl.textContent = `${result.costPerHa.toFixed(2)} €/ha`;
+            block.dataset.cost = result.costPerHa;
+        }
+
+        function recalculateAll() {
+            Array.from(container.querySelectorAll('.application-result')).forEach(block => {
+                recomputeBlock(block, parseFloat(block.dataset.price));
+            });
+            highlightCheapest();
         }
 
         function buildApplicationBlocks(row) {
@@ -249,6 +296,7 @@
                 const fragment = resultTemplate.content.cloneNode(true);
                 const block = fragment.querySelector('.application-result');
                 block.dataset.doseType = application.dose_type;
+                block.dataset.price = product.price;
 
                 block.querySelector('.application-label').textContent =
                     `${APPLICATION_LABELS[applicationType]} · ${application.dose_type_display}`;
@@ -256,14 +304,14 @@
                 const doseInput = block.querySelector('.application-dose-input');
                 doseInput.value = application.dose;
                 doseInput.addEventListener('input', () => {
-                    recomputeBlockCost(block, product.price);
+                    recomputeBlock(block, product.price);
                     highlightCheapest();
                 });
 
                 block.querySelector('.application-unit').textContent = unit;
 
                 resultsContainer.appendChild(block);
-                recomputeBlockCost(block, product.price);
+                recomputeBlock(block, product.price);
             });
         }
 
@@ -303,6 +351,8 @@
         }
 
         addBtn.addEventListener('click', addRow);
+        areaInput.addEventListener('input', recalculateAll);
+        waterInput.addEventListener('input', recalculateAll);
 
         await loadProducts();
         updateEmptyState();
