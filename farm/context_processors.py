@@ -44,6 +44,7 @@ _NAV_GROUPS = {
     'nav_expense_types':{'expense-type-list', 'expense-type-create', 'expense-type-edit'},
     'nav_products':     {'product-list', 'product-create', 'product-edit'},
     'nav_product_types':{'product-type-list', 'product-type-create', 'product-type-edit'},
+    'nav_product_comparison': {'product-comparison'},
     'nav_treatment_cost_admin': {'treatment-cost-admin'},
     'nav_chat':         {'chat'},
 }
@@ -59,6 +60,6 @@ def active_nav(request):
     url_name = getattr(request.resolver_match, 'url_name', '') or ''
     ctx = {key: url_name in names for key, names in _NAV_GROUPS.items()}
     ctx['nav_gastos_open']   = ctx['nav_costs'] or ctx['nav_expenses']
-    ctx['nav_products_open'] = ctx['nav_products'] or ctx['nav_product_types']
+    ctx['nav_products_open'] = ctx['nav_products'] or ctx['nav_product_types'] or ctx['nav_product_comparison']
     ctx['nav_fields_open'] = ctx['nav_fields'] or ctx['nav_storage_points']
     return ctx

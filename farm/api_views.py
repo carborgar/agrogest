@@ -54,6 +54,7 @@ def get_products(request, application_type):
             'dose': _fmt_dose(product.get_dose(application_type)),
             'dose_type': product.get_dose_type(application_type),
             'dose_type_display': product.get_dose_type_name(application_type),
+            'price': float(product.price),
 
         }
         for product in products

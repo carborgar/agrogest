@@ -4,7 +4,7 @@ from django.db.models import Exists, OuterRef, Count
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.urls import reverse_lazy, reverse
-from django.views.generic import ListView, UpdateView, DeleteView, View
+from django.views.generic import ListView, UpdateView, DeleteView, View, TemplateView
 
 from farm.forms import ProductForm, ProductTypeForm
 from farm.mixins import OwnershipRequiredMixin, QuerysetFilterMixin, AuditableMixin
@@ -262,6 +262,11 @@ class ProductTypeFormView(BaseSecureProductFormMixin, SuccessMessageMixin, Updat
                 product_type=self.object
             ).exists()
         return context
+
+
+class ProductComparisonView(BaseSecureProductViewMixin, TemplateView):
+    """Calculadora para comparar el coste/ha de varios productos alternativos."""
+    template_name = 'farm/products/product_comparison.html'
 
 
 class ProductTypeDeleteView(BaseSecureProductViewMixin, DeleteView):

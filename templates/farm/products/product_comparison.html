@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+
+{% block header %}Comparativa de productos{% endblock %}
+
+{% block sub_header %}Añade varias alternativas para una misma necesidad y descubre cuál sale más económica por hectárea.{% endblock %}
+
+{% block extra_head %}
+<style>
+    .btn-add {
+        width: 100%;
+        border: 2px dashed var(--primary);
+        background: rgba(74, 124, 89, 0.05);
+        color: var(--primary);
+        border-radius: 12px;
+        padding: 1rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .comparison-card {
+        height: 100%;
+    }
+
+    .application-result {
+        background: var(--gray-100);
+        border-radius: 8px;
+        padding: .75rem;
+    }
+
+    .application-result + .application-result {
+        margin-top: .75rem;
+    }
+
+    .application-result.application-result--cheapest {
+        background: rgba(25, 135, 84, .1);
+        outline: 1px solid var(--bs-success, #198754);
+    }
+
+    .application-result .cost-value {
+        font-size: 1.15rem;
+        font-weight: 700;
+    }
+
+    .comparison-empty {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: var(--gray-500);
+    }
+
+    .comparison-empty i {
+        font-size: 2.5rem;
+        opacity: .4;
+        margin-bottom: .75rem;
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="alert alert-secondary small d-flex align-items-center gap-2 mb-3">
+    <i class="fa fa-circle-info flex-shrink-0"></i>
+    <span>
+        Para productos que se dosifican por volumen de caldo (L/1000L, kg/1000L o %) se asume un depósito
+        de 2000 L mojando a razón de 1000 L/ha, para poder comparar todo en €/ha. Puedes ajustar la dosis
+        de cada producto si vas a echar más o menos cantidad.
+    </span>
+</div>
+
+<div class="row g-3" id="comparisonContainer"></div>
+
+<div class="comparison-empty" id="comparisonEmpty">
+    <i class="fa fa-code-compare"></i>
+    <p class="mb-0">Todavía no has añadido ningún producto a la comparativa.</p>
+</div>
+
+<button class="btn-add mt-3" id="addComparisonProduct" type="button">
+    <i class="bi bi-plus-circle"></i>
+    Añadir producto
+</button>
+
+<template id="comparisonRowTemplate">
+    <div class="col-12 col-md-6 col-lg-4">
+        <div class="treatment-product-card comparison-card">
+            <div class="product-card-header">
+                <div class="product-number"></div>
+                <button class="btn btn-sm btn-outline-danger rounded-circle remove-row" type="button">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label small fw-semibold text-muted">Producto</label>
+                <select class="form-select comparison-product-select">
+                    <option value=""></option>
+                </select>
+            </div>
+
+            <div class="applications-results"></div>
+
+            <div class="text-muted small no-price-info d-none mt-2">
+                <i class="fa fa-triangle-exclamation me-1"></i>
+                Este producto no tiene precio configurado.
+            </div>
+        </div>
+    </div>
+</template>
+
+<template id="applicationResultTemplate">
+    <div class="application-result">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fw-semibold small application-label">-</span>
+        </div>
+        <div class="input-group input-group-sm mb-2">
+            <input class="form-control application-dose-input" step="0.01" type="number">
+            <span class="input-group-text application-unit">-</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-end">
+            <span class="text-muted small">Coste / ha</span>
+            <span class="cost-value text-primary application-cost">-</span>
+        </div>
+    </div>
+</template>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        // Asunciones para poder comparar en €/ha productos dosificados por volumen de caldo.
+        const TANK_LITERS = 2000;
+        const WATER_PER_HA = 1000;
+        const HA_PER_TANK = TANK_LITERS / WATER_PER_HA;
+
+        const APPLICATION_LABELS = {spraying: 'Pulverización', fertigation: 'Fertirrigación'};
+
+        const container = document.getElementById('comparisonContainer');
+        const emptyState = document.getElementById('comparisonEmpty');
+        const rowTemplate = document.getElementById('comparisonRowTemplate');
+        const resultTemplate = document.getElementById('applicationResultTemplate');
+        const addBtn = document.getElementById('addComparisonProduct');
+        const ssInstances = new Map();
+
+        let products = new Map();
+
+        async function loadProducts() {
+            const [spraying, fertigation] = await Promise.all([
+                fetch('/api/products/spraying/').then(r => r.json()),
+                fetch('/api/products/fertigation/').then(r => r.json()),
+            ]);
+
+            const merged = new Map();
+            spraying.forEach(p => merged.set(p.id, {
+                id: p.id, name: p.name, price: p.price,
+                applications: {spraying: {dose: p.dose, dose_type: p.dose_type, dose_type_display: p.dose_type_display}}
+            }));
+            fertigation.forEach(p => {
+                const existing = merged.get(p.id) || {id: p.id, name: p.name, price: p.price, applications: {}};
+                existing.applications.fertigation = {dose: p.dose, dose_type: p.dose_type, dose_type_display: p.dose_type_display};
+                merged.set(p.id, existing);
+            });
+
+            products = merged;
+        }
+
+        function getRows() {
+            return Array.from(container.querySelectorAll('.comparison-card'));
+        }
+
+        function updateEmptyState() {
+            emptyState.classList.toggle('d-none', getRows().length > 0);
+        }
+
+        function renumberRows() {
+            getRows().forEach((row, index) => {
+                row.querySelector('.product-number').textContent = index + 1;
+            });
+        }
+
+        function populateRowOptions(row, restoreValue) {
+            const select = row.querySelector('.comparison-product-select');
+            const items = Array.from(products.values()).map(p => ({value: p.id, text: p.name}));
+
+            let ss = ssInstances.get(select);
+            if (!ss) {
+                ss = new SearchableSelect(select, {placeholder: 'Buscar producto…'});
+                ssInstances.set(select, ss);
+            }
+            ss.setOptions(items, restoreValue || null);
+        }
+
+        // Coste por hectárea para una dosis dada. Los tipos "_per_ha" no necesitan asunciones;
+        // los de volumen de caldo (L/1000L, kg/1000L, %) se traducen a €/ha vía el depósito de referencia.
+        function costPerHa(price, doseType, dose) {
+            if (!dose) return null;
+
+            if (doseType.includes('_per_ha')) {
+                return dose * price;
+            }
+
+            let tankQuantity;
+            if (doseType === 'l_per_1000l' || doseType === 'kg_per_1000l') {
+                tankQuantity = (dose / 1000) * TANK_LITERS;
+            } else if (doseType === 'pct') {
+                tankQuantity = (dose / 100) * TANK_LITERS;
+            } else {
+                return null;
+            }
+
+            return (tankQuantity * price) / HA_PER_TANK;
+        }
+
+        function recomputeBlockCost(block, price) {
+            const doseType = block.dataset.doseType;
+            const dose = parseFloat(block.querySelector('.application-dose-input').value);
+            const cost = costPerHa(price, doseType, dose);
+            const costEl = block.querySelector('.application-cost');
+
+            if (cost === null || !price) {
+                costEl.textContent = '-';
+                delete block.dataset.cost;
+            } else {
+                costEl.textContent = `${cost.toFixed(2)} €/ha`;
+                block.dataset.cost = cost;
+            }
+        }
+
+        function buildApplicationBlocks(row) {
+            const select = row.querySelector('.comparison-product-select');
+            const resultsContainer = row.querySelector('.applications-results');
+            const noPriceInfo = row.querySelector('.no-price-info');
+            resultsContainer.innerHTML = '';
+
+            const product = products.get(Number(select.value));
+            if (!product) {
+                noPriceInfo.classList.add('d-none');
+                return;
+            }
+
+            const hasPrice = product.price > 0;
+            noPriceInfo.classList.toggle('d-none', hasPrice);
+
+            Object.entries(product.applications).forEach(([applicationType, application]) => {
+                const unit = application.dose_type.includes('kg') ? 'kg' : 'L';
+
+                const fragment = resultTemplate.content.cloneNode(true);
+                const block = fragment.querySelector('.application-result');
+                block.dataset.doseType = application.dose_type;
+
+                block.querySelector('.application-label').textContent =
+                    `${APPLICATION_LABELS[applicationType]} · ${application.dose_type_display}`;
+
+                const doseInput = block.querySelector('.application-dose-input');
+                doseInput.value = application.dose;
+                doseInput.addEventListener('input', () => {
+                    recomputeBlockCost(block, product.price);
+                    highlightCheapest();
+                });
+
+                block.querySelector('.application-unit').textContent = unit;
+
+                resultsContainer.appendChild(block);
+                recomputeBlockCost(block, product.price);
+            });
+        }
+
+        function highlightCheapest() {
+            const blocks = Array.from(container.querySelectorAll('.application-result[data-cost]'));
+            blocks.forEach(block => block.classList.remove('application-result--cheapest'));
+
+            if (blocks.length < 2) return;
+
+            const cheapest = blocks.reduce((min, b) =>
+                parseFloat(b.dataset.cost) < parseFloat(min.dataset.cost) ? b : min
+            );
+            cheapest.classList.add('application-result--cheapest');
+        }
+
+        function addRow() {
+            const fragment = rowTemplate.content.cloneNode(true);
+            const col = fragment.querySelector('.comparison-card').closest('.col-12');
+            container.appendChild(col);
+            const row = col.querySelector('.comparison-card');
+
+            populateRowOptions(row);
+
+            row.querySelector('.comparison-product-select').addEventListener('change', () => {
+                buildApplicationBlocks(row);
+                highlightCheapest();
+            });
+            row.querySelector('.remove-row').addEventListener('click', () => {
+                col.remove();
+                renumberRows();
+                updateEmptyState();
+                highlightCheapest();
+            });
+
+            renumberRows();
+            updateEmptyState();
+        }
+
+        addBtn.addEventListener('click', addRow);
+
+        await loadProducts();
+        updateEmptyState();
+    });
+</script>
+{% endblock %}
