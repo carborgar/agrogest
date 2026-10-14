@@ -4,10 +4,14 @@
   "description": "Farm management application",
   "scripts": {
     "build:css": "sass scss/custom-bootstrap.scss:static/css/custom-bootstrap.min.css --style compressed --no-source-map",
-    "watch:css": "sass --watch scss/custom-bootstrap.scss:static/css/custom-bootstrap.min.css --style expanded"
+    "watch:css": "sass --watch scss/custom-bootstrap.scss:static/css/custom-bootstrap.min.css --style expanded",
+    "test:js": "node --test static/js/tests/*.test.js"
   },
   "dependencies": {
     "bootstrap": "^5.3.3",
     "sass": "^1.70.0"
+  },
+  "devDependencies": {
+    "jsdom": "^30.1.2"
   }
 }
