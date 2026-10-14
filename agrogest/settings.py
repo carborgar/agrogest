@@ -54,7 +54,6 @@ INSTALLED_APPS = [
     'django_filters',
     'django_bootstrap5',
     'widget_tweaks',
-    # 'whitenoise.runserver_nostatic',
     'mathfilters',
     'django.contrib.humanize',
     'storages',
@@ -71,7 +70,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # 'whitenoise.middleware.WhiteNoiseMiddleware',
     'accounts.middleware.UserTrackingMiddleware',
     # debug toolbar middleware added conditionally below
 
