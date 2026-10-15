@@ -284,7 +284,12 @@
                 <i class="fa fa-sort me-1"></i>{{ sort_label }}
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item {% if sort == 'date_desc' or not sort %}active{% endif %}"
+                <li><a class="dropdown-item {% if sort == 'urgency' or not sort %}active{% endif %}"
+                       href="?{{ request.GET.urlencode }}&sort=urgency">
+                    Por urgencia
+                </a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item {% if sort == 'date_desc' %}active{% endif %}"
                        href="?{{ request.GET.urlencode }}&sort=date_desc">
                     Fecha ↓ — más reciente primero
                 </a></li>
@@ -355,7 +360,14 @@
 </div>
 
 {# List view #}
-<div id="listView" class="accordion d-none">
+<div id="listView" class="accordion ti-table d-none">
+<div class="ti-head d-none d-md-flex">
+    <span class="ti-date">Fecha</span>
+    <span class="ti-content">Tratamiento</span>
+    <span class="ti-chips">Productos</span>
+    <span class="ti-load">Cubas / coste</span>
+    <span class="ti-actions"></span>
+</div>
     {% include 'farm/treatments/treatment_list_item.html' with treatment_list=treatments %}
 </div>
 

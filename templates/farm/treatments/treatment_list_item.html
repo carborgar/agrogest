@@ -1,63 +1,81 @@
 {% load custom_filters %}
 {% for treatment in treatment_list %}
-{% with state_class=treatment|treatment_state_class type_icon=treatment|treatment_type_icon %}
+{% with state_class=treatment|treatment_state_class type_icon=treatment|treatment_type_icon products=treatment.treatmentproduct_set.all loads=treatment.calculate_machine_loads %}
+
+{# Cabecera de grupo de urgencia (solo con orden "Por urgencia") #}
+{% if show_groups %}
+{% ifchanged treatment.urgency_group %}
+{% with g=treatment.urgency_group %}
+<div class="ti-group-header text-{{ g|urgency_class }}">
+    <i class="fa fa-{% if g == 0 %}triangle-exclamation{% elif g == 1 %}bell{% elif g == 2 %}calendar{% else %}circle-check{% endif %} me-1"></i>{{ g|urgency_label }} · {{ group_counts|get_item:g }}{% if forloop.first and page_obj.number > 1 %} (cont.){% endif %}
+</div>
+{% endwith %}
+{% endifchanged %}
+{% endif %}
 
 <div class="ti-group">
     <div class="ti-row">
         <span class="ti-accent bg-{{ state_class }}"></span>
 
-        <span class="ti-type-icon bg-{{ state_class }}-subtle">
-            <i class="fa fa-{{ type_icon }} text-{{ state_class }}"></i>
-        </span>
+        {# Fecha: pendientes → fecha prevista; completados → fecha de finalización #}
+        <div class="ti-date">
+            {% if treatment.finish_date %}
+            <div class="fw-bold">{{ treatment.finish_date|date:"d/m" }}</div>
+            <div class="small text-muted">{{ treatment.finish_date|relative_days }}</div>
+            {% if treatment.execution_delay_days is not None %}
+            <div class="text-muted" style="font-size:.7rem">prev. {{ treatment.date|date:"d/m" }} ({{ treatment.execution_delay_days|stringformat:"+d" }} d)</div>
+            {% endif %}
+            {% else %}
+            <div class="fw-bold">{{ treatment.date|date:"d/m" }}</div>
+            <div class="small {% if treatment.urgency_group == 0 %}text-danger{% else %}text-muted{% endif %}">{{ treatment.date|relative_days }}</div>
+            {% endif %}
+        </div>
 
         <div class="ti-content">
             <div class="ti-line1">
                 <a href="{% url 'treatment-detail' treatment.id %}" class="ti-name">{{ treatment.name }}</a>
-                <span class="ti-status bg-{{ state_class }}">{{ treatment.get_status_display }}</span>
-                {% if treatment.status == 'delayed' %}
-                <span class="ti-urgent ti-urgent--danger">
-                    <i class="fa fa-clock"></i> {{ treatment.days_delayed }}d tarde
-                </span>
-                {% elif treatment.status == 'pending' and treatment.days_until <= 3 %}
-                <span class="ti-urgent ti-urgent--warning">
-                    <i class="fa fa-bell"></i>
-                    {% if treatment.days_until == 0 %}Hoy{% elif treatment.days_until == 1 %}Mañana{% else %}En {{ treatment.days_until }}d{% endif %}
-                </span>
-                {% endif %}
             </div>
-
             <div class="ti-line2">
-                <span><i class="fa fa-location-dot"></i> {{ treatment.field.name }}</span>
+                <span><i class="fa fa-{{ type_icon }}"></i> {{ treatment.get_type_display }}</span>
                 <span class="ti-bull">·</span>
-                <span>{{ treatment.effective_area }} ha</span>
-                <span class="ti-bull">·</span>
-                <span>{{ treatment.get_type_display }}</span>
-                <span class="ti-bull">·</span>
-                <span><i class="fa fa-calendar-alt"></i> {{ treatment.date|date:"d/m/Y" }}</span>
-                {% if treatment.finish_date %}
-                <span class="ti-bull">·</span>
-                <span class="ti-done-date"><i class="fa fa-calendar-check"></i> {{ treatment.finish_date|date:"d/m/Y" }}</span>
-                {% endif %}
+                <span><i class="fa fa-location-dot"></i> {{ treatment.field.name }} {{ treatment.effective_area }} ha</span>
             </div>
+        </div>
 
-            {% with products=treatment.treatmentproduct_set.all %}
-            {% if products %}
-            <div class="ti-chips">
-                {% for tp in products|slice:":5" %}
-                <span class="ti-chip" title="{{ tp.product.name }}">{{ tp.product.name|truncatechars:18 }}</span>
-                {% endfor %}
-                {% if products|length > 5 %}
-                <span class="ti-chip ti-chip-more">+{{ products|length|add:"-5" }}</span>
-                {% endif %}
-            </div>
+        {# Productos: hasta 5 nombres (sin totales; dosis y totales al desplegar) #}
+        <div class="ti-chips d-none d-md-flex">
+            {% for tp in products|slice:":5" %}
+            <span class="ti-chip" title="{{ tp.product.name }}">{{ tp.product.name }}</span>
+            {% endfor %}
+            {% if products|length > 5 %}
+            <button type="button" class="ti-chip ti-chip-more" data-bs-toggle="collapse" data-bs-target="#tiC{{ treatment.id }}" title="Ver todos">+{{ products|length|add:"-5" }}</button>
             {% endif %}
-            {% endwith %}
+        </div>
+
+        {# Cubas (pendientes) o coste (completados) #}
+        <div class="ti-load d-none d-md-block small">
+            {% if treatment.finish_date %}
+            <b>{{ treatment|treatment_total_cost|floatformat:"2" }} €</b>
+            <div class="text-muted">{{ treatment|treatment_cost_per_ha|floatformat:"2" }} €/ha</div>
+            {% elif loads %}
+            <b>{{ loads.full_loads }} cuba{{ loads.full_loads|pluralize }}</b>
+            {% if loads.partial_load %}<div class="text-muted">+ {{ loads.partial_water }} L</div>{% endif %}
+            {% elif treatment.type == 'fertigation' %}
+            Riego
+            {% else %}
+            —
+            {% endif %}
         </div>
 
         <div class="ti-actions">
-            <a href="{% url 'treatment-detail' treatment.id %}" class="ti-btn" title="Ver detalles">
-                <i class="fa fa-arrow-up-right-from-square"></i>
-            </a>
+            {% if treatment.finish_date %}
+            <span class="ti-btn invisible"></span>
+            {% else %}
+            <button type="button" class="ti-btn" title="Finalizar"
+                    onclick="finishTreatment_{{ treatment.id }}()">
+                <i class="fa fa-check"></i>
+            </button>
+            {% endif %}
             <div class="dropdown">
                 <button class="ti-btn" type="button"
                         data-bs-toggle="dropdown" aria-expanded="false" title="Más acciones">
@@ -107,7 +125,7 @@
                     type="button"
                     data-bs-toggle="collapse"
                     data-bs-target="#tiC{{ treatment.id }}"
-                    aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
+                    aria-expanded="false"
                     aria-controls="tiC{{ treatment.id }}"
                     title="Ver productos">
                 <i class="fa fa-chevron-down"></i>
@@ -115,36 +133,49 @@
         </div>
     </div>
 
-    <div class="ti-products collapse {% if forloop.first %}show{% endif %}"
-         id="tiC{{ treatment.id }}"
-         data-bs-parent="#listView">
-        {% with products=treatment.treatmentproduct_set.all %}
+    <div class="ti-products collapse" id="tiC{{ treatment.id }}">
         {% if products %}
-        <p class="ti-products-header"><i class="fa fa-flask me-1"></i>Productos utilizados</p>
-        <div class="ti-products-grid">
-            {% for tp in products %}
-            <div class="ti-pcard">
-                <div class="ti-pcard-name" title="{{ tp.product.name }}">{{ tp.product.name }}</div>
-                <div class="ti-pcard-type">{{ tp.product.product_type.name }}</div>
-                <div class="ti-pcard-doses">
-                    <div>
-                        <span class="ti-pcard-lbl">Dosis</span>
-                        <span class="ti-pcard-val">{{ tp.dose|fmt_dose }} {{ tp.dose_type|dose_type }}</span>
-                    </div>
-                    <div>
-                        <span class="ti-pcard-lbl">Total</span>
-                        <span class="ti-pcard-val">{{ tp.total_dose|floatformat:"2" }} {{ tp.total_dose_unit }}</span>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
+        {% with show_loads=loads %}
+        <div class="table-responsive">
+            <table class="table table-sm mb-0 small">
+                <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Tipo</th>
+                    <th>Dosis</th>
+                    <th>Total</th>
+                    {% if treatment.finish_date %}
+                    <th class="text-end">Coste</th>
+                    {% elif show_loads %}
+                    <th>Por cuba llena</th>
+                    <th>Última cuba{% if loads.partial_load %} ({{ loads.partial_water }} L){% endif %}</th>
+                    {% endif %}
+                </tr>
+                </thead>
+                <tbody>
+                {% for tp in products %}
+                <tr>
+                    <td class="fw-semibold">{{ tp.product.name }}</td>
+                    <td class="text-muted">{{ tp.product.product_type.name }}</td>
+                    <td>{{ tp.dose|fmt_dose }} {{ tp.dose_type|dose_type }}</td>
+                    <td>{{ tp.total_dose|floatformat:"-2" }} {{ tp.total_dose_unit }}</td>
+                    {% if treatment.finish_date %}
+                    <td class="text-end">{{ tp.total_price|floatformat:"2" }} €</td>
+                    {% elif show_loads %}
+                    <td>{% with per_load=tp.get_dose_per_load %}{% if per_load is not None %}{{ per_load|floatformat:"-2" }} {{ tp.total_dose_unit }}{% else %}—{% endif %}{% endwith %}</td>
+                    <td>{% if loads.partial_load %}{{ tp|partial_load_dose|floatformat:"-2" }} {{ tp.total_dose_unit }}{% else %}—{% endif %}</td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
         </div>
+        {% endwith %}
         {% else %}
         <p class="text-muted small mb-0">
             <i class="fa fa-circle-info me-1"></i>Sin productos asignados
         </p>
         {% endif %}
-        {% endwith %}
     </div>
 </div>
 

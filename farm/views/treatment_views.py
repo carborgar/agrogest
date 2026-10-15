@@ -1,10 +1,10 @@
 import logging
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db.models import DateField, ExpressionWrapper
+from django.db.models import Case, Count, DateField, ExpressionWrapper, F, IntegerField, Q, Value, When
 from django.db.models.functions import Coalesce
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -28,11 +28,12 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
     model = Treatment
     template_name = 'farm/treatments/treatment_list.html'
     context_object_name = 'treatments'
-    paginate_by = 6
+    paginate_by = 24  # divisible entre 2 y 3 (columnas de la vista de tarjetas)
     ordering = ['-date']
 
     # ── Etiquetas legibles para el selector de orden ──────────────────────────
     SORT_LABELS = {
+        'urgency':   'Por urgencia',
         'date_desc': 'Fecha: más reciente primero',
         'date_asc':  'Fecha: más antigua primero',
         'name_asc':  'Nombre A-Z',
@@ -56,7 +57,7 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
         queryset = (
             super()
             .get_queryset()
-            .select_related("field")
+            .select_related("field", "machine")
             .prefetch_related("treatmentproduct_set__product__product_type")
         )
 
@@ -67,7 +68,7 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
         date_from, date_to, _, _ = self._get_filter_dates()
         product_type_filters = self.request.GET.getlist('product_types')
         search_query = self.request.GET.get('q', '').strip()
-        sort = self.request.GET.get('sort', 'date_desc')
+        sort = self.request.GET.get('sort', 'urgency')
 
         if field_ids:
             queryset = queryset.filter(field__id__in=field_ids)
@@ -75,10 +76,16 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
             queryset = queryset.filter(type__in=type_filters)
         if product_ids:
             queryset = queryset.filter(products__id__in=product_ids)
+        # Rango de fechas: los atrasados (sin finalizar y con fecha pasada) aparecen
+        # siempre, aunque caigan fuera del rango, porque son lo más urgente.
+        today = date.today()
+        date_range = Q()
         if date_from:
-            queryset = queryset.filter(date__gte=date_from)
+            date_range &= Q(date__gte=date_from)
         if date_to:
-            queryset = queryset.filter(date__lte=date_to)
+            date_range &= Q(date__lte=date_to)
+        if date_range:
+            queryset = queryset.filter(date_range | Q(finish_date__isnull=True, date__lt=today))
         if product_type_filters:
             queryset = queryset.filter(products__product_type__in=product_type_filters)
         if status_filters:
@@ -96,13 +103,31 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
             'name_asc':  'name',
             'name_desc': '-name',
         }
-        order_field = sort_map.get(sort, '-effective_date')
         queryset = queryset.annotate(
             effective_date=ExpressionWrapper(
                 Coalesce('finish_date', 'date'),
                 output_field=DateField()
-            )
+            ),
+            # Grupo de urgencia calculado a partir de fechas (no del campo status,
+            # que puede estar desfasado hasta que se guarde el tratamiento).
+            urgency_group=Case(
+                When(finish_date__isnull=False, then=Value(3)),            # Completados
+                When(date__lt=today, then=Value(0)),                       # Atrasados
+                When(date__lte=today + timedelta(days=7), then=Value(1)),  # Próximos 7 días
+                default=Value(2),                                          # Más adelante
+                output_field=IntegerField(),
+            ),
+            pending_date=Case(When(finish_date__isnull=True, then=F('date')), output_field=DateField()),
         )
+        if sort == 'urgency':
+            # Atrasados de más antiguo a más reciente; completados de más reciente a más antiguo
+            return queryset.order_by(
+                'urgency_group',
+                F('pending_date').asc(nulls_last=True),
+                F('finish_date').desc(nulls_last=True),
+                'name',
+            ).distinct()
+        order_field = sort_map.get(sort, '-effective_date')
         return queryset.order_by(order_field).distinct()
 
     def get_context_data(self, **kwargs):
@@ -115,7 +140,7 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
         selected_product_types = self.request.GET.getlist('product_types')
         date_from, date_to, date_from_is_default, date_to_is_default = self._get_filter_dates()
         search_query = self.request.GET.get('q', '').strip()
-        sort = self.request.GET.get('sort', 'date_desc')
+        sort = self.request.GET.get('sort', 'urgency')
 
         context['fields'] = Field.ownership_objects.get_queryset_for_user(self.request.user)
         context['products'] = Product.ownership_objects.get_queryset_for_user(self.request.user)
@@ -131,11 +156,17 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
         context['date_to_is_default'] = date_to_is_default
         context['product_types'] = ProductType.ownership_objects.get_queryset_for_user(self.request.user)
         context['selected_product_types'] = selected_product_types
-        context['total_count'] = self.get_queryset().count()
+        context['total_count'] = self.object_list.count()
+        context['show_groups'] = (sort == 'urgency')
+        # Conteo por grupo sobre el total filtrado (no sobre la página), en una sola consulta
+        group_counts = {0: 0, 1: 0, 2: 0, 3: 0}
+        for row in self.object_list.order_by().values('urgency_group').annotate(n=Count('id', distinct=True)):
+            group_counts[row['urgency_group']] = row['n']
+        context['group_counts'] = group_counts
         context['available_fields'] = Field.ownership_objects.get_queryset_for_user(self.request.user)
         context['search_query'] = search_query
         context['sort'] = sort
-        context['sort_label'] = self.SORT_LABELS.get(sort, self.SORT_LABELS['date_desc'])
+        context['sort_label'] = self.SORT_LABELS.get(sort, self.SORT_LABELS['urgency'])
 
         active_filter_count = (
             len(selected_fields)

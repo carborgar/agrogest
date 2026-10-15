@@ -1,3 +1,5 @@
+from datetime import date
+
 from django import template
 
 from farm.models import Product
@@ -68,3 +70,57 @@ def fmt_dose(value):
         return value
 
 
+
+
+# ---------------------------------------------------------------------------
+# Listado de tratamientos (modo lista)
+# Las plantillas no pueden llamar a métodos con argumentos, de ahí estos filtros.
+# ---------------------------------------------------------------------------
+
+_URGENCY_LABEL = {0: 'Atrasados', 1: 'Próximos 7 días', 2: 'Más adelante', 3: 'Completados'}
+_URGENCY_CLASS = {0: 'danger', 1: 'warning', 2: 'secondary', 3: 'success'}
+
+
+@register.filter
+def partial_load_dose(treatment_product):
+    """Dosis de producto para la última cuba (parcial) del tratamiento."""
+    return treatment_product.treatment.calculate_product_for_partial_load(treatment_product)
+
+
+@register.filter
+def treatment_total_cost(treatment):
+    """Coste total de los productos del tratamiento (usa el prefetch, sin consultas extra)."""
+    return sum(tp.total_price for tp in treatment.treatmentproduct_set.all())
+
+
+@register.filter
+def relative_days(value):
+    """Texto relativo a hoy: 'hoy', 'mañana', 'en N d' o 'hace N d'."""
+    if not value:
+        return ''
+    delta = (value - date.today()).days
+    if delta == 0:
+        return 'hoy'
+    if delta == 1:
+        return 'mañana'
+    if delta > 0:
+        return f'en {delta} d'
+    return f'hace {-delta} d'
+
+
+@register.filter
+def urgency_label(group):
+    """Etiqueta del grupo de urgencia (0-3)."""
+    return _URGENCY_LABEL.get(group, '')
+
+
+@register.filter
+def urgency_class(group):
+    """Clase Bootstrap de color del grupo de urgencia (0-3)."""
+    return _URGENCY_CLASS.get(group, 'secondary')
+
+
+@register.filter
+def treatment_cost_per_ha(treatment):
+    """Coste por hectárea del tratamiento (suma de price_per_ha de sus productos)."""
+    return sum(tp.price_per_ha for tp in treatment.treatmentproduct_set.all())
