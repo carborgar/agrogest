@@ -1,182 +1,170 @@
 {% load static %}
 {% load custom_filters %}
 
-<div class="row g-3">
+{# ── BARRA DE FILTROS (se recuerdan entre visitas) ──────────────────── #}
+<div class="card border-0 shadow-sm mb-3 cal-filters">
+    <div class="card-body py-2 px-3">
+        <div class="d-flex flex-wrap align-items-center gap-2">
 
-    {# ── SIDEBAR DE FILTROS ─────────────────────────────────────────── #}
-    <div class="col-12 col-md-3">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span class="fw-semibold small"><i class="fa fa-filter me-2 text-muted"></i>Filtros</span>
-                <button aria-controls="filterCollapse"
-                        aria-expanded="false" class="btn btn-sm btn-link p-0 d-md-none text-muted"
-                        data-bs-target="#filterCollapse" data-bs-toggle="collapse">
-                    <i class="fa fa-chevron-down filter-icon"></i>
+            {# Parcelas #}
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button"
+                        data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                    <i class="fa fa-map me-1"></i><span id="field-filter-label">Todas las parcelas</span>
                 </button>
-            </div>
-
-            <div class="collapse d-md-block" id="filterCollapse">
-                <div class="card-body py-3 px-3">
-
-                    {# Parcelas #}
-                    <div class="mb-3">
-                        <div class="small fw-semibold text-muted text-uppercase mb-2"
-                             style="font-size:.7rem;letter-spacing:.05em">Parcelas
-                        </div>
-                        <div class="d-flex flex-column gap-1" id="field-filters">
-                            <label class="d-flex align-items-center gap-2 py-1 px-2 rounded field-filter-item cursor-pointer active"
-                                   style="cursor:pointer">
-                                <input checked class="form-check-input m-0 flex-shrink-0" id="filter-all"
-                                       type="checkbox" value="all">
-                                <span class="small">Todas</span>
-                            </label>
-                            {% for field in fields %}
-                            <label class="d-flex align-items-center gap-2 py-1 px-2 rounded field-filter-item"
-                                   style="cursor:pointer">
-                                <input class="form-check-input m-0 flex-shrink-0 field-checkbox"
-                                       id="filter-field-{{ field.id }}"
-                                       type="checkbox" value="{{ field.id }}">
-                                <span class="small text-truncate">{{ field.name }}</span>
-                                <span class="badge bg-light text-muted border ms-auto fw-normal"
-                                      style="font-size:.65rem">{{ field.area }} ha</span>
-                            </label>
-                            {% endfor %}
-                        </div>
-                    </div>
-
-                    <hr class="my-2">
-
-                    {# Tipo #}
-                    <div class="mb-3">
-                        <div class="small fw-semibold text-muted text-uppercase mb-2"
-                             style="font-size:.7rem;letter-spacing:.05em">Tipo
-                        </div>
-                        <div class="d-flex flex-column gap-1" id="treatment-type-filters">
-                            {% for type_value, type_name in treatment_types %}
-                            <label class="d-flex align-items-center gap-2 py-1 px-2 rounded" style="cursor:pointer">
-                                <input checked
-                                       class="form-check-input m-0 flex-shrink-0 treatment-type-checkbox"
-                                       id="filter-type-{{ type_value }}" type="checkbox" value="{{ type_value }}">
-                                <i class="fa fa-{{ type_value|type_icon }} text-muted"
-                                   style="width:14px;text-align:center"></i>
-                                <span class="small">{{ type_name }}</span>
-                            </label>
-                            {% endfor %}
-                        </div>
-                    </div>
-
-                    <hr class="my-2">
-
-                    {# Leyenda #}
-                    <div class="mb-3">
-                        <div class="small fw-semibold text-muted text-uppercase mb-2"
-                             style="font-size:.7rem;letter-spacing:.05em">Estado
-                        </div>
-                        <div class="d-flex flex-column gap-1">
-                            <div class="d-flex align-items-center gap-2 small">
-                                <span class="calendar-legend-dot" style="background:var(--bs-warning)"></span>Pendiente
-                            </div>
-                            <div class="d-flex align-items-center gap-2 small">
-                                <span class="calendar-legend-dot" style="background:var(--bs-danger)"></span>Atrasado
-                            </div>
-                            <div class="d-flex align-items-center gap-2 small">
-                                <span class="calendar-legend-dot" style="background:var(--bs-success)"></span>Completado
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-
-                <div class="card-footer bg-transparent border-top px-3 py-2">
-                    <a class="btn btn-primary btn-sm w-100" href="{% url 'treatment-create' %}">
-                        <i class="fa fa-plus me-1"></i>Nuevo tratamiento
-                    </a>
+                <div class="dropdown-menu p-2" style="min-width:240px;max-height:320px;overflow:auto">
+                    <label class="d-flex align-items-center gap-2 py-1 px-2 rounded field-filter-item" style="cursor:pointer">
+                        <input checked class="form-check-input m-0 flex-shrink-0" id="filter-all" type="checkbox" value="all">
+                        <span class="small">Todas</span>
+                    </label>
+                    {% for field in fields %}
+                    <label class="d-flex align-items-center gap-2 py-1 px-2 rounded field-filter-item" style="cursor:pointer">
+                        <input class="form-check-input m-0 flex-shrink-0 field-checkbox"
+                               data-name="{{ field.name }}" id="filter-field-{{ field.id }}"
+                               type="checkbox" value="{{ field.id }}">
+                        <span class="small text-truncate">{{ field.name }}</span>
+                        <span class="badge bg-light text-muted border ms-auto fw-normal"
+                              style="font-size:.65rem">{{ field.area }} ha</span>
+                    </label>
+                    {% endfor %}
                 </div>
             </div>
+
+            {# Tipo #}
+            {% for type_value, type_name in treatment_types %}
+            <input checked autocomplete="off" class="btn-check treatment-type-checkbox"
+                   id="filter-type-{{ type_value }}" type="checkbox" value="{{ type_value }}">
+            <label class="btn btn-outline-secondary btn-sm" for="filter-type-{{ type_value }}">
+                <i class="fa fa-{{ type_value|type_icon }} me-1"></i>{{ type_name }}
+            </label>
+            {% endfor %}
+
+            <span class="vr d-none d-sm-block mx-1"></span>
+
+            {# Estado (también hace de leyenda) #}
+            <input checked autocomplete="off" class="btn-check status-checkbox" id="filter-status-pending" type="checkbox" value="pending">
+            <label class="btn btn-outline-secondary btn-sm" for="filter-status-pending">
+                <span class="calendar-legend-dot me-1" style="background:var(--bs-warning)"></span>Pendiente
+            </label>
+            <input checked autocomplete="off" class="btn-check status-checkbox" id="filter-status-delayed" type="checkbox" value="delayed">
+            <label class="btn btn-outline-secondary btn-sm" for="filter-status-delayed">
+                <span class="calendar-legend-dot me-1" style="background:var(--bs-danger)"></span>Atrasado
+            </label>
+            <input checked autocomplete="off" class="btn-check status-checkbox" id="filter-status-completed" type="checkbox" value="completed">
+            <label class="btn btn-outline-secondary btn-sm" for="filter-status-completed">
+                <span class="calendar-legend-dot me-1" style="background:var(--bs-success)"></span>Completado
+            </label>
         </div>
     </div>
-
-    {# ── CALENDARIO ─────────────────────────────────────────────────── #}
-    <div class="col-12 col-md-9">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body p-3">
-                <div id="calendar"></div>
-            </div>
-        </div>
-    </div>
-
 </div>
 
-{# ── MODAL DE DETALLE ────────────────────────────────────────────────── #}
-<div aria-hidden="true" aria-labelledby="detailsModalTitle" class="modal fade"
-     id="treatment-detail" tabindex="-1">
+{# ── CALENDARIO (ancho completo) ────────────────────────────────────── #}
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-2 p-md-3">
+        <div id="calendar"></div>
+    </div>
+</div>
+
+{# ── MODAL ÚNICO: panel "día" (listado) y panel "detalle". Se cambia de panel sin cerrar el modal ── #}
+<div aria-hidden="true" aria-labelledby="detailsModalTitle" class="modal fade" id="treatment-detail" tabindex="-1">
     <div class="modal-dialog modal-dialog-scrollable">
         <div class="modal-content">
 
-            <div class="modal-header border-0 pb-0">
-                <div>
-                    <h5 class="modal-title fw-bold treatment-title mb-0" id="detailsModalTitle">—</h5>
-                    <div class="small text-muted mt-1" id="detail-meta">—</div>
+            {# Panel: tratamientos de un día #}
+            <div class="cal-pane d-none" id="pane-day">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="day-title">—</h5>
+                    <button aria-label="Cerrar" class="btn-close" data-bs-dismiss="modal" type="button"></button>
                 </div>
-                <button aria-label="Cerrar" class="btn-close" data-bs-dismiss="modal" type="button"></button>
+                <div class="modal-body pt-2">
+                    <div class="d-flex flex-column gap-2" id="day-list"></div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <a class="btn btn-primary btn-sm w-100" href="#" id="day-new">
+                        <i class="fa fa-plus me-1"></i>Nuevo tratamiento este día
+                    </a>
+                </div>
             </div>
 
-            <div class="modal-body pt-2">
-
-                {# Stats #}
-                <div class="row g-2 mb-3">
-                    <div class="col-6">
-                        <div class="bg-light rounded p-2 h-100" id="status-container">
-                            <div class="small text-muted mb-1"><i class="fa fa-circle-dot me-1"></i>Estado</div>
-                            <div class="fw-semibold" id="detail-status">—</div>
+            {# Panel: detalle de un tratamiento #}
+            <div class="cal-pane" id="pane-detail">
+                <div class="modal-header border-0 pb-0">
+                    <div class="d-flex align-items-start gap-2 min-w-0">
+                        <button aria-label="Volver al día" class="btn btn-light btn-sm rounded-circle flex-shrink-0 d-none"
+                                id="detail-back" title="Volver al día" type="button">
+                            <i class="fa fa-arrow-left"></i>
+                        </button>
+                        <div>
+                            <h5 class="modal-title fw-bold treatment-title mb-0" id="detailsModalTitle">—</h5>
+                            <div class="small text-muted mt-1" id="detail-meta">—</div>
                         </div>
                     </div>
-                    <div class="col-6">
-                        <div class="bg-light rounded p-2 h-100">
-                            <div class="small text-muted mb-1"><i class="fa fa-flask me-1"></i>Tipo</div>
-                            <div class="fw-semibold" id="detail-type">—</div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="bg-light rounded p-2 h-100">
-                            <div class="small text-muted mb-1"><i class="fa fa-map me-1"></i>Parcela</div>
-                            <div class="fw-semibold lh-1" id="detail-field">—</div>
-                            <div class="small text-muted mt-1" id="detail-field-info"></div>
-                        </div>
-                    </div>
-                    <div class="col-6" id="water-wrap">
-                        <div class="bg-light rounded p-2 h-100">
-                            <div class="small text-muted mb-1"><i class="fa fa-fill-drip me-1"></i>Mojado</div>
-                            <div class="fw-semibold" id="detail-water">—</div>
-                        </div>
-                    </div>
-                    <div class="col-12" id="machine-wrap">
-                        <div class="bg-light rounded p-2">
-                            <div class="small text-muted mb-1"><i class="fa fa-tractor me-1"></i>Maquinaria</div>
-                            <div class="fw-semibold lh-1" id="detail-machine">—</div>
-                            <div class="small text-muted mt-1" id="detail-machine-info"></div>
-                        </div>
-                    </div>
+                    <button aria-label="Cerrar" class="btn-close" data-bs-dismiss="modal" type="button"></button>
                 </div>
 
-                {# Productos #}
-                <div class="fw-semibold small text-muted text-uppercase mb-2"
-                     style="font-size:.7rem;letter-spacing:.05em">
-                    <i class="fa fa-box me-1"></i>Productos
-                </div>
-                <div class="d-flex flex-column gap-2" id="detail-products-list">
-                    <div class="text-center text-muted small py-3">
-                        <i class="fa fa-spinner fa-spin me-1"></i>Cargando...
+                <div class="modal-body pt-2">
+
+                    {# Stats #}
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <div class="bg-light rounded p-2 h-100" id="status-container">
+                                <div class="small text-muted mb-1"><i class="fa fa-circle-dot me-1"></i>Estado</div>
+                                <div class="fw-semibold" id="detail-status">—</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="bg-light rounded p-2 h-100">
+                                <div class="small text-muted mb-1"><i class="fa fa-flask me-1"></i>Tipo</div>
+                                <div class="fw-semibold" id="detail-type">—</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="bg-light rounded p-2 h-100">
+                                <div class="small text-muted mb-1"><i class="fa fa-map me-1"></i>Parcela</div>
+                                <div class="fw-semibold lh-1" id="detail-field">—</div>
+                                <div class="small text-muted mt-1" id="detail-field-info"></div>
+                            </div>
+                        </div>
+                        <div class="col-6" id="water-wrap">
+                            <div class="bg-light rounded p-2 h-100">
+                                <div class="small text-muted mb-1"><i class="fa fa-fill-drip me-1"></i>Mojado</div>
+                                <div class="fw-semibold" id="detail-water">—</div>
+                            </div>
+                        </div>
+                        <div class="col-12" id="machine-wrap">
+                            <div class="bg-light rounded p-2">
+                                <div class="small text-muted mb-1"><i class="fa fa-tractor me-1"></i>Maquinaria</div>
+                                <div class="fw-semibold lh-1" id="detail-machine">—</div>
+                                <div class="small text-muted mt-1" id="detail-machine-info"></div>
+                            </div>
+                        </div>
                     </div>
+
+                    {# Productos #}
+                    <div class="fw-semibold small text-muted text-uppercase mb-2"
+                         style="font-size:.7rem;letter-spacing:.05em">
+                        <i class="fa fa-box me-1"></i>Productos
+                    </div>
+                    <div class="d-flex flex-column gap-2" id="detail-products-list">
+                        <div class="text-center text-muted small py-3">
+                            <i class="fa fa-spinner fa-spin me-1"></i>Cargando...
+                        </div>
+                    </div>
+
                 </div>
 
-            </div>
+                <div class="modal-footer border-0 pt-0 gap-2 flex-wrap">
+                    <button class="btn btn-success btn-sm d-none" id="detail-finish" type="button">
+                        <i class="fa fa-check me-1"></i>Finalizar
+                    </button>
+                    <a class="btn btn-outline-secondary btn-sm" href="#" id="detail-clone">
+                        <i class="fa fa-copy me-1"></i>Clonar
+                    </a>
+                    <a class="btn btn-primary btn-sm ms-auto" href="#" id="view-treatment">
+                        <i class="fa fa-eye me-1"></i>Ver detalles
+                    </a>
+                </div>
 
-            <div class="modal-footer border-0 pt-0 gap-2">
-                <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
-                <a class="btn btn-primary btn-sm" href="#" id="view-treatment">
-                    <i class="fa fa-eye me-1"></i>Ver detalles
-                </a>
             </div>
 
         </div>

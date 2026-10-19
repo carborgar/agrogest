@@ -266,6 +266,11 @@
         productsByTreatmentType: (treatmentType) => `{% url 'api-products' 'TIPO' %}`.replace("TIPO", treatmentType),
         treatments: "{% url 'api-calendar-treatments' %}",
         treatmentDetail: (id) => `{% url 'api-treatment-detail' treatment_id=0 %}`.replace("0", id),
+        treatmentMove: (id) => `{% url 'api-treatment-move' treatment_id=0 %}`.replace("0", id),
+        treatmentFinish: (id) => `{% url 'treatment-finish' 0 %}`.replace("0", id),
+        treatmentCreate: "{% url 'treatment-create' %}",
+        treatmentClone: (id) => `{% url 'treatment-clone' 0 %}`.replace("0", id),
+        csrfToken: "{{ csrf_token }}",
         fieldCosts: `{% url 'api-field-costs-data' %}`,
     };
 </script>

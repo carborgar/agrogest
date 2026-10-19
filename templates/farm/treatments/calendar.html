@@ -6,6 +6,12 @@
 
 {% block header %}Calendario de tratamientos{% endblock %}
 
+{% block actions %}
+<a class="btn btn-primary" href="{% url 'treatment-create' %}">
+    <i class="fa fa-plus me-1"></i>Nuevo tratamiento
+</a>
+{% endblock %}
+
 {% block content %}
 
 {% include 'farm/treatments/calendar_fragment.html' %}
@@ -13,5 +19,9 @@
 {% endblock %}
 
 {% block extra_js %}
+{# FullCalendar solo se carga en esta página (v6 inyecta su propio CSS) #}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/locales/es.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/bootstrap5@6.1.15/index.global.min.js"></script>
 <script src="{% static 'js/treatment-calendar.js' %}"></script>
 {% endblock %}

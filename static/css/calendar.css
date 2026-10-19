@@ -125,3 +125,24 @@
         padding: 3px 0;
     }
 }
+
+/* ── Evento compacto: icono + nombre + parcela ───────────────────── */
+.fc-ev-line { display: flex; align-items: baseline; gap: .3rem; overflow: hidden; white-space: nowrap; }
+.fc-ev-icon { font-size: .7em; flex-shrink: 0; }
+.fc-ev-title { font-weight: 600; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; }
+.fc-ev-field { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; opacity: .85; font-size: .9em; }
+.fc .fc-more-link { font-size: .75rem; font-weight: 600; }
+
+/* ── Barra de filtros ────────────────────────────────────────────── */
+/* .card tiene overflow:hidden y recortaba el desplegable; z-index para que quede sobre el calendario */
+.cal-filters { overflow: visible; z-index: 5; }
+.cal-filters .btn-check:not(:checked) + .btn { opacity: .5; }
+.cal-filters .btn-check:checked + .btn { background: var(--bs-tertiary-bg); color: var(--bs-body-color); border-color: var(--bs-border-color); }
+
+/* ── Modal con dos paneles (día / detalle): el cambio es una transición, no un cierre y apertura ── */
+.cal-pane { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+.cal-pane.cal-in-forward { animation: cal-in-forward .2s ease-out; }
+.cal-pane.cal-in-back { animation: cal-in-back .2s ease-out; }
+@keyframes cal-in-forward { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+@keyframes cal-in-back { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .cal-pane.cal-in-forward, .cal-pane.cal-in-back { animation: none; } }

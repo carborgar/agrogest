@@ -1,9 +1,12 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
+from functools import wraps
 
 from django.db.models import Sum
+from django.db.models.functions import Coalesce
 from django.http import JsonResponse
 from django.utils.dateparse import parse_date
+from django.views.decorators.http import require_POST
 
 from .models import Field, Machine, Product, Treatment, TreatmentProduct
 
@@ -13,6 +16,26 @@ def _fmt_dose(value):
     if value is None:
         return None
     return f"{value:.4f}".rstrip('0').rstrip('.')
+
+
+def api_login_required(view):
+    """Como login_required, pero responde 401 en JSON en vez de redirigir al login."""
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'No autenticado'}, status=401)
+        return view(request, *args, **kwargs)
+    return wrapper
+
+
+def _effective_status(treatment):
+    """Estado calculado por fechas: el campo `status` solo se actualiza al guardar
+    (o con el comando update_delayed_treatments), así que puede estar desfasado."""
+    if treatment.finish_date:
+        return Treatment.STATUS_COMPLETED
+    if treatment.date < date.today():
+        return Treatment.STATUS_DELAYED
+    return Treatment.STATUS_PENDING
 
 
 def get_fields(request):
@@ -62,73 +85,124 @@ def get_products(request, application_type):
     return JsonResponse(products_data, safe=False)
 
 
+@api_login_required
 def get_calendar_treatments(request):
     """
-    API para obtener tratamientos para el calendario
+    API para obtener tratamientos para el calendario.
+    Cada tratamiento se sitúa en su fecha efectiva (finalización si está completado,
+    prevista si no), que es también la que se filtra por rango.
     """
-    # Parámetros de filtro
-    start_date = request.GET.get('start', None)
-    end_date = request.GET.get('end', None)
+    start_date = parse_date(request.GET.get('start') or '')
+    end_date = parse_date(request.GET.get('end') or '')  # exclusivo, como FullCalendar
     field_ids = request.GET.get('fields', '')
     treatment_types = request.GET.get('types', '')
+    statuses = [s for s in request.GET.get('statuses', '').split(',') if s]
 
-    # Consulta base
-    treatments = Treatment.ownership_objects.get_queryset_for_user(request.user)
+    treatments = (
+        Treatment.ownership_objects.get_queryset_for_user(request.user)
+        .select_related('field')
+        .annotate(effective_date=Coalesce('finish_date', 'date'))
+    )
 
-    # Filtrar por fecha
     if start_date:
-        treatments = treatments.filter(date__gte=start_date)
+        treatments = treatments.filter(effective_date__gte=start_date)
     if end_date:
-        treatments = treatments.filter(date__lte=end_date)
+        treatments = treatments.filter(effective_date__lt=end_date)
 
-    # Filtrar por campos
     if field_ids and field_ids != 'all':
-        field_id_list = [int(id) for id in field_ids.split(',') if id.isdigit()]
+        field_id_list = [int(i) for i in field_ids.split(',') if i.isdigit()]
         if field_id_list:
             treatments = treatments.filter(field_id__in=field_id_list)
 
-    # Filtrar por tipo de tratamiento
     if treatment_types:
         type_list = treatment_types.split(',')
         if type_list:
             treatments = treatments.filter(type__in=type_list)
 
-    # Preparar datos para el calendario
+    type_labels = dict(Treatment.TYPE_CHOICES)
+    status_labels = dict(Treatment.STATUS_CHOICES)
     result = []
     for t in treatments:
-        treatment_data = {
+        status = _effective_status(t)
+        if statuses and status not in statuses:
+            continue
+        result.append({
             'id': t.id,
             'name': t.name,
-            'date': t.finish_date.isoformat() if t.finish_date else t.date.isoformat(),
+            'date': t.effective_date.isoformat(),
+            'planned_date': t.date.isoformat(),
             'finish_date': t.finish_date.isoformat() if t.finish_date else None,
-            'status': t.status,
-            'status_display': t.get_status_display(),
-        }
-
-        result.append(treatment_data)
+            'status': status,
+            'status_display': status_labels[status],
+            'type': t.type,
+            'type_display': type_labels.get(t.type, ''),
+            'field_name': t.field.name,
+            'editable': True,
+        })
 
     return JsonResponse(result, safe=False)
 
 
+@require_POST
+@api_login_required
+def move_treatment(request, treatment_id):
+    """Reprograma un tratamiento desde el calendario: cambia la fecha prevista si no está
+    completado y la fecha de finalización si lo está."""
+    treatment = (Treatment.ownership_objects.get_queryset_for_user(request.user)
+                 .filter(pk=treatment_id).first())
+    if treatment is None:
+        return JsonResponse({'error': 'Tratamiento no encontrado'}, status=404)
+
+    new_date = parse_date(request.POST.get('date') or '')
+    if new_date is None:
+        return JsonResponse({'error': 'Fecha no válida'}, status=400)
+
+    if treatment.finish_date:
+        treatment.finish_date = new_date
+    else:
+        treatment.date = new_date
+    treatment.save()
+    return JsonResponse({
+        'success': True,
+        'date': (treatment.finish_date or treatment.date).isoformat(),
+        'status': _effective_status(treatment),
+    })
+
+
+@api_login_required
 def treatment_detail(request, treatment_id):
     try:
         treatment = (Treatment.ownership_objects.get_queryset_for_user(request.user).select_related('field', 'machine')
                      .prefetch_related('treatmentproduct_set')
                      .get(id=treatment_id))
-        products = treatment.treatmentproduct_set.all()
+        products = treatment.treatmentproduct_set.select_related('product')
+        loads = treatment.calculate_machine_loads()  # None si no es pulverización o faltan datos
+        status = _effective_status(treatment)
+
+        def per_load(tp):
+            if not loads:
+                return None, None
+            full = tp.get_dose_per_load()
+            partial = treatment.calculate_product_for_partial_load(tp) if loads['partial_load'] else None
+            return full, partial
 
         return JsonResponse({
             'id': treatment.id,
             'name': treatment.name,
             'date': treatment.date.isoformat(),
             'finish_date': treatment.finish_date.isoformat() if treatment.finish_date else None,
-            'status': treatment.status,
-            'status_display': treatment.get_status_display(),
+            'status': status,
+            'status_display': dict(Treatment.STATUS_CHOICES)[status],
+            'can_finish': status != Treatment.STATUS_COMPLETED,
             'type': treatment.type,
             'type_display': dict(Treatment.TYPE_CHOICES).get(treatment.type, ''),
             'field': treatment.field_id,
             'field_name': treatment.field.name,
+            'field_area': treatment.effective_area,
+            'field_crop': treatment.field.crop,
             'machine_name': str(treatment.machine) if treatment.machine else None,
+            'machine_capacity': treatment.machine.capacity if treatment.machine else None,
+            'loads': loads,
             'water_per_ha': treatment.water_per_ha,
             'real_water_per_ha': treatment.real_water_per_ha,
             'products': [
@@ -139,7 +213,9 @@ def treatment_detail(request, treatment_id):
                     'dose_type': tp.dose_type,
                     'dose_type_display': dict(tp.product.ALL_DOSE_TYPE_CHOICES).get(tp.dose_type, ''),
                     'total_dose': _fmt_dose(tp.total_dose),
-                    'total_dose_unit': tp.total_dose_unit
+                    'total_dose_unit': tp.total_dose_unit,
+                    'dose_per_load': _fmt_dose(per_load(tp)[0]),
+                    'dose_partial_load': _fmt_dose(per_load(tp)[1]),
                 } for tp in products
             ]
         })

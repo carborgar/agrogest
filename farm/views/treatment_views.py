@@ -234,6 +234,17 @@ class TreatmentFormView(BaseSecureViewMixin, SuccessMessageMixin, UpdateView):
             return None
         return super().get_object(queryset)
 
+    def get_initial(self):
+        initial = super().get_initial()
+        # ?date=YYYY-MM-DD (p. ej. desde el calendario) preselecciona la fecha al crear
+        preset = self.request.GET.get('date')
+        if preset and 'pk' not in self.kwargs:
+            try:
+                initial['date'] = date.fromisoformat(preset).isoformat()
+            except ValueError:
+                pass
+        return initial
+
     def get_success_url(self):
         return reverse('treatment-detail', kwargs={'pk': self.object.id})
 
