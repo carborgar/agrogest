@@ -45,7 +45,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const checkedValues = (list) => list.filter(cb => cb.checked).map(cb => cb.value);
 
+    // Nº de filtros distintos del valor por defecto (se muestra en el botón "Filtros" de móvil)
+    function updateFilterBadge() {
+        const badge = document.getElementById('cm-filter-badge');
+        if (!badge) return;
+        const n = checkedValues(fieldCheckboxes).length
+            + [...typeCheckboxes, ...statusCheckboxes].filter(cb => !cb.checked).length;
+        badge.textContent = n;
+        badge.classList.toggle('d-none', n === 0);
+    }
+
     function persistFilters() {
+        updateFilterBadge();
         store.set({
             fields: checkedValues(fieldCheckboxes),
             types: checkedValues(typeCheckboxes),
@@ -55,81 +66,94 @@ document.addEventListener('DOMContentLoaded', function () {
 
     restoreFilters();
     refreshFieldFilterUi();
+    updateFilterBadge();
 
     // ── Calendario ────────────────────────────────────────────────────────
-    const calendarEl = document.getElementById('calendar');
-    const calendar = new FullCalendar.Calendar(calendarEl, {
-        themeSystem: 'bootstrap5',
-        initialView: saved.view || (isMobile() ? 'listWeek' : 'dayGridMonth'),
-        locale: 'es',
-        height: 'auto',
-        headerToolbar: {
-            left: 'prev,next',
-            center: 'title',
-            right: 'today dayGridMonth,listWeek',
-        },
-        buttonText: { today: 'Hoy' },
-        views: {
-            dayGridMonth: { buttonText: 'Mes' },
-            listWeek: { buttonText: 'Semana', noEventsContent: 'No hay tratamientos esta semana' },
-        },
-        events: fetchEvents,
-        displayEventTime: false,
-        dayMaxEvents: isMobile() ? 2 : 3,
-        moreLinkText: n => `+${n} más`,
-        // Arrastrar para reprogramar (solo pendientes y atrasados; en táctil, con pulsación larga)
-        editable: true,
-        eventDurationEditable: false,
-        longPressDelay: 350,
-        eventLongPressDelay: 350,
-        eventContent: renderEventContent,
-        eventClick: (info) => loadTreatmentDetail(info.event),
-        dateClick: (info) => openDay(info.dateStr),
-        // Un modal propio en vez del popover de la librería: devolver true evita que se abra también
-        moreLinkClick: (info) => { openDay(toDateStr(info.date)); return true; },
-        eventDrop: onEventDrop,
-        datesSet: (info) => store.set({ view: info.view.type }),
-    });
-    calendar.render();
+    // FullCalendar solo se crea en escritorio (≥768 px); en móvil se usa el componente propio de más abajo.
+    let calendar = null;
+    function initDesktop() {
+        const calendarEl = document.getElementById('calendar');
+        calendar = new FullCalendar.Calendar(calendarEl, {
+            themeSystem: 'bootstrap5',
+            initialView: saved.view || 'dayGridMonth',
+            locale: 'es',
+            height: 'auto',
+            headerToolbar: {
+                left: 'prev,next',
+                center: 'title',
+                right: 'today dayGridMonth,listWeek',
+            },
+            buttonText: { today: 'Hoy' },
+            views: {
+                dayGridMonth: { buttonText: 'Mes' },
+                listWeek: { buttonText: 'Semana', noEventsContent: 'No hay tratamientos esta semana' },
+            },
+            events: fetchEvents,
+            displayEventTime: false,
+            dayMaxEvents: 3,
+            moreLinkText: n => `+${n} más`,
+            // Arrastrar para reprogramar (solo pendientes y atrasados; en táctil, con pulsación larga)
+            editable: true,
+            eventDurationEditable: false,
+            longPressDelay: 350,
+            eventLongPressDelay: 350,
+            eventContent: renderEventContent,
+            eventClick: (info) => loadTreatmentDetail(info.event),
+            dateClick: (info) => openDay(info.dateStr),
+            // Un modal propio en vez del popover de la librería: devolver true evita que se abra también
+            moreLinkClick: (info) => { openDay(toDateStr(info.date)); return true; },
+            eventDrop: onEventDrop,
+            datesSet: (info) => store.set({ view: info.view.type }),
+        });
+        calendar.render();
+    }
 
-    const refetch = () => calendar.refetchEvents();
+
     filterAll.addEventListener('change', () => {
         fieldCheckboxes.forEach(cb => { cb.checked = false; });
         refreshFieldFilterUi();
         persistFilters();
-        refetch();
+        refetchAll();
     });
     fieldCheckboxes.forEach(cb => cb.addEventListener('change', () => {
-        refreshFieldFilterUi(); persistFilters(); refetch();
+        refreshFieldFilterUi(); persistFilters(); refetchAll();
     }));
     [...typeCheckboxes, ...statusCheckboxes].forEach(cb => cb.addEventListener('change', () => {
-        persistFilters(); refetch();
+        persistFilters(); refetchAll();
     }));
 
     // ── Eventos ───────────────────────────────────────────────────────────
-    function fetchEvents(info, successCallback, failureCallback) {
+    // Carga tratamientos de un rango [start, end) con los filtros actuales (statusOverride fuerza el estado).
+    function loadTreatments(start, end, statusOverride = null) {
         // Sin ninguna opción marcada se envía 'none' (la API trata la lista vacía como "sin filtro").
         const types = checkedValues(typeCheckboxes);
-        const statuses = checkedValues(statusCheckboxes);
+        const statuses = statusOverride ? [statusOverride] : checkedValues(statusCheckboxes);
         const params = new URLSearchParams({
-            start: info.startStr.split('T')[0],
-            end: info.endStr.split('T')[0],
+            start, end,
             fields: checkedValues(fieldCheckboxes).join(','),
             types: types.length ? types.join(',') : 'none',
             statuses: statuses.length ? statuses.join(',') : 'none',
         });
+        return fetch(`${API_URLS.treatments}?${params.toString()}`).then(response => {
+            if (response.status === 401) { window.location.reload(); throw new Error('Sesión caducada'); }
+            if (!response.ok) throw new Error('Error cargando eventos');
+            return response.json();
+        });
+    }
 
-        fetch(`${API_URLS.treatments}?${params.toString()}`)
-            .then(response => {
-                if (response.status === 401) { window.location.reload(); throw new Error('Sesión caducada'); }
-                if (!response.ok) throw new Error('Error cargando eventos');
-                return response.json();
-            })
+    function fetchEvents(info, successCallback, failureCallback) {
+        loadTreatments(info.startStr.split('T')[0], info.endStr.split('T')[0])
             .then(data => successCallback(data.map(formatEvent)))
             .catch(error => {
                 console.error('Error cargando eventos:', error);
                 failureCallback(error);
             });
+    }
+
+    // Recarga la vista activa (escritorio o móvil)
+    function refetchAll() {
+        if (calendar && !isMobile()) calendar.refetchEvents();
+        if (mobileReady && isMobile()) mLoad();
     }
 
     function formatEvent(treatment) {
@@ -175,28 +199,30 @@ document.addEventListener('DOMContentLoaded', function () {
         }).then(r => { if (!r.ok) throw new Error('No se pudo mover'); return r.json(); });
     }
 
+    // Aviso de "movido" con opción de deshacer (común a arrastrar y a cambiar la fecha desde el detalle)
+    function announceMove(id, oldDate, newDate, status) {
+        refetchAll(); // el estado (pendiente/atrasado) puede cambiar al mover
+        Swal.fire({
+            toast: true, position: 'bottom', icon: 'success',
+            title: `${status === 'completed' ? 'Finalización movida al' : 'Movido al'} ${formatDate(new Date(`${newDate}T00:00:00`))}`,
+            showConfirmButton: true, confirmButtonText: 'Deshacer',
+            timer: 6000, timerProgressBar: true, heightAuto: false,
+        }).then(result => {
+            if (result.isConfirmed) moveTreatment(id, oldDate).then(refetchAll).catch(() => refetchAll());
+        });
+    }
+
+    function moveError() {
+        Swal.fire({ toast: true, position: 'bottom', icon: 'error', title: 'No se pudo mover el tratamiento', showConfirmButton: false, timer: 3500, heightAuto: false });
+    }
+
     function onEventDrop(info) {
         const id = info.event.id;
         const newDate = info.event.startStr.slice(0, 10);
         const oldDate = info.oldEvent.startStr.slice(0, 10);
         moveTreatment(id, newDate)
-            .then(() => {
-                refetch(); // el estado (pendiente/atrasado) puede cambiar al mover
-                Swal.fire({
-                    toast: true, position: 'bottom', icon: 'success',
-                    title: `${info.event.extendedProps.status === 'completed' ? 'Finalización movida al' : 'Movido al'} ${formatDate(info.event.start)}`,
-                    showConfirmButton: true, confirmButtonText: 'Deshacer',
-                    timer: 6000, timerProgressBar: true, heightAuto: false,
-                }).then(result => {
-                    if (result.isConfirmed) {
-                        moveTreatment(id, oldDate).then(refetch).catch(() => refetch());
-                    }
-                });
-            })
-            .catch(() => {
-                info.revert();
-                Swal.fire({ toast: true, position: 'bottom', icon: 'error', title: 'No se pudo mover el tratamiento', showConfirmButton: false, timer: 3500, heightAuto: false });
-            });
+            .then(() => announceMove(id, oldDate, newDate, info.event.extendedProps.status))
+            .catch(() => { info.revert(); moveError(); });
     }
 
     // ── Modal único con dos paneles ───────────────────────────────────────
@@ -231,7 +257,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('day-title').textContent = title.charAt(0).toUpperCase() + title.slice(1);
         document.getElementById('day-new').href = `${API_URLS.treatmentCreate}?date=${dateStr}`;
 
-        const events = calendar.getEvents().filter(e => e.startStr.slice(0, 10) === dateStr);
+        const events = (calendar ? calendar.getEvents() : []).filter(e => e.startStr.slice(0, 10) === dateStr);
         const list = document.getElementById('day-list');
         list.innerHTML = events.length ? '' : '<div class="text-center text-muted small py-3">No hay tratamientos este día</div>';
         events.forEach(ev => {
@@ -268,6 +294,24 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('view-treatment').href = `/tratamientos/${treatmentId}`;
         document.getElementById('detail-clone').href = API_URLS.treatmentClone(treatmentId);
         finishBtn.classList.add('d-none');
+
+        // Cambio de fecha (en móvil no hay arrastrar): planificada, o de finalización si está completado
+        const dateInput = document.getElementById('detail-date');
+        const oldDate = toDateStr(event.start);
+        const evStatus = event.extendedProps?.status;
+        document.getElementById('detail-date-label').textContent =
+            evStatus === 'completed' ? 'Fecha de finalización' : 'Fecha planificada';
+        dateInput.value = oldDate;
+        dateInput.onchange = () => {
+            const newDate = dateInput.value;
+            if (!newDate || newDate === oldDate) return;
+            moveTreatment(treatmentId, newDate)
+                .then(() => {
+                    treatmentModal.addEventListener('hidden.bs.modal', () => announceMove(treatmentId, oldDate, newDate, evStatus), { once: true });
+                    bootstrap.Modal.getOrCreateInstance(treatmentModal).hide();
+                })
+                .catch(() => { dateInput.value = oldDate; moveError(); });
+        };
 
         const backBtn = document.getElementById('detail-back');
         backBtn.classList.toggle('d-none', !fromDay);
@@ -396,7 +440,7 @@ document.addEventListener('DOMContentLoaded', function () {
             fetch(API_URLS.treatmentFinish(data.id), { method: 'POST', headers: csrfHeaders(), body })
                 .then(r => { if (!r.ok) throw new Error(); return r.json(); })
                 .then(() => {
-                    refetch();
+                    refetchAll();
                     Swal.fire({ toast: true, position: 'bottom', icon: 'success', title: 'Tratamiento finalizado', showConfirmButton: false, timer: 3000, heightAuto: false });
                 })
                 .catch(() => Swal.fire({ icon: 'error', title: 'Error', text: 'Hubo un problema. Verifica los datos e inténtalo de nuevo.', heightAuto: false }));
@@ -462,14 +506,184 @@ document.addEventListener('DOMContentLoaded', function () {
         return new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
     }
 
-    // ── Tamaño ────────────────────────────────────────────────────────────
+    // ── Móvil (<768 px): tira semanal / mes en puntos + agenda del día ─────
+    let mobileReady = false;
+    let mSeq = 0;
+    const M = {
+        view: ['week', 'month'].includes(saved.mview) ? saved.mview : 'month',
+        cursor: new Date(), selected: toDateStr(new Date()),
+        events: [], overdue: [], showOverdue: false,
+    };
+    const $ = (id) => document.getElementById(id);
+    const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+    const startOfWeek = (d) => addDays(d, -((d.getDay() + 6) % 7)); // semana de lunes a domingo
+    const fromStr = (str) => new Date(`${str}T00:00:00`);
+    const mapEvent = (t) => ({ id: t.id, title: t.name, start: fromStr(t.date), startStr: t.date, extendedProps: t });
+    const fmt = (opts, d) => new Intl.DateTimeFormat('es-ES', opts).format(d);
+    const cap = (str) => str.charAt(0).toUpperCase() + str.slice(1);
+    const mToast = (icon, title) => Swal.fire({ toast: true, position: 'bottom', icon, title, showConfirmButton: false, timer: 3000, heightAuto: false });
+
+    // Rango visible [inicio, fin): una semana, o las semanas completas que cubren el mes
+    function mRange() {
+        if (M.view === 'week') { const s = startOfWeek(M.cursor); return [s, addDays(s, 7)]; }
+        const first = new Date(M.cursor.getFullYear(), M.cursor.getMonth(), 1);
+        const last = new Date(M.cursor.getFullYear(), M.cursor.getMonth() + 1, 0);
+        return [startOfWeek(first), addDays(startOfWeek(last), 7)];
+    }
+    const rangeKey = () => mRange().map(toDateStr).join();
+
+    function mLoad() {
+        const [s, e] = mRange();
+        const seq = ++mSeq; // descarta respuestas antiguas si el usuario navega rápido
+        loadTreatments(toDateStr(s), toDateStr(e))
+            .then(data => { if (seq === mSeq) { M.events = data.map(mapEvent); mRender(); } })
+            .catch(err => console.error('Error cargando eventos:', err));
+
+        // Atrasados: de todo el último año, sea cual sea el rango visible (respeta parcelas y tipos)
+        const delayedOn = statusCheckboxes.find(cb => cb.value === 'delayed')?.checked;
+        if (!delayedOn) { M.overdue = []; mRender(); return; }
+        loadTreatments(toDateStr(addDays(new Date(), -365)), toDateStr(new Date()), 'delayed')
+            .then(data => { M.overdue = data.map(mapEvent).sort((a, b) => a.startStr.localeCompare(b.startStr)); mRender(); })
+            .catch(err => console.error('Error cargando atrasados:', err));
+    }
+
+    // Ir a una fecha: recarga solo si cambia el rango visible
+    function mGo(date) {
+        const before = rangeKey();
+        M.cursor = date;
+        M.selected = toDateStr(date);
+        M.showOverdue = false;
+        if (rangeKey() !== before) mLoad(); else mRender();
+    }
+
+    function mRender() {
+        const [s, e] = mRange();
+        const todayStr = toDateStr(new Date());
+        const byDay = {};
+        M.events.forEach(ev => (byDay[ev.startStr] = byDay[ev.startStr] || []).push(ev));
+
+        $('cm-title').textContent = M.view === 'week'
+            ? `${fmt({ day: 'numeric', month: 'short' }, s)} – ${fmt({ day: 'numeric', month: 'short' }, addDays(e, -1))}`
+            : cap(fmt({ month: 'long', year: 'numeric' }, M.cursor));
+        document.querySelectorAll('[data-cm-view]').forEach(b => b.classList.toggle('active', b.dataset.cmView === M.view));
+
+        let html = ['L', 'M', 'X', 'J', 'V', 'S', 'D'].map(d => `<div class="cm-wd">${d}</div>`).join('');
+        for (let d = s; d < e; d = addDays(d, 1)) {
+            const str = toDateStr(d);
+            const evs = byDay[str] || [];
+            const dots = evs.slice(0, 3).map(ev =>
+                `<i class="cm-dot" style="background:${(STATUS_STYLE[ev.extendedProps.status] || STATUS_STYLE.pending).bg}"></i>`).join('');
+            const out = M.view === 'month' && d.getMonth() !== M.cursor.getMonth();
+            html += `<button type="button" class="cm-day${out ? ' cm-out' : ''}${str === M.selected && !M.showOverdue ? ' cm-sel' : ''}${str === todayStr ? ' cm-today' : ''}" data-date="${str}"
+                        aria-label="${esc(fmt({ weekday: 'long', day: 'numeric', month: 'long' }, d))}, ${evs.length} tratamientos">
+                        <span class="cm-num">${d.getDate()}</span><span class="cm-dots">${dots}</span>${evs.length > 3 ? `<small class="cm-more">+${evs.length - 3}</small>` : ''}</button>`;
+        }
+        const grid = $('cm-grid');
+        grid.className = `cm-grid cm-${M.view}`;
+        grid.innerHTML = html;
+
+        // Banner de atrasados
+        const banner = $('cm-overdue');
+        banner.classList.toggle('d-none', M.overdue.length === 0);
+        banner.innerHTML = `<i class="fa fa-triangle-exclamation me-1"></i><b>${M.overdue.length}</b> atrasado${M.overdue.length === 1 ? '' : 's'}
+            <span class="float-end small">${M.showOverdue ? 'Ocultar' : 'Ver'}</span>`;
+
+        mRenderAgenda();
+    }
+
+    function mRenderAgenda() {
+        const list = M.showOverdue ? M.overdue : M.events.filter(ev => ev.startStr === M.selected);
+        $('cm-agenda-title').textContent = M.showOverdue ? `Atrasados (${list.length})`
+            : cap(fmt({ weekday: 'long', day: 'numeric', month: 'long' }, fromStr(M.selected)));
+        $('cm-new').href = `${API_URLS.treatmentCreate}?date=${M.selected}`;
+        $('cm-agenda').innerHTML = list.length ? list.map(ev => {
+            const t = ev.extendedProps;
+            const style = STATUS_STYLE[t.status] || STATUS_STYLE.pending;
+            return `<div class="d-flex align-items-center gap-2 bg-white rounded shadow-sm p-2">
+                <span class="cm-bar" style="background:${style.bg}"></span>
+                <button type="button" class="btn p-0 border-0 text-start flex-grow-1 min-w-0" data-open="${ev.id}">
+                    <span class="d-block fw-semibold small text-truncate"><i class="fa fa-${TYPE_ICON[t.type] || 'flask'} me-1 text-muted"></i>${esc(ev.title)}</span>
+                    <span class="d-block small text-muted text-truncate">${M.showOverdue ? `${esc(formatDate(ev.start))} · ` : ''}${esc(t.field_name)} · ${esc(t.type_display)}</span>
+                </button>
+                ${t.status === 'completed' ? '<i class="fa fa-circle-check text-success px-2"></i>'
+                    : `<button type="button" class="btn btn-outline-success btn-sm" data-finish="${ev.id}" aria-label="Finalizar"><i class="fa fa-check"></i></button>`}
+            </div>`;
+        }).join('') : '<div class="text-center text-muted small py-4">No hay tratamientos este día</div>';
+    }
+
+    // ✓ rápido: carga el detalle (dosis, mojado por defecto…) y abre el formulario de finalizar
+    function quickFinish(id) {
+        fetch(API_URLS.treatmentDetail(id))
+            .then(r => {
+                if (r.status === 401) { window.location.reload(); throw new Error('Sesión caducada'); }
+                if (!r.ok) throw new Error();
+                return r.json();
+            })
+            .then(data => data.can_finish ? finishTreatment(data) : mToast('info', 'Este tratamiento ya está finalizado'))
+            .catch(() => mToast('error', 'No se pudo cargar el tratamiento'));
+    }
+
+    function initMobile() {
+        mobileReady = true;
+        $('cm-prev').onclick = () => mGo(M.view === 'week' ? addDays(M.cursor, -7) : new Date(M.cursor.getFullYear(), M.cursor.getMonth() - 1, 1));
+        $('cm-next').onclick = () => mGo(M.view === 'week' ? addDays(M.cursor, 7) : new Date(M.cursor.getFullYear(), M.cursor.getMonth() + 1, 1));
+        $('cm-today').onclick = () => mGo(new Date());
+        document.querySelectorAll('[data-cm-view]').forEach(b => b.onclick = () => {
+            M.view = b.dataset.cmView;
+            store.set({ mview: M.view });
+            M.cursor = fromStr(M.selected); // el mes/semana mostrados son los del día seleccionado
+            mLoad(); mRender();
+        });
+        $('cm-overdue').onclick = () => { M.showOverdue = !M.showOverdue; mRender(); };
+        $('cm-grid').onclick = (e) => {
+            const day = e.target.closest('[data-date]');
+            if (day) mGo(fromStr(day.dataset.date));
+        };
+        $('cm-agenda').onclick = (e) => {
+            const fin = e.target.closest('[data-finish]');
+            if (fin) return quickFinish(fin.dataset.finish);
+            const open = e.target.closest('[data-open]');
+            if (open) {
+                const ev = [...M.events, ...M.overdue].find(x => String(x.id) === open.dataset.open);
+                if (ev) loadTreatmentDetail(ev);
+            }
+        };
+        // Deslizar a izquierda/derecha sobre la tira cambia de semana/mes
+        let touchX = null;
+        $('cm-grid').addEventListener('touchstart', (e) => { touchX = e.touches[0].clientX; }, { passive: true });
+        $('cm-grid').addEventListener('touchend', (e) => {
+            if (touchX === null) return;
+            const dx = e.changedTouches[0].clientX - touchX;
+            touchX = null;
+            if (Math.abs(dx) > 60) $(dx < 0 ? 'cm-next' : 'cm-prev').click();
+        }, { passive: true });
+        mLoad();
+    }
+
+    // ── Modo según el ancho ───────────────────────────────────────────────
+    let lastMobile = null;
+    function applyMode() {
+        const mobile = isMobile();
+        if (mobile === lastMobile) return;
+        lastMobile = mobile;
+        if (mobile) {
+            if (!mobileReady) initMobile(); else mLoad();
+        } else if (!calendar) {
+            initDesktop();
+        } else {
+            calendar.updateSize();
+            calendar.refetchEvents();
+        }
+    }
+    applyMode();
+
     let resizeTimer;
     window.addEventListener('resize', () => {
         clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(() => calendar.setOption('dayMaxEvents', isMobile() ? 2 : 3), 150);
+        resizeTimer = setTimeout(applyMode, 150);
     });
 
     document.addEventListener('sidebar-toggled', () => {
-        setTimeout(() => calendar.updateSize(), 300);
+        setTimeout(() => calendar?.updateSize(), 300);
     });
 });

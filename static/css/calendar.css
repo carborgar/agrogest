@@ -146,3 +146,27 @@
 @keyframes cal-in-forward { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
 @keyframes cal-in-back { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .cal-pane.cal-in-forward, .cal-pane.cal-in-back { animation: none; } }
+
+/* ── Móvil: tira semanal / mes en puntos + agenda ────────────────── */
+.cm-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+.cm-wd { font-size: .7rem; color: var(--bs-secondary-color); }
+.cm-day { border: 0; background: none; color: inherit; border-radius: .75rem; padding: .35rem 0; min-height: 3.2rem;
+          display: flex; flex-direction: column; align-items: center; gap: .15rem; }
+.cm-week .cm-day { min-height: 4.2rem; }
+.cm-out { opacity: .4; }
+.cm-today .cm-num { color: var(--bs-primary); font-weight: 700; }
+.cm-sel { background: var(--bs-primary); color: #fff; }
+.cm-sel .cm-num { color: #fff; }
+.cm-dots { display: flex; gap: 2px; min-height: 6px; }
+.cm-dot { width: 6px; height: 6px; border-radius: 50%; }
+.cm-sel .cm-dot { box-shadow: 0 0 0 1px #fff; }
+.cm-more { font-size: .6rem; line-height: 1; }
+.cm-bar { width: 4px; align-self: stretch; border-radius: 2px; flex-shrink: 0; }
+
+/* El detalle se abre como hoja inferior en móvil */
+@media (max-width: 767.98px) {
+    #treatment-detail .modal-dialog { margin: 0; max-width: none; height: 100%; display: flex; align-items: flex-end; }
+    #treatment-detail.modal.fade .modal-dialog { transform: translateY(100%); }
+    #treatment-detail.modal.show .modal-dialog { transform: none; }
+    #treatment-detail .modal-content { max-height: 88%; border-radius: 1rem 1rem 0 0; border: 0; }
+}

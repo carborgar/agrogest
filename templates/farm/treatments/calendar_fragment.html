@@ -1,12 +1,26 @@
 {% load static %}
 {% load custom_filters %}
 
-{# ── BARRA DE FILTROS (se recuerdan entre visitas) ──────────────────── #}
+{# ── MÓVIL (<768 px): barra superior; el resto del componente va tras los filtros ── #}
+<div class="d-md-none d-flex align-items-center gap-2 mb-2" id="cm-top">
+    <div class="btn-group btn-group-sm" role="group" aria-label="Vista">
+        <button class="btn btn-outline-secondary" data-cm-view="week" type="button">Semana</button>
+        <button class="btn btn-outline-secondary" data-cm-view="month" type="button">Mes</button>
+    </div>
+    <button class="btn btn-outline-secondary btn-sm" id="cm-today" type="button">Hoy</button>
+    <button aria-controls="cal-filters-wrap" class="btn btn-outline-secondary btn-sm ms-auto" data-bs-target="#cal-filters-wrap"
+            data-bs-toggle="collapse" type="button">
+        <i class="fa fa-sliders me-1"></i>Filtros <span class="badge bg-primary d-none" id="cm-filter-badge"></span>
+    </button>
+</div>
+
+{# ── BARRA DE FILTROS (se recuerdan entre visitas). En móvil va plegada tras el botón "Filtros" ── #}
+<div class="collapse d-md-block" id="cal-filters-wrap">
 <div class="card border-0 shadow-sm mb-3 cal-filters">
     <div class="card-body py-2 px-3">
-        <div class="d-flex flex-wrap align-items-center gap-2">
+        <div class="d-flex flex-column flex-md-row flex-md-wrap align-items-md-center gap-2">
 
-            {# Parcelas #}
+            {# Fila 1: parcelas #}
             <div class="dropdown">
                 <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button"
                         data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
@@ -30,7 +44,8 @@
                 </div>
             </div>
 
-            {# Tipo #}
+            {# Fila 2: tipo #}
+            <div class="d-flex flex-wrap gap-2">
             {% for type_value, type_name in treatment_types %}
             <input checked autocomplete="off" class="btn-check treatment-type-checkbox"
                    id="filter-type-{{ type_value }}" type="checkbox" value="{{ type_value }}">
@@ -38,10 +53,12 @@
                 <i class="fa fa-{{ type_value|type_icon }} me-1"></i>{{ type_name }}
             </label>
             {% endfor %}
+            </div>
 
-            <span class="vr d-none d-sm-block mx-1"></span>
+            <span class="vr d-none d-md-block mx-1"></span>
 
-            {# Estado (también hace de leyenda) #}
+            {# Fila 3: estado (también hace de leyenda) #}
+            <div class="d-flex flex-wrap gap-2">
             <input checked autocomplete="off" class="btn-check status-checkbox" id="filter-status-pending" type="checkbox" value="pending">
             <label class="btn btn-outline-secondary btn-sm" for="filter-status-pending">
                 <span class="calendar-legend-dot me-1" style="background:var(--bs-warning)"></span>Pendiente
@@ -54,15 +71,37 @@
             <label class="btn btn-outline-secondary btn-sm" for="filter-status-completed">
                 <span class="calendar-legend-dot me-1" style="background:var(--bs-success)"></span>Completado
             </label>
+            </div>
         </div>
     </div>
 </div>
+</div>
 
 {# ── CALENDARIO (ancho completo) ────────────────────────────────────── #}
-<div class="card border-0 shadow-sm">
+<div class="card border-0 shadow-sm d-none d-md-block" id="cal-desktop">
     <div class="card-body p-2 p-md-3">
         <div id="calendar"></div>
     </div>
+</div>
+
+{# ── CALENDARIO MÓVIL: tira semanal / mes en puntos + agenda del día ── #}
+<div class="d-md-none" id="cal-mobile">
+    <button class="alert alert-danger d-none w-100 text-start py-2 px-3 mb-2" id="cm-overdue" type="button"></button>
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body p-2">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <button aria-label="Anterior" class="btn btn-light btn-sm" id="cm-prev" type="button"><i class="fa fa-chevron-left"></i></button>
+                <div class="fw-semibold" id="cm-title">—</div>
+                <button aria-label="Siguiente" class="btn btn-light btn-sm" id="cm-next" type="button"><i class="fa fa-chevron-right"></i></button>
+            </div>
+            <div id="cm-grid"></div>
+        </div>
+    </div>
+    <div class="d-flex align-items-center justify-content-between mb-2">
+        <div class="fw-semibold" id="cm-agenda-title">—</div>
+        <a class="btn btn-primary btn-sm" href="#" id="cm-new"><i class="fa fa-plus me-1"></i>Nuevo</a>
+    </div>
+    <div class="d-flex flex-column gap-2" id="cm-agenda"></div>
 </div>
 
 {# ── MODAL ÚNICO: panel "día" (listado) y panel "detalle". Se cambia de panel sin cerrar el modal ── #}
@@ -138,6 +177,14 @@
                                 <div class="small text-muted mt-1" id="detail-machine-info"></div>
                             </div>
                         </div>
+                    </div>
+
+                    {# Cambiar fecha (solo móvil: no hay arrastrar) #}
+                    <div class="d-md-none mb-3">
+                        <label class="small text-muted mb-1" for="detail-date">
+                            <i class="fa fa-calendar me-1"></i><span id="detail-date-label">Fecha</span>
+                        </label>
+                        <input class="form-control form-control-sm" id="detail-date" type="date">
                     </div>
 
                     {# Productos #}
