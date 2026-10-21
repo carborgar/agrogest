@@ -1,0 +1,75 @@
+{% load custom_filters %}
+{# Costes por producto. Se separan de la preparación: el coste es del tratamiento entero, no de una cuba. #}
+<section class="dt-card mb-3">
+    <div class="dt-card-head">
+        <h2 class="dt-card-title">Costes</h2>
+        {% if treatment.is_partial_treatment %}<span class="dt-card-hint">Sobre {{ treatment.applied_area }} ha</span>{% endif %}
+    </div>
+
+    {% if not has_prices %}
+    <div class="dt-note">Ningún producto tiene precio. Añádelo en Productos para calcular el coste.</div>
+    {% endif %}
+
+    {# ── Desktop ── #}
+    <div class="table-responsive d-none d-md-block">
+        <table class="table mb-0 dt-table">
+            <thead>
+            <tr>
+                <th>Producto</th>
+                <th class="text-end">Cantidad total</th>
+                <th class="text-end">€/ud</th>
+                <th class="text-end">€/ha</th>
+                <th class="text-end">Total</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for p in products %}
+            <tr>
+                <td><span class="fw-bold">{{ p.product.name }}</span><div class="dt-muted">{{ p.product.product_type.name }}</div></td>
+                <td class="text-end">{{ p.total_dose|floatformat:"2" }} {{ p.total_dose_unit }}</td>
+                <td class="text-end">{% if p.unit_price > 0 %}{{ p.unit_price|floatformat:"2" }} €{% else %}—{% endif %}</td>
+                <td class="text-end">{% if p.unit_price > 0 %}{{ p.price_per_ha|floatformat:"2" }} €{% else %}—{% endif %}</td>
+                <td class="text-end fw-bold">{% if p.unit_price > 0 %}{{ p.total_price|floatformat:"2" }} €{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+            {% if has_prices %}
+            <tfoot>
+            <tr>
+                <th>Total</th>
+                <th></th>
+                <th></th>
+                <th class="text-end">{{ cost_per_ha|floatformat:"2" }} €/ha</th>
+                <th class="text-end">{{ total_cost|floatformat:"2" }} €</th>
+            </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+    </div>
+
+    {# ── Móvil ── #}
+    <ul class="dt-list d-md-none">
+        {% for p in products %}
+        <li>
+            <div class="dt-list-main">
+                <b>{{ p.product.name }}</b>
+                <span>{{ p.total_dose|floatformat:"2" }} {{ p.total_dose_unit }}{% if p.unit_price > 0 %} × {{ p.unit_price|floatformat:"2" }} €{% endif %}</span>
+            </div>
+            <div class="dt-list-cost">
+                {% if p.unit_price > 0 %}
+                <b>{{ p.total_price|floatformat:"2" }} €</b>
+                <span>{{ p.price_per_ha|floatformat:"2" }} €/ha</span>
+                {% else %}
+                <span>Sin precio</span>
+                {% endif %}
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% if has_prices %}
+    <div class="dt-total d-md-none">
+        <span>Total</span>
+        <span class="text-end"><b>{{ total_cost|floatformat:"2" }} €</b><small>{{ cost_per_ha|floatformat:"2" }} €/ha</small></span>
+    </div>
+    {% endif %}
+</section>

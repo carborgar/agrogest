@@ -1,0 +1,104 @@
+{% load custom_filters %}
+{% comment %}
+Preparación: qué echar en cada cuba, en el orden de `position`.
+- Pulverización con cubas: desktop → una tabla con «Cuba llena ×N» y «Última cuba» lado a lado;
+  móvil → selector Llena / Última y una sola lista (solo si hay los dos tipos de cuba).
+- Fertirrigación o sin máquina: sin cubas, solo la cantidad total.
+`collapsed` = True en completados (se consulta, no se usa para preparar).
+{% endcomment %}
+{% with show_full=load_info.full_loads show_last=load_info.partial_load %}
+<section class="dt-card dt-prep mb-3">
+    {% if collapsed %}
+    <button class="dt-card-head dt-card-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#dtPrepBody"
+            aria-expanded="false" aria-controls="dtPrepBody">
+        <span>
+            <span class="dt-card-title">Preparación</span>
+            {% if load_info %}<span class="dt-card-hint">{% if show_full %}{{ load_info.full_loads }} cuba{{ load_info.full_loads|pluralize }} de {{ treatment.machine.capacity }} L{% if show_last %} + {{ load_info.partial_water }} L{% endif %}{% else %}1 cuba de {{ load_info.partial_water }} L{% endif %}</span>{% endif %}
+        </span>
+        <i class="fa fa-chevron-down" aria-hidden="true"></i>
+    </button>
+    {% else %}
+    <div class="dt-card-head">
+        <h2 class="dt-card-title">Preparación</h2>
+        {% if products|length > 1 %}<span class="dt-card-hint">Añade los productos en este orden</span>{% endif %}
+    </div>
+    {% endif %}
+
+    <div id="dtPrepBody" class="{% if collapsed %}collapse{% endif %}">
+        {% if treatment.is_fertigation %}
+        <div class="dt-note">Fertirrigación: cantidades para toda la parcela.</div>
+        {% elif not load_info %}
+        <div class="dt-note">Sin máquina o sin mojado asignado: no se pueden calcular las cubas. Se muestran las cantidades totales.</div>
+        {% endif %}
+
+        {% if not products %}
+        <p class="text-muted small px-3 py-3 mb-0"><i class="fa fa-circle-info me-1"></i>Sin productos asignados</p>
+        {% else %}
+
+        {# ── Desktop ── #}
+        <div class="table-responsive d-none d-md-block">
+            <table class="table mb-0 dt-table">
+                <thead>
+                <tr>
+                    <th class="dt-num-col">#</th>
+                    <th>Producto</th>
+                    <th>Dosis</th>
+                    {% if show_full %}<th class="dt-col-full">Cuba llena ×{{ load_info.full_loads }} · {{ treatment.machine.capacity }} L</th>{% endif %}
+                    {% if show_last %}<th class="dt-col-last">{% if show_full %}Última cuba{% else %}Cuba{% endif %} · {{ load_info.partial_water }} L</th>{% endif %}
+                    <th class="text-end">Total</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for p in products %}
+                <tr>
+                    <td><span class="dt-num">{{ forloop.counter }}</span></td>
+                    <td>
+                        <span class="fw-bold">{{ p.product.name }}</span>
+                        {% if p.total_overridden %}<i class="fa fa-pen-to-square text-warning ms-1" title="Dosis personalizada (sobrescrita a mano)"></i>{% endif %}
+                        <div class="dt-muted">{{ p.product.product_type.name }}</div>
+                    </td>
+                    <td>{{ p.dose|fmt_dose }} {{ p.dose_type|dose_type }}</td>
+                    {% if show_full %}<td class="dt-col-full dt-qty">{{ p.get_dose_per_load|floatformat:"2" }} {{ p.total_dose_unit }}</td>{% endif %}
+                    {% if show_last %}<td class="dt-col-last dt-qty">{{ p|partial_load_dose|floatformat:"2" }} {{ p.total_dose_unit }}</td>{% endif %}
+                    <td class="text-end {% if not load_info %}dt-qty{% else %}dt-muted{% endif %}">{{ p.total_dose|floatformat:"2" }} {{ p.total_dose_unit }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {# ── Móvil ── #}
+        <div class="d-md-none">
+            {% if show_full and show_last %}
+            <div class="dt-seg" role="group" aria-label="Cuba a preparar">
+                <input type="radio" class="btn-check" name="dtLoad" id="dtLoadFull" value="full" autocomplete="off" checked>
+                <label for="dtLoadFull">Cuba llena ×{{ load_info.full_loads }}<small>{{ treatment.machine.capacity }} L</small></label>
+                <input type="radio" class="btn-check" name="dtLoad" id="dtLoadLast" value="last" autocomplete="off">
+                <label for="dtLoadLast">Última cuba<small>{{ load_info.partial_water }} L</small></label>
+            </div>
+            {% elif show_last %}
+            <div class="dt-note">Una sola cuba de {{ load_info.partial_water }} L</div>
+            {% elif show_full %}
+            <div class="dt-note">{{ load_info.full_loads }} cuba{{ load_info.full_loads|pluralize }} llena{{ load_info.full_loads|pluralize }} de {{ treatment.machine.capacity }} L</div>
+            {% endif %}
+            <ul class="dt-list">
+                {% for p in products %}
+                <li>
+                    <span class="dt-num">{{ forloop.counter }}</span>
+                    <div class="dt-list-main">
+                        <b>{{ p.product.name }}</b>
+                        <span>{{ p.product.product_type.name }} · {{ p.dose|fmt_dose }} {{ p.dose_type|dose_type }}</span>
+                    </div>
+                    <div class="dt-list-qty">
+                        {% if show_full %}<b class="dt-q-full">{{ p.get_dose_per_load|floatformat:"2" }} {{ p.total_dose_unit }}</b>{% endif %}
+                        {% if show_last %}<b class="dt-q-last{% if not show_full %} dt-q-only{% endif %}">{{ p|partial_load_dose|floatformat:"2" }} {{ p.total_dose_unit }}</b>{% endif %}
+                        {% if not load_info %}<b>{{ p.total_dose|floatformat:"2" }} {{ p.total_dose_unit }}</b>{% endif %}
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endwith %}

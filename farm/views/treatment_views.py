@@ -264,6 +264,23 @@ class TreatmentDetailView(BaseSecureViewMixin, DetailView):
 
         context['total_cost'] = total_cost
         context['cost_per_ha'] = cost_per_ha
+        context['has_prices'] = any(p.unit_price > 0 for p in products)
+
+        # Cubas (solo pulverización con máquina y mojado; fertirrigación no lleva)
+        context['load_info'] = self.object.calculate_machine_loads()
+
+        # Tono de la pastilla de fecha: mismo criterio que los grupos del listado
+        # 0 atrasado · 1 próximos 7 días · 2 más adelante · 3 completado
+        today = date.today()
+        if self.object.finish_date:
+            tone = 3
+        elif self.object.date < today:
+            tone = 0
+        elif self.object.date <= today + timedelta(days=7):
+            tone = 1
+        else:
+            tone = 2
+        context['tone'] = tone
 
         context['available_fields'] = (
             Field.ownership_objects
