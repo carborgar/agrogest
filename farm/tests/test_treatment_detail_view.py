@@ -56,7 +56,7 @@ class TestTreatmentDetailView:
         assert response.context['tone'] == 3
         assert 'Marcar como hecho' not in html
         assert html.index('Costes') < html.index('Preparación')
-        assert '+1 día' in html
+        assert '+1 día de retraso' in html
 
     def test_fertigation_has_no_water_nor_loads(self, setup):
         client, org, field = setup
@@ -104,3 +104,15 @@ class TestTreatmentDetailView:
         _, html = _html(client, t)
 
         assert html.index('PRIMERO') < html.index('SEGUNDO')
+
+    def test_overdue_pending_highlights_delay_and_shows_capacity(self, setup):
+        client, org, field = setup
+        machine = MachineFactory(organization=org, capacity=2000, name='Atomizador viejo')
+        t = SprayingTreatmentFactory(organization=org, field=field, machine=machine, water_per_ha=1500, date=_days(-3))
+        SprayingTreatmentProductFactory(treatment=t, product=SprayingProductFactory(organization=org))
+
+        _, html = _html(client, t)
+
+        assert 'dt-badge dt-tone-0">3 días de retraso' in html
+        assert 'Cuba de 2000 L' in html
+        assert 'Atomizador viejo' not in html

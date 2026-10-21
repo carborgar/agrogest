@@ -428,6 +428,8 @@ a.filter-active-chip:hover {
 .dt-label { font-size: .7rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--tl-muted); }
 .dt-value { margin-top: .15rem; font-size: 1rem; font-weight: 700; color: var(--tl-ink); }
 .dt-sub { font-size: .78rem; font-weight: 600; color: var(--tl-muted); }
+/* Retraso / adelanto / «Hoy»: pastilla de color para que salte a la vista */
+.dt-badge { display: inline-block; margin-top: .3rem; padding: .15rem .55rem; border-radius: 999px; font-size: .75rem; font-weight: 700; white-space: nowrap; }
 @media (min-width: 768px) {
     .dt-summary { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
     .dt-cell, .dt-cell:nth-child(odd) { border-bottom: 0; border-right: 1px solid var(--tl-line); }

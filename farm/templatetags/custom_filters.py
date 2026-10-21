@@ -124,3 +124,11 @@ def urgency_class(group):
 def treatment_cost_per_ha(treatment):
     """Coste por hectárea del tratamiento (suma de price_per_ha de sus productos)."""
     return sum(tp.price_per_ha for tp in treatment.treatmentproduct_set.all())
+
+
+@register.filter
+def days_from_today(value):
+    """Días desde hoy hasta la fecha: positivo = futuro, negativo = pasado (retraso)."""
+    if not value:
+        return 0
+    return (value - date.today()).days

@@ -52,17 +52,30 @@
         <div class="dt-value">{{ treatment.finish_date|date:"d/m/Y" }}</div>
         {% with delay=treatment.execution_delay_days %}
         {% if delay is None %}
-        <div class="dt-sub">En plazo</div>
-        {% elif delay > 0 %}
-        <div class="dt-sub dt-fg-0">prev. {{ treatment.date|date:"d/m" }} · +{{ delay }} día{{ delay|pluralize }}</div>
+        <span class="dt-badge dt-tone-3"><i class="fa fa-check me-1"></i>En plazo</span>
         {% else %}
-        <div class="dt-sub dt-fg-3">prev. {{ treatment.date|date:"d/m" }} · {{ delay|cut:"-" }} día{{ delay|cut:"-"|pluralize }} antes</div>
+        <div class="dt-sub">prev. {{ treatment.date|date:"d/m/Y" }}</div>
+        {% if delay > 0 %}
+        <span class="dt-badge dt-tone-0">+{{ delay }} día{{ delay|pluralize }} de retraso</span>
+        {% else %}
+        <span class="dt-badge dt-tone-3">{{ delay|cut:"-" }} día{{ delay|cut:"-"|pluralize }} antes</span>
+        {% endif %}
         {% endif %}
         {% endwith %}
         {% else %}
         <div class="dt-label">Programado</div>
         <div class="dt-value">{{ treatment.date|date:"d/m/Y" }}</div>
-        <div class="dt-sub dt-fg-{{ tone }}">{{ treatment.date|relative_days|capfirst }}</div>
+        {% with days=treatment.date|days_from_today %}
+        {% if days < 0 %}
+        <span class="dt-badge dt-tone-0">{{ days|cut:"-" }} día{{ days|cut:"-"|pluralize }} de retraso</span>
+        {% elif days == 0 %}
+        <span class="dt-badge dt-tone-1">Hoy</span>
+        {% elif days <= 7 %}
+        <span class="dt-badge dt-tone-1">{% if days == 1 %}Mañana{% else %}En {{ days }} días{% endif %}</span>
+        {% else %}
+        <div class="dt-sub">En {{ days }} días</div>
+        {% endif %}
+        {% endwith %}
         {% endif %}
     </div>
 
@@ -84,7 +97,7 @@
         <div class="dt-value">
             {% if load_info.full_loads %}{{ load_info.full_loads }} cuba{{ load_info.full_loads|pluralize }}{% if load_info.partial_load %} + {{ load_info.partial_water }} L{% endif %}{% else %}1 cuba de {{ load_info.partial_water }} L{% endif %}
         </div>
-        <div class="dt-sub">{{ treatment.machine.name }} · {{ treatment.machine.capacity }} L</div>
+        <div class="dt-sub">Cuba de {{ treatment.machine.capacity }} L</div>
     </div>
     {% endif %}
 
