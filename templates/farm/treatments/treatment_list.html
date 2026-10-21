@@ -13,26 +13,47 @@
 
 {% block content %}
 
-{# ── BARRA DE FILTROS ──────────────────────────────────────────────── #}
-<div class="card shadow-sm border-0 mb-4">
-    <div class="card-body py-3">
-        <form method="GET" id="filterForm">
+<form method="GET" id="filterForm" class="mb-3">
+    {# La pestaña de estado y el orden viajan con el resto de filtros #}
+    {% for s in selected_statuses %}<input type="hidden" name="status" value="{{ s }}">{% endfor %}
+    {% if request.GET.sort %}<input type="hidden" name="sort" value="{{ request.GET.sort }}">{% endif %}
 
-            {# Fila principal de filtros #}
-            <div class="row g-2 align-items-end">
+    {# ── Barra superior: pestañas de estado + búsqueda (+ botón de filtros en móvil) ── #}
+    <div class="tl-toolbar">
+        <nav class="tl-tabs" aria-label="Estado">
+            <a class="tl-tab{% if status_tab == 'todo' %} active{% endif %}" href="{{ todo_url }}"
+               {% if status_tab == 'todo' %}aria-current="page"{% endif %}>
+                Por hacer <span class="tl-tab-count">{{ todo_count }}</span>
+            </a>
+            <a class="tl-tab{% if status_tab == 'done' %} active{% endif %}" href="{{ done_url }}"
+               {% if status_tab == 'done' %}aria-current="page"{% endif %}>
+                Completados
+            </a>
+        </nav>
+        <div class="tl-search">
+            <i class="fa fa-search" aria-hidden="true"></i>
+            <input type="search" name="q" value="{{ search_query|default:'' }}" class="form-control"
+                   placeholder="Buscar tratamiento…" id="searchInput" autocomplete="off" aria-label="Buscar tratamiento">
+        </div>
+        <button class="btn btn-outline-secondary tl-filters-btn d-md-none" type="button"
+                data-bs-toggle="offcanvas" data-bs-target="#filtersPanel" aria-controls="filtersPanel"
+                aria-label="Filtros{% if panel_filter_count %} ({{ panel_filter_count }} activos){% endif %}">
+            <i class="fa fa-sliders"></i>
+            {% if panel_filter_count %}<span class="tl-filters-badge">{{ panel_filter_count }}</span>{% endif %}
+        </button>
+    </div>
 
-                {# Búsqueda #}
-                <div class="col-12 col-sm-6 col-lg-3">
-                    <label class="form-label small fw-semibold text-muted mb-1" for="searchInput">
-                        <i class="fa fa-search me-1"></i>Nombre
-                    </label>
-                    <input type="text" name="q" value="{{ search_query|default:'' }}"
-                           class="form-control" placeholder="Buscar tratamiento…" id="searchInput"
-                           autocomplete="off">
-                </div>
+    {# ── Filtros: en línea en desktop, panel inferior (offcanvas) en móvil ── #}
+    <div class="offcanvas-md offcanvas-bottom tl-filters" tabindex="-1" id="filtersPanel" aria-labelledby="filtersPanelLabel">
+        <div class="offcanvas-header d-md-none">
+            <h5 class="offcanvas-title" id="filtersPanelLabel">Filtros</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#filtersPanel" aria-label="Cerrar"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div class="row g-2 align-items-end w-100 m-0">
 
-                {# Parcelas — dropdown + checkboxes #}
-                <div class="col-12 col-sm-6 col-lg-3">
+                {# Parcelas #}
+                <div class="col-12 col-md-6 col-xl-3">
                     <label class="form-label small fw-semibold text-muted mb-1">
                         <i class="fa fa-map me-1"></i>Parcelas
                     </label>
@@ -57,8 +78,8 @@
                     </div>
                 </div>
 
-                {# Tipo — dropdown + checkboxes #}
-                <div class="col-6 col-sm-4 col-lg-2">
+                {# Tipo #}
+                <div class="col-12 col-md-6 col-xl-2">
                     <label class="form-label small fw-semibold text-muted mb-1">
                         <i class="fa fa-droplet me-1"></i>Tipo
                     </label>
@@ -83,201 +104,154 @@
                     </div>
                 </div>
 
-                {# Estado — dropdown + checkboxes (pre-selección pending+delayed) #}
-                <div class="col-6 col-sm-4 col-lg-2">
-                    <label class="form-label small fw-semibold text-muted mb-1">
-                        <i class="fa fa-circle-half-stroke me-1"></i>Estado
+                {# Fechas #}
+                <div class="col-6 col-md-4 col-xl-2">
+                    <label class="form-label small fw-semibold text-muted mb-1 d-flex align-items-center gap-1" for="date_from">
+                        <i class="fa fa-calendar me-1"></i>Desde
+                        {% if date_from_is_default %}<span class="badge bg-secondary fw-normal" style="font-size:0.65rem;">año actual</span>{% endif %}
                     </label>
-                    <div class="dropdown filter-check-dropdown w-100">
-                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start filter-dd-btn filter-dd-btn--active"
-                                type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside"
-                                id="statusDropdownBtn">
-                            <span class="filter-dd-label" id="statusDropdownLabel">
-                                {% if selected_statuses %}{{ selected_statuses|length }} estado{{ selected_statuses|length|pluralize }}{% else %}Pdte + Atrasado{% endif %}
-                            </span>
-                            <span class="badge bg-primary" id="statusDropdownBadge">
-                                {% if selected_statuses %}{{ selected_statuses|length }}{% else %}2{% endif %}
-                            </span>
-                        </button>
-                        <div class="dropdown-menu filter-dd-menu p-2">
-                            {% for key, value in status_choices %}
-                            <div class="form-check mb-1">
-                                <input class="form-check-input status-check" type="checkbox" name="status"
-                                       value="{{ key }}" id="status-{{ key }}"
-                                       {% if selected_statuses %}
-                                           {% if key in selected_statuses %}checked{% endif %}
-                                       {% else %}
-                                           {% if key == 'pending' or key == 'delayed' %}checked{% endif %}
-                                       {% endif %}>
-                                <label class="form-check-label small" for="status-{{ key }}">{{ value }}</label>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
+                    <input type="date" name="date_from" value="{{ date_from }}"
+                           class="form-control{% if date_from_is_default %} border-secondary{% endif %}" id="date_from">
+                </div>
+                <div class="col-6 col-md-4 col-xl-2">
+                    <label class="form-label small fw-semibold text-muted mb-1 d-flex align-items-center gap-1" for="date_to">
+                        <i class="fa fa-calendar me-1"></i>Hasta
+                        {% if date_to_is_default %}<span class="badge bg-secondary fw-normal" style="font-size:0.65rem;">año actual</span>{% endif %}
+                    </label>
+                    <input type="date" name="date_to" value="{{ date_to }}"
+                           class="form-control{% if date_to_is_default %} border-secondary{% endif %}" id="date_to">
                 </div>
 
                 {# Acciones #}
-                <div class="col-12 col-sm-4 col-lg-2 d-flex gap-2 align-items-end">
+                <div class="col-12 col-md-4 col-xl-3 d-flex gap-2 align-items-end order-last order-md-0">
                     <button class="btn btn-primary flex-fill" type="submit">
                         <i class="fa fa-filter me-1"></i>Filtrar
                     </button>
-                    {% if active_filter_count %}
-                    <a class="btn btn-outline-secondary" href="{% url 'treatment-list' %}" title="Limpiar filtros">
+                    {% if panel_filter_count or search_query %}
+                    <a class="btn btn-outline-secondary" href="?{% if status_tab == 'done' %}status=completed{% endif %}" title="Limpiar filtros" aria-label="Limpiar filtros">
                         <i class="fa fa-rotate-left"></i>
                     </a>
                     {% endif %}
                 </div>
-            </div>
 
-            {# Fila de filtros avanzados (colapsable) #}
-            <div class="collapse {% if selected_product_types or selected_products or not date_from_is_default or not date_to_is_default %}show{% endif %}"
-                 id="advancedFilters">
-                <div class="row g-2 align-items-end mt-1 pt-2">
+                {# Filtros avanzados: plegados en desktop, siempre visibles en el panel móvil #}
+                <div class="col-12">
+                    <button class="btn btn-link btn-sm text-muted p-0 text-decoration-none d-none d-md-inline-block" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#advancedFilters"
+                            id="advancedToggleBtn"
+                            aria-expanded="{% if selected_product_types or selected_products %}true{% else %}false{% endif %}">
+                        <i class="fa fa-sliders me-1"></i>
+                        <span class="advanced-toggle-label">{% if selected_product_types or selected_products %}Menos filtros{% else %}Más filtros{% endif %}</span>
+                        <i class="fa fa-chevron-down ms-1 advanced-toggle-icon{% if selected_product_types or selected_products %} rotate-180{% endif %}"></i>
+                        {% if selected_product_types or selected_products %}
+                        <span class="badge bg-primary ms-1">{{ selected_product_types|length|add:selected_products|length }}</span>
+                        {% endif %}
+                    </button>
+                    <div class="collapse tl-advanced {% if selected_product_types or selected_products %}show{% endif %}" id="advancedFilters">
+                        <div class="row g-2 align-items-end pt-2">
 
-                    {# Tipo de producto — dropdown + checkboxes #}
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <label class="form-label small fw-semibold text-muted mb-1">
-                            <i class="fa fa-box me-1"></i>Tipo de producto
-                        </label>
-                        <div class="dropdown filter-check-dropdown w-100">
-                            <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start filter-dd-btn{% if selected_product_types %} filter-dd-btn--active{% endif %}"
-                                    type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
-                                <span class="filter-dd-label">
-                                    {% if selected_product_types %}{{ selected_product_types|length }} tipo{{ selected_product_types|length|pluralize }}{% else %}Todos los tipos…{% endif %}
-                                </span>
-                                {% if selected_product_types %}<span class="badge bg-primary flex-shrink-0">{{ selected_product_types|length }}</span>{% endif %}
-                            </button>
-                            <div class="dropdown-menu filter-dd-menu p-2">
-                                <input type="text" class="form-control form-control-sm mb-2 filter-dd-search" placeholder="Buscar…" autocomplete="off">
-                                <div class="filter-dd-options">
-                                {% for product_type in product_types %}
-                                <div class="form-check mb-1">
-                                    <input class="form-check-input" type="checkbox" name="product_types"
-                                           value="{{ product_type.id }}" id="pt-{{ product_type.id }}"
-                                           {% if product_type.id|stringformat:"s" in selected_product_types %}checked{% endif %}>
-                                    <label class="form-check-label small" for="pt-{{ product_type.id }}">{{ product_type.name }}</label>
-                                </div>
-                                {% endfor %}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {# Productos — dropdown + checkboxes #}
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <label class="form-label small fw-semibold text-muted mb-1">
-                            <i class="fa fa-flask me-1"></i>Productos
-                        </label>
-                        <div class="dropdown filter-check-dropdown w-100">
-                            <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start filter-dd-btn{% if selected_products %} filter-dd-btn--active{% endif %}"
-                                    type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
-                                <span class="filter-dd-label">
-                                    {% if selected_products %}{{ selected_products|length }} producto{{ selected_products|length|pluralize }}{% else %}Todos los productos…{% endif %}
-                                </span>
-                                {% if selected_products %}<span class="badge bg-primary flex-shrink-0">{{ selected_products|length }}</span>{% endif %}
-                            </button>
-                            <div class="dropdown-menu filter-dd-menu p-2">
-                                <input type="text" class="form-control form-control-sm mb-2 filter-dd-search" placeholder="Buscar…" autocomplete="off">
-                                <div class="filter-dd-options">
-                                {% for product in products %}
-                                <div class="form-check mb-1">
-                                    <input class="form-check-input" type="checkbox" name="products"
-                                           value="{{ product.id }}" id="prod-{{ product.id }}"
-                                           {% if product.id|stringformat:"s" in selected_products %}checked{% endif %}>
-                                    <label class="form-check-label small" for="prod-{{ product.id }}">{{ product.name }}</label>
-                                </div>
-                                {% endfor %}
+                            {# Tipo de producto #}
+                            <div class="col-12 col-md-6 col-xl-3">
+                                <label class="form-label small fw-semibold text-muted mb-1">
+                                    <i class="fa fa-box me-1"></i>Tipo de producto
+                                </label>
+                                <div class="dropdown filter-check-dropdown w-100">
+                                    <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start filter-dd-btn{% if selected_product_types %} filter-dd-btn--active{% endif %}"
+                                            type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                                        <span class="filter-dd-label">
+                                            {% if selected_product_types %}{{ selected_product_types|length }} tipo{{ selected_product_types|length|pluralize }}{% else %}Todos los tipos…{% endif %}
+                                        </span>
+                                        {% if selected_product_types %}<span class="badge bg-primary flex-shrink-0">{{ selected_product_types|length }}</span>{% endif %}
+                                    </button>
+                                    <div class="dropdown-menu filter-dd-menu p-2">
+                                        <input type="text" class="form-control form-control-sm mb-2 filter-dd-search" placeholder="Buscar…" autocomplete="off">
+                                        <div class="filter-dd-options">
+                                        {% for product_type in product_types %}
+                                        <div class="form-check mb-1">
+                                            <input class="form-check-input" type="checkbox" name="product_types"
+                                                   value="{{ product_type.id }}" id="pt-{{ product_type.id }}"
+                                                   {% if product_type.id|stringformat:"s" in selected_product_types %}checked{% endif %}>
+                                            <label class="form-check-label small" for="pt-{{ product_type.id }}">{{ product_type.name }}</label>
+                                        </div>
+                                        {% endfor %}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
+
+                            {# Productos #}
+                            <div class="col-12 col-md-6 col-xl-3">
+                                <label class="form-label small fw-semibold text-muted mb-1">
+                                    <i class="fa fa-flask me-1"></i>Productos
+                                </label>
+                                <div class="dropdown filter-check-dropdown w-100">
+                                    <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start filter-dd-btn{% if selected_products %} filter-dd-btn--active{% endif %}"
+                                            type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                                        <span class="filter-dd-label">
+                                            {% if selected_products %}{{ selected_products|length }} producto{{ selected_products|length|pluralize }}{% else %}Todos los productos…{% endif %}
+                                        </span>
+                                        {% if selected_products %}<span class="badge bg-primary flex-shrink-0">{{ selected_products|length }}</span>{% endif %}
+                                    </button>
+                                    <div class="dropdown-menu filter-dd-menu p-2">
+                                        <input type="text" class="form-control form-control-sm mb-2 filter-dd-search" placeholder="Buscar…" autocomplete="off">
+                                        <div class="filter-dd-options">
+                                        {% for product in products %}
+                                        <div class="form-check mb-1">
+                                            <input class="form-check-input" type="checkbox" name="products"
+                                                   value="{{ product.id }}" id="prod-{{ product.id }}"
+                                                   {% if product.id|stringformat:"s" in selected_products %}checked{% endif %}>
+                                            <label class="form-check-label small" for="prod-{{ product.id }}">{{ product.name }}</label>
+                                        </div>
+                                        {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
-
-                    {# Fecha desde #}
-                    <div class="col-6 col-lg-2">
-                        <label class="form-label small fw-semibold text-muted mb-1 d-flex align-items-center gap-1" for="date_from">
-                            <i class="fa fa-calendar me-1"></i>Desde
-                            {% if date_from_is_default %}<span class="badge bg-secondary fw-normal" style="font-size:0.65rem;">año actual</span>{% endif %}
-                        </label>
-                        <input type="date" name="date_from" value="{{ date_from }}"
-                               class="form-control{% if date_from_is_default %} border-secondary{% endif %}" id="date_from">
-                    </div>
-
-                    {# Fecha hasta #}
-                    <div class="col-6 col-lg-2">
-                        <label class="form-label small fw-semibold text-muted mb-1 d-flex align-items-center gap-1" for="date_to">
-                            <i class="fa fa-calendar me-1"></i>Hasta
-                            {% if date_to_is_default %}<span class="badge bg-secondary fw-normal" style="font-size:0.65rem;">año actual</span>{% endif %}
-                        </label>
-                        <input type="date" name="date_to" value="{{ date_to }}"
-                               class="form-control{% if date_to_is_default %} border-secondary{% endif %}" id="date_to">
-                    </div>
-
                 </div>
             </div>
-
-            {# Toggle de filtros avanzados + chips — dos filas para que en móvil no se descuadre #}
-            <div class="mt-2">
-                {# Fila 1: botón toggle #}
-                <button class="btn btn-link btn-sm text-muted p-0 text-decoration-none" type="button"
-                        data-bs-toggle="collapse" data-bs-target="#advancedFilters"
-                        id="advancedToggleBtn"
-                        aria-expanded="{% if selected_product_types or selected_products or not date_from_is_default or not date_to_is_default %}true{% else %}false{% endif %}">
-                    <i class="fa fa-sliders me-1"></i>
-                    <span class="advanced-toggle-label">Más filtros</span>
-                    <i class="fa fa-chevron-down ms-1 advanced-toggle-icon"></i>
-                    {% if selected_product_types or selected_products or not date_from_is_default or not date_to_is_default %}
-                    <span class="badge bg-primary ms-1">
-                        {{ selected_product_types|length|add:selected_products|length }}{% if not date_from_is_default or not date_to_is_default %}+{% endif %}
-                    </span>
-                    {% endif %}
-                </button>
-
-                {# Fila 2: chips de filtros activos #}
-                <div class="d-flex flex-wrap gap-1 align-items-center mt-1">
-                    {% if search_query %}
-                    <a href="?{% for key, value in request.GET.items %}{% if key != 'q' %}{{ key }}={{ value }}&{% endif %}{% endfor %}"
-                       class="filter-active-chip" title="Quitar búsqueda">
-                        <i class="fa fa-search me-1"></i>{{ search_query }} <i class="fa fa-times ms-1"></i>
-                    </a>
-                    {% endif %}
-                    {% if selected_fields %}
-                    <span class="filter-active-chip">
-                        <i class="fa fa-map me-1"></i>{{ selected_fields|length }} parcela{{ selected_fields|length|pluralize }}
-                    </span>
-                    {% endif %}
-                    {% if selected_types %}
-                    <span class="filter-active-chip">
-                        <i class="fa fa-droplet me-1"></i>{{ selected_types|length }} tipo{{ selected_types|length|pluralize }}
-                    </span>
-                    {% endif %}
-                    {% if selected_statuses %}
-                    <span class="filter-active-chip">
-                        <i class="fa fa-circle-half-stroke me-1"></i>{{ selected_statuses|length }} estado{{ selected_statuses|length|pluralize }}
-                    </span>
-                    {% endif %}
-                    {% if date_from or date_to %}
-                    <span class="filter-active-chip {% if date_from_is_default and date_to_is_default %}filter-active-chip--default{% endif %}"
-                          title="{% if date_from_is_default and date_to_is_default %}Filtrando el año en curso por defecto. Abre «Más filtros» para cambiarlo.{% endif %}">
-                        <i class="fa fa-calendar me-1"></i>
-                        {% if date_from %}{{ date_from }}{% endif %}{% if date_from and date_to %} → {% endif %}{% if date_to %}{{ date_to }}{% endif %}
-                        {% if date_from_is_default and date_to_is_default %}<span class="ms-1 opacity-75">(año actual)</span>{% endif %}
-                    </span>
-                    {% endif %}
-                </div>
-            </div>
-
-        </form>
+        </div>
     </div>
-</div>
+
+    {# ── Chips de filtros activos ── #}
+    {% if search_query or selected_fields or selected_types or status_subfilter or status_tab == 'all' or not date_from_is_default or not date_to_is_default %}
+    <div class="d-flex flex-wrap gap-1 align-items-center mt-2">
+        {% if status_subfilter %}
+        <a href="{{ todo_url }}" class="filter-active-chip" title="Ver todos los pendientes">
+            <i class="fa fa-circle-half-stroke me-1"></i>Solo: {{ status_subfilter }} <i class="fa fa-times ms-1"></i>
+        </a>
+        {% elif status_tab == 'all' %}
+        <a href="{{ todo_url }}" class="filter-active-chip" title="Volver a «Por hacer»">
+            <i class="fa fa-circle-half-stroke me-1"></i>Todos los estados <i class="fa fa-times ms-1"></i>
+        </a>
+        {% endif %}
+        {% if search_query %}
+        <span class="filter-active-chip"><i class="fa fa-search me-1"></i>{{ search_query }}</span>
+        {% endif %}
+        {% if selected_fields %}
+        <span class="filter-active-chip"><i class="fa fa-map me-1"></i>{{ selected_fields|length }} parcela{{ selected_fields|length|pluralize }}</span>
+        {% endif %}
+        {% if selected_types %}
+        <span class="filter-active-chip"><i class="fa fa-droplet me-1"></i>{{ selected_types|length }} tipo{{ selected_types|length|pluralize }}</span>
+        {% endif %}
+        {% if not date_from_is_default or not date_to_is_default %}
+        <span class="filter-active-chip">
+            <i class="fa fa-calendar me-1"></i>{% if date_from %}{{ date_from }}{% endif %}{% if date_from and date_to %} → {% endif %}{% if date_to %}{{ date_to }}{% endif %}
+        </span>
+        {% endif %}
+    </div>
+    {% endif %}
+</form>
 
 {# ── CABECERA DE RESULTADOS ────────────────────────────────────────── #}
-<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
     <h6 class="mb-0 fw-bold text-muted">
         {% if total_count > 99 %}99+{% else %}{{ total_count }}{% endif %}
         resultado{{ total_count|pluralize }}
     </h6>
     <div class="d-flex align-items-center gap-2">
-        {# Sort #}
         <div class="dropdown">
             <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button"
                     data-bs-toggle="dropdown" id="sortDropdown">
@@ -285,44 +259,22 @@
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
                 <li><a class="dropdown-item {% if sort == 'urgency' or not sort %}active{% endif %}"
-                       href="?{{ request.GET.urlencode }}&sort=urgency">
-                    Por urgencia
-                </a></li>
+                       href="?{{ sort_query }}{% if sort_query %}&{% endif %}sort=urgency">Por urgencia</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item {% if sort == 'date_desc' %}active{% endif %}"
-                       href="?{{ request.GET.urlencode }}&sort=date_desc">
-                    Fecha ↓ — más reciente primero
-                </a></li>
+                       href="?{{ sort_query }}{% if sort_query %}&{% endif %}sort=date_desc">Fecha ↓ — más reciente primero</a></li>
                 <li><a class="dropdown-item {% if sort == 'date_asc' %}active{% endif %}"
-                       href="?{{ request.GET.urlencode }}&sort=date_asc">
-                    Fecha ↑ — más antigua primero
-                </a></li>
+                       href="?{{ sort_query }}{% if sort_query %}&{% endif %}sort=date_asc">Fecha ↑ — más antigua primero</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item {% if sort == 'name_asc' %}active{% endif %}"
-                       href="?{{ request.GET.urlencode }}&sort=name_asc">
-                    Nombre A-Z
-                </a></li>
+                       href="?{{ sort_query }}{% if sort_query %}&{% endif %}sort=name_asc">Nombre A-Z</a></li>
                 <li><a class="dropdown-item {% if sort == 'name_desc' %}active{% endif %}"
-                       href="?{{ request.GET.urlencode }}&sort=name_desc">
-                    Nombre Z-A
-                </a></li>
+                       href="?{{ sort_query }}{% if sort_query %}&{% endif %}sort=name_desc">Nombre Z-A</a></li>
             </ul>
         </div>
-
-        {# Export button #}
         <a href="{% url 'treatment-export-excel' %}?{{ request.GET.urlencode }}" class="btn btn-outline-success btn-sm" title="Exportar a Excel">
-            <i class="fa fa-file-excel me-1"></i>Exportar
+            <i class="fa fa-file-excel me-1"></i><span class="d-none d-sm-inline">Exportar</span>
         </a>
-
-        {# View switcher #}
-        <div class="view-switcher">
-            <button type="button" class="btn view-btn active" id="cardViewBtn" title="Vista tarjetas">
-                <i class="fa fa-th"></i>
-            </button>
-            <button type="button" class="btn view-btn" id="listViewBtn" title="Vista lista">
-                <i class="fa fa-list"></i>
-            </button>
-        </div>
     </div>
 </div>
 
@@ -332,42 +284,30 @@
     <div class="empty-state-icon mb-3">
         <i class="fa fa-seedling fa-3x text-muted opacity-50"></i>
     </div>
-    <h5 class="text-muted">No se encontraron tratamientos</h5>
-    <p class="text-muted small mb-3">
-        {% if active_filter_count %}
-            Prueba a cambiar o limpiar los filtros activos
-        {% else %}
-            Empieza creando tu primer tratamiento
-        {% endif %}
-    </p>
-    {% if active_filter_count %}
-    <a href="{% url 'treatment-list' %}" class="btn btn-outline-secondary btn-sm">
-        <i class="fa fa-times me-1"></i>Limpiar filtros
-    </a>
-    {% else %}
+    {% if status_tab == 'todo' and not search_query and not panel_filter_count %}
+    <h5 class="text-muted">No tienes tratamientos pendientes</h5>
+    <p class="text-muted small mb-3">Todo al día. Puedes crear uno nuevo o revisar los completados.</p>
     <a href="{% url 'treatment-create' %}" class="btn btn-primary btn-sm">
         <i class="fa fa-plus me-1"></i>Nuevo tratamiento
+    </a>
+    {% else %}
+    <h5 class="text-muted">No se encontraron tratamientos</h5>
+    <p class="text-muted small mb-3">Prueba a cambiar o limpiar los filtros activos</p>
+    <a href="{% url 'treatment-list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fa fa-times me-1"></i>Limpiar filtros
     </a>
     {% endif %}
 </div>
 {% else %}
 
-{# Card view #}
-<div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3" id="cardView">
-    {% for treatment in treatments %}
-    {% include 'farm/treatments/treatment_card.html' with treatment=treatment %}
-    {% endfor %}
-</div>
-
-{# List view #}
-<div id="listView" class="accordion ti-table d-none">
-<div class="ti-head d-none d-md-flex">
-    <span class="ti-date">Fecha</span>
-    <span class="ti-content">Tratamiento</span>
-    <span class="ti-chips">Productos</span>
-    <span class="ti-load">Cubas / coste</span>
-    <span class="ti-actions"></span>
-</div>
+<div class="tl-list" id="treatmentList">
+    <div class="tl-head d-none d-md-grid" aria-hidden="true">
+        <span>{% if status_tab == 'done' %}Hecho{% else %}Fecha{% endif %}</span>
+        <span>Tratamiento</span>
+        <span>Productos</span>
+        <span>{% if status_tab == 'done' %}Coste{% else %}Máquina{% endif %}</span>
+        <span></span>
+    </div>
     {% include 'farm/treatments/treatment_list_item.html' with treatment_list=treatments %}
 </div>
 
@@ -405,48 +345,6 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        // ── Elevate z-index on dropdown open so cards don't overlap ──
-        document.querySelectorAll('.treatment-card [data-bs-toggle="dropdown"], .treatment-item [data-bs-toggle="dropdown"], .ti-group [data-bs-toggle="dropdown"]').forEach(trigger => {
-            const col = trigger.closest('.col') || trigger.closest('.treatment-item') || trigger.closest('.ti-group');
-            if (!col) return;
-            trigger.addEventListener('show.bs.dropdown', () => {
-                col.style.zIndex = '100';
-                col.style.position = 'relative';
-            });
-            trigger.addEventListener('hide.bs.dropdown', () => {
-                col.style.zIndex = '';
-            });
-        });
-
-        // ── View switching ──
-        const cardView = document.getElementById('cardView');
-        const listView = document.getElementById('listView');
-        const cardViewBtn = document.getElementById('cardViewBtn');
-        const listViewBtn = document.getElementById('listViewBtn');
-
-        if (cardView && listView) {
-            function setView(view) {
-                if (view === 'list') {
-                    listView.classList.remove('d-none');
-                    cardView.classList.add('d-none');
-                    listViewBtn.classList.add('active');
-                    cardViewBtn.classList.remove('active');
-                } else {
-                    cardView.classList.remove('d-none');
-                    listView.classList.add('d-none');
-                    cardViewBtn.classList.add('active');
-                    listViewBtn.classList.remove('active');
-                }
-                localStorage.setItem('treatmentListViewPreference', view);
-            }
-
-            cardViewBtn.addEventListener('click', () => setView('card'));
-            listViewBtn.addEventListener('click', () => setView('list'));
-
-            const storedPreference = localStorage.getItem('treatmentListViewPreference');
-            if (storedPreference === 'list') setView('list');
-        }
-
         // ── Auto-submit on search (debounced) ──
         const searchInput = document.getElementById('searchInput');
         if (searchInput) {

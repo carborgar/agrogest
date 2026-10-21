@@ -1,154 +1,144 @@
 {% load custom_filters %}
+{% comment %}
+Fila del listado de tratamientos. Una sola plantilla para desktop y móvil:
+- Desktop (≥ md): rejilla Fecha | Tratamiento | Productos | Máquina/Coste | acciones.
+- Móvil: fecha + nombre + ✓. Al tocar la fila se despliegan los productos con la dosis por cuba.
+La fecha va en una pastilla con el color del grupo de urgencia (tl-date--0…3).
+{% endcomment %}
 {% for treatment in treatment_list %}
-{% with state_class=treatment|treatment_state_class type_icon=treatment|treatment_type_icon products=treatment.treatmentproduct_set.all loads=treatment.calculate_machine_loads %}
+{% with products=treatment.treatmentproduct_set.all loads=treatment.calculate_machine_loads g=treatment.urgency_group done=treatment.finish_date %}
 
 {# Cabecera de grupo de urgencia (solo con orden "Por urgencia") #}
 {% if show_groups %}
-{% ifchanged treatment.urgency_group %}
-{% with g=treatment.urgency_group %}
-<div class="ti-group-header text-{{ g|urgency_class }}">
-    <i class="fa fa-{% if g == 0 %}triangle-exclamation{% elif g == 1 %}bell{% elif g == 2 %}calendar{% else %}circle-check{% endif %} me-1"></i>{{ g|urgency_label }} · {{ group_counts|get_item:g }}{% if forloop.first and page_obj.number > 1 %} (cont.){% endif %}
+{% ifchanged g %}
+<div class="tl-group-header tl-group-header--{{ g }}">
+    <i class="fa fa-{% if g == 0 %}triangle-exclamation{% elif g == 1 %}bell{% elif g == 2 %}calendar{% else %}circle-check{% endif %} me-1" aria-hidden="true"></i>{{ g|urgency_label }} · {{ group_counts|get_item:g }}{% if forloop.first and page_obj.number > 1 %} (cont.){% endif %}
 </div>
-{% endwith %}
 {% endifchanged %}
 {% endif %}
 
-<div class="ti-group">
-    <div class="ti-row">
-        <span class="ti-accent bg-{{ state_class }}"></span>
+<div class="tl-item">
+    <div class="tl-row">
+        {# Móvil: toda la fila despliega los productos #}
+        <button class="tl-hit d-md-none" type="button"
+                data-bs-toggle="collapse" data-bs-target="#tlC{{ treatment.id }}"
+                aria-expanded="false" aria-controls="tlC{{ treatment.id }}"
+                aria-label="{{ treatment.name }}: ver productos"></button>
 
-        {# Fecha: pendientes → fecha prevista; completados → fecha de finalización #}
-        <div class="ti-date">
-            {% if treatment.finish_date %}
-            <div class="fw-bold">{{ treatment.finish_date|date:"d/m" }}</div>
-            <div class="small text-muted">{{ treatment.finish_date|relative_days }}</div>
-            {% if treatment.execution_delay_days is not None %}
-            <div class="text-muted" style="font-size:.7rem">prev. {{ treatment.date|date:"d/m" }} ({{ treatment.execution_delay_days|stringformat:"+d" }} d)</div>
-            {% endif %}
-            {% else %}
-            <div class="fw-bold">{{ treatment.date|date:"d/m" }}</div>
-            <div class="small {% if treatment.urgency_group == 0 %}text-danger{% else %}text-muted{% endif %}">{{ treatment.date|relative_days }}</div>
-            {% endif %}
+        {# Fecha: pendientes → prevista; completados → de finalización #}
+        {% with d=done|default:treatment.date %}
+        <div class="tl-date tl-date--{{ g }}" title="{{ d|date:'d/m/Y' }}">
+            <span class="tl-day">{{ d|date:"j" }}</span>
+            <span class="tl-month">{{ d|date:"b" }}</span>
+        </div>
+        {% endwith %}
+
+        <div class="tl-main">
+            <a href="{% url 'treatment-detail' treatment.id %}" class="tl-name">{{ treatment.name }}</a>
+            <div class="tl-meta">
+                <i class="fa fa-{{ treatment|treatment_type_icon }}" aria-hidden="true"></i>
+                <span class="d-none d-md-inline">{{ treatment.get_type_display }} ·</span>
+                <span class="tl-field">{{ treatment.field.name }}</span>
+                <span>{{ treatment.effective_area }} ha</span>
+                <span class="tl-rel tl-rel--{{ g }}">· {{ done|default:treatment.date|relative_days }}</span>
+                {% if done and treatment.execution_delay_days is not None %}
+                <span class="d-none d-md-inline">· prev. {{ treatment.date|date:"d/m" }} ({{ treatment.execution_delay_days|stringformat:"+d" }} d)</span>
+                {% endif %}
+            </div>
         </div>
 
-        <div class="ti-content">
-            <div class="ti-line1">
-                <a href="{% url 'treatment-detail' treatment.id %}" class="ti-name">{{ treatment.name }}</a>
-            </div>
-            <div class="ti-line2">
-                <span><i class="fa fa-{{ type_icon }}"></i> {{ treatment.get_type_display }}</span>
-                <span class="ti-bull">·</span>
-                <span><i class="fa fa-location-dot"></i> {{ treatment.field.name }} {{ treatment.effective_area }} ha</span>
-            </div>
-        </div>
-
-        {# Productos: hasta 5 nombres (sin totales; dosis y totales al desplegar) #}
-        <div class="ti-chips d-none d-md-flex">
-            {% for tp in products|slice:":5" %}
-            <span class="ti-chip" title="{{ tp.product.name }}">{{ tp.product.name }}</span>
+        {# Productos (desktop): hasta 3 + «+N» #}
+        <div class="tl-chips d-none d-md-flex">
+            {% for tp in products|slice:":3" %}
+            <span class="tl-chip" title="{{ tp.product.name }}">{{ tp.product.name }}</span>
+            {% empty %}
+            <span class="text-muted small">Sin productos</span>
             {% endfor %}
-            {% if products|length > 5 %}
-            <button type="button" class="ti-chip ti-chip-more" data-bs-toggle="collapse" data-bs-target="#tiC{{ treatment.id }}" title="Ver todos">+{{ products|length|add:"-5" }}</button>
+            {% if products|length > 3 %}
+            <button type="button" class="tl-chip tl-chip-more" data-bs-toggle="collapse"
+                    data-bs-target="#tlC{{ treatment.id }}" aria-controls="tlC{{ treatment.id }}"
+                    title="Ver todos">+{{ products|length|add:"-3" }}</button>
             {% endif %}
         </div>
 
-        {# Cubas (pendientes) o coste (completados) #}
-        <div class="ti-load d-none d-md-block small">
-            {% if treatment.finish_date %}
+        {# Máquina (pendientes) o coste (completados) #}
+        <div class="tl-load d-none d-md-block">
+            {% if done %}
             <b>{{ treatment|treatment_total_cost|floatformat:"2" }} €</b>
             <div class="text-muted">{{ treatment|treatment_cost_per_ha|floatformat:"2" }} €/ha</div>
             {% elif loads %}
+            {% if loads.full_loads %}
             <b>{{ loads.full_loads }} cuba{{ loads.full_loads|pluralize }}</b>
             {% if loads.partial_load %}<div class="text-muted">+ {{ loads.partial_water }} L</div>{% endif %}
-            {% elif treatment.type == 'fertigation' %}
-            Riego
             {% else %}
-            —
+            <b>1 cuba</b><div class="text-muted">de {{ loads.partial_water }} L</div>
+            {% endif %}
+            {% elif treatment.type == 'fertigation' %}
+            <span class="text-muted">Riego</span>
+            {% else %}
+            <span class="text-muted">—</span>
             {% endif %}
         </div>
 
-        <div class="ti-actions">
-            {% if treatment.finish_date %}
-            <span class="ti-btn invisible"></span>
+        <div class="tl-actions">
+            {% if done %}
+            <div class="tl-cost d-md-none">
+                <b>{{ treatment|treatment_total_cost|floatformat:"2" }} €</b>
+                <span>{{ treatment|treatment_cost_per_ha|floatformat:"2" }} €/ha</span>
+            </div>
+            <span class="tl-finish-gap d-none d-md-block"></span>
             {% else %}
-            <button type="button" class="ti-btn" title="Finalizar"
+            <button type="button" class="tl-finish" title="Marcar como hecho" aria-label="Marcar {{ treatment.name }} como hecho"
                     onclick="finishTreatment_{{ treatment.id }}()">
-                <i class="fa fa-check"></i>
+                <i class="fa fa-check" aria-hidden="true"></i><span class="d-none d-md-inline">Hecho</span>
             </button>
             {% endif %}
-            <div class="dropdown">
-                <button class="ti-btn" type="button"
-                        data-bs-toggle="dropdown" aria-expanded="false" title="Más acciones">
+            <div class="dropdown d-none d-md-block">
+                <button class="tl-icon-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Más acciones" title="Más acciones">
                     <i class="fa fa-ellipsis-vertical"></i>
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.85rem">
-                    <li>
-                        <a class="dropdown-item" href="{% url 'treatment-detail' treatment.id %}">
-                            <i class="fa fa-eye me-2 text-primary"></i>Ver detalles
-                        </a>
-                    </li>
-                    {% if not treatment.is_completed %}
-                    <li>
-                        <a class="dropdown-item" href="#"
-                           onclick="finishTreatment_{{ treatment.id }}(); return false;">
-                            <i class="fa fa-check-circle me-2 text-success"></i>Finalizar
-                        </a>
-                    </li>
-                    <li><hr class="dropdown-divider"></li>
-                    {% endif %}
-                    <li>
-                        <a class="dropdown-item" href="{% url 'treatment-instructions' treatment.id %}">
-                            <i class="fa fa-print me-2 text-secondary"></i>Instrucciones
-                        </a>
-                    </li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li>
-                        <a class="dropdown-item" href="{% url 'treatment-clone' treatment.id %}">
-                            <i class="fa fa-copy me-2 text-secondary"></i>Clonar en otra parcela
-                        </a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item" href="{% url 'treatment-edit' treatment.id %}">
-                            <i class="fa fa-pen me-2 text-warning"></i>Editar
-                        </a>
-                    </li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li>
-                        <a class="dropdown-item text-danger" href="#"
-                           onclick="confirmDeleteTreatment('{{ treatment.name }}', '{% url 'treatment-delete' treatment.id %}'); return false;">
-                            <i class="fa fa-trash me-2"></i>Eliminar
-                        </a>
-                    </li>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm small">
+                    {% include 'farm/treatments/_treatment_menu_items.html' %}
                 </ul>
             </div>
-            <button class="ti-expand"
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#tiC{{ treatment.id }}"
-                    aria-expanded="false"
-                    aria-controls="tiC{{ treatment.id }}"
-                    title="Ver productos">
+            <button class="tl-icon-btn tl-expand d-none d-md-flex" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#tlC{{ treatment.id }}"
+                    aria-expanded="false" aria-controls="tlC{{ treatment.id }}" aria-label="Ver dosis" title="Ver dosis">
                 <i class="fa fa-chevron-down"></i>
             </button>
         </div>
     </div>
 
-    <div class="ti-products collapse" id="tiC{{ treatment.id }}">
+    {# ── Desplegable: dosis por producto ── #}
+    <div class="tl-detail collapse" id="tlC{{ treatment.id }}">
+        {% if done %}
+        <div class="tl-detail-note">Coste por producto</div>
+        {% elif loads %}
+        <div class="tl-detail-note">
+            Cuba de {{ treatment.machine.capacity }} L · {{ treatment.actual_water_per_ha|floatformat:"0" }} L/ha ·
+            {% if loads.full_loads %}{{ loads.full_loads }} llena{{ loads.full_loads|pluralize }}{% if loads.partial_load %} + {{ loads.partial_water }} L{% endif %}{% else %}1 cuba de {{ loads.partial_water }} L{% endif %}
+        </div>
+        {% elif treatment.type == 'fertigation' %}
+        <div class="tl-detail-note">Fertirrigación · dosis para toda la parcela</div>
+        {% elif treatment.type == 'spraying' %}
+        <div class="tl-detail-note">Sin máquina asignada: no se pueden calcular las cubas</div>
+        {% endif %}
+
         {% if products %}
-        {% with show_loads=loads %}
-        <div class="table-responsive">
-            <table class="table table-sm mb-0 small">
+        {# Desktop: tabla #}
+        <div class="table-responsive d-none d-md-block">
+            <table class="table table-sm mb-0 small tl-table">
                 <thead>
                 <tr>
                     <th>Producto</th>
                     <th>Tipo</th>
                     <th>Dosis</th>
                     <th>Total</th>
-                    {% if treatment.finish_date %}
+                    {% if done %}
                     <th class="text-end">Coste</th>
-                    {% elif show_loads %}
-                    <th>Por cuba llena</th>
-                    <th>Última cuba{% if loads.partial_load %} ({{ loads.partial_water }} L){% endif %}</th>
+                    {% elif loads %}
+                    {% if loads.full_loads %}<th>Por cuba llena</th>{% endif %}
+                    {% if loads.partial_load %}<th>{% if loads.full_loads %}Última cuba{% else %}Cuba{% endif %} ({{ loads.partial_water }} L)</th>{% endif %}
                     {% endif %}
                 </tr>
                 </thead>
@@ -159,27 +149,64 @@
                     <td class="text-muted">{{ tp.product.product_type.name }}</td>
                     <td>{{ tp.dose|fmt_dose }} {{ tp.dose_type|dose_type }}</td>
                     <td>{{ tp.total_dose|floatformat:"-2" }} {{ tp.total_dose_unit }}</td>
-                    {% if treatment.finish_date %}
+                    {% if done %}
                     <td class="text-end">{{ tp.total_price|floatformat:"2" }} €</td>
-                    {% elif show_loads %}
-                    <td>{% with per_load=tp.get_dose_per_load %}{% if per_load is not None %}{{ per_load|floatformat:"-2" }} {{ tp.total_dose_unit }}{% else %}—{% endif %}{% endwith %}</td>
-                    <td>{% if loads.partial_load %}{{ tp|partial_load_dose|floatformat:"-2" }} {{ tp.total_dose_unit }}{% else %}—{% endif %}</td>
+                    {% elif loads %}
+                    {% if loads.full_loads %}<td class="tl-dose">{% with per_load=tp.get_dose_per_load %}{% if per_load is not None %}{{ per_load|floatformat:"-2" }} {{ tp.total_dose_unit }}{% else %}—{% endif %}{% endwith %}</td>{% endif %}
+                    {% if loads.partial_load %}<td class="tl-dose">{{ tp|partial_load_dose|floatformat:"-2" }} {{ tp.total_dose_unit }}</td>{% endif %}
                     {% endif %}
                 </tr>
                 {% endfor %}
                 </tbody>
             </table>
         </div>
-        {% endwith %}
+
+        {# Móvil: lista con la dosis por cuba destacada #}
+        <ul class="tl-plist d-md-none">
+            {% for tp in products %}
+            <li>
+                <div class="tl-plist-name">
+                    <b>{{ tp.product.name }}</b>
+                    <span>{{ tp.dose|fmt_dose }} {{ tp.dose_type|dose_type }} · total {{ tp.total_dose|floatformat:"-2" }} {{ tp.total_dose_unit }}</span>
+                </div>
+                <div class="tl-plist-dose">
+                    {% if done %}
+                    <b>{{ tp.total_price|floatformat:"2" }} €</b>
+                    {% elif loads and loads.full_loads %}
+                    {% with per_load=tp.get_dose_per_load %}<b>{% if per_load is not None %}{{ per_load|floatformat:"-2" }} {{ tp.total_dose_unit }}{% else %}—{% endif %} / cuba</b>{% endwith %}
+                    {% if loads.partial_load %}<span>última ({{ loads.partial_water }} L): {{ tp|partial_load_dose|floatformat:"-2" }} {{ tp.total_dose_unit }}</span>{% endif %}
+                    {% elif loads %}
+                    <b>{{ tp|partial_load_dose|floatformat:"-2" }} {{ tp.total_dose_unit }}</b>
+                    <span>cuba de {{ loads.partial_water }} L</span>
+                    {% else %}
+                    <b>{{ tp.total_dose|floatformat:"-2" }} {{ tp.total_dose_unit }}</b>
+                    <span>total</span>
+                    {% endif %}
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
         {% else %}
-        <p class="text-muted small mb-0">
-            <i class="fa fa-circle-info me-1"></i>Sin productos asignados
-        </p>
+        <p class="text-muted small mb-0"><i class="fa fa-circle-info me-1"></i>Sin productos asignados</p>
         {% endif %}
+
+        {# Móvil: accesos rápidos #}
+        <div class="tl-detail-actions d-md-none">
+            <a class="btn btn-outline-secondary" href="{% url 'treatment-detail' treatment.id %}">Ver detalle</a>
+            <a class="btn btn-outline-secondary" href="{% url 'treatment-instructions' treatment.id %}">Instrucciones</a>
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Más acciones">
+                    <i class="fa fa-ellipsis"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    {% include 'farm/treatments/_treatment_menu_items.html' %}
+                </ul>
+            </div>
+        </div>
     </div>
 </div>
 
-{% include 'farm/treatments/_treatment_actions.html' with treatment=treatment %}
+{% if not done %}{% include 'farm/treatments/_treatment_actions.html' with treatment=treatment %}{% endif %}
 {% endwith %}
 {% endfor %}
 

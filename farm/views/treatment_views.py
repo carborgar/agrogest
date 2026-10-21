@@ -28,8 +28,10 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
     model = Treatment
     template_name = 'farm/treatments/treatment_list.html'
     context_object_name = 'treatments'
-    paginate_by = 24  # divisible entre 2 y 3 (columnas de la vista de tarjetas)
+    paginate_by = 24
     ordering = ['-date']
+    # Estados de la pestaña «Por hacer»
+    TODO_STATUSES = [Treatment.STATUS_PENDING, Treatment.STATUS_DELAYED]
 
     # ── Etiquetas legibles para el selector de orden ──────────────────────────
     SORT_LABELS = {
@@ -53,7 +55,12 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
         date_to = self.request.GET.get('date_to') if to_in_get else f'{current_year}-12-31'
         return date_from, date_to, not from_in_get, not to_in_get
 
-    def get_queryset(self):
+    def _filtered_queryset(self, apply_status=True):
+        """Queryset con todos los filtros del GET aplicados (sin anotar ni ordenar).
+
+        Con ``apply_status=False`` se ignora el filtro de estado: sirve para contar
+        los pendientes de la pestaña «Por hacer» aunque se esté viendo «Completados».
+        """
         queryset = (
             super()
             .get_queryset()
@@ -68,7 +75,6 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
         date_from, date_to, _, _ = self._get_filter_dates()
         product_type_filters = self.request.GET.getlist('product_types')
         search_query = self.request.GET.get('q', '').strip()
-        sort = self.request.GET.get('sort', 'urgency')
 
         if field_ids:
             queryset = queryset.filter(field__id__in=field_ids)
@@ -88,14 +94,21 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
             queryset = queryset.filter(date_range | Q(finish_date__isnull=True, date__lt=today))
         if product_type_filters:
             queryset = queryset.filter(products__product_type__in=product_type_filters)
-        if status_filters:
-            queryset = queryset.filter(status__in=status_filters)
-        elif 'status' not in self.request.GET:
-            # Sin parámetro status → mostrar solo pendientes y atrasados por defecto
-            queryset = queryset.filter(status__in=[Treatment.STATUS_PENDING, Treatment.STATUS_DELAYED])
-        # Si status está en GET pero vacío (no debería ocurrir con choices.js) → mostrar todo
+        if apply_status:
+            if status_filters:
+                queryset = queryset.filter(status__in=status_filters)
+            elif 'status' not in self.request.GET:
+                # Sin parámetro status → pestaña «Por hacer» (pendientes + atrasados)
+                queryset = queryset.filter(status__in=self.TODO_STATUSES)
+            # status presente pero vacío → todos los estados
         if search_query:
             queryset = queryset.filter(name__icontains=search_query)
+        return queryset
+
+    def get_queryset(self):
+        queryset = self._filtered_queryset()
+        today = date.today()
+        sort = self.request.GET.get('sort', 'urgency')
 
         sort_map = {
             'date_desc': '-effective_date',
@@ -168,6 +181,34 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
         context['sort'] = sort
         context['sort_label'] = self.SORT_LABELS.get(sort, self.SORT_LABELS['urgency'])
 
+        # ── Pestañas de estado: «Por hacer» (pendientes + atrasados) / «Completados» ──
+        # Se apoyan en el parámetro `status`, así siguen valiendo los enlaces que ya
+        # existen desde otras pantallas (p. ej. ?status=delayed).
+        status_set = set(selected_statuses)
+        if status_set == {Treatment.STATUS_COMPLETED}:
+            status_tab = 'done'
+        elif not status_set or status_set <= set(self.TODO_STATUSES):
+            status_tab = 'todo'
+        else:
+            status_tab = 'all'  # combinación antigua (p. ej. todos los estados)
+        context['status_tab'] = status_tab
+        # Filtro de estado más fino que la pestaña (solo pendientes o solo atrasados)
+        context['status_subfilter'] = (
+            dict(Treatment.STATUS_CHOICES).get(selected_statuses[0], "")
+            if status_tab == 'todo' and len(status_set) == 1 else ''
+        )
+        context['todo_count'] = (
+            self._filtered_queryset(apply_status=False)
+            .filter(status__in=self.TODO_STATUSES).order_by().distinct().count()
+        )
+        base_params = self.request.GET.copy()
+        for key in ('status', 'page'):
+            base_params.pop(key, None)
+        context['todo_url'] = '?' + base_params.urlencode()
+        done_params = base_params.copy()
+        done_params.setlist('status', [Treatment.STATUS_COMPLETED])
+        context['done_url'] = '?' + done_params.urlencode()
+
         active_filter_count = (
             len(selected_fields)
             + len(selected_types)
@@ -175,14 +216,23 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
             + len(selected_product_types)
             + (1 if date_from or date_to else 0)
             + (1 if search_query else 0)
-            + (1 if selected_statuses else 0)
         )
         context['active_filter_count'] = active_filter_count
+        # Filtros del panel (sin búsqueda ni fechas por defecto): para el contador del botón «Filtros» en móvil
+        context['panel_filter_count'] = (
+            len(selected_fields)
+            + len(selected_types)
+            + len(selected_products)
+            + len(selected_product_types)
+            + (0 if date_from_is_default and date_to_is_default else 1)
+        )
 
         query_params = self.request.GET.copy()
         if 'page' in query_params:
             del query_params['page']
         context['query_params'] = query_params.urlencode()
+        query_params.pop('sort', None)
+        context['sort_query'] = query_params.urlencode()
 
         return context
 

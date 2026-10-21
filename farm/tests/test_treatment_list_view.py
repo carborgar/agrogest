@@ -137,3 +137,61 @@ class TestTreatmentListView:
         for name in ('fert', 'sin_maq', 'spray', 'hecho'):
             assert name in content
         assert 'Atrasados' in content and 'Completados' in content
+
+
+@pytest.mark.django_db
+class TestTreatmentListTabs:
+
+    def test_default_tab_is_todo_with_count(self, setup):
+        client, org, field, machine = setup
+        _spray(org, field, machine, date=_days(-2))
+        _spray(org, field, machine, date=_days(3))
+        _spray(org, field, machine, date=_days(-5), finish_date=_days(-4))
+
+        response = _get(client)
+
+        assert response.context['status_tab'] == 'todo'
+        assert response.context['todo_count'] == 2
+        assert response.context['status_subfilter'] == ''
+
+    def test_done_tab_shows_only_completed_and_keeps_todo_count(self, setup):
+        client, org, field, machine = setup
+        _spray(org, field, machine, date=_days(3))
+        done = _spray(org, field, machine, date=_days(-5), finish_date=_days(-4))
+
+        response = _get(client, status='completed')
+
+        assert response.context['status_tab'] == 'done'
+        assert [t.pk for t in response.context['treatments']] == [done.pk]
+        assert response.context['todo_count'] == 1
+
+    def test_tab_urls_keep_other_filters_and_drop_page(self, setup):
+        client, org, field, machine = setup
+        _spray(org, field, machine, date=_days(3))
+
+        response = _get(client, field=[field.pk], status='completed', page='1')
+
+        assert 'status' not in response.context['todo_url']
+        assert f'field={field.pk}' in response.context['todo_url']
+        assert 'status=completed' in response.context['done_url']
+        assert 'page' not in response.context['done_url']
+
+    def test_legacy_single_status_link_shows_subfilter(self, setup):
+        client, org, field, machine = setup
+        late = _spray(org, field, machine, date=_days(-2))
+        _spray(org, field, machine, date=_days(3))
+
+        response = _get(client, status='delayed')
+
+        assert response.context['status_tab'] == 'todo'
+        assert response.context['status_subfilter'] == 'Atrasado'
+        assert [t.pk for t in response.context['treatments']] == [late.pk]
+
+    def test_card_view_and_switcher_are_gone(self, setup):
+        client, org, field, machine = setup
+        _spray(org, field, machine, date=_days(3))
+
+        content = _get(client).content.decode()
+
+        assert 'cardView' not in content and 'view-switcher' not in content
+        assert 'tl-date--1' in content  # fecha en bloque de color del grupo «Próximos 7 días»

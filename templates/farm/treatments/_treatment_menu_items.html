@@ -1,0 +1,34 @@
+{# Opciones del menú ⋮ de un tratamiento en el listado. Requiere `treatment` en el contexto. #}
+<li>
+    <a class="dropdown-item" href="{% url 'treatment-detail' treatment.id %}">
+        <i class="fa fa-eye me-2 text-primary"></i>Ver detalles
+    </a>
+</li>
+<li>
+    <a class="dropdown-item" href="{% url 'treatment-instructions' treatment.id %}">
+        <i class="fa fa-print me-2 text-secondary"></i>Instrucciones
+    </a>
+</li>
+<li><hr class="dropdown-divider"></li>
+<li>
+    <a class="dropdown-item" href="{% url 'treatment-clone' treatment.id %}">
+        <i class="fa fa-copy me-2 text-secondary"></i>Clonar en otra parcela
+    </a>
+</li>
+<li>
+    <a class="dropdown-item" href="{% url 'treatment-repeat' treatment.id %}">
+        <i class="fa fa-rotate me-2 text-secondary"></i>Repetir en esta parcela
+    </a>
+</li>
+<li>
+    <a class="dropdown-item" href="{% url 'treatment-edit' treatment.id %}">
+        <i class="fa fa-pen me-2 text-secondary"></i>Editar
+    </a>
+</li>
+<li><hr class="dropdown-divider"></li>
+<li>
+    <a class="dropdown-item text-danger" href="#"
+       onclick="confirmDeleteTreatment('{{ treatment.name|escapejs }}', '{% url 'treatment-delete' treatment.id %}'); return false;">
+        <i class="fa fa-trash me-2"></i>Eliminar
+    </a>
+</li>
