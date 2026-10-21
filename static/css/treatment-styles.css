@@ -235,6 +235,13 @@ a.filter-active-chip:hover {
 .tl-meta { display: flex; align-items: center; gap: 0 .3rem; overflow: hidden; font-size: .82rem; color: var(--tl-muted); white-space: nowrap; }
 .tl-meta i { font-size: .75rem; }
 .tl-field { font-weight: 600; color: var(--tl-ink); }
+/* Si no cabe, se recorta el nombre de la parcela, nunca la fecha relativa */
+.tl-meta > * { flex-shrink: 0; }
+.tl-meta > .tl-field { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* Botón flotante «Nuevo tratamiento» (móvil), encima de la barra inferior */
+.tl-fab { position: fixed; right: 16px; bottom: calc(58px + 16px + env(safe-area-inset-bottom)); z-index: 1029; display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; background: var(--bs-primary); color: #fff; font-size: 1.35rem; box-shadow: 0 6px 16px rgba(0, 0, 0, .22); text-decoration: none; }
+.tl-fab-spacer { height: 72px; }
+.tl-fab:hover, .tl-fab:focus-visible { color: #fff; filter: brightness(1.08); }
 .tl-rel { font-weight: 600; }
 .tl-rel--0 { color: var(--tl-0-fg); }
 .tl-rel--1 { color: var(--tl-1-fg); }
@@ -421,10 +428,11 @@ a.filter-active-chip:hover {
 .dt-fg-3 { color: var(--tl-3-fg); }
 
 /* Resumen */
-.dt-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); background: #fff; border: 1px solid var(--bs-border-color); border-radius: 12px; }
-.dt-cell { padding: .8rem 1rem; border-bottom: 1px solid var(--tl-line); }
-.dt-cell:nth-child(odd) { border-right: 1px solid var(--tl-line); }
-.dt-cell:last-child:nth-child(odd) { grid-column: 1 / -1; border-right: 0; }
+/* Líneas entre celdas con box-shadow: el overflow recorta las de los bordes, así funciona con cualquier número de celdas visibles */
+.dt-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: hidden; background: #fff; border: 1px solid var(--bs-border-color); border-radius: 12px; }
+.dt-cell { padding: .6rem .8rem; box-shadow: 1px 0 0 var(--tl-line), 0 1px 0 var(--tl-line); }
+/* En móvil, con el tratamiento pendiente, el coste se consulta en su bloque: el resumen deja sitio a la preparación */
+@media (max-width: 767.98px) { .dt-cell--desk { display: none; } }
 .dt-label { font-size: .7rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--tl-muted); }
 .dt-value { margin-top: .15rem; font-size: 1rem; font-weight: 700; color: var(--tl-ink); }
 .dt-sub { font-size: .78rem; font-weight: 600; color: var(--tl-muted); }
@@ -432,8 +440,6 @@ a.filter-active-chip:hover {
 .dt-badge { display: inline-block; margin-top: .3rem; padding: .15rem .55rem; border-radius: 999px; font-size: .75rem; font-weight: 700; white-space: nowrap; }
 @media (min-width: 768px) {
     .dt-summary { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
-    .dt-cell, .dt-cell:nth-child(odd) { border-bottom: 0; border-right: 1px solid var(--tl-line); }
-    .dt-cell:last-child, .dt-cell:last-child:nth-child(odd) { border-right: 0; grid-column: auto; }
     .dt-value { font-size: 1.15rem; }
 }
 
@@ -498,3 +504,25 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
 .dt-sticky { position: fixed; left: 0; right: 0; bottom: calc(58px + env(safe-area-inset-bottom)); z-index: 1029; padding: .6rem 1rem; background: rgba(255, 255, 255, .96); border-top: 1px solid var(--bs-border-color); box-shadow: 0 -4px 16px rgba(0, 0, 0, .06); }
 .dt-sticky .btn { height: 48px; font-weight: 700; }
 .dt-sticky-spacer { height: 72px; }
+
+/* ═══════════════════════════════════════════════
+   TREATMENT FORM — productos (tf-*)
+═══════════════════════════════════════════════ */
+.product-form .input-group-text { min-width: 3.25rem; justify-content: center; font-size: .8rem; color: var(--tl-muted); background: var(--tl-soft); }
+.dose-warning { margin-top: .3rem; font-size: .78rem; font-weight: 600; color: var(--tl-1-fg); }
+.dose-warning::before { content: "⚠ "; }
+.tf-cost { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; margin: 0 1rem .75rem; padding: .6rem .8rem; border-radius: 8px; background: var(--tl-soft); border: 1px solid var(--tl-line); font-size: .9rem; color: var(--tl-muted); }
+.tf-cost b { font-size: 1.05rem; color: var(--tl-ink); }
+
+/* Desktop: cada producto en una fila compacta (número | campos | borrar) en lugar de una tarjeta alta */
+@media (min-width: 992px) {
+    .treatment-products-grid > *:not(:first-child) { margin-top: .5rem; }
+    .treatment-product-card { display: grid; grid-template-columns: 2rem minmax(0, 1fr) 2.25rem; column-gap: .75rem; align-items: start; padding: .6rem .75rem; }
+    .treatment-product-card .product-card-header { display: contents; }
+    .treatment-product-card .product-number { grid-column: 1; grid-row: 1; margin-top: 1.7rem; }
+    .treatment-product-card .remove-row { grid-column: 3; grid-row: 1; margin-top: 1.6rem; }
+    .treatment-product-card > .row { grid-column: 2; grid-row: 1; }
+    .treatment-product-card .mb-3 { margin-bottom: .25rem !important; }
+    .treatment-product-card .dose-info { margin: .25rem 0 0; padding: .3rem .5rem; font-size: .78rem; }
+    .treatment-product-card .duplicate-badge { grid-column: 2; grid-row: 2; justify-self: start; }
+}

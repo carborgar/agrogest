@@ -70,7 +70,7 @@
         <span class="dt-badge dt-tone-0">{{ days|cut:"-" }} día{{ days|cut:"-"|pluralize }} de retraso</span>
         {% elif days == 0 %}
         <span class="dt-badge dt-tone-1">Hoy</span>
-        {% elif days <= 7 %}
+        {% elif days <= 15 %}
         <span class="dt-badge dt-tone-1">{% if days == 1 %}Mañana{% else %}En {{ days }} días{% endif %}</span>
         {% else %}
         <div class="dt-sub">En {{ days }} días</div>
@@ -101,7 +101,7 @@
     </div>
     {% endif %}
 
-    <div class="dt-cell">
+    <div class="dt-cell{% if not treatment.finish_date %} dt-cell--desk{% endif %}">
         <div class="dt-label">Coste</div>
         {% if has_prices %}
         <div class="dt-value">{{ total_cost|floatformat:"2" }} €</div>

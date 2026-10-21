@@ -1,6 +1,5 @@
 from datetime import timedelta
 
-from django.core.paginator import Paginator
 from django.db.models import Sum
 from django.utils import timezone
 from django.views.generic import ListView
@@ -14,7 +13,8 @@ class FieldDashboardView(BaseSecureViewMixin, ListView):
     template_name = "farm/fields/field_dashboard.html"
     context_object_name = "fields"
 
-    treatments_per_page = 5
+    # Inicio es un vistazo: unas pocas filas y «Ver los N» al listado, que es donde se trabaja
+    treatments_preview = 3
 
     def get_queryset(self):
         return Field.ownership_objects.get_queryset_for_user(self.request.user)
@@ -28,16 +28,17 @@ class FieldDashboardView(BaseSecureViewMixin, ListView):
 
         base_treatments = Treatment.objects.filter(field__in=fields).select_related('field')
 
-        delayed_treatments_qs = base_treatments.filter(
-            status=Treatment.STATUS_DELAYED
-        ).order_by('date')
-
-        today = timezone.now().date()
-        upcoming_days = 15
+        # Por fechas y no por `status` (puede estar desfasado), igual que los grupos del listado
+        today = timezone.localdate()
+        upcoming_days = Treatment.UPCOMING_DAYS
         upcoming_limit_date = today + timedelta(days=upcoming_days)
 
+        delayed_treatments_qs = base_treatments.filter(
+            finish_date__isnull=True, date__lt=today
+        ).order_by('date')
+
         upcoming_treatments_qs = base_treatments.filter(
-            status=Treatment.STATUS_PENDING,
+            finish_date__isnull=True,
             date__range=(today, upcoming_limit_date)
         ).order_by('date')
 
@@ -51,24 +52,10 @@ class FieldDashboardView(BaseSecureViewMixin, ListView):
         context['treatment_types'] = Treatment.TYPE_CHOICES
         context['type_map'] = type_map
 
-        delayed_page = self.request.GET.get('delayed_page', 1)
-        delayed_paginator = Paginator(delayed_treatments_qs, self.treatments_per_page)
-        delayed_page_obj = delayed_paginator.get_page(delayed_page)
-
-        upcoming_page = self.request.GET.get('upcoming_page', 1)
-        upcoming_paginator = Paginator(upcoming_treatments_qs, self.treatments_per_page)
-        upcoming_page_obj = upcoming_paginator.get_page(upcoming_page)
-
-        context['delayed_treatments'] = delayed_page_obj
-        context['delayed_total'] = delayed_paginator.count
-        context['delayed_showing'] = len(delayed_page_obj)
-
-        context['upcoming_treatments'] = upcoming_page_obj
-        context['upcoming_total'] = upcoming_paginator.count
-        context['upcoming_showing'] = len(upcoming_page_obj)
-
-        context['delayed_page_param'] = f"delayed_page={delayed_page}" if delayed_page != '1' else ""
-        context['upcoming_page_param'] = f"upcoming_page={upcoming_page}" if upcoming_page != '1' else ""
+        context['delayed_treatments'] = delayed_treatments_qs[:self.treatments_preview]
+        context['delayed_total'] = context['delayed_treatments_count']
+        context['upcoming_treatments'] = upcoming_treatments_qs[:self.treatments_preview]
+        context['upcoming_total'] = context['pending_treatments_count']
         context['upcoming_days'] = upcoming_days
 
         return context

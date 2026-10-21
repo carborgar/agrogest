@@ -20,6 +20,7 @@ from farm.forms import TreatmentForm, TreatmentProductFormSet
 from farm.mixins import BaseSecureViewMixin
 from farm.models import Field, Product, ProductType, Treatment, TreatmentProduct
 from farm.services import save_treatment_with_products, get_shopping_list, clone_treatment
+from farm.templatetags.custom_filters import treatment_tone
 
 logger = logging.getLogger(__name__)
 
@@ -126,7 +127,7 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
             urgency_group=Case(
                 When(finish_date__isnull=False, then=Value(3)),            # Completados
                 When(date__lt=today, then=Value(0)),                       # Atrasados
-                When(date__lte=today + timedelta(days=7), then=Value(1)),  # Próximos 7 días
+                When(date__lte=today + timedelta(days=Treatment.UPCOMING_DAYS), then=Value(1)),  # Próximos 15 días
                 default=Value(2),                                          # Más adelante
                 output_field=IntegerField(),
             ),
@@ -270,16 +271,8 @@ class TreatmentDetailView(BaseSecureViewMixin, DetailView):
         context['load_info'] = self.object.calculate_machine_loads()
 
         # Tono de la pastilla de fecha: mismo criterio que los grupos del listado
-        # 0 atrasado · 1 próximos 7 días · 2 más adelante · 3 completado
-        today = date.today()
-        if self.object.finish_date:
-            tone = 3
-        elif self.object.date < today:
-            tone = 0
-        elif self.object.date <= today + timedelta(days=7):
-            tone = 1
-        else:
-            tone = 2
+        # 0 atrasado · 1 próximos 15 días · 2 más adelante · 3 completado
+        tone = treatment_tone(self.object)
         context['tone'] = tone
 
         context['available_fields'] = (

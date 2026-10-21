@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% load custom_filters %}
 
-{% block title %}Preparar repartición{% endblock %}
-{% block header %}Preparar repartición{% endblock %}
+{% block title %}Preparar productos{% endblock %}
+{% block header %}Preparar productos{% endblock %}
 {% block sub_header %}Selecciona los tratamientos que vas a preparar{% endblock %}
 
 {% block content %}
@@ -62,7 +62,7 @@
                                         {{ t.date|date:"d/m/Y" }}
                                     </div>
                                 </div>
-                                <span class="badge bg-{{ t|treatment_state_class }} flex-shrink-0">{{ t.get_status_display }}</span>
+                                {% with tone=t|treatment_tone %}<span class="dt-status dt-tone-{{ tone }} flex-shrink-0">{% if tone == 0 %}Atrasado{% else %}{{ t.get_status_display }}{% endif %}</span>{% endwith %}
                             </label>
                             {% endfor %}
                             <p class="sl-no-results text-muted small text-center py-3 mb-0 d-none">

@@ -116,7 +116,8 @@
 
         const selected = new Set(); // ISO "YYYY-MM-DD"
         const now = new Date();
-        const todayISO = now.toISOString().split('T')[0];
+        // Fecha local, no UTC (toISOString puede devolver el día anterior de madrugada)
+        const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         const originISO = '{{ treatment.date|date:"Y-m-d" }}'; // fecha del tratamiento original
         let viewYear = now.getFullYear();
         let viewMonth = now.getMonth(); // 0-based

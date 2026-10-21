@@ -59,7 +59,9 @@
             },
             heightAuto: false,
             didOpen: () => {
-                const today = new Date().toISOString().split('T')[0];
+                // Fecha local (toISOString usa UTC: entre 00:00 y 02:00 en España daría el día anterior)
+                const n = new Date();
+                const today = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
                 document.getElementById(`swalFinishDate_${treatmentId}`).value = today;
                 if (!isFertigation) {
                     document.getElementById(`swalFinalWater_${treatmentId}`).value = Math.round(waterPerHa);

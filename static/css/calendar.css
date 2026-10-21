@@ -89,19 +89,21 @@
 
 /* ── Eventos por estado ──────────────────── */
 .treatment-pending {
-    background-color: var(--bs-warning);
-    border-color: var(--bs-warning);
-    color: #000 !important;
+    background-color: var(--tl-1-bg);
+    border-color: var(--tl-1-bg);
+    color: var(--tl-1-fg) !important;
 }
 
 .treatment-completed {
-    background-color: var(--bs-success);
-    border-color: var(--bs-success);
+    background-color: var(--tl-3-bg);
+    border-color: var(--tl-3-bg);
+    color: var(--tl-3-fg) !important;
 }
 
 .treatment-delayed {
-    background-color: var(--bs-danger);
-    border-color: var(--bs-danger);
+    background-color: var(--tl-0-bg);
+    border-color: var(--tl-0-bg);
+    color: var(--tl-0-fg) !important;
 }
 
 /* ── Filtros del sidebar ─────────────────── */

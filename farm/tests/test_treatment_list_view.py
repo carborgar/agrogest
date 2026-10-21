@@ -194,4 +194,4 @@ class TestTreatmentListTabs:
         content = _get(client).content.decode()
 
         assert 'cardView' not in content and 'view-switcher' not in content
-        assert 'tl-date--1' in content  # fecha en bloque de color del grupo «Próximos 7 días»
+        assert 'tl-date--1' in content  # fecha en bloque de color del grupo «Próximos 15 días»

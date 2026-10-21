@@ -24,17 +24,7 @@
             {% endif %}
 
             <ul class="dropdown-menu dropdown-menu-end">
-                {% if not treatment.is_completed %}
-                <li>
-                    <a class="dropdown-item" href="#"
-                       onclick="finishTreatment_{{ treatment.id }}(); return false;">
-                        <i class="fa fa-check-circle me-2 text-success"></i>Finalizar
-                    </a>
-                </li>
-                <li>
-                    <hr class="dropdown-divider">
-                </li>
-                {% endif %}
+                {# «Finalizar» no va aquí: el detalle ya tiene el botón «Marcar como hecho» a la vista #}
                 <li>
                     <a class="dropdown-item" href="{% url 'treatment-instructions' treatment.id %}">
                         <i class="fa fa-print me-2 text-primary"></i>Instrucciones para operador

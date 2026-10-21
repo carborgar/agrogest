@@ -1,4 +1,5 @@
 from django.urls import path
+from django.views.generic import RedirectView
 
 from farm.views.admin_views import TreatmentCostRecalculationAdminView
 from farm.views.dashboard_views import FieldDashboardView, FieldCostView
@@ -40,7 +41,9 @@ urlpatterns = [
     path('tratamientos/<int:pk>/repetir/', RepeatTreatmentView.as_view(), name='treatment-repeat'),
     path('tratamientos/calendario/', TreatmentCalendarView.as_view(), name='treatment-calendar'),
     path('tratamientos/<int:pk>/operador/', TreatmentExportView.as_view(), name='treatment-instructions'),
-    path('tratamientos/lista-compra/', ShoppingListView.as_view(), name='treatment-shopping-list'),
+    path('tratamientos/preparar/', ShoppingListView.as_view(), name='treatment-shopping-list'),
+    # URL antigua: se mantiene como redirección para no romper marcadores
+    path('tratamientos/lista-compra/', RedirectView.as_view(pattern_name='treatment-shopping-list', query_string=True, permanent=True)),
     path('tratamientos/exportar-excel/', TreatmentExcelExportView.as_view(), name='treatment-export-excel'),
     path('administracion/recalculo-costes-tratamientos/', TreatmentCostRecalculationAdminView.as_view(),
          name='treatment-cost-admin'),

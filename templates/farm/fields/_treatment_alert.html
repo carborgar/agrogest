@@ -14,7 +14,8 @@
             </div>
         </div>
         <div class="dashboard-treatment-status">
-            <span class="badge bg-{{ state_class }}">{{ treatment.date_status_display }}</span>
+            {# Mismos tonos suaves que listado, detalle y calendario #}
+            <span class="dt-status dt-tone-{{ treatment|treatment_tone }}">{{ treatment.date_status_display }}</span>
         </div>
         <i class="fa fa-chevron-right dashboard-treatment-arrow text-{{ state_class }} opacity-50"></i>
     </div>

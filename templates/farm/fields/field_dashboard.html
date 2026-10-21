@@ -108,9 +108,9 @@
                 </div>
                 {% endfor %}
             </div>
-            {% if delayed_treatments.has_other_pages %}
-            <div class="card-footer bg-transparent">
-                {% bootstrap_pagination delayed_treatments parameter_name="delayed_page" pages_to_show="5" extra=upcoming_page_param %}
+            {% if delayed_total > delayed_treatments|length %}
+            <div class="card-footer bg-transparent text-center">
+                <a class="small fw-semibold text-decoration-none" href="{% url 'treatment-list' %}">Ver los {{ delayed_total }} atrasados <i class="fa fa-arrow-right ms-1"></i></a>
             </div>
             {% endif %}
         </div>
@@ -142,9 +142,9 @@
                 </div>
                 {% endfor %}
             </div>
-            {% if upcoming_treatments.has_other_pages %}
-            <div class="card-footer bg-transparent">
-                {% bootstrap_pagination upcoming_treatments parameter_name="upcoming_page" pages_to_show="5" extra=delayed_page_param %}
+            {% if upcoming_total > upcoming_treatments|length %}
+            <div class="card-footer bg-transparent text-center">
+                <a class="small fw-semibold text-decoration-none" href="{% url 'treatment-list' %}">Ver los {{ upcoming_total }} próximos <i class="fa fa-arrow-right ms-1"></i></a>
             </div>
             {% endif %}
         </div>

@@ -357,6 +357,9 @@ class Treatment(OrganizationOwnedModel):
         (STATUS_DELAYED, 'Atrasado'),
     ]
 
+    # Horizonte de «Próximos» (días): el mismo en Inicio, listado y detalle
+    UPCOMING_DAYS = 15
+
     name = models.CharField(max_length=100)
     type = models.CharField(max_length=20, choices=TYPE_CHOICES)
     creation_timestamp = models.DateTimeField(auto_now_add=True)

@@ -223,7 +223,11 @@
                                             <div class="col-12 col-md-6 col-lg-4">
                                                 <div class="mb-3">
                                                     <label class="form-label small fw-semibold text-muted">Dosis</label>
-                                                    {{ form.dose|add_class:"form-control product-dose" }}
+                                                    <div class="input-group">
+                                                        {{ form.dose|add_class:"form-control product-dose" }}
+                                                        <span class="input-group-text dose-unit">—</span>
+                                                    </div>
+                                                    <div class="dose-warning d-none"></div>
                                                 </div>
 
                                                 <div class="dose-info machine-dose-line d-none">
@@ -235,7 +239,10 @@
                                                 <div class="mb-3">
                                                     <label class="form-label small fw-semibold text-muted">Total
                                                         parcela</label>
-                                                    {{ form.total_dose|add_class:"form-control total-dose-input" }}
+                                                    <div class="input-group">
+                                                        {{ form.total_dose|add_class:"form-control total-dose-input" }}
+                                                        <span class="input-group-text total-unit">—</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -246,6 +253,10 @@
                                     <i class="bi bi-plus-circle"></i>
                                     Añadir Producto
                                 </button>
+                            </div>
+                            <div class="tf-cost" id="estimatedCostBox" aria-live="polite">
+                                <span>Coste estimado</span>
+                                <span><b id="estimatedCost">—</b> <small id="estimatedCostHa"></small></span>
                             </div>
                             <div class="card-footer py-3">
                                 <div class="d-flex gap-2">
@@ -304,10 +315,14 @@
             <div class="col-12 col-md-6 col-lg-4">
                 <div class="mb-3">
                     <label class="form-label small fw-semibold text-muted">Dosis</label>
-                    <input class="form-control product-dose" id="id_treatmentproduct_set-INDEX-dose"
-                           name="treatmentproduct_set-INDEX-dose"
-                           step="0.001"
-                           type="number">
+                    <div class="input-group">
+                        <input class="form-control product-dose" id="id_treatmentproduct_set-INDEX-dose"
+                               name="treatmentproduct_set-INDEX-dose"
+                               step="0.001"
+                               type="number">
+                        <span class="input-group-text dose-unit">—</span>
+                    </div>
+                    <div class="dose-warning d-none"></div>
                 </div>
                 <div class="dose-info machine-dose-line d-none">
                     <strong>Dosis por máquina:</strong>
@@ -317,10 +332,13 @@
             <div class="col-12 col-md-6 col-lg-4">
                 <div class="mb-3">
                     <label class="form-label small fw-semibold text-muted">Total parcela</label>
-                    <input class="form-control total-dose-input" id="id_treatmentproduct_set-INDEX-total_dose"
-                           name="treatmentproduct_set-INDEX-total_dose"
-                           step="0.001"
-                           type="number">
+                    <div class="input-group">
+                        <input class="form-control total-dose-input" id="id_treatmentproduct_set-INDEX-total_dose"
+                               name="treatmentproduct_set-INDEX-total_dose"
+                               step="0.001"
+                               type="number">
+                        <span class="input-group-text total-unit">—</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -591,6 +609,8 @@
                 }
                 recommendedDoseSpan.textContent = product.dose + ' ' + product.dose_type_display;
                 doseInfo.classList.remove('d-none');
+                card.querySelector('.dose-unit').textContent = product.dose_type_display;
+                card.querySelector('.total-unit').textContent = product.dose_type.includes('kg') ? 'kg' : 'L';
             } else {
                 if (!preserveExistingValues) {
                     doseInput.value = '';
@@ -601,6 +621,8 @@
                 }
                 recommendedDoseSpan.textContent = '-';
                 doseInfo.classList.add('d-none');
+                card.querySelector('.dose-unit').textContent = '—';
+                card.querySelector('.total-unit').textContent = '—';
             }
 
             calculateTotalDoses();
@@ -754,6 +776,46 @@
                     machineDoseLine.classList.add('d-none');
                 }
             });
+            updateDoseSummary();
+        }
+
+        // Aviso si la dosis se aparta ±25% de la recomendada (no bloquea: puede ser una decisión,
+        // pero una diferencia grande suele ser un error de tecleo o de unidad) y coste estimado en vivo.
+        const DOSE_WARNING_RATIO = 0.25;
+        const eur = (v) => v.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' €';
+
+        function updateDoseSummary() {
+            let totalCost = 0;
+            let hasPrice = false;
+            getVisibleRows().forEach((card) => {
+                const product = getProduct(card.querySelector('.product-select').value);
+                const warning = card.querySelector('.dose-warning');
+                const dose = parseFloat(card.querySelector('.product-dose').value) || 0;
+                const recommended = product ? parseFloat(product.dose) : 0;
+                if (warning) {
+                    if (product && dose && recommended && Math.abs(dose - recommended) / recommended >= DOSE_WARNING_RATIO) {
+                        const pct = Math.round((dose - recommended) / recommended * 100);
+                        warning.textContent = `${pct > 0 ? '+' : ''}${pct}% respecto a la recomendada (${product.dose} ${product.dose_type_display})`;
+                        warning.classList.remove('d-none');
+                    } else {
+                        warning.classList.add('d-none');
+                    }
+                }
+                const total = parseFloat(card.querySelector('.total-dose-input').value) || 0;
+                if (product && product.price > 0 && total) {
+                    totalCost += total * product.price;
+                    hasPrice = true;
+                }
+            });
+            const costEl = document.getElementById('estimatedCost');
+            const costHaEl = document.getElementById('estimatedCostHa');
+            if (!costEl) return;
+            const field = fields[elements.fieldSelect.value];
+            const appliedAreaInput = document.getElementById('{{ form.applied_area.id_for_label }}');
+            const appliedAreaVal = appliedAreaInput ? parseFloat(appliedAreaInput.value) : NaN;
+            const area = field ? ((!isNaN(appliedAreaVal) && appliedAreaVal > 0 && appliedAreaVal < field.area) ? appliedAreaVal : field.area) : 0;
+            costEl.textContent = hasPrice ? eur(totalCost) : '—';
+            costHaEl.textContent = hasPrice && area ? `· ${eur(totalCost / area)}/ha` : '';
         }
 
         function calculateDoseFromTotal(event) {
@@ -907,6 +969,7 @@
                 const el = row.querySelector('.product-number');
                 el.textContent = index + 1;
             });
+            updateDoseSummary();
         }
 
         function initializeFirstRow() {

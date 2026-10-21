@@ -6,10 +6,12 @@ document.addEventListener('DOMContentLoaded', function () {
     // YYYY-MM-DD en hora local (toISOString usa UTC y puede desplazar el día)
     const toDateStr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
+    // Mismos tonos suaves que el listado y el detalle (--tl-0…3): fondo claro + texto oscuro del mismo color.
+    // `dot` (color intenso) para puntos, barras y leyenda, donde un fondo claro no se vería.
     const STATUS_STYLE = {
-        pending: { bg: '#ffc107', fg: '#212529', cls: 'treatment-pending' },
-        delayed: { bg: '#dc3545', fg: '#ffffff', cls: 'treatment-delayed' },
-        completed: { bg: '#198754', fg: '#ffffff', cls: 'treatment-completed' },
+        pending: { bg: '#FFF1D6', fg: '#8A5300', dot: '#C77700', cls: 'treatment-pending' },
+        delayed: { bg: '#FDECEA', fg: '#B42318', dot: '#B42318', cls: 'treatment-delayed' },
+        completed: { bg: '#E3F1E4', fg: '#1F5F24', dot: '#2E7D32', cls: 'treatment-completed' },
     };
     const TYPE_ICON = { spraying: 'spray-can-sparkles', fertigation: 'droplet' };
 
@@ -266,7 +268,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'btn btn-light text-start d-flex align-items-center gap-2 py-2';
-            btn.innerHTML = `<span class="calendar-legend-dot" style="background:${style.bg}"></span>
+            btn.innerHTML = `<span class="calendar-legend-dot" style="background:${style.dot}"></span>
                 <span class="flex-grow-1 min-w-0">
                     <span class="d-block fw-semibold small text-truncate">${esc(ev.title)}</span>
                     <span class="d-block small text-muted text-truncate">${esc(t.field_name)} · ${esc(t.type_display)}</span>
@@ -572,7 +574,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const str = toDateStr(d);
             const evs = byDay[str] || [];
             const dots = evs.slice(0, 3).map(ev =>
-                `<i class="cm-dot" style="background:${(STATUS_STYLE[ev.extendedProps.status] || STATUS_STYLE.pending).bg}"></i>`).join('');
+                `<i class="cm-dot" style="background:${(STATUS_STYLE[ev.extendedProps.status] || STATUS_STYLE.pending).dot}"></i>`).join('');
             const out = M.view === 'month' && d.getMonth() !== M.cursor.getMonth();
             html += `<button type="button" class="cm-day${out ? ' cm-out' : ''}${str === M.selected && !M.showOverdue ? ' cm-sel' : ''}${str === todayStr ? ' cm-today' : ''}" data-date="${str}"
                         aria-label="${esc(fmt({ weekday: 'long', day: 'numeric', month: 'long' }, d))}, ${evs.length} tratamientos">
@@ -600,7 +602,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const t = ev.extendedProps;
             const style = STATUS_STYLE[t.status] || STATUS_STYLE.pending;
             return `<div class="d-flex align-items-center gap-2 bg-white rounded shadow-sm p-2">
-                <span class="cm-bar" style="background:${style.bg}"></span>
+                <span class="cm-bar" style="background:${style.dot}"></span>
                 <button type="button" class="btn p-0 border-0 text-start flex-grow-1 min-w-0" data-open="${ev.id}">
                     <span class="d-block fw-semibold small text-truncate"><i class="fa fa-${TYPE_ICON[t.type] || 'flask'} me-1 text-muted"></i>${esc(ev.title)}</span>
                     <span class="d-block small text-muted text-truncate">${M.showOverdue ? `${esc(formatDate(ev.start))} · ` : ''}${esc(t.field_name)} · ${esc(t.type_display)}</span>

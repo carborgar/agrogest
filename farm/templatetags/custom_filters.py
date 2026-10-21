@@ -77,7 +77,7 @@ def fmt_dose(value):
 # Las plantillas no pueden llamar a métodos con argumentos, de ahí estos filtros.
 # ---------------------------------------------------------------------------
 
-_URGENCY_LABEL = {0: 'Atrasados', 1: 'Próximos 7 días', 2: 'Más adelante', 3: 'Completados'}
+_URGENCY_LABEL = {0: 'Atrasados', 1: 'Próximos 15 días', 2: 'Más adelante', 3: 'Completados'}
 _URGENCY_CLASS = {0: 'danger', 1: 'warning', 2: 'secondary', 3: 'success'}
 
 
@@ -132,3 +132,19 @@ def days_from_today(value):
     if not value:
         return 0
     return (value - date.today()).days
+
+
+@register.filter
+def treatment_tone(treatment):
+    """Tono de urgencia (0 atrasado · 1 próximos · 2 más adelante · 3 completado), calculado por fechas
+    y no por `status`, que puede estar desfasado. Mismo criterio que los grupos del listado."""
+    from datetime import timedelta
+    from farm.models import Treatment
+    if treatment.finish_date:
+        return 3
+    today = date.today()
+    if treatment.date < today:
+        return 0
+    if treatment.date <= today + timedelta(days=Treatment.UPCOMING_DAYS):
+        return 1
+    return 2

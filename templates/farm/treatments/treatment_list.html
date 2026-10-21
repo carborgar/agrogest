@@ -3,10 +3,10 @@
 {% load static %}
 
 {% block header %}Tratamientos{% endblock %}
-{% block sub_header %}Gestión y seguimiento de todos los tratamientos{% endblock %}
+{% block sub_header %}<span class="d-none d-md-inline">Gestión y seguimiento de todos los tratamientos</span>{% endblock %}
 
 {% block actions %}
-<a class="btn btn-primary" href="{% url 'treatment-create' %}">
+<a class="btn btn-primary d-none d-md-inline-block" href="{% url 'treatment-create' %}">
     <i class="fa fa-plus me-1"></i>Nuevo tratamiento
 </a>
 {% endblock %}
@@ -326,6 +326,12 @@
 {% endif %}
 
 {% endif %}
+
+{# Móvil: «Nuevo tratamiento» como botón flotante, al alcance del pulgar #}
+<div class="tl-fab-spacer d-md-none"></div>
+<a class="tl-fab d-md-none" href="{% url 'treatment-create' %}" aria-label="Nuevo tratamiento" title="Nuevo tratamiento">
+    <i class="fa fa-plus" aria-hidden="true"></i>
+</a>
 
 <form id="deleteTreatmentForm" method="POST" style="display:none;">{% csrf_token %}</form>
 
