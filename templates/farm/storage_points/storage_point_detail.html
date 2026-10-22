@@ -2,270 +2,134 @@
 
 {% block title %}{{ storage_point.name }}{% endblock %}
 {% block header %}{{ storage_point.name }}{% endblock %}
-{% block sub_header %}Asigna o quita parcelas de esta casetilla{% endblock %}
+{% block sub_header %}{% if storage_point.notes %}{{ storage_point.notes }}{% else %}Marca las parcelas que dejan el producto en esta casetilla{% endif %}{% endblock %}
 
 {% block actions %}
-<a class="btn btn-outline-secondary" href="{% url 'storage-point-list' %}">
-    <i class="fa fa-arrow-left me-1"></i>Casetillas
-</a>
-<a class="btn btn-outline-secondary ms-2" href="{% url 'storage-point-edit' storage_point.pk %}">
-    <i class="fa fa-edit me-1"></i>Editar
+<a class="btn btn-outline-secondary" href="{% url 'storage-point-edit' storage_point.pk %}" title="Editar casetilla">
+    <i class="fa fa-pen"></i><span class="d-none d-md-inline ms-1">Editar</span>
 </a>
 {% endblock %}
 
 {% block extra_head %}
+{% comment %}
+Asignar parcelas: fichas seleccionables (sin buscador; una explotación tiene pocas
+parcelas). La barra inferior suma en vivo parcelas y hectáreas, que es lo que
+importa para el reparto.
+{% endcomment %}
 <style>
-.spd-hero {
-    background: linear-gradient(135deg, #52B788 0%, #2D6A4F 100%);
-    border-radius: 16px;
-    padding: 1.5rem 1.75rem;
-    color: #fff;
-    margin-bottom: 1.5rem;
-    display: flex; align-items: center; gap: 1.25rem;
-    position: relative; overflow: hidden;
-}
-.spd-hero::after {
-    content: "\f494";
-    font-family: "Font Awesome 6 Free";
-    font-weight: 900;
-    position: absolute; right: 1.5rem; top: 50%; transform: translateY(-50%);
-    font-size: 5rem; color: rgba(255,255,255,.08); pointer-events: none;
-}
-.spd-hero-avatar {
-    width: 56px; height: 56px;
-    background: rgba(255,255,255,.2);
-    border-radius: 15px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.6rem; font-weight: 800; color: #fff; flex-shrink: 0;
-}
-.spd-hero-count {
-    font-size: 2.4rem; font-weight: 800; line-height: 1;
-    color: #fff;
-}
-.spd-hero-label { font-size: .8rem; opacity: .8; text-transform: uppercase; letter-spacing: .05em; }
-.spd-hero-notes { font-size: .85rem; opacity: .75; margin-top: .35rem; }
+.sa { --sa-ink: #1B1F1A; --sa-muted: #5F665C; --sa-line: #E6E9E3; --sa-g1: #1F5F24; --sa-g2: #2E7D32; }
+.sa-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: .75rem; }
+@media (max-width: 575px) { .sa-grid { grid-template-columns: 1fr 1fr; gap: .6rem; } }
 
-/* ── search + toolbar card ──────────────────────────────────────────── */
-.spd-toolbar {
-    display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
-    padding: .75rem 1rem;
-    background: #f8f9fa;
-    border-radius: 12px 12px 0 0;
-    border-bottom: 1px solid rgba(0,0,0,.06);
+.sa-tile {
+    position: relative; display: flex; flex-direction: column; gap: .35rem; margin: 0;
+    padding: .85rem .9rem; border: 1.5px solid var(--sa-line); border-radius: 14px; background: #fff;
+    cursor: pointer; user-select: none; transition: border-color .15s, background .15s, box-shadow .15s;
 }
-.spd-toolbar .form-control { font-size: .85rem; }
-.spd-toolbar .btn { font-size: .78rem; }
+.sa-tile:hover { border-color: #C9D3C5; }
+.sa-tile input { position: absolute; opacity: 0; pointer-events: none; }
+.sa-tile:has(input:focus-visible) { outline: 2px solid var(--bs-primary); outline-offset: 2px; }
+.sa-tile:has(input:checked) { border-color: var(--sa-g2); background: #F3F8F2; box-shadow: 0 0 0 3px rgba(46,125,50,.08); }
 
-/* ── field item rows ────────────────────────────────────────────────── */
-.spd-field-item {
-    display: flex; align-items: center; gap: .85rem;
-    padding: .8rem 1rem;
-    border-bottom: 1px solid rgba(0,0,0,.05);
-    cursor: pointer;
-    transition: background .12s;
+.sa-check {
+    position: absolute; top: .7rem; right: .7rem; display: flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid #C9D3C5; background: #fff;
+    color: transparent; font-size: .65rem; transition: all .15s;
 }
-.spd-field-item:last-child { border-bottom: none; }
-.spd-field-item:hover { background: rgba(82,183,136,.05); }
-.spd-field-item.is-checked { background: rgba(82,183,136,.08); }
+.sa-tile:has(input:checked) .sa-check { background: var(--sa-g2); border-color: var(--sa-g2); color: #fff; }
 
-.spd-field-checkbox {
-    width: 18px; height: 18px; border-radius: 5px;
-    border: 2px solid #ced4da;
-    accent-color: var(--bs-primary);
-    cursor: pointer; flex-shrink: 0;
+.sa-name { padding-right: 1.6rem; font-weight: 700; color: var(--sa-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sa-meta { font-size: .78rem; color: var(--sa-muted); }
+.sa-ha { font-size: 1.15rem; font-weight: 800; color: var(--sa-ink); line-height: 1.1; }
+.sa-ha small { font-size: .72rem; font-weight: 500; color: var(--sa-muted); }
+.sa-where {
+    align-self: flex-start; margin-top: .15rem; padding: .1rem .5rem; border-radius: 999px;
+    font-size: .68rem; font-weight: 700; background: #EEF1EC; color: #3D4A3E;
 }
-.spd-field-avatar {
-    width: 36px; height: 36px;
-    border-radius: 9px;
-    background: linear-gradient(135deg, rgba(82,183,136,.25) 0%, rgba(45,106,79,.15) 100%);
-    display: flex; align-items: center; justify-content: center;
-    font-size: .85rem; font-weight: 700; color: #2D6A4F;
-    flex-shrink: 0;
-}
-.spd-field-name { font-size: .9rem; font-weight: 600; color: #1a2e1e; }
-.spd-field-meta { font-size: .74rem; color: #6c757d; }
-.spd-field-badge {
-    margin-left: auto; flex-shrink: 0;
-    padding: .18rem .6rem; border-radius: 20px;
-    font-size: .68rem; font-weight: 600;
-}
-.spd-field-badge--this  { background: rgba(25,135,84,.12); color: #146b3a; }
-.spd-field-badge--other { background: rgba(255,193,7,.15); color: #856404; }
-.spd-field-badge--none  { background: rgba(0,0,0,.06); color: #6c757d; }
+.sa-where--other { background: #FFF1D6; color: #8A5300; }
+/* Si se marca una de otra casetilla, se avisa de que se mueve */
+.sa-move { display: none; }
+.sa-tile:has(input:checked) .sa-where--other .sa-now { display: none; }
+.sa-tile:has(input:checked) .sa-where--other .sa-move { display: inline; }
 
-/* ── sticky save bar ────────────────────────────────────────────────── */
-.spd-save-bar {
-    position: sticky; bottom: 1rem;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 4px 24px rgba(0,0,0,.14);
-    padding: .7rem 1.25rem;
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 1rem;
-    margin-top: 1rem;
-    z-index: 40;
+.sa-empty { padding: 2.5rem 1rem; text-align: center; color: var(--sa-muted); border: 1.5px dashed #D5DCD1; border-radius: 14px; }
+
+/* Barra de guardado: fija abajo; en móvil, encima de la barra de navegación */
+.sa-bar {
+    position: sticky; bottom: 1rem; z-index: 40; display: flex; align-items: center; gap: 1rem;
+    margin-top: 1.25rem; padding: .7rem .8rem .7rem 1.1rem;
+    background: var(--sa-ink); color: #fff; border-radius: 14px; box-shadow: 0 8px 24px rgba(0,0,0,.18);
 }
-.spd-save-bar .counter-text { font-size: .85rem; color: #6c757d; }
-.spd-save-bar .counter-text strong { color: #212529; }
+@media (max-width: 767px) { .sa-bar { bottom: calc(58px + .75rem + env(safe-area-inset-bottom)); } }
+.sa-bar-total b { font-size: 1.05rem; }
+.sa-bar-sub { display: block; font-size: .75rem; opacity: .7; }
+.sa-bar .btn-light { margin-left: auto; font-weight: 700; }
 </style>
 {% endblock %}
 
 {% block content %}
-{# ── Hero header ───────────────────────────────────────────────── #}
-<div class="spd-hero">
-    <div class="spd-hero-avatar">{{ storage_point.name|first|upper }}</div>
-    <div>
-        <h4 class="mb-0 fw-bold text-white">{{ storage_point.name }}</h4>
-        {% if storage_point.notes %}
-        <div class="spd-hero-notes">{{ storage_point.notes }}</div>
-        {% endif %}
+<div class="sa">
+<form method="post" id="assignmentForm">
+    {% csrf_token %}
+    {% if not all_fields %}
+    <div class="sa-empty">
+        <i class="fa fa-map fa-2x mb-2 d-block opacity-50"></i>
+        Aún no tienes parcelas. <a href="{% url 'field-create' %}">Crea una</a> y podrás asignarla aquí.
     </div>
-    <div class="ms-auto text-end pe-5 d-none d-sm-block">
-        <div class="spd-hero-count" id="heroCount">{{ assigned_count }}</div>
-        <div class="spd-hero-label">parcela{{ assigned_count|pluralize }} asignada{{ assigned_count|pluralize }}</div>
+    {% else %}
+    <div class="sa-grid">
+        {% for field in all_fields %}
+        <label class="sa-tile" data-area="{{ field.area|stringformat:'s' }}">
+            <input class="field-cb" type="checkbox" name="field_ids" value="{{ field.id }}"
+                   {% if field.id in assigned_field_ids %}checked{% endif %}>
+            <span class="sa-check" aria-hidden="true"><i class="fa fa-check"></i></span>
+            <span class="sa-name">{{ field.name }}</span>
+            <span class="sa-meta">{{ field.crop }}</span>
+            <span class="sa-ha">{{ field.area|floatformat:"-2" }} <small>ha</small></span>
+            {% if field.storage_point_id and field.storage_point_id != storage_point.pk %}
+            <span class="sa-where sa-where--other">
+                <span class="sa-now"><i class="fa fa-warehouse me-1"></i>En {{ field.storage_point.name }}</span>
+                <span class="sa-move"><i class="fa fa-arrow-right me-1"></i>Se moverá aquí</span>
+            </span>
+            {% elif not field.storage_point_id %}
+            <span class="sa-where">Independiente</span>
+            {% endif %}
+        </label>
+        {% endfor %}
     </div>
+    {% endif %}
+</form>
+
+<div class="sa-bar d-print-none">
+    <div class="sa-bar-total">
+        <b><span id="checkedCount">{{ assigned_count }}</span> parcela<span id="checkedPlural">{{ assigned_count|pluralize }}</span></b>
+        <span class="sa-bar-sub"><span id="checkedArea">{{ assigned_area|floatformat:"-2" }}</span> ha en esta casetilla</span>
+    </div>
+    <a class="btn btn-outline-light btn-sm d-none d-sm-inline-block ms-auto" href="{% url 'field-list' %}">Cancelar</a>
+    <button class="btn btn-light ms-sm-0" form="assignmentForm" type="submit">
+        <i class="fa fa-save me-1"></i>Guardar
+    </button>
 </div>
-
-{# ── Assignment card ───────────────────────────────────────────── #}
-<div class="card" style="border-radius:16px; overflow:hidden;">
-    <div class="spd-toolbar">
-        <div class="input-group input-group-sm flex-grow-1" style="max-width:340px">
-            <span class="input-group-text bg-white"><i class="fa fa-search text-muted"></i></span>
-            <input class="form-control border-start-0 ps-0" id="fieldSearch"
-                   placeholder="Buscar parcela por nombre o cultivo…" type="text" autocomplete="off">
-        </div>
-        <button class="btn btn-outline-secondary btn-sm" id="selectAllBtn" type="button">
-            <i class="fa fa-check-double me-1"></i>Sel. todos
-        </button>
-        <button class="btn btn-outline-secondary btn-sm" id="clearAllBtn" type="button">
-            <i class="fa fa-square me-1"></i>Quitar todos
-        </button>
-        <span class="ms-1 text-muted small d-none d-md-inline" id="visibleCount"></span>
-    </div>
-
-    <form method="post" id="assignmentForm">
-        {% csrf_token %}
-        {% if not all_fields %}
-        <div class="p-5 text-center text-muted">
-            <i class="fa fa-map fa-2x opacity-25 mb-2 d-block"></i>
-            No hay parcelas registradas.
-        </div>
-        {% else %}
-        <div id="fieldList">
-            {% for field in all_fields %}
-            <label class="spd-field-item {% if field.id in assigned_field_ids %}is-checked{% endif %}"
-                   data-name="{{ field.name|lower }} {{ field.crop|lower }}">
-                <input class="spd-field-checkbox field-cb"
-                       name="field_ids"
-                       type="checkbox"
-                       value="{{ field.id }}"
-                       {% if field.id in assigned_field_ids %}checked{% endif %}>
-                <div class="spd-field-avatar">{{ field.name|first|upper }}</div>
-                <div class="flex-grow-1 min-w-0">
-                    <div class="spd-field-name">{{ field.name }}</div>
-                    <div class="spd-field-meta">{{ field.crop }} · {{ field.area }} ha</div>
-                </div>
-                {% if field.storage_point %}
-                    {% if field.storage_point.id == storage_point.id %}
-                    <span class="spd-field-badge spd-field-badge--this">
-                        <i class="fa fa-check me-1"></i>Esta casetilla
-                    </span>
-                    {% else %}
-                    <span class="spd-field-badge spd-field-badge--other">
-                        <i class="fa fa-warehouse me-1"></i>{{ field.storage_point.name }}
-                    </span>
-                    {% endif %}
-                {% else %}
-                <span class="spd-field-badge spd-field-badge--none">Casetilla propia</span>
-                {% endif %}
-            </label>
-            {% endfor %}
-        </div>
-        {% endif %}
-    </form>
-</div>
-
-{# ── Sticky save bar ───────────────────────────────────────────── #}
-<div class="spd-save-bar d-print-none">
-    <div class="counter-text">
-        <strong id="checkedCount">{{ assigned_count }}</strong> parcela{{ assigned_count|pluralize }} seleccionada{{ assigned_count|pluralize }}
-    </div>
-    <div class="d-flex gap-2">
-        <a class="btn btn-outline-secondary btn-sm" href="{% url 'storage-point-list' %}">
-            <i class="fa fa-arrow-left me-1"></i>Volver
-        </a>
-        <button class="btn btn-primary" form="assignmentForm" type="submit">
-            <i class="fa fa-save me-1"></i>Guardar cambios
-        </button>
-    </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const fieldItems    = [...document.querySelectorAll('.spd-field-item')];
-    const checkboxes    = [...document.querySelectorAll('.field-cb')];
-    const searchInput   = document.getElementById('fieldSearch');
-    const selectAllBtn  = document.getElementById('selectAllBtn');
-    const clearAllBtn   = document.getElementById('clearAllBtn');
-    const checkedCountEl= document.getElementById('checkedCount');
-    const heroCountEl   = document.getElementById('heroCount');
-    const visibleCountEl= document.getElementById('visibleCount');
+    const boxes = [...document.querySelectorAll('.field-cb')];
+    const count = document.getElementById('checkedCount');
+    const plural = document.getElementById('checkedPlural');
+    const area = document.getElementById('checkedArea');
+    const fmt = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 2 });
 
-    function updateCounts() {
-        const checked = checkboxes.filter(cb => cb.checked).length;
-        if (checkedCountEl) checkedCountEl.textContent = checked;
-        if (heroCountEl) heroCountEl.textContent = checked;
+    function update() {
+        const checked = boxes.filter(b => b.checked);
+        const ha = checked.reduce((sum, b) => sum + parseFloat(b.closest('.sa-tile').dataset.area || 0), 0);
+        count.textContent = checked.length;
+        plural.textContent = checked.length === 1 ? '' : 's';
+        area.textContent = fmt.format(ha);
     }
-
-    function updateVisibleCount() {
-        const vis = fieldItems.filter(i => !i.classList.contains('d-none')).length;
-        if (visibleCountEl) visibleCountEl.textContent = `${vis} visible${vis !== 1 ? 's' : ''}`;
-    }
-
-    checkboxes.forEach(cb => {
-        cb.addEventListener('change', function () {
-            const row = this.closest('.spd-field-item');
-            row.classList.toggle('is-checked', this.checked);
-            updateCounts();
-        });
-    });
-
-    searchInput?.addEventListener('input', function () {
-        const q = this.value.trim().toLowerCase();
-        fieldItems.forEach(item => {
-            const match = !q || (item.dataset.name || '').includes(q);
-            item.classList.toggle('d-none', !match);
-        });
-        updateVisibleCount();
-    });
-
-    function visibleCheckboxes() {
-        return fieldItems
-            .filter(i => !i.classList.contains('d-none'))
-            .map(i => i.querySelector('.field-cb'))
-            .filter(Boolean);
-    }
-
-    selectAllBtn?.addEventListener('click', () => {
-        visibleCheckboxes().forEach(cb => {
-            cb.checked = true;
-            cb.closest('.spd-field-item').classList.add('is-checked');
-        });
-        updateCounts();
-    });
-
-    clearAllBtn?.addEventListener('click', () => {
-        visibleCheckboxes().forEach(cb => {
-            cb.checked = false;
-            cb.closest('.spd-field-item').classList.remove('is-checked');
-        });
-        updateCounts();
-    });
-
-    updateVisibleCount();
-    updateCounts();
+    boxes.forEach(b => b.addEventListener('change', update));
 });
 </script>
 {% endblock %}

@@ -87,37 +87,14 @@
             </a>
         </li>
 
-        {# ── Parcelas (colapsable) ── #}
+        {# ── Parcelas (incluye las casetillas: el listado se agrupa por casetilla) ── #}
         <li class="nav-item">
-            <a class="nav-link"
-               aria-expanded="{% if nav_fields_open %}true{% else %}false{% endif %}"
-               data-bs-toggle="collapse"
-               data-bs-target="#parcelasMenu{{ suffix }}"
-               href="#"
+            <a class="nav-link {% if nav_fields %}active{% endif %}"
+               href="{% url 'field-list' %}"
                data-label="Parcelas">
                 <i class="fas fa-map-location-dot"></i>
                 <span class="nav-link-text">Parcelas</span>
-                <i class="fas fa-chevron-down chevron"></i>
             </a>
-            <div class="collapse nav-submenu {% if nav_fields_open %}show{% endif %}"
-                 id="parcelasMenu{{ suffix }}">
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link {% if nav_fields %}active{% endif %}"
-                           href="{% url 'field-list' %}">
-                            <i class="fa fa-map"></i>
-                            <span class="nav-link-text">Parcelas</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if nav_storage_points %}active{% endif %}"
-                           href="{% url 'storage-point-list' %}">
-                            <i class="fa fa-warehouse"></i>
-                            <span class="nav-link-text">Casetillas</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
         </li>
 
         {% if feature_weather %}

@@ -498,7 +498,7 @@ class FieldForm(NoPlaceholderModelForm):
         }
         help_texts = {
             'area': 'Se usa para cálculos de costos y tratamientos.',
-            'storage_point': 'Opcional. Si la dejas vacía, la parcela será su propio punto de reparto al preparar productos.',
+            'storage_point': 'Opcional. Si la dejas vacía, la parcela es independiente: el producto se deja en ella.',
         }
         widgets = {
             'planting_year': forms.Select(choices=_year_choices),

@@ -1,217 +1,208 @@
 {% extends "base.html" %}
-{% load django_bootstrap5 %}
-{% load static %}
 
 {% block header %}Parcelas{% endblock %}
-{% block sub_header %}{{ total_fields }} parcela{{ total_fields|pluralize }} · {{ total_area }} ha en total{% endblock %}
+{% block sub_header %}{{ total_fields }} parcela{{ total_fields|pluralize }} · {{ total_area|floatformat:"-2" }} ha<span class="d-none d-sm-inline"> · {{ distribution_points_count }} punto{{ distribution_points_count|pluralize }} de reparto</span>{% endblock %}
 
 {% block actions %}
-<a class="btn btn-primary" href="{% url 'field-create' %}">
+<a class="btn btn-outline-secondary d-none d-md-inline-block" href="{% url 'storage-point-create' %}">
+    <i class="fa fa-warehouse me-1"></i>Nueva casetilla
+</a>
+<a class="btn btn-primary ms-2 d-none d-md-inline-block" href="{% url 'field-create' %}">
     <i class="fa fa-plus me-1"></i>Nueva parcela
 </a>
 {% endblock %}
 
+{% block extra_head %}
+{% comment %}
+Parcelas agrupadas por casetilla (punto de reparto), igual que en Preparar productos.
+Tarjetas en vez de lista densa: son pocos elementos y se agradecen más visuales.
+{% endcomment %}
+<style>
+.pl { --pl-ink: #1B1F1A; --pl-muted: #5F665C; --pl-line: #E6E9E3; --pl-g1: #1F5F24; }
+
+/* Cultivos: etiquetas compactas */
+.pl-crops { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.25rem; }
+.pl-crop {
+    display: inline-flex; align-items: center; gap: .45rem;
+    padding: .3rem .75rem .3rem .3rem; border-radius: 999px;
+    background: #fff; border: 1px solid var(--pl-line); font-size: .82rem; color: var(--pl-muted);
+}
+.pl-crop b { color: var(--pl-ink); font-weight: 600; }
+.pl-crop-ini {
+    display: flex; align-items: center; justify-content: center; width: 24px; height: 24px;
+    border-radius: 50%; background: #E3F1E4; color: var(--pl-g1); font-size: .72rem; font-weight: 800;
+}
+
+/* Grupo (casetilla o sin casetilla) */
+.pl-group { background: #fff; border: 1px solid var(--pl-line); border-radius: 18px; margin-bottom: 1.25rem; }
+.pl-group-head {
+    display: flex; align-items: center; gap: .8rem; padding: .9rem 1rem;
+    background: #F3F8F2; border-bottom: 1px solid var(--pl-line); border-radius: 18px 18px 0 0;
+}
+.pl-group--solo .pl-group-head { background: #FAFBF9; }
+.pl-group-icon {
+    flex: none; display: flex; align-items: center; justify-content: center;
+    width: 42px; height: 42px; border-radius: 12px; background: #D8ECD9; color: var(--pl-g1); font-size: 1.05rem;
+}
+.pl-group--solo .pl-group-icon { background: #EEF1EC; color: #3D4A3E; }
+.pl-group-name { font-size: 1.05rem; font-weight: 800; color: var(--pl-ink); line-height: 1.2; }
+.pl-group-meta { font-size: .8rem; color: var(--pl-muted); }
+.pl-group-tools { display: flex; gap: .35rem; margin-left: auto; flex: none; }
+.pl-btn {
+    display: inline-flex; align-items: center; gap: .4rem; height: 36px; padding: 0 .75rem;
+    border: 1px solid var(--pl-line); border-radius: 9px; background: #fff;
+    font-size: .8rem; font-weight: 600; color: var(--pl-ink); text-decoration: none; white-space: nowrap;
+}
+.pl-btn:hover { border-color: #4CAF50; color: var(--pl-g1); }
+.pl-btn--icon { width: 36px; justify-content: center; padding: 0; }
+
+.pl-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: .75rem; padding: .9rem; }
+.pl-empty {
+    margin: .9rem; padding: .8rem 1rem; border: 1.5px dashed #D5DCD1; border-radius: 12px;
+    font-size: .85rem; color: var(--pl-muted);
+}
+
+/* Tarjeta de parcela */
+.pl-field {
+    position: relative; display: flex; flex-direction: column; gap: .7rem;
+    padding: .8rem .9rem; border: 1px solid var(--pl-line); border-radius: 14px; background: #fff;
+    transition: border-color .15s, box-shadow .15s;
+}
+.pl-field:hover { border-color: #C9D3C5; box-shadow: 0 6px 18px rgba(27,31,26,.07); }
+.pl-stretch { position: absolute; inset: 0; z-index: 1; border-radius: 14px; }
+.pl-stretch:focus-visible { outline: 2px solid var(--bs-primary); outline-offset: 2px; }
+.pl-above { position: relative; z-index: 2; }
+.pl-field-top { display: flex; align-items: flex-start; gap: .5rem; }
+.pl-field-top > .min-w-0 { flex: 1; }
+.pl-field-name { font-weight: 700; color: var(--pl-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-field-meta { font-size: .78rem; color: var(--pl-muted); }
+.pl-field-ha { flex: none; font-size: 1.2rem; font-weight: 800; color: var(--pl-ink); line-height: 1.2; white-space: nowrap; }
+.pl-field-ha small { font-size: .72rem; font-weight: 500; color: var(--pl-muted); }
+.pl-tool {
+    display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; margin: -2px -6px 0 0;
+    border: 0; border-radius: 8px; background: transparent; color: var(--pl-muted);
+}
+.pl-tool:hover { background: #F0F2EE; color: var(--pl-ink); }
+.pl-group:has(.dropdown-menu.show), .pl-field:has(.dropdown-menu.show) { position: relative; z-index: 30; }
+
+@media (max-width: 575px) {
+    .pl-fields { grid-template-columns: 1fr; gap: .6rem; padding: .7rem; }
+    .pl-group-head { padding: .8rem; align-items: flex-start; }
+    .pl-btn-label { display: none; }
+    .pl-btn { width: 36px; justify-content: center; padding: 0; }
+}
+</style>
+{% endblock %}
+
 {% block content %}
+<div class="pl">
 
-{# ── RESUMEN DE HECTÁREAS POR CULTIVO ───────────────────────────── #}
-{% if crop_area_summary %}
-<div class="card shadow-sm border-0 mb-4">
-  <div class="card-body">
-
-    <div class="d-flex align-items-center gap-3 mb-4">
-      <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
-           style="width:42px;height:42px">
-        <i class="fa fa-seedling text-success"></i>
-      </div>
-      <div>
-        <div class="fw-semibold lh-1">Superficie por cultivo</div>
-        <div class="small text-muted lh-1 mt-1">{{ total_area }} ha registradas en total</div>
-      </div>
-    </div>
-
-    <div class="row g-3">
-      {% for c in crop_area_summary %}
-      <div class="col-12 col-sm-6 col-xl-4">
-        <div class="rounded-3 border p-3 h-100" style="border-color: rgba(0,0,0,.08) !important;">
-
-          <div class="d-flex align-items-center gap-2 mb-3">
-            <span class="rounded-circle bg-{{ c.color }} bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0 fw-bold text-{{ c.color }}"
-                  style="width:38px;height:38px;font-size:1rem">
-              {{ c.crop|first|upper }}
-            </span>
-            <div class="min-w-0 flex-grow-1">
-              <div class="fw-semibold lh-1 text-truncate">{{ c.crop }}</div>
-              <div class="small text-muted lh-1 mt-1">
-                <i class="fa fa-layer-group fa-xs me-1"></i>{{ c.count }} parcela{{ c.count|pluralize }}
-              </div>
-            </div>
-          </div>
-
-          <div class="d-flex align-items-end justify-content-between mb-2">
-            <span class="fs-4 fw-bold lh-1">{{ c.area }} <span class="fs-6 fw-normal text-muted">ha</span></span>
-            <span class="small text-muted">{{ c.area_pct }}%</span>
-          </div>
-
-          <div class="progress rounded-pill" style="height:6px">
-            <div class="progress-bar bg-{{ c.color }} rounded-pill" role="progressbar"
-                 style="width:{{ c.area_pct }}%"
-                 aria-valuenow="{{ c.area_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
-          </div>
-
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-
-  </div>
-</div>
-{% endif %}
-
-{% if not fields %}
+{% if not fields and not storage_point_groups %}
 <div class="empty-state text-center py-5">
     <i class="fa fa-map fa-3x text-muted opacity-50 mb-3 d-block"></i>
     <h5 class="text-muted">Aún no tienes parcelas</h5>
     <p class="text-muted small mb-3">Crea tu primera parcela para empezar a gestionar tratamientos</p>
-    <a class="btn btn-primary" href="{% url 'field-create' %}">
-        <i class="fa fa-plus me-1"></i>Nueva parcela
-    </a>
+    <a class="btn btn-primary" href="{% url 'field-create' %}"><i class="fa fa-plus me-1"></i>Nueva parcela</a>
 </div>
 {% else %}
 
-<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-    {% for field in fields %}
-    <div class="col">
-        <div class="card field-card h-100">
-
-            <!-- Header con nombre + acciones -->
-            <div class="field-card-header">
-                <div class="field-card-icon field-card-icon--initial">
-                    {{ field.name|first|upper }}
-                </div>
-                <div class="field-card-title-group">
-                    <h5 class="field-card-name">{{ field.name }}</h5>
-                    <span class="field-card-crop">{{ field.crop }}</span>
-                </div>
-                <div class="dropdown ms-auto">
-                    <button aria-expanded="false"
-                            class="btn btn-sm btn-ghost-secondary field-actions-btn" data-bs-toggle="dropdown"
-                            title="Acciones">
-                        <i class="fa fa-ellipsis-vertical"></i>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li>
-                            <a class="dropdown-item" href="{% url 'field-detail' field.id %}">
-                                <i class="fa fa-info-circle me-2 text-primary"></i>Ver detalles
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="{% url 'treatment-list' %}?field={{ field.id }}">
-                                <i class="fa fa-flask me-2 text-primary"></i>Ver tratamientos
-                            </a>
-                        </li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li>
-                            <a class="dropdown-item" href="{% url 'field-edit' field.id %}">
-                                <i class="fa fa-edit me-2 text-secondary"></i>Editar
-                            </a>
-                        </li>
-                        {% if field.can_be_deleted %}
-                        <li>
-                            <a class="dropdown-item text-danger" data-url="{% url 'field-delete' field.id %}"
-                               href="#"
-                               onclick="confirmDelete(this); return false;">
-                                <i class="fa fa-trash me-2"></i>Eliminar
-                            </a>
-                        </li>
-                        {% endif %}
-                    </ul>
-                </div>
-            </div>
-
-                {% if field.storage_point %}
-                <div class="px-3 pt-2">
-                    <span class="badge bg-light text-dark border">
-                        <i class="fa fa-warehouse me-1 text-primary"></i>{{ field.storage_point.name }}
-                    </span>
-                </div>
-                {% endif %}
-
-            <!-- Datos principales -->
-            <div class="field-card-body">
-                <div class="field-stats-row">
-                    <div class="field-stat">
-                        <span class="field-stat-value">{{ field.area }}</span>
-                        <span class="field-stat-label">hectáreas</span>
-                    </div>
-                    <div class="field-stat-divider"></div>
-                    <div class="field-stat">
-                        <span class="field-stat-value">{{ field.planting_year }}</span>
-                        <span class="field-stat-label">plantación</span>
-                    </div>
-                </div>
-
-                <!-- Mini-indicadores de tratamientos (año en curso) -->
-                {% now "Y" as current_year %}
-                <div class="field-treatment-indicators">
-                    <a class="field-indicator field-indicator--danger {% if field.delayed_count == 0 %}field-indicator--zero{% endif %}"
-                       href="{% url 'treatment-list' %}?field={{ field.id }}&status=delayed&date_from={{ current_year }}-01-01&date_to={{ current_year }}-12-31"
-                       title="{{ field.delayed_count }} atrasado{{ field.delayed_count|pluralize }} (año actual)">
-                        <i class="fa fa-triangle-exclamation"></i>
-                        <span>{{ field.delayed_count }}</span>
-                    </a>
-                    <a class="field-indicator field-indicator--warning {% if field.pending_count == 0 %}field-indicator--zero{% endif %}"
-                       href="{% url 'treatment-list' %}?field={{ field.id }}&status=pending&date_from={{ current_year }}-01-01&date_to={{ current_year }}-12-31"
-                       title="{{ field.pending_count }} pendiente{{ field.pending_count|pluralize }} (año actual)">
-                        <i class="fa fa-clock"></i>
-                        <span>{{ field.pending_count }}</span>
-                    </a>
-                    <a class="field-indicator field-indicator--success {% if field.completed_count == 0 %}field-indicator--zero{% endif %}"
-                       href="{% url 'treatment-list' %}?field={{ field.id }}&status=completed&date_from={{ current_year }}-01-01&date_to={{ current_year }}-12-31"
-                       title="{{ field.completed_count }} completado{{ field.completed_count|pluralize }} (año actual)">
-                        <i class="fa fa-check-circle"></i>
-                        <span>{{ field.completed_count }}</span>
-                    </a>
-                    <span class="field-indicator-label">tratamientos</span>
-                </div>
-            </div>
-
-            <!-- Footer: acceso rápido -->
-            <div class="field-card-footer">
-                <a class="btn btn-primary btn-sm w-100"
-                   href="{% url 'field-detail' field.id %}">
-                    <i class="fa fa-info-circle me-1"></i>Ver detalles
-                </a>
-            </div>
-
-        </div>
-    </div>
+{% if crop_area_summary %}
+<div class="pl-crops" aria-label="Superficie por cultivo">
+    {% for c in crop_area_summary %}
+    <span class="pl-crop"><span class="pl-crop-ini">{{ c.crop|first|upper }}</span><b>{{ c.crop }}</b>{{ c.area|floatformat:"-2" }} ha · {{ c.count }}</span>
     {% endfor %}
 </div>
+{% endif %}
 
-{% if is_paginated %}
-<div class="mt-4">
-    {% bootstrap_pagination page_obj pages_to_show="5" %}
+{# ── Una casetilla = un punto de reparto con varias parcelas ── #}
+{% for g in storage_point_groups %}
+{% with sp=g.storage_point %}
+<section class="pl-group" aria-labelledby="sp-{{ sp.pk }}">
+    <header class="pl-group-head">
+        <div class="pl-group-icon" aria-hidden="true"><i class="fa fa-warehouse"></i></div>
+        <div class="min-w-0">
+            <div class="pl-group-name" id="sp-{{ sp.pk }}">{{ sp.name }}</div>
+            <div class="pl-group-meta">
+                {% if sp.notes %}{{ sp.notes }} · {% endif %}{{ g.fields|length }} parcela{{ g.fields|length|pluralize }} · {{ g.area|floatformat:"-2" }} ha
+            </div>
+        </div>
+        <div class="pl-group-tools">
+            <a class="pl-btn" href="{% url 'storage-point-detail' sp.pk %}" title="Asignar parcelas">
+                <i class="fa fa-link"></i><span class="pl-btn-label">Asignar parcelas</span>
+            </a>
+            <a class="pl-btn pl-btn--icon" href="{% url 'storage-point-edit' sp.pk %}" title="Editar casetilla" aria-label="Editar {{ sp.name }}">
+                <i class="fa fa-pen"></i>
+            </a>
+            {% if not g.fields %}
+            <button class="pl-btn pl-btn--icon" type="button" data-url="{% url 'storage-point-delete' sp.pk %}"
+                    data-confirm="Se eliminará la casetilla «{{ sp.name }}» permanentemente."
+                    onclick="confirmDelete(this)" title="Eliminar casetilla" aria-label="Eliminar {{ sp.name }}">
+                <i class="fa fa-trash"></i>
+            </button>
+            {% endif %}
+        </div>
+    </header>
+    {% if g.fields %}
+    <div class="pl-fields">
+        {% for field in g.fields %}{% include "farm/fields/_field_card.html" %}{% endfor %}
+    </div>
+    {% else %}
+    <div class="pl-empty"><i class="fa fa-circle-info me-1"></i>Esta casetilla no tiene parcelas. Pulsa <strong>Asignar parcelas</strong> para añadirlas.</div>
+    {% endif %}
+</section>
+{% endwith %}
+{% endfor %}
+
+{# ── Parcelas independientes: el producto se deja en cada parcela ── #}
+{% if solo_fields %}
+<section class="pl-group pl-group--solo" aria-labelledby="sp-solo">
+    <header class="pl-group-head">
+        <div class="pl-group-icon" aria-hidden="true"><i class="fa fa-location-dot"></i></div>
+        <div class="min-w-0">
+            <div class="pl-group-name" id="sp-solo">Parcelas independientes</div>
+            <div class="pl-group-meta">El producto se deja en cada parcela · {{ solo_fields|length }} parcela{{ solo_fields|length|pluralize }} · {{ solo_area|floatformat:"-2" }} ha</div>
+        </div>
+    </header>
+    <div class="pl-fields">
+        {% for field in solo_fields %}{% include "farm/fields/_field_card.html" %}{% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{% if storage_point_groups %}
+<a class="pl-empty d-flex d-md-none align-items-center justify-content-center gap-2 text-decoration-none mx-0" href="{% url 'storage-point-create' %}">
+    <i class="fa fa-warehouse"></i>Nueva casetilla
+</a>
+{% else %}
+<p class="small text-muted px-1">
+    <i class="fa fa-warehouse me-1"></i>¿Varias parcelas comparten el mismo sitio para dejar el producto?
+    <a href="{% url 'storage-point-create' %}">Crea una casetilla</a> y Preparar productos sumará lo que hay que llevar allí.
+</p>
+{% endif %}
+
+{% endif %}
 </div>
-{% endif %}
 
-{% endif %}
+{# Móvil: «Nueva parcela» como botón flotante, igual que en Tratamientos #}
+<div class="tl-fab-spacer d-md-none"></div>
+<a class="tl-fab d-md-none" href="{% url 'field-create' %}" aria-label="Nueva parcela" title="Nueva parcela">
+    <i class="fa fa-plus" aria-hidden="true"></i>
+</a>
 
 <form class="d-none" id="deleteForm" method="POST">{% csrf_token %}</form>
-
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    function confirmDelete(button) {
-        const url = button.getAttribute('data-url');
-        showConfirm({
-            text: 'Esta acción eliminará la parcela de forma permanente y no se podrá deshacer.',
-            onConfirm: () => {
-                const form = document.getElementById('deleteForm');
-                form.action = url;
-                form.submit();
-            }
-        });
-    }
+function confirmDelete(el) {
+    showConfirm({
+        text: el.getAttribute('data-confirm'),
+        onConfirm: () => {
+            const form = document.getElementById('deleteForm');
+            form.action = el.getAttribute('data-url');
+            form.submit();
+        }
+    });
+}
 </script>
 {% endblock %}

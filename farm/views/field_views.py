@@ -1,52 +1,65 @@
-from datetime import date
-
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Count, Q, Sum
 from django.urls import reverse_lazy, reverse
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
 
-from farm.models import Field, Treatment
+from farm.models import Field, StoragePoint, Treatment
 from farm.forms import FieldForm
 
 
 class FieldListView(LoginRequiredMixin, ListView):
+    """
+    Parcelas agrupadas por casetilla (punto de reparto).
+
+    Una parcela sin casetilla es independiente (el producto se deja en ella),
+    así que se muestran en un bloque aparte. Sin paginación: una explotación tiene
+    pocas parcelas y paginar partiría los grupos.
+    """
     model = Field
     template_name = 'farm/fields/field_list.html'
     context_object_name = 'fields'
-    paginate_by = 20
 
     def get_queryset(self):
-        year = date.today().year
-        year_filter = Q(treatment__date__year=year)
         return (
-            Field.objects.all()
+            Field.ownership_objects.get_queryset_for_user(self.request.user)
             .select_related('storage_point')
-            .annotate(
-                pending_count=Count('treatment', filter=year_filter & Q(treatment__status=Treatment.STATUS_PENDING)),
-                delayed_count=Count('treatment', filter=year_filter & Q(treatment__status=Treatment.STATUS_DELAYED)),
-                completed_count=Count('treatment', filter=year_filter & Q(treatment__status=Treatment.STATUS_COMPLETED)),
-                total_treatments=Count('treatment', filter=year_filter),
-            )
+            .order_by('-area', 'name')
         )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        fields = context['fields']
-        context['total_area'] = round(fields.aggregate(Sum('area'))['area__sum'] or 0, 2)
-        context['total_fields'] = fields.count()
-        context['crop_area_summary'] = self._build_crop_area_summary()
+        fields = list(context['fields'])
+        storage_points = StoragePoint.ownership_objects.get_queryset_for_user(self.request.user).order_by('name')
+
+        groups = {sp.pk: {'storage_point': sp, 'fields': [], 'area': 0} for sp in storage_points}
+        solo = []
+        for f in fields:
+            if f.storage_point_id in groups:
+                groups[f.storage_point_id]['fields'].append(f)
+                groups[f.storage_point_id]['area'] += f.area
+            else:
+                solo.append(f)
+
+        for g in groups.values():
+            g['area'] = round(g['area'], 2)  # evita 14,000000000000002 al sumar floats
+        context['storage_point_groups'] = list(groups.values())
+        context['solo_fields'] = solo
+        context['solo_area'] = round(sum(f.area for f in solo), 2)
+        context['total_fields'] = len(fields)
+        context['total_area'] = round(sum(f.area for f in fields), 2)
+        context['distribution_points_count'] = len(groups) + len(solo)
+        context['crop_area_summary'] = self._build_crop_area_summary(fields)
         return context
 
-    def _build_crop_area_summary(self):
+    @staticmethod
+    def _build_crop_area_summary(fields):
         """
         Returns area (ha) grouped by crop name (case-insensitive, stripped),
         sorted descending by area.
         """
-        all_fields = Field.objects.all().values('crop', 'area')
-
         groups: dict = {}
-        for row in all_fields:
+        for field in fields:
+            row = {'crop': field.crop, 'area': field.area}
             raw_crop = (row['crop'] or '').strip()
             key = raw_crop.lower()
             if not key:

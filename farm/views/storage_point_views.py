@@ -1,52 +1,25 @@
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db.models import Count, Exists, OuterRef, Prefetch, Sum
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
-from django.views.generic import ListView, UpdateView, DetailView, DeleteView
+from django.views.generic import RedirectView, UpdateView, DetailView, DeleteView
 
 from farm.forms import StoragePointForm
 from farm.mixins import BaseSecureViewMixin
 from farm.models import Field, StoragePoint
 
 
-class StoragePointListView(BaseSecureViewMixin, ListView):
-    model = StoragePoint
-    template_name = 'farm/storage_points/storage_point_list.html'
-    context_object_name = 'storage_points'
-    ordering = ['name']
-
-    def get_queryset(self):
-        return (
-            super().get_queryset()
-            .annotate(
-                fields_count=Count('fields'),
-                total_area=Sum('fields__area'),
-                has_fields=Exists(Field.objects.filter(storage_point=OuterRef('pk'))),
-            )
-            .prefetch_related(Prefetch('fields', queryset=Field.objects.order_by('-area', 'name')))
-            .order_by('name')
-        )
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        user_fields = Field.ownership_objects.get_queryset_for_user(self.request.user)
-        # Una parcela sin casetilla se trata como su propio punto de reparto
-        # en "Preparar productos" (ver services.py, distribution_groups).
-        unassigned_fields = list(user_fields.filter(storage_point__isnull=True).order_by('name'))
-        context['unassigned_fields'] = unassigned_fields
-        context['unassigned_fields_count'] = len(unassigned_fields)
-        context['distribution_points_count'] = len(self.object_list) + len(unassigned_fields)
-        context['unassigned_area'] = sum(f.area for f in unassigned_fields)
-
-        return context
+class StoragePointListView(RedirectView):
+    """Las casetillas se gestionan desde el listado de parcelas (agrupado por casetilla)."""
+    pattern_name = 'field-list'
+    permanent = False
 
 
 class StoragePointFormView(BaseSecureViewMixin, SuccessMessageMixin, UpdateView):
     model = StoragePoint
     form_class = StoragePointForm
     template_name = 'farm/storage_points/storage_point_form.html'
-    success_url = reverse_lazy('storage-point-list')
+    success_url = reverse_lazy('field-list')
 
     def get_object(self, queryset=None):
         if 'pk' in self.kwargs:
@@ -71,12 +44,22 @@ class StoragePointDetailView(BaseSecureViewMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        fields = Field.ownership_objects.get_queryset_for_user(self.request.user).order_by('name')
-        context['all_fields'] = fields
-        context['assigned_field_ids'] = set(
-            fields.filter(storage_point=self.object).values_list('id', flat=True)
+        fields = (
+            Field.ownership_objects.get_queryset_for_user(self.request.user)
+            .select_related('storage_point')
+            .order_by('name')
         )
-        context['assigned_count'] = len(context['assigned_field_ids'])
+        # Primero las de esta casetilla, luego las sueltas y al final las de otras casetillas
+        # (marcarlas las cambia de casetilla, así que van al final y avisadas).
+        def rank(f):
+            if f.storage_point_id == self.object.pk:
+                return 0
+            return 1 if f.storage_point_id is None else 2
+        context['all_fields'] = sorted(fields, key=rank)
+        assigned = [f for f in context['all_fields'] if f.storage_point_id == self.object.pk]
+        context['assigned_field_ids'] = {f.id for f in assigned}
+        context['assigned_count'] = len(assigned)
+        context['assigned_area'] = round(sum(f.area for f in assigned), 2)
         return context
 
     def post(self, request, *args, **kwargs):
@@ -96,7 +79,7 @@ class StoragePointDetailView(BaseSecureViewMixin, DetailView):
 
 class StoragePointDeleteView(BaseSecureViewMixin, DeleteView):
     model = StoragePoint
-    success_url = reverse_lazy('storage-point-list')
+    success_url = reverse_lazy('field-list')
 
     def delete(self, request, *args, **kwargs):
         messages.success(request, 'Casetilla eliminada con exito.')

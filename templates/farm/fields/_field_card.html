@@ -1,0 +1,30 @@
+{% comment %}
+Tarjeta de parcela dentro de un grupo (casetilla o «sin casetilla»).
+Toda la tarjeta lleva al detalle; el menú ⋮ queda por encima del enlace.
+{% endcomment %}
+<article class="pl-field">
+    <a class="pl-stretch" href="{% url 'field-detail' field.id %}" aria-label="{{ field.name }}: ver detalles"></a>
+    <div class="pl-field-top">
+        <div class="min-w-0">
+            <div class="pl-field-name">{{ field.name }}</div>
+            <div class="pl-field-meta">{{ field.crop }} · {{ field.planting_year }}</div>
+        </div>
+        <div class="pl-field-ha">{{ field.area|floatformat:"-2" }} <small>ha</small></div>
+        <div class="dropdown pl-above">
+            <button class="pl-tool" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Acciones" aria-label="Acciones de {{ field.name }}">
+                <i class="fa fa-ellipsis-vertical"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="{% url 'field-detail' field.id %}"><i class="fa fa-info-circle me-2 text-primary"></i>Ver detalles</a></li>
+                <li><a class="dropdown-item" href="{% url 'treatment-list' %}?field={{ field.id }}"><i class="fa fa-flask me-2 text-primary"></i>Ver tratamientos</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="{% url 'field-edit' field.id %}"><i class="fa fa-edit me-2 text-secondary"></i>Editar / cambiar casetilla</a></li>
+                {% if field.can_be_deleted %}
+                <li><a class="dropdown-item text-danger" href="#" data-url="{% url 'field-delete' field.id %}"
+                       data-confirm="Esta acción eliminará la parcela de forma permanente y no se podrá deshacer."
+                       onclick="confirmDelete(this); return false;"><i class="fa fa-trash me-2"></i>Eliminar</a></li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</article>
