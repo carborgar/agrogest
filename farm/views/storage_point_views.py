@@ -31,10 +31,13 @@ class StoragePointFormView(BaseSecureViewMixin, SuccessMessageMixin, UpdateView)
             return 'Casetilla actualizada con exito.'
         return 'Casetilla creada con exito.'
 
-    def form_valid(self, form):
-        if not form.instance.pk:
-            form.instance.organization = self.request.user.organization
-        return super().form_valid(form)
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        # La organización se fija antes de validar para que el formulario pueda
+        # comprobar que el nombre no está repetido en ella.
+        if kwargs.get('instance') is None:
+            kwargs['instance'] = StoragePoint(organization=self.request.user.organization)
+        return kwargs
 
 
 class StoragePointDetailView(BaseSecureViewMixin, DetailView):
@@ -81,7 +84,9 @@ class StoragePointDeleteView(BaseSecureViewMixin, DeleteView):
     model = StoragePoint
     success_url = reverse_lazy('field-list')
 
-    def delete(self, request, *args, **kwargs):
-        messages.success(request, 'Casetilla eliminada con exito.')
-        return super().delete(request, *args, **kwargs)
+    def form_valid(self, form):
+        # Se salta AuditableMixin.form_valid: llama a form.save(), que no existe en el
+        # formulario de confirmación de DeleteView y hacía fallar el borrado (500).
+        messages.success(self.request, 'Casetilla eliminada con éxito.')
+        return DeleteView.form_valid(self, form)
 

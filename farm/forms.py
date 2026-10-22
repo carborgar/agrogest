@@ -541,6 +541,18 @@ class StoragePointForm(NoPlaceholderModelForm):
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
 
+    def clean_name(self):
+        # La restricción única (organización, nombre) no la valida Django porque
+        # «organization» no está en el formulario: sin esto, un nombre repetido daba un 500.
+        # Se compara sin distinguir mayúsculas para evitar «Injeros» e «injeros».
+        name = (self.cleaned_data.get('name') or '').strip()
+        organization_id = self.instance.organization_id
+        if organization_id and StoragePoint.objects.filter(
+            organization_id=organization_id, name__iexact=name
+        ).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError('Ya tienes una casetilla con ese nombre.')
+        return name
+
 
 class TreatmentCostRangeForm(forms.Form):
     start_date = forms.DateField(
