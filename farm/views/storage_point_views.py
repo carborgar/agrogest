@@ -29,8 +29,12 @@ class StoragePointListView(BaseSecureViewMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user_fields = Field.ownership_objects.get_queryset_for_user(self.request.user)
-        context['unassigned_fields_count'] = user_fields.filter(storage_point__isnull=True).count()
-        context['total_fields_count'] = user_fields.count()
+        # Una parcela sin casetilla se trata como su propio punto de reparto
+        # en "Preparar productos" (ver services.py, distribution_groups).
+        unassigned_fields = list(user_fields.filter(storage_point__isnull=True).order_by('name'))
+        context['unassigned_fields'] = unassigned_fields
+        context['unassigned_fields_count'] = len(unassigned_fields)
+        context['distribution_points_count'] = len(self.object_list) + len(unassigned_fields)
         return context
 
 
