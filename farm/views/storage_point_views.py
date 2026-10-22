@@ -1,6 +1,6 @@
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db.models import Count, Exists, OuterRef
+from django.db.models import Count, Exists, OuterRef, Prefetch, Sum
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
 from django.views.generic import ListView, UpdateView, DetailView, DeleteView
@@ -21,8 +21,10 @@ class StoragePointListView(BaseSecureViewMixin, ListView):
             super().get_queryset()
             .annotate(
                 fields_count=Count('fields'),
+                total_area=Sum('fields__area'),
                 has_fields=Exists(Field.objects.filter(storage_point=OuterRef('pk'))),
             )
+            .prefetch_related(Prefetch('fields', queryset=Field.objects.order_by('-area', 'name')))
             .order_by('name')
         )
 
@@ -35,6 +37,8 @@ class StoragePointListView(BaseSecureViewMixin, ListView):
         context['unassigned_fields'] = unassigned_fields
         context['unassigned_fields_count'] = len(unassigned_fields)
         context['distribution_points_count'] = len(self.object_list) + len(unassigned_fields)
+        context['unassigned_area'] = sum(f.area for f in unassigned_fields)
+
         return context
 
 

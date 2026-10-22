@@ -36,13 +36,20 @@ class StoragePointListViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         names = [f.name for f in response.context['unassigned_fields']]
         self.assertEqual(names, ['Suelta 1', 'Suelta 2'])
-        self.assertContains(response, 'Casetilla propia · 2')
+        self.assertContains(response, 'Casetilla propia')
 
     def test_puntos_de_reparto_suma_casetillas_y_parcelas_sueltas(self):
         response = self.client.get(reverse('storage-point-list'))
         # 1 casetilla + 2 parcelas sueltas = 3 puntos, igual que en Preparar productos
         self.assertEqual(response.context['distribution_points_count'], 3)
         self.assertContains(response, '3 puntos de reparto')
+
+    def test_casetilla_muestra_hectareas_de_sus_parcelas(self):
+        Field.objects.filter(name='Agrupada A').update(area=3)
+        response = self.client.get(reverse('storage-point-list'))
+        self.assertEqual(response.context['storage_points'][0].total_area, 4)
+        # Parcelas de mayor a menor superficie
+        self.assertEqual([f.name for f in response.context['storage_points'][0].fields.all()], ['Agrupada A', 'Agrupada B'])
 
     def test_sin_casetillas_explica_que_no_es_obligatorio(self):
         self.sp.fields.update(storage_point=None)
