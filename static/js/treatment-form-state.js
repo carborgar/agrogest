@@ -178,7 +178,9 @@
             const p = byId(data.products)[id];
             const opt = p ? doseOption(p, state.type) : null;
             if (!opt) return state;
-            const line = { key: state.nextKey, productId: id, dose: doseToText(opt.dose), override: false, total: '', unitPrice: null };
+            // Al editar, un producto que ya estaba guardado y se quita y vuelve a añadir conserva su precio congelado
+            const saved = (data.lines || []).find((l) => l.product_id === id);
+            const line = { key: state.nextKey, productId: id, dose: doseToText(opt.dose), override: false, total: '', unitPrice: saved ? saved.unit_price : null };
             return Object.assign({}, state, { lines: state.lines.concat([line]), nextKey: state.nextKey + 1 });
         },
 

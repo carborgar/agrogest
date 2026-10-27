@@ -259,3 +259,124 @@ test('A2 editar un tratamiento con total a mano: el input de total lo enseña ex
     assert.equal(p.T.state.lines[1].override, true);
     assert.equal(p.qa('[data-act="clear-total"]').length, 1);
 });
+
+// ── B4: sin Bootstrap (CDN caído) los selectores siguen funcionando con el desplegable ─────────────
+
+test('B4 sin Bootstrap en móvil se usa el desplegable en lugar de la hoja inferior', () => {
+    const p = create({ desktop: false });                      // móvil y sin window.bootstrap
+    assert.ok(p.q('#tfRoot').classList.contains('tf--nosheet'));
+    p.q('#tfFieldBtn').click();
+    assert.equal(p.q('#tfFieldsPop').hidden, false);
+    p.q('#tfFieldsPop [data-field="1"]').click();
+    assert.equal(p.q('#tfFieldTitle').textContent, 'Parcela A');
+    p.q('#tfFieldBtn').click();                                // se cierra
+    assert.equal(p.q('#tfFieldsPop').hidden, true);
+    p.type(p.q('#tfAddInput'), 'fung');                        // productos: el buscador en línea también vale en móvil
+    assert.equal(p.q('#tfProductsPop').hidden, false);
+    p.key(p.q('#tfAddInput'), 'Enter');
+    assert.equal(p.T.state.lines.length, 1);
+    p.q('#tfAddBtn').click();                                  // el botón también abre el desplegable
+    assert.equal(p.q('#tfProductsPop').hidden, false);
+});
+
+test('B4 con Bootstrap en móvil se abre la hoja inferior y el desplegable queda cerrado', () => {
+    const shown = [];
+    const p = create({ desktop: false, bootstrap: () => ({ Offcanvas: { getOrCreateInstance: (n) => ({ show() { shown.push(n.id); }, hide() {} }) } }) });
+    assert.equal(p.q('#tfRoot').classList.contains('tf--nosheet'), false);
+    p.q('#tfFieldBtn').click();
+    assert.deepEqual(shown, ['tfFieldsSheet']);
+    assert.equal(p.q('#tfFieldsPop').hidden, true);
+});
+
+test('B4 la plantilla avisa con <noscript> de que hace falta JavaScript', () => {
+    assert.match(html('treatment_form_create.html'), /<noscript>[\s\S]*JavaScript[\s\S]*<\/noscript>/);
+});
+
+// ── B5: flechas y Intro en el buscador de productos de escritorio ──────────────────────────────────
+
+test('B5 ↓/↑ mueven el resaltado entre los productos válidos y Intro añade el resaltado', () => {
+    const p = fill(create());                                   // Fungicida ya añadido
+    p.q('#tfAddBtn');                                           // (en escritorio se usa el buscador en línea)
+    p.type(p.q('#tfAddInput'), 'i');                            // todos contienen «i» (tipo «Fitosanitario»)
+    const names = () => p.qa('#tfProductsPop .tf-opt').map((n) => n.querySelector('.tf-opt-name').textContent);
+    const active = () => p.qa('#tfProductsPop .tf-opt').filter((n) => n.dataset.active === 'true').map((n) => n.querySelector('.tf-opt-name').textContent);
+    assert.deepEqual(names(), ['Fungicida', 'Insecticida', 'Mojante', 'Abono']);   // válidos primero (A-Z), los que no admiten el tipo al final
+    const first = active();
+    assert.deepEqual(first, ['Insecticida']);                   // el primero válido que no está ya añadido
+    p.key(p.q('#tfAddInput'), 'ArrowDown');
+    const second = active();
+    assert.equal(second.length, 1);
+    assert.notDeepEqual(second, first);
+    p.key(p.q('#tfAddInput'), 'ArrowUp');
+    assert.deepEqual(active(), first);
+    p.key(p.q('#tfAddInput'), 'ArrowDown');
+    p.key(p.q('#tfAddInput'), 'Enter');
+    const added = p.T.state.lines.map((l) => l.productId);
+    assert.equal(added.length, 2);
+    assert.notDeepEqual(added, [1, 1]);
+});
+
+test('B5 Esc cierra el buscador y Intro sin resultados no hace nada', () => {
+    const p = create();
+    p.type(p.q('#tfAddInput'), 'zzzz');
+    p.key(p.q('#tfAddInput'), 'Enter');
+    assert.equal(p.T.state.lines.length, 0);
+    p.key(p.q('#tfAddInput'), 'Escape');
+    assert.equal(p.q('#tfProductsPop').hidden, true);
+});
+
+// ── B10: accesibilidad ─────────────────────────────────────────────────────────────────────────────
+
+test('B10 los errores no son role="alert" (no se anuncian en cada tecla) y las listas son listbox', () => {
+    const p = create();
+    assert.equal(p.qa('.tf-err[role="alert"]').length, 0);
+    assert.ok(p.qa('.tf-err').every((n) => n.getAttribute('aria-live') === 'polite'));
+    assert.equal(p.q('#tfMissing').getAttribute('role'), null);
+    assert.ok(p.qa('[data-list]').every((n) => n.getAttribute('role') === 'listbox'));
+    assert.equal(p.qa('[data-list="fields"]').every((n) => n.getAttribute('aria-multiselectable') === 'true'), true);
+});
+
+test('B10 el texto de un error solo se reescribe cuando cambia', () => {
+    const p = create();
+    p.submit();                                                // intento de guardar: aparecen los errores
+    const box = p.q('[data-err="products"]');
+    const span = box.querySelector('span');
+    assert.ok(span);
+    p.type(p.q('#tfName'), 'a');                               // teclear en otro campo no repinta ese error
+    assert.equal(box.querySelector('span'), span);
+});
+
+// ── Faltas respecto al prototipo ───────────────────────────────────────────────────────────────────
+
+test('Lista de productos: etiqueta «Reciente» y precio por unidad', () => {
+    const p = load('treatment_form_edit.html');                // los productos del tratamiento guardado son recientes
+    p.type(p.q('#tfAddInput'), 'a');
+    const fung = p.qa('#tfProductsPop .tf-opt').find((n) => /Fungicida/.test(n.textContent));
+    assert.match(fung.textContent, /Reciente/);
+    assert.match(fung.textContent, /9,50 €\/kg/);
+});
+
+test('Pie de las hojas: «Listo · N parcelas/productos»', () => {
+    const p = create();
+    const done = (kind) => p.q('#tfFieldsPop [data-done="fields"]') && p.q('[data-done="' + kind + '"]').textContent;
+    assert.equal(p.q('#tfFieldsPop [data-done="fields"]').textContent, 'Listo');
+    p.q('#tfFieldBtn').click();
+    p.q('#tfFieldsPop [data-field="1"]').click();
+    assert.equal(p.q('#tfFieldsPop [data-done="fields"]').textContent, 'Listo · 1 parcela');
+    p.q('#tfFieldsPop [data-field="2"]').click();
+    assert.equal(p.q('#tfFieldsPop [data-done="fields"]').textContent, 'Listo · 2 parcelas');
+    p.q('#tfFieldBtn').click();
+    p.type(p.q('#tfAddInput'), 'fung');
+    p.key(p.q('#tfAddInput'), 'Enter');
+    assert.equal(p.q('#tfProductsSheet [data-done="products"]').textContent, 'Listo · 1 producto');
+});
+
+test('Un producto ya añadido pero no válido para el tipo actual se puede quitar desde la lista', () => {
+    const p = fill(create());
+    p.q('.tf-seg-btn[data-type="fertigation"]').click();       // el fungicida ya no tiene dosis
+    p.type(p.q('#tfAddInput'), 'fung');
+    const opt = p.q('#tfProductsPop [data-product="1"]');
+    assert.equal(opt.disabled, false);
+    opt.click();
+    assert.equal(p.T.state.lines.length, 0);
+});

@@ -642,3 +642,27 @@ test('A2 con varias parcelas no hay total a mano y el total mostrado es la suma'
     near(d.lines[0].total, 40 * (4.2 + 2.8));
     assert.equal(run(s, [['setTotal', { key: 1, total: '100' }]]).lines[0].override, false);
 });
+
+// ── B6: quitar y volver a añadir un producto al editar conserva el precio guardado ─────────────────
+
+test('B6 re-añadir un producto quitado al editar conserva el unit_price guardado en la línea', () => {
+    const data = Object.assign({}, DATA, { lines: [{ product_id: 1, dose: 3, total_dose: 12.6, total_overridden: false, unit_price: 8, position: 0 }] });
+    let s = initialState(data, { isEdit: true, type: 'spraying', fieldIds: [1], machineId: 1, water: '1000', date: '2026-10-20', name: 'X', lines: [{ productId: 1, dose: '3', unitPrice: 8 }] });
+    near(derive(s, data).lines[0].cost, 12.6 * 8, 1e-2);
+    s = run(s, [['removeProduct', { key: 1 }], ['addProduct', { productId: 1 }]], data);
+    near(derive(s, data).lines[0].cost, 12.6 * 8, 1e-2);                       // 8 €, no los 9,5 € actuales del producto
+    // un producto que no estaba guardado usa el precio actual
+    s = run(s, [['addProduct', { productId: 2 }]], data);
+    near(derive(s, data).lines[1].cost, 2.1 * 6, 1e-2);
+});
+
+// ── B9: las dosis se pintan con hasta 4 decimales ──────────────────────────────────────────────────
+
+test('B9 doseToText: hasta 4 decimales sin ceros sobrantes, coma decimal y sin miles', () => {
+    assert.equal(S.doseToText(5.9524), '5,9524');
+    assert.equal(S.doseToText(2.381), '2,381');
+    assert.equal(S.doseToText(3), '3');
+    assert.equal(S.doseToText(0.0754), '0,0754');
+    assert.equal(S.doseToText(1500), '1500');
+    assert.equal(S.doseToText(null), '');
+});

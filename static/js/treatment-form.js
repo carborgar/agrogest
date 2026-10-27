@@ -27,6 +27,9 @@
     const plural = (n, one, many) => (n === 1 ? one : many);
     const norm = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
     const isDesktop = () => window.matchMedia('(min-width: 992px)').matches;
+    // Hojas inferiores = offcanvas de Bootstrap. Si no cargó (CDN caído, mala cobertura), el desplegable vale también en móvil
+    const hasSheets = () => !!(window.bootstrap && window.bootstrap.Offcanvas);
+    const usePop = () => isDesktop() || !hasSheets();
     const visible = (el) => !!el && !el.hidden && el.offsetParent !== null;
 
     function setText(el, text) { if (el.textContent !== text) el.textContent = text; }
@@ -503,6 +506,7 @@
     }
 
     // Admitidos (según el tipo actual) → recientes → nombre; los que no admiten el tipo van al final, desactivados
+    // (salvo que ya estén añadidos: se pueden quitar desde la lista aunque ya no valgan para este tipo)
     function productOptions() {
         const q = norm(uiState.productsQuery.trim());
         const used = new Set(state.lines.map((l) => l.productId));
@@ -513,13 +517,20 @@
             const ok = supports(p);
             const added = used.has(p.id);
             const b = el('button', { type: 'button', 'class': 'tf-opt', role: 'option', 'data-product': String(p.id), 'aria-selected': String(added) });
-            if (!ok) b.disabled = true;
+            if (!ok && !added) b.disabled = true;
             const main = el('span', { 'class': 'tf-opt-body' });
-            main.appendChild(el('span', { 'class': 'tf-opt-name' }, p.name));
+            const name = el('span', { 'class': 'tf-opt-name' }, p.name);
+            if (p.recent) name.appendChild(el('span', { 'class': 'tf-tag' }, 'Reciente'));
+            main.appendChild(name);
             const opt = state.type === 'spraying' ? p.spraying : p.fertigation;
-            main.appendChild(el('span', { 'class': 'tf-opt-sub' }, p.type_name + (ok ? ' · ' + nf(opt.dose, 3) + ' ' + opt.label : ' · no admite ' + (state.type === 'spraying' ? 'pulverización' : 'fertirrigación'))));
+            const other = opt || p.spraying || p.fertigation;
+            let sub = p.type_name;
+            if (ok) sub += ' · ' + nf(opt.dose, 3) + ' ' + opt.label;
+            else sub += ' · no admite ' + (state.type === 'spraying' ? 'pulverización' : 'fertirrigación') + (added ? ' · toca para quitarlo' : '');
+            main.appendChild(el('span', { 'class': 'tf-opt-sub' }, sub));
             b.appendChild(optBox(added, false));
             b.appendChild(main);
+            if (other) b.appendChild(el('span', { 'class': 'tf-opt-side' }, p.price > 0 ? p.price.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €/' + C.totalUnit(other.dose_type) : 'Sin precio'));
             return b;
         });
     }
@@ -532,30 +543,41 @@
         });
     }
 
+    const validIds = (nodes) => nodes.filter((n) => !n.disabled && n.getAttribute('aria-selected') !== 'true').map((n) => Number(n.dataset.product));
+
     function renderPickers() {
         const kind = uiState.picker;
-        setHidden(ui_.addClose, kind !== 'products' || !isDesktop());
+        root.classList.toggle('tf--nosheet', !hasSheets());
+        // Pie de las hojas: «Listo · N parcelas/productos»
+        const nF = state.fieldIds.length, nP = state.lines.length;
+        root.querySelectorAll('[data-done="fields"]').forEach((b) => setText(b, nF ? 'Listo · ' + nF + ' ' + plural(nF, 'parcela', 'parcelas') : 'Listo'));
+        root.querySelectorAll('[data-done="products"]').forEach((b) => setText(b, nP ? 'Listo · ' + nP + ' ' + plural(nP, 'producto', 'productos') : 'Listo'));
+        setHidden(ui_.addClose, kind !== 'products' || !usePop());
         ui_.fieldBtn.setAttribute('aria-expanded', String(kind === 'fields'));
         ui_.addBtn.setAttribute('aria-expanded', String(kind === 'products'));
-        ui_.addInput.setAttribute('aria-expanded', String(kind === 'products' && isDesktop()));
+        ui_.addInput.setAttribute('aria-expanded', String(kind === 'products' && usePop()));
         if (!kind) return;
         if (kind === 'fields') fillList('fields', fieldOptions(), 'No hay parcelas que coincidan.');
         else {
             const nodes = productOptions();
             fillList('products', nodes, 'No hay productos que coincidan.');
-            const hi = firstValidIndex(nodes);
-            if (isDesktop()) lists.products.forEach((box) => {
-                Array.from(box.querySelectorAll('.tf-opt')).forEach((n, i) => n.dataset.active = String(i === hi && !!uiState.productsQuery.trim()));
+            const ids = validIds(nodes);
+            const hi = ids.indexOf(uiState.hi) >= 0 ? uiState.hi : (ids.length ? ids[0] : -1);
+            const show = !!uiState.productsQuery.trim() || uiState.hi !== -1;     // sin escribir ni navegar no se resalta nada
+            if (usePop()) lists.products.forEach((box) => {
+                Array.from(box.querySelectorAll('.tf-opt')).forEach((n) => {
+                    const on = show && Number(n.dataset.product) === hi;
+                    n.dataset.active = String(on);
+                    if (on && n.scrollIntoView) n.scrollIntoView({ block: 'nearest' });
+                });
             });
         }
     }
 
-    const firstValidIndex = (nodes) => nodes.findIndex((n) => !n.disabled && n.getAttribute('aria-selected') !== 'true');
-
     function openPicker(kind) {
         if (uiState.picker && uiState.picker !== kind) closePicker();
         uiState.picker = kind;
-        if (isDesktop()) {
+        if (usePop()) {
             setHidden(pops[kind], false);
             renderPickers();
             const input = kind === 'products' ? ui_.addInput : pops.fields.querySelector('[data-search]');
@@ -572,6 +594,7 @@
         if (!kind) return;
         uiState.picker = null;
         uiState.fieldsQuery = uiState.productsQuery = '';
+        uiState.hi = -1;
         searchEls.forEach((s) => { s.value = ''; });
         ui_.addInput.value = '';
         setHidden(pops.fields, true);
@@ -581,13 +604,24 @@
         renderPickers();
     }
 
-    function addFirstValid() {
-        const nodes = productOptions();
-        const i = firstValidIndex(nodes);
-        if (i < 0) return;
-        dispatch('addProduct', { productId: Number(nodes[i].dataset.product) });
+    // Intro: añade el producto resaltado (por defecto, el primero válido)
+    function addHighlighted() {
+        const ids = validIds(productOptions());
+        if (!ids.length) return;
+        dispatch('addProduct', { productId: ids.indexOf(uiState.hi) >= 0 ? uiState.hi : ids[0] });
         uiState.productsQuery = '';
+        uiState.hi = -1;
         ui_.addInput.value = '';
+        renderPickers();
+    }
+
+    // ↓/↑: mueven el resaltado entre los productos válidos (dan la vuelta)
+    function moveHighlight(step) {
+        if (uiState.picker !== 'products') openPicker('products');
+        const ids = validIds(productOptions());
+        if (!ids.length) return;
+        const at = Math.max(0, ids.indexOf(uiState.hi));
+        uiState.hi = ids[(at + step + ids.length) % ids.length];
         renderPickers();
     }
 
@@ -605,7 +639,7 @@
         if (t === ui_.fieldBtn) { uiState.picker === 'fields' ? closePicker() : openPicker('fields'); return; }
         if (t === ui_.addBtn) { openPicker('products'); return; }
         if (t === ui_.addClose) { closePicker(); return; }
-        if (t.dataset.done && isDesktop()) { closePicker(); return; }
+        if (t.dataset.done && usePop()) { closePicker(); return; }
         if (t === ui_.partialOpen) { dispatch('setPartial', { partial: true }); return; }
         if (t.id === 'tfPartialClose') { dispatch('setPartial', { partial: false }); return; }
         if (t === ui_.done) { dispatch('setDone', { done: ui_.done.getAttribute('aria-checked') !== 'true' }); return; }
@@ -637,6 +671,7 @@
         const t = e.target;
         if (t.dataset.search) {
             uiState[t.dataset.search === 'fields' ? 'fieldsQuery' : 'productsQuery'] = t.value;
+            uiState.hi = -1;
             searchEls.forEach((s) => { if (s !== t && s.dataset.search === t.dataset.search) s.value = t.value; });
             renderPickers();
             return;
@@ -646,6 +681,7 @@
             if (uiState.picker && uiState.picker !== 'products') closePicker();   // cierra el otro selector (y limpia las búsquedas)
             t.value = typed;
             uiState.productsQuery = typed;
+            uiState.hi = -1;
             if (uiState.picker !== 'products') openPicker('products'); else renderPickers();
             return;
         }
@@ -673,7 +709,8 @@
     form.addEventListener('keydown', (e) => {
         const t = e.target;
         if (t === ui_.addInput) {
-            if (e.key === 'Enter') { e.preventDefault(); addFirstValid(); }
+            if (e.key === 'Enter') { e.preventDefault(); addHighlighted(); }
+            else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); moveHighlight(e.key === 'ArrowDown' ? 1 : -1); }
             else if (e.key === 'Escape') { e.preventDefault(); closePicker(); }
             return;
         }
@@ -682,7 +719,7 @@
     });
 
     document.addEventListener('click', (e) => {
-        if (!uiState.picker || !isDesktop()) return;
+        if (!uiState.picker || !usePop()) return;
         if (!e.target.isConnected) return;   // el clic era sobre una opción que se acaba de repintar
         const inside = e.target.closest('#tfFieldsPop, #tfProductsPop, #tfFieldBtn, #tfAddInline, #tfAddBtn');
         if (!inside) closePicker();

@@ -619,6 +619,7 @@
 <script id="treatment-form-errors" type="application/json">{"form": {"name": ["Este campo es obligatorio."]}, "non_field": [], "formset": {"non_form": [], "lines": {}}}</script>
 <script>document.body.classList.add('tf-page');</script>
 
+<noscript><div class="alert alert-warning" role="alert">Este formulario necesita JavaScript para calcular las cantidades. Actívalo en el navegador y recarga la página.</div></noscript>
 <div class="tf" id="tfRoot" data-edit="0">
     <div class="alert alert-danger tf-banner" id="tfBanner" role="alert" tabindex="-1" hidden></div>
 
@@ -731,7 +732,7 @@
                             <div class="tf-pop" id="tfFieldsPop" hidden>
                                 <input type="search" class="tf-inp" data-search="fields" placeholder="Buscar parcela o cultivo"
                                        aria-label="Buscar parcela" autocomplete="off">
-                                <div class="tf-opts" data-list="fields"></div>
+                                <div class="tf-opts" data-list="fields" role="listbox" aria-label="Parcelas" aria-multiselectable="true"></div>
                                 <button type="button" class="tf-btn tf-btn--primary" data-done="fields">Listo</button>
                             </div>
                         </div>
@@ -747,7 +748,7 @@
                         </label>
                         <button type="button" class="tf-link" id="tfPartialClose">Tratar la parcela entera</button>
                     </div>
-                    <div class="tf-err" data-err="field" role="alert"></div>
+                    <div class="tf-err" data-err="field" aria-live="polite"></div>
                 </section>
 
                 
@@ -773,10 +774,10 @@
                                placeholder="Añadir producto: escribe para buscar y pulsa Intro">
                         <button type="button" class="tf-link" id="tfAddClose" hidden>Cerrar</button>
                         <div class="tf-pop" id="tfProductsPop" hidden>
-                            <div class="tf-opts" data-list="products" role="listbox" aria-label="Productos"></div>
+                            <div class="tf-opts" data-list="products" role="listbox" aria-label="Productos" aria-multiselectable="true"></div>
                         </div>
                     </div>
-                    <div class="tf-err" data-err="products" role="alert"></div>
+                    <div class="tf-err" data-err="products" aria-live="polite"></div>
                 </section>
 
                 <div class="tf-row-2">
@@ -799,7 +800,7 @@
                             <span class="tf-loads-head" id="tfLoadsHead"></span>
                             <div id="tfLoadRows"></div>
                         </div>
-                        <div class="tf-err" data-err="application" role="alert"></div>
+                        <div class="tf-err" data-err="application" aria-live="polite"></div>
                     </section>
 
                     
@@ -825,7 +826,7 @@
                                 <input class="tf-inp tf-num" id="tfRealWater" inputmode="numeric" autocomplete="off">
                             </label>
                         </div>
-                        <div class="tf-err" data-err="date" role="alert"></div>
+                        <div class="tf-err" data-err="date" aria-live="polite"></div>
                     </section>
                 </div>
 
@@ -833,7 +834,7 @@
                 <section class="tf-card" id="tfSecName" data-sec="name">
                     <label class="tf-lbl" for="tfName">Nombre del tratamiento</label>
                     <input class="tf-inp" id="tfName" maxlength="100" placeholder="Ej. Cobre + Mojante" autocomplete="off">
-                    <div class="tf-err" data-err="name" role="alert"></div>
+                    <div class="tf-err" data-err="name" aria-live="polite"></div>
                 </section>
             </div>
 
@@ -846,7 +847,7 @@
                         <span class="tf-sum-sub" id="tfSumSub"></span>
                     </div>
                     <dl class="tf-kv" id="tfKv"></dl>
-                    <p class="tf-missing" id="tfMissing" role="status"></p>
+                    <p class="tf-missing" id="tfMissing"></p>
                 </div>
                 <div class="tf-sum-actions">
                     <button type="submit" class="tf-btn tf-btn--primary" id="tfSave">Crear</button>
@@ -868,7 +869,7 @@
             <input type="search" class="tf-inp" data-search="fields" placeholder="Buscar parcela o cultivo"
                    aria-label="Buscar parcela" autocomplete="off">
         </div>
-        <div class="offcanvas-body tf-sheet-body"><div class="tf-opts" data-list="fields"></div></div>
+        <div class="offcanvas-body tf-sheet-body"><div class="tf-opts" data-list="fields" role="listbox" aria-label="Parcelas" aria-multiselectable="true"></div></div>
         <div class="tf-sheet-foot">
             <button type="button" class="tf-btn tf-btn--primary" data-done="fields" data-bs-dismiss="offcanvas">Listo</button>
         </div>
@@ -885,7 +886,7 @@
                    aria-label="Buscar producto" autocomplete="off">
             <span class="tf-hint">Toca para añadir o quitar. Se ponen con su dosis recomendada.</span>
         </div>
-        <div class="offcanvas-body tf-sheet-body"><div class="tf-opts" data-list="products"></div></div>
+        <div class="offcanvas-body tf-sheet-body"><div class="tf-opts" data-list="products" role="listbox" aria-label="Productos" aria-multiselectable="true"></div></div>
         <div class="tf-sheet-foot">
             <button type="button" class="tf-btn tf-btn--primary" data-done="products" data-bs-dismiss="offcanvas">Listo</button>
         </div>
