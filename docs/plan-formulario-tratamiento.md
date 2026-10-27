@@ -202,31 +202,55 @@ Sustituye `templates/farm/treatments/treatment_form.html` (hoy 1271 líneas con 
 
 ## 9. Estado de la implementación
 
-Rama `feature/formulario-tratamiento` (sin push), un commit por fase.
+Rama `feature/formulario-tratamiento` (sin push). Fases 0 a 5 (primera ronda) y una segunda ronda con los cambios de Carlos y los arreglos de la revisión independiente.
 
-**Resultado de las pruebas**: `pytest` 15 fallidos / 240 pasados (en `main`: 15 / 160; son los mismos 15, ninguno nuevo; +80 tests nuevos). `npm run test:js`: 93 de 93.
+**Resultado de las pruebas (final)**: `pytest` 15 fallidos / 283 pasados (en `main`: 15 / 160). Son exactamente los mismos 15 de `main`; ninguno nuevo. `npm run test:js`: 135 de 135.
 
-### Hecho por fase
+### Primera ronda (fases 0 a 5)
 
-- **Fase 0**: casos golden (`farm/tests/fixtures/treatment_calc_cases.json`, compartidos con JS) y tests de caracterización del POST actual.
-- **Fase 1**: backend. E1 a E8 y D1 con test escrito antes y visto en rojo; `total_dose` opcional si no hay total a mano; mojado real conservado al editar si el cliente no lo manda; varias parcelas al crear; `build_treatment_form_data` (datos por `json_script`, sin fetch).
-- **Fase 2**: `static/js/treatment-calc.js` (cálculo puro), probado contra los mismos casos golden que Python.
-- **Fase 3**: `static/js/treatment-form-state.js` (acciones puras, `derive()`, `toFormValues()`), sin nombre automático (D2 anulada en la segunda ronda).
-- **Fase 4**: plantilla nueva, controlador `treatment-form.js`, estilos `.tf-*` en `scss/custom-bootstrap.scss` (CSS recompilado y versionado), campo oculto `position`, errores del servidor por sección y por línea, tests de render y del controlador (jsdom sobre el HTML real).
-- **Fase 5**: `farm/tests/test_treatment_form_e2e.py` (ver desviaciones).
+- **Fase 0** (`bc8f7a3`): casos golden compartidos Python/JS y tests de caracterización del POST.
+- **Fase 1** (`9f7090e`): backend. E1 a E8 y D1 con test escrito antes y visto en rojo; `total_dose` opcional si no hay total a mano; mojado real conservado al editar si el cliente no lo manda; varias parcelas al crear; `build_treatment_form_data` (datos por `json_script`).
+- **Fase 2** (`c9a382f`): `static/js/treatment-calc.js` (cálculo puro).
+- **Fase 3** (`dbacc67`): `static/js/treatment-form-state.js` (acciones puras, `derive()`, `toFormValues()`).
+- **Fase 4** (`75a9af6`): plantilla nueva, controlador `treatment-form.js`, estilos `.tf-*`, campo oculto `position`, errores del servidor por sección y línea.
+- **Fase 5** (`74c6f61`): tests de vista formulario a detalle (casos B, D, H y 3 parcelas) en lugar de Playwright.
+
+### Segunda ronda
+
+Cambios de Carlos:
+- **A1 `c963d30`**: nombre automático quitado (D2 anulada, ver sección 8). El nombre se escribe a mano, vacío al crear, obligatorio.
+- **A3 `2e20a83`**: fuera el enlace «Crear una» máquina y el estado «sin máquinas». Con 0 máquinas se pide elegir máquina y decide el servidor.
+- **A2 `6bd48d6`**: el total es un input siempre visible junto a la dosis. Editarlo deriva la dosis en vivo y marca el total a mano; editar la dosis recalcula el total y quita el «a mano»; vaciarlo vuelve a calcular desde la dosis; el campo que se teclea nunca se reescribe (foco y cursor intactos). Con varias parcelas muestra la suma, deshabilitada, con su explicación. «Total puesto a mano» + «Volver a calcularlo» se mantienen. Envío con `total_overridden=true` y total exacto (25 se envía como `25.0000`) y el detalle tras guardar muestra 25 L.
+
+Arreglos de la revisión:
+- **B1 `6f76dd5`**: los valores del servidor (inputs del formset, `data.lines`) se leen con punto decimal estricto (`1.500` es uno y medio) y pasan al estado con coma; la regla de miles solo vale para lo que teclea el usuario, con el mensaje «Usa coma para los decimales». Dosis con hasta 4 decimales (B9). Fixtures HTML generados desde la plantilla real por `farm/tests/test_form_page_fixtures.py` (falla si están desactualizados; se regeneran con `AGRO_REGEN_FIXTURES=1`) y test del controlador con el JS real sobre ellos (B11).
+- **B2 `6241e7f`**: cálculo decimal exacto (ver decisión abajo).
+- **B3, B8, B7 `5d3dad5`**: el servidor rechaza mojado negativo, área parcial <= 0 y dosis <= 0; el formset decide «varias parcelas» con las parcelas extra ya validadas (sin la principal); «hoy» en hora de España (ver decisión abajo).
+- **B4, B5, B6, B9, B10 y faltas del prototipo `5d9831b`**: sin Bootstrap se usa el desplegable también en móvil y `<noscript>`; flechas e Intro en el buscador de productos; precio guardado conservado al re-añadir un producto al editar; accesibilidad (sin `role="alert"` repintado, listbox); etiqueta «Reciente» y €/unidad; pie «Listo · N parcelas/productos»; poder quitar de la lista un producto añadido aunque no valga para el tipo.
+
+### Decisiones tomadas (con su motivo)
+
+**B2: redondeo.** La diferencia vista previa/modelo tenía dos causas: el modelo hacía `Decimal(float)` (`Decimal(1.9)` = 1,8999...) y el JS redondeaba mitad arriba sobre float mientras el modelo (y el `DecimalField` de Django al guardar) redondea mitad al par. Decisión: arreglar el backend y alinear el JS, no al revés.
+- Backend: `Decimal(str(x))` en `calculate_total_dose`, `calculate_dose_from_total`, `calculate_prices` (área y mojado), `get_dose_per_load` y la cuba parcial (estas dos pasan de float a aritmética decimal; siguen devolviendo float redondeado a 4 decimales). Se **mantiene mitad al par** (el modo que ya usaba): cambiarlo a mitad arriba movería valores guardados en los empates exactos, y el objetivo era quitar solo el ruido de coma flotante. `price_per_ha` parte del `total_price` ya redondeado a 2 decimales (lo que queda guardado y suma el detalle).
+- JS: `treatment-calc.js` usa aritmética decimal exacta (BigInt escalado), lee los números por su representación decimal más corta (igual que `str()` de Python) y redondea una sola vez, mitad al par.
+- Sin migración ni recálculo masivo: solo cambian los valores de un tratamiento si se vuelve a guardar, y solo en los casos que antes arrastraban el ruido (~1 %).
+- Los dos casos de la revisión quedan en el fichero compartido (N y O): 0,5 % · 6,1 ha · 200 L/ha · 8,95 € da 54,60 € y 2,409 L/1000L · 1,9 ha · 500 L/ha da 2,2886. Además hay empates a 4 y 2 decimales (P, Q), un total a mano con división no exacta (R) y un test diferencial con 700 casos aleatorios calculados por el modelo real (`treatment_calc_random.json`) que el JS reproduce al bit. Todas las comparaciones son exactas, sin tolerancia; si se cambia el redondeo del JS a mitad arriba fallan 20 de 700.
+- Efecto lateral conocido: un caso con dosis de 4 decimales (P) no se puede teclear en el formulario (la dosis se redondea hacia arriba a 3 decimales, `clean_dose`), así que solo lo cubren el módulo de cálculo y Python.
+
+**B7: «hoy».** `TIME_ZONE` es UTC y el resto de la app usa fechas UTC en el servidor (`date.today()`, `timezone.localdate()`) y la fecha local del navegador en el JS del calendario y del tiempo. Entre las 00:00 y las 02:00 en España el formulario ofrecía «ayer» y rechazaba como futura la realización de «hoy». No se ha cambiado `TIME_ZONE` (afectaría a todo). Se añade `settings.FARM_TIME_ZONE = 'Europe/Madrid'` y `farm/timeutils.local_today()`, usada solo para el «hoy» del formulario de tratamiento: fecha por defecto, `form_data.today` (lo que usa el JS) y validación de `finish_date`. Si falta la base de datos de zonas horarias del sistema, vuelve a la fecha UTC. **Pendiente (no tocado)**: los estados «atrasado/pendiente» del modelo y el dashboard siguen con la fecha UTC; conviene decidir si se alinean.
 
 ### Diferencias con el plan y por qué
 
-1. **Sin Playwright ni capturas.** En este entorno no hay navegador (ni Playwright ni Chromium) y no se instalaron navegadores pesados. La prueba E2E se sustituyó por tests de vista de Django que envían el mismo POST que escribe el controlador (`toFormValues`: dosis a 3 decimales, total a 4, punto decimal) para los casos B, D, H y una alta de 3 parcelas, y comprueban en el detalle total, coste, coste/ha, cubas y dosis por cuba contra el fichero de casos. Esto cubre el contrato formulario a detalle, no el pintado.
-2. **Campo oculto `position` en cada línea** (no estaba en el plan): el orden de la cuba lo decide el POST y se renumera 0..n-1 al guardar. Sin él, quitar y añadir líneas dejaba el orden incoherente.
-3. **Inputs numéricos `type="text" inputmode="decimal"`** en lugar de `type="number"` (coma decimal española); el controlador escribe valores normalizados en los inputs reales de Django justo antes de enviar.
-4. **Alta de máquinas**: no existe pantalla; el enlace «Crear una» apunta al admin de Django y solo aparece a usuarios staff con permiso. El resto ve un mensaje para pedirlo al administrador.
-5. **`dispatch` llama directo a `S.actions[tipo]`** y no a `S.reduce`, porque el payload de `setType` usa la clave `type` y chocaba con el tipo de acción.
-6. **Fixture HTML del test del controlador** (`static/js/tests/fixtures/treatment_form_create.html`): es un render de la plantilla; si cambian ids o estructura hay que regenerarlo (el test de Django `FormPageRenderTests` avisa de ids que faltan).
+1. **Sin Playwright ni capturas.** No hay navegador en el entorno y no se instalaron navegadores pesados. La prueba de punta a punta se sustituyó por tests de vista de Django (mismo POST que escribe el controlador, comprobando el detalle) y por tests del controlador con jsdom sobre HTML real de la plantilla. Esto cubre el contrato formulario a detalle y la lógica de la interfaz, no el aspecto.
+2. **Campo oculto `position`** en cada línea (no estaba en el plan): el orden de la cuba lo decide el POST y se renumera 0..n-1 al guardar.
+3. **Números como `type="text" inputmode="decimal"`** (coma decimal española); el controlador escribe valores normalizados en los inputs reales de Django justo antes de enviar.
+4. **`dispatch` llama directo a `S.actions[tipo]`**, no a `S.reduce` (el payload de `setType` usa la clave `type` y chocaba con la del reduce).
+5. **Dosis de un total a mano**: al pulsar «Volver a calcularlo» o vaciar el total, la dosis se redondea hacia arriba a 3 decimales como hace el servidor (p. ej. 25 L en 4,2 ha vuelve a 25,0026 L), porque sin total a mano la dosis es la fuente de verdad.
 
 ### Pendiente o no verificado
 
-- **Nada se ha visto en un navegador real**: maquetación a 375 px y 1280 px, barra fija, resumen sticky, hojas inferiores (offcanvas de Bootstrap), foco y teclado móvil, cambio de ancho con `matchMedia`. jsdom no calcula layout.
-- Faltan las capturas de la fase 5 (paso 3) y la comparación visual con el prototipo.
+- **Nada se ha visto en un navegador real**: maquetación a 375 px y 1280 px, barra fija, resumen sticky, hojas inferiores (offcanvas), desplegables, foco y teclado móvil, cambio de ancho con `matchMedia`, tamaño de los objetivos táctiles (las reglas CSS están pensadas para >= 44 px en móvil; no medido). jsdom no calcula layout ni foco real del navegador.
+- Faltan las capturas de la fase 5 y la comparación visual con el prototipo.
+- El reparto de la mitad al par frente a mitad arriba es una decisión de producto no consultada: se mantuvo el comportamiento existente del backend.
 - Los 15 tests fallidos de `main` siguen igual y no se han tocado.
-- Cuando haya navegador: repetir a mano los casos B, D, H, 3 parcelas, fertirrigación con producto no válido, editar un tratamiento hecho y un error de envío.
+- Cuando haya navegador: repetir a mano los casos B, D, H, 3 parcelas, un total redondeado al envase (p. ej. 24 L a 25 L en fertirrigación), producto no válido al cambiar de tipo, editar un tratamiento hecho, un error de envío y el uso sin Bootstrap (bloqueando el CDN).
