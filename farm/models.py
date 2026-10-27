@@ -1,10 +1,26 @@
 from datetime import datetime
-from decimal import Decimal
+from decimal import ROUND_HALF_EVEN, Decimal
 
 from django.db import models, transaction
 from django.utils.timezone import now
 
 from .managers import OwnershipManager
+
+
+def _d(value):
+    """
+    Número → Decimal por su representación decimal, no por la binaria.
+
+    Las áreas (Field.area, Treatment.applied_area) son FloatField: Decimal(1.9) es 1.8999999999999999112
+    y arrastraba ese ruido a los totales (mitades que caían al lado equivocado). Decimal(str(1.9)) es 1.9,
+    que es lo que el usuario escribió y lo que calcula el formulario en el navegador (treatment-calc.js).
+    """
+    return value if isinstance(value, Decimal) else Decimal(str(value))
+
+
+def _round(value, places):
+    """Redondeo a `places` decimales con mitad al par: el mismo que hace Django al guardar un DecimalField."""
+    return value.quantize(Decimal(1).scaleb(-places), rounding=ROUND_HALF_EVEN)
 
 
 class OrganizationOwnedModel(models.Model):
@@ -335,7 +351,7 @@ class Product(OrganizationOwnedModel):
             if treatment_product.treatment.effective_area is None:
                 field_area = Decimal(0)
             else:
-                field_area = Decimal(treatment_product.treatment.effective_area)
+                field_area = _d(treatment_product.treatment.effective_area)
             treatment_product.price_per_ha = (
                 treatment_product.total_price / field_area if field_area > 0 else Decimal(0)
             )
@@ -507,22 +523,24 @@ class Treatment(OrganizationOwnedModel):
         if not load_info or not load_info['partial_load']:
             return 0
 
-        partial_water = load_info['partial_water']
+        partial_water = Decimal(load_info['partial_water'])
         dose_type = product_item.dose_type
-        dose = product_item.dose
+        dose = _d(product_item.dose)
 
-        result = 0
+        # Aritmética decimal exacta y un único redondeo final (4 decimales, mitad al par)
         if 'ha' in dose_type:
-            area_covered = partial_water / self.actual_water_per_ha()
-            result = float(dose) * area_covered
+            result = dose * partial_water / _d(self.actual_water_per_ha())
         elif '1000l' in dose_type:
-            result = float(dose) * partial_water / 1000
+            result = dose * partial_water / 1000
         elif '2000l' in dose_type:
-            result = float(dose) * partial_water / 2000
+            result = dose * partial_water / 2000
         elif 'pct' in dose_type:
-            result = float(dose) * partial_water / 100
+            result = dose * partial_water / 100
+        else:
+            return 0
 
-        return round(result, 4)
+        # float como antes (plantillas, API y tests lo esperan así): float(Decimal) es exacto al redondear a 4 decimales
+        return float(_round(result, 4))
 
     def is_fertigation(self):
         return self.type == 'fertigation'
@@ -715,21 +733,22 @@ class TreatmentProduct(OrganizationOwnedModel):
         if not machine or not water_per_ha or not self.dose or not self.dose_type:
             return None
 
-        capacity = machine.capacity
+        capacity = Decimal(machine.capacity)
+        dose = _d(self.dose)
 
+        # Aritmética decimal exacta y un único redondeo final (4 decimales, mitad al par)
         if 'ha' in self.dose_type:
-            area_per_load = capacity / water_per_ha
-            value = float(self.dose) * area_per_load
+            value = dose * capacity / _d(water_per_ha)
         elif '1000l' in self.dose_type:
-            value = float(self.dose) * capacity / 1000
+            value = dose * capacity / 1000
         elif '2000l' in self.dose_type:
-            value = float(self.dose) * capacity / 2000
+            value = dose * capacity / 2000
         elif 'pct' in self.dose_type:
-            value = float(self.dose) * capacity / 100
+            value = dose * capacity / 100
         else:
             return None
 
-        return round(value, 4)
+        return float(_round(value, 4))
 
     def save(self, *args, **kwargs):
         # Calculamos la dosis total antes de guardar
@@ -755,44 +774,48 @@ class TreatmentProduct(OrganizationOwnedModel):
         if self.unit_price == 0:
             self.unit_price = self.product.price  # Solo si aún no estaba puesto (caso creación)
 
-        self.total_price = self.unit_price * self.total_dose
-        self.price_per_ha = self.total_price / Decimal(self.treatment.effective_area)
+        # Se redondea aquí (2 decimales, mitad al par: lo mismo que haría Django al guardar) para que el
+        # precio por hectárea parta del importe que de verdad queda guardado y la vista previa coincida.
+        self.total_price = _round(_d(self.unit_price) * _d(self.total_dose), 2)
+        self.price_per_ha = _round(self.total_price / _d(self.treatment.effective_area), 2)
 
     def calculate_total_dose(self):
         """Calcula la dosis total basada en el tipo de dosis y los parámetros del tratamiento"""
-        field_area = Decimal(self.treatment.effective_area)
-        water_per_ha = Decimal(self.treatment.actual_water_per_ha())
+        field_area = _d(self.treatment.effective_area)
+        water_per_ha = _d(self.treatment.actual_water_per_ha())
+        dose = _d(self.dose)
 
         if self.dose_type in ['kg_per_1000l', 'l_per_1000l']:
             total_water = water_per_ha * field_area
-            result = (self.dose * total_water) / 1000
+            result = (dose * total_water) / 1000
         elif self.dose_type in ['kg_per_ha', 'l_per_ha']:
-            result = self.dose * field_area
+            result = dose * field_area
         elif self.dose_type == 'pct':
             total_water = water_per_ha * field_area
-            result = (self.dose / Decimal(100)) * total_water
+            result = (dose / Decimal(100)) * total_water
         else:
             result = Decimal(0)
 
-        self.total_dose = round(result, 4)
+        self.total_dose = _round(result, 4)
 
     def calculate_dose_from_total(self):
         """Calcula la dosis basada en la dosis total y los parámetros del tratamiento"""
-        field_area = Decimal(self.treatment.effective_area)
-        water_per_ha = Decimal(self.treatment.actual_water_per_ha())
+        field_area = _d(self.treatment.effective_area)
+        water_per_ha = _d(self.treatment.actual_water_per_ha())
+        total_dose = _d(self.total_dose)
 
         if self.dose_type in ['kg_per_1000l', 'l_per_1000l']:
             total_water = water_per_ha * field_area
-            result = (self.total_dose * 1000) / total_water
+            result = (total_dose * 1000) / total_water
         elif self.dose_type in ['kg_per_ha', 'l_per_ha']:
-            result = self.total_dose / field_area
+            result = total_dose / field_area
         elif self.dose_type == 'pct':
             total_water = water_per_ha * field_area
-            result = (self.total_dose * Decimal(100)) / total_water
+            result = (total_dose * Decimal(100)) / total_water
         else:
             result = Decimal(0)
 
-        self.dose = round(result, 4)
+        self.dose = _round(result, 4)
 
 
 class Expense(OrganizationOwnedModel):

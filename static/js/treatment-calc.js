@@ -8,6 +8,11 @@
  * Los dos lados se prueban contra el mismo fichero de casos
  * (farm/tests/fixtures/treatment_calc_cases.json): si cambia uno, fallan los tests.
  *
+ * Aritmética DECIMAL EXACTA (BigInt escalado), igual que el backend desde que usa Decimal(str(x)):
+ * los números se leen por su representación decimal más corta (4.2, no 4.2000000000000002) y todo se
+ * redondea una sola vez al final, con MITAD AL PAR (el modo de Decimal.quantize / DecimalField de Django):
+ * dosis y totales a 4 decimales, importes a 2. Así vista previa y valor guardado coinciden al céntimo.
+ *
  * Todas las funciones devuelven `null` cuando no se puede calcular (falta el mojado,
  * área 0, dato no numérico...). Nunca 0 ni NaN en silencio.
  *
@@ -44,12 +49,81 @@
         return typeof v === 'number' && Number.isFinite(v);
     }
 
-    /** Redondeo a `d` decimales (mitad hacia arriba) sin ruido de coma flotante. */
+    // ── Decimal exacto (BigInt escalado) ──────────────────────────────────────
+
+    /** Decimal = {n: BigInt, s: escala ≥ 0}; valor = n / 10^s. */
+    const TEN = 10n;
+    const pow10 = (k) => TEN ** BigInt(k);
+
+    /** number | string | Decimal → Decimal, por la representación decimal más corta del número (como str() de Python). */
+    function toDec(x) {
+        if (x && typeof x === 'object' && typeof x.n === 'bigint') return x;
+        const m = /^(-?)(\d*)(?:\.(\d*))?(?:[eE]([+-]?\d+))?$/.exec(String(x));
+        if (!m || (m[2] === '' && (m[3] === undefined || m[3] === ''))) throw new Error('Número no válido: ' + x);
+        const frac = m[3] || '';
+        let n = BigInt((m[2] || '0') + frac);
+        let sc = frac.length - (m[4] ? parseInt(m[4], 10) : 0);
+        if (sc < 0) { n *= pow10(-sc); sc = 0; }
+        return { n: m[1] === '-' ? -n : n, s: sc };
+    }
+
+    const dMul = (a, b) => ({ n: a.n * b.n, s: a.s + b.s });
+    const dAdd = (a, b) => {
+        const s = Math.max(a.s, b.s);
+        return { n: a.n * pow10(s - a.s) + b.n * pow10(s - b.s), s: s };
+    };
+    const dShift = (a, k) => ({ n: a.n, s: a.s + k });      // a / 10^k, exacto
+
+    /** a / b redondeado a `places` decimales con mitad al par (un solo redondeo, exacto). */
+    function dDivRound(a, b, places) {
+        let num = a.n * pow10(b.s + places);
+        let den = b.n * pow10(a.s);
+        if (den < 0n) { num = -num; den = -den; }
+        const neg = num < 0n;
+        if (neg) num = -num;
+        let q = num / den;
+        const r2 = (num % den) * 2n;
+        if (r2 > den || (r2 === den && q % 2n === 1n)) q += 1n;
+        return { n: neg ? -q : q, s: places };
+    }
+
+    /** Redondea un Decimal a `places` decimales (mitad al par). */
+    function dRound(a, places) {
+        if (a.s <= places) return { n: a.n * pow10(places - a.s), s: places };
+        return dDivRound(a, { n: 1n, s: 0 }, places);
+    }
+
+    /** Hacia arriba (lejos de cero) a `places` decimales: ROUND_UP de clean_dose. */
+    function dCeil(a, places) {
+        if (a.s <= places) return { n: a.n * pow10(places - a.s), s: places };
+        const f = pow10(a.s - places);
+        const neg = a.n < 0n;
+        const abs = neg ? -a.n : a.n;
+        let q = abs / f;
+        if (abs % f !== 0n) q += 1n;
+        return { n: neg ? -q : q, s: places };
+    }
+
+    function dToNumber(a) {
+        const neg = a.n < 0n;
+        let digits = (neg ? -a.n : a.n).toString();
+        if (a.s > 0) {
+            digits = digits.padStart(a.s + 1, '0');
+            digits = digits.slice(0, digits.length - a.s) + '.' + digits.slice(digits.length - a.s);
+        }
+        return Number((neg ? '-' : '') + digits);
+    }
+
+    /** Redondeo a `d` decimales (mitad al par, exacto sobre la representación decimal del número). */
     function roundTo(value, d) {
         if (!isNum(value)) return null;
-        const shifted = Number(Math.abs(value) + 'e' + d);
-        const r = Number(Math.round(shifted) + 'e-' + d);
-        return value < 0 ? -r : r;
+        return dToNumber(dRound(toDec(value), d));
+    }
+
+    /** Suma exacta de números y redondeo a `d` decimales. */
+    function sumRound(values, d) {
+        if (!values.every(isNum)) return null;
+        return dToNumber(dRound(values.reduce((acc, v) => dAdd(acc, toDec(v)), { n: 0n, s: 0 }), d));
     }
 
     /** Equivale al round() de Python con 0 decimales (mitad al par): Treatment.calculate_machine_loads. */
@@ -124,13 +198,11 @@
 
     /**
      * Redondeo de la dosis tecleada: hacia arriba a 3 decimales (clean_dose, ROUND_UP).
-     * Trabaja con enteros para evitar la coma flotante (0,0754 → 0,076; 2,1 → 2,1; 0,3 → 0,3).
-     * Usa 9 decimales de resolución (el plan sugería 6) para no perder el redondeo hacia
-     * arriba en entradas con 7+ decimales.
+     * Aritmética decimal exacta (0,0754 → 0,076; 2,1 → 2,1; 0,3 → 0,3; sin ruido de coma flotante).
      */
     function roundDoseUp(value) {
         if (!isNum(value) || value < 0) return null;
-        return Math.ceil(Math.round(value * 1e9) / 1e6) / 1e3;
+        return dToNumber(dCeil(toDec(value), 3));
     }
 
     // ── Área y unidades ───────────────────────────────────────────────────────
@@ -148,23 +220,31 @@
 
     // ── Dosis ↔ total ─────────────────────────────────────────────────────────
 
-    /** TreatmentProduct.calculate_total_dose (4 decimales). */
+    /** TreatmentProduct.calculate_total_dose (4 decimales, mitad al par). */
     function totalFromDose(dose, doseType, area, waterPerHa) {
         if (!isNum(dose) || dose < 0 || !positive(area)) return null;
         const kind = doseKind(doseType);
-        if (kind === 'ha') return roundTo(dose * area, 4);
-        if (kind === '1000l') return positive(waterPerHa) ? roundTo((dose * (waterPerHa * area)) / 1000, 4) : null;
-        if (kind === 'pct') return positive(waterPerHa) ? roundTo((dose / 100) * (waterPerHa * area), 4) : null;
+        const d = toDec(dose);
+        const a = toDec(area);
+        if (kind === 'ha') return dToNumber(dRound(dMul(d, a), 4));
+        if (!positive(waterPerHa)) return null;
+        const totalWater = dMul(toDec(waterPerHa), a);
+        if (kind === '1000l') return dToNumber(dRound(dShift(dMul(d, totalWater), 3), 4));
+        if (kind === 'pct') return dToNumber(dRound(dShift(dMul(d, totalWater), 2), 4));
         return null;
     }
 
-    /** TreatmentProduct.calculate_dose_from_total (4 decimales). */
+    /** TreatmentProduct.calculate_dose_from_total (4 decimales, mitad al par). */
     function doseFromTotal(total, doseType, area, waterPerHa) {
         if (!isNum(total) || total < 0 || !positive(area)) return null;
         const kind = doseKind(doseType);
-        if (kind === 'ha') return roundTo(total / area, 4);
-        if (kind === '1000l') return positive(waterPerHa) ? roundTo((total * 1000) / (waterPerHa * area), 4) : null;
-        if (kind === 'pct') return positive(waterPerHa) ? roundTo((total * 100) / (waterPerHa * area), 4) : null;
+        const t = toDec(total);
+        const a = toDec(area);
+        if (kind === 'ha') return dToNumber(dDivRound(t, a, 4));
+        if (!positive(waterPerHa)) return null;
+        const totalWater = dMul(toDec(waterPerHa), a);
+        if (kind === '1000l') return dToNumber(dDivRound({ n: t.n * 1000n, s: t.s }, totalWater, 4));
+        if (kind === 'pct') return dToNumber(dDivRound({ n: t.n * 100n, s: t.s }, totalWater, 4));
         return null;
     }
 
@@ -174,9 +254,10 @@
     function dosePerFullLoad(dose, doseType, capacity, waterPerHa) {
         if (!isNum(dose) || dose <= 0 || !positive(capacity) || !positive(waterPerHa)) return null;
         const kind = doseKind(doseType);
-        if (kind === 'ha') return roundTo(dose * (capacity / waterPerHa), 4);
-        if (kind === '1000l') return roundTo((dose * capacity) / 1000, 4);
-        if (kind === 'pct') return roundTo((dose * capacity) / 100, 4);
+        const dc = dMul(toDec(dose), toDec(capacity));
+        if (kind === 'ha') return dToNumber(dDivRound(dc, toDec(waterPerHa), 4));
+        if (kind === '1000l') return dToNumber(dRound(dShift(dc, 3), 4));
+        if (kind === 'pct') return dToNumber(dRound(dShift(dc, 2), 4));
         return null;
     }
 
@@ -204,24 +285,25 @@
         if (!loads || !loads.partialLoad) return 0;
         if (!isNum(dose) || dose < 0) return null;
         const kind = doseKind(doseType);
-        if (kind === 'ha') return positive(waterPerHa) ? roundTo(dose * (loads.partialWater / waterPerHa), 4) : null;
-        if (kind === '1000l') return roundTo((dose * loads.partialWater) / 1000, 4);
-        if (kind === 'pct') return roundTo((dose * loads.partialWater) / 100, 4);
+        const dp = dMul(toDec(dose), toDec(loads.partialWater));
+        if (kind === 'ha') return positive(waterPerHa) ? dToNumber(dDivRound(dp, toDec(waterPerHa), 4)) : null;
+        if (kind === '1000l') return dToNumber(dRound(dShift(dp, 3), 4));
+        if (kind === 'pct') return dToNumber(dRound(dShift(dp, 2), 4));
         return null;
     }
 
     // ── Dinero ────────────────────────────────────────────────────────────────
 
-    /** TreatmentProduct.calculate_prices: total_price = unit_price × total_dose (2 decimales). */
+    /** TreatmentProduct.calculate_prices: total_price = unit_price × total_dose (2 decimales, mitad al par). */
     function lineCost(total, unitPrice) {
         if (!isNum(total) || !isNum(unitPrice) || total < 0 || unitPrice < 0) return null;
-        return roundTo(total * unitPrice, 2);
+        return dToNumber(dRound(dMul(toDec(total), toDec(unitPrice)), 2));
     }
 
-    /** price_per_ha = total_price / área efectiva (2 decimales). */
+    /** price_per_ha = total_price (ya redondeado a 2 decimales) / área efectiva (2 decimales). */
     function costPerHa(totalCost, area) {
         if (!isNum(totalCost) || !positive(area)) return null;
-        return roundTo(totalCost / area, 2);
+        return dToNumber(dDivRound(toDec(totalCost), toDec(area), 2));
     }
 
     // ── Aviso de dosis ────────────────────────────────────────────────────────
@@ -243,6 +325,7 @@
         DOSE_WARNING_RATIO,
         DOSE_UNITS,
         roundTo,
+        sumRound,
         roundHalfEven,
         parseNumber,
         hasThousandsDot,

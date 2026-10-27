@@ -263,7 +263,7 @@ class TreatmentDetailView(BaseSecureViewMixin, DetailView):
         total_cost = sum(product.total_price for product in products)
         cost_per_ha = 0
         if self.object.effective_area and self.object.effective_area > 0:
-            cost_per_ha = total_cost / Decimal(self.object.effective_area)
+            cost_per_ha = total_cost / Decimal(str(self.object.effective_area))
 
         context['total_cost'] = total_cost
         context['cost_per_ha'] = cost_per_ha

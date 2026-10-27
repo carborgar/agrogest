@@ -543,6 +543,9 @@ test('toFormValues de una pulverización completa', () => {
 for (const c of GOLDEN.cases) {
     test(`golden ${c.id} a través del estado: ${c.title}`, () => {
         const i = c.input;
+        // Lo que se teclea lleva coma decimal; y el formulario solo admite 3 decimales en la dosis (clean_dose),
+        // así que un caso con dosis de 4 decimales (P) solo se comprueba en el módulo de cálculo y en Python.
+        if ((i.dose.split('.')[1] || '').length > 3) return;
         const spray = i.type === 'spraying';
         const opt1 = { dose: Number(i.dose), dose_type: i.dose_type, label: i.dose_type };
         const data = {
@@ -553,31 +556,31 @@ for (const c of GOLDEN.cases) {
         };
         let s = initialState(data, { type: i.type, water: spray ? String(i.water_per_ha) : '' });
         const steps = [['toggleField', { id: 1 }], ['addProduct', { productId: 1 }]];
-        if (i.applied_area) steps.push(['setPartial', { partial: true }], ['setAppliedArea', { area: String(i.applied_area) }]);
+        if (i.applied_area) steps.push(['setPartial', { partial: true }], ['setAppliedArea', { area: String(i.applied_area).replace('.', ',') }]);
         if (i.finish_date) steps.push(['setDone', { done: true }]);
         if (i.real_water_per_ha) steps.push(['setRealWater', { water: String(i.real_water_per_ha) }]);
         s = run(s, steps, data);
-        if (i.total_override) s = run(s, [['setTotal', { key: 1, total: i.total_override }]], data);
-        else s = run(s, [['setDose', { key: 1, dose: i.dose }]], data);
+        if (i.total_override) s = run(s, [['setTotal', { key: 1, total: i.total_override.replace('.', ',') }]], data);
+        else s = run(s, [['setDose', { key: 1, dose: i.dose.replace('.', ',') }]], data);
 
         const d = derive(s, data);
         const l = d.lines[0];
         const e = c.expected;
-        near(l.total, e.total_dose);
-        near(l.dose, e.dose);
+        assert.equal(l.total, e.total_dose);               // igualdad exacta
+        assert.equal(l.dose, e.dose);
         assert.equal(l.totalUnit, e.total_dose_unit);
-        near(l.cost, e.total_price, 1e-2);
-        near(d.summary.costPerHa, e.price_per_ha, 1e-2);
+        assert.equal(l.cost, e.total_price);
+        assert.equal(d.summary.costPerHa, e.price_per_ha);
         if (spray) {
             if (e.dose_per_load === null) assert.equal(l.perLoad, null);
-            else near(l.perLoad, e.dose_per_load);
+            else assert.equal(l.perLoad, e.dose_per_load);
         }
         if (e.loads === null) assert.equal(d.loads.length, 0);
         else {
             assert.deepEqual(
                 [d.loads[0].totalWater, d.loads[0].fullLoads, d.loads[0].partialWater, d.loads[0].partialLoad],
                 [e.loads.total_water, e.loads.full_loads, e.loads.partial_water, e.loads.partial_load]);
-            near(l.partialProduct, e.partial_product);
+            assert.equal(l.partialProduct, e.partial_product);
         }
     });
 }

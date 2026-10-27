@@ -1,5 +1,5 @@
 {
-  "_doc": "Casos compartidos Python/JS de cálculo de tratamientos. Los valores 'expected' están calculados A MANO (ver docs/plan-formulario-tratamiento.md, sección 2.1), no copiados de la salida del código. 'input': type=spraying|fertigation; dose_type = tipo de dosis del producto para ese tipo de tratamiento; water_per_ha = mojado previsto; real_water_per_ha = mojado real (solo con finish_date); capacity = capacidad de la máquina (null = sin máquina); total_override = total tecleado a mano (la dosis se deriva de él). 'expected': total_dose/dose/total_price/price_per_ha tal y como quedan guardados (2 decimales en precios, 4 en dosis); dose_per_load = TreatmentProduct.get_dose_per_load(); loads = Treatment.calculate_machine_loads() (null si no aplica); partial_product = Treatment.calculate_product_for_partial_load().",
+  "_doc": "Casos compartidos Python/JS de cálculo de tratamientos. Los valores 'expected' están calculados A MANO (ver docs/plan-formulario-tratamiento.md, sección 2.1), no copiados de la salida del código. 'input': type=spraying|fertigation; dose_type = tipo de dosis del producto para ese tipo de tratamiento; water_per_ha = mojado previsto; real_water_per_ha = mojado real (solo con finish_date); capacity = capacidad de la máquina (null = sin máquina); total_override = total tecleado a mano (la dosis se deriva de él). 'expected': total_dose/dose/total_price/price_per_ha tal y como quedan guardados (2 decimales en precios, 4 en dosis); dose_per_load = TreatmentProduct.get_dose_per_load(); loads = Treatment.calculate_machine_loads() (null si no aplica); partial_product = Treatment.calculate_product_for_partial_load(). N-R (segunda ronda): redondeo EXACTO. Los números se leen como decimales (Decimal(str(float))), las dosis y totales se redondean a 4 decimales y los importes a 2, siempre con mitad al par (como el modelo y el DecimalField de Django); las comparaciones son exactas, sin tolerancia.",
   "cases": [
     {
       "id": "A",
@@ -72,6 +72,36 @@
       "title": "L/ha con mojado que no divide la cuba",
       "input": {"type": "spraying", "dose_type": "l_per_ha", "dose": "2", "field_area": 5.0, "applied_area": null, "water_per_ha": 600, "real_water_per_ha": null, "finish_date": false, "capacity": 1000, "price": "10.00", "total_override": null},
       "expected": {"total_dose": 10.0, "dose": 2.0, "total_dose_unit": "L", "total_price": 100.0, "price_per_ha": 20.0, "dose_per_load": 3.3333, "loads": {"total_water": 3000, "full_loads": 3, "partial_water": 0, "partial_load": false}, "partial_product": 0}
+    },
+    {
+      "id": "N",
+      "title": "Redondeo exacto: 0,5 % · 6,1 ha · 200 L/ha · 8,95 € (54,595 € → 54,60, mitad al par)",
+      "input": {"type": "spraying", "dose_type": "pct", "dose": "0.5", "field_area": 6.1, "applied_area": null, "water_per_ha": 200, "real_water_per_ha": null, "finish_date": false, "capacity": 2000, "price": "8.95", "total_override": null},
+      "expected": {"total_dose": 6.1, "dose": 0.5, "total_dose_unit": "L", "total_price": 54.6, "price_per_ha": 8.95, "dose_per_load": 10.0, "loads": {"total_water": 1220, "full_loads": 0, "partial_water": 1220, "partial_load": true}, "partial_product": 6.1}
+    },
+    {
+      "id": "O",
+      "title": "Redondeo exacto: 2,409 L/1000L · 1,9 ha · 500 L/ha (2,28855 → 2,2886; antes 2,2885 por Decimal(float))",
+      "input": {"type": "spraying", "dose_type": "l_per_1000l", "dose": "2.409", "field_area": 1.9, "applied_area": null, "water_per_ha": 500, "real_water_per_ha": null, "finish_date": false, "capacity": 2000, "price": "10.00", "total_override": null},
+      "expected": {"total_dose": 2.2886, "dose": 2.409, "total_dose_unit": "L", "total_price": 22.89, "price_per_ha": 12.05, "dose_per_load": 4.818, "loads": {"total_water": 950, "full_loads": 0, "partial_water": 950, "partial_load": true}, "partial_product": 2.2886}
+    },
+    {
+      "id": "P",
+      "title": "Empate a 4 decimales: 0,0125 kg/ha × 0,5 ha = 0,00625 → 0,0062 (mitad al par)",
+      "input": {"type": "spraying", "dose_type": "kg_per_ha", "dose": "0.0125", "field_area": 0.5, "applied_area": null, "water_per_ha": 1000, "real_water_per_ha": null, "finish_date": false, "capacity": null, "price": "10.00", "total_override": null},
+      "expected": {"total_dose": 0.0062, "dose": 0.0125, "total_dose_unit": "kg", "total_price": 0.06, "price_per_ha": 0.12, "dose_per_load": null, "loads": null, "partial_product": 0}
+    },
+    {
+      "id": "Q",
+      "title": "Empate a 2 decimales en el precio: 2,35 L × 1,50 € = 3,525 → 3,52 (mitad al par)",
+      "input": {"type": "fertigation", "dose_type": "l_per_ha", "dose": "2.35", "field_area": 1.0, "applied_area": null, "water_per_ha": 0, "real_water_per_ha": null, "finish_date": false, "capacity": null, "price": "1.50", "total_override": null},
+      "expected": {"total_dose": 2.35, "dose": 2.35, "total_dose_unit": "L", "total_price": 3.52, "price_per_ha": 3.52, "dose_per_load": 2.35, "loads": null, "partial_product": 0}
+    },
+    {
+      "id": "R",
+      "title": "Total a mano 10 kg/1000L en 1,9 ha con 500 L/ha: dosis 10,5263 (división no exacta)",
+      "input": {"type": "spraying", "dose_type": "kg_per_1000l", "dose": "1", "field_area": 1.9, "applied_area": null, "water_per_ha": 500, "real_water_per_ha": null, "finish_date": false, "capacity": 2000, "price": "10.00", "total_override": "10"},
+      "expected": {"total_dose": 10.0, "dose": 10.5263, "total_dose_unit": "kg", "total_price": 100.0, "price_per_ha": 52.63, "dose_per_load": 21.0526, "loads": {"total_water": 950, "full_loads": 0, "partial_water": 950, "partial_load": true}, "partial_product": 10.0}
     }
   ],
   "rounding": [

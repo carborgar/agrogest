@@ -32,13 +32,13 @@ for (const c of DATA.cases) {
             dose = Number(i.dose);
             total = calc.totalFromDose(dose, i.dose_type, area, water);
         }
-        near(total, e.total_dose, 1e-4, 'total');
-        near(dose, e.dose, 1e-4, 'dosis');
+        assert.equal(total, e.total_dose, 'total');        // igualdad EXACTA, sin tolerancia
+        assert.equal(dose, e.dose, 'dosis');
         assert.equal(calc.totalUnit(i.dose_type), e.total_dose_unit);
 
         const cost = calc.lineCost(total, price);
-        near(cost, e.total_price, 1e-2, 'coste');
-        near(calc.costPerHa(total * price, area), e.price_per_ha, 1e-2, '€/ha');
+        assert.equal(cost, e.total_price, 'coste');
+        assert.equal(calc.costPerHa(cost, area), e.price_per_ha, '€/ha');
 
         const loads = i.type === 'spraying' ? calc.machineLoads(area, water, i.capacity) : null;
         if (e.loads === null) {
@@ -54,9 +54,9 @@ for (const c of DATA.cases) {
         if (i.type === 'spraying') {
             const perLoad = calc.dosePerFullLoad(dose, i.dose_type, i.capacity, water);
             if (e.dose_per_load === null) assert.equal(perLoad, null);
-            else near(perLoad, e.dose_per_load, 1e-4, 'por cuba');
+            else assert.equal(perLoad, e.dose_per_load, 'por cuba');
         }
-        near(calc.dosePartialLoad(dose, i.dose_type, loads, water), e.partial_product, 1e-4, 'cuba parcial');
+        assert.equal(calc.dosePartialLoad(dose, i.dose_type, loads, water), e.partial_product, 'cuba parcial');
     });
 }
 

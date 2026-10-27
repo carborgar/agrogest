@@ -274,7 +274,7 @@
             }
         }
         const areas = selected.map((f) => calc.effectiveArea(f.area, appliedArea));
-        const totalArea = areas.reduce((a, b) => a + b, 0);
+        const totalArea = calc.sumRound(areas, 6) || 0;           // suma exacta (4,2 + 2,8 = 7, no 7,000000000000001)
 
         // Máquina (regla 9)
         const machines = data.machines || [];
@@ -327,8 +327,7 @@
                 doseRoundedUp = typed !== null && dose !== typed;
                 if (dose !== null && dose > 0 && selected.length) {
                     perField = selected.map((f, i) => ({ fieldId: f.id, total: calc.totalFromDose(dose, doseType, areas[i], waterEff) }));
-                    total = perField.every((x) => x.total !== null) ? perField.reduce((a, x) => a + x.total, 0) : null;
-                    if (total !== null) total = calc.roundTo(total, 4);
+                    total = calc.sumRound(perField.map((x) => x.total), 4);
                 }
             }
 
@@ -337,7 +336,7 @@
             const unitPrice = l.unitPrice > 0 ? l.unitPrice : p.price;
             let cost = null;
             if (total !== null && perField.length && perField.every((x) => x.total !== null)) {
-                cost = calc.roundTo(perField.reduce((a, x) => a + calc.lineCost(x.total, unitPrice), 0), 2);
+                cost = calc.sumRound(perField.map((x) => calc.lineCost(x.total, unitPrice)), 2);
             }
             let costState = 'ok';
             if (!selected.length) costState = 'pick-field';
@@ -388,7 +387,7 @@
         const unsupportedLines = lines.filter((l) => !l.supported);
         const validLines = supportedLines.filter((l) => l.valid);
         const costKnown = supportedLines.length > 0 && supportedLines.every((l) => l.cost !== null);
-        const totalCost = costKnown && !unsupportedLines.length ? calc.roundTo(supportedLines.reduce((a, l) => a + l.cost, 0), 2) : null;
+        const totalCost = costKnown && !unsupportedLines.length ? calc.sumRound(supportedLines.map((l) => l.cost), 2) : null;
         const ready = selected.length > 0 && validLines.length > 0 && totalCost !== null;
 
         // Fechas y estado
@@ -444,7 +443,7 @@
                 validLines: validLines.length,
                 costKnown: costKnown,
                 totalCost: totalCost,
-                costPerHa: totalCost !== null && totalArea > 0 ? calc.roundTo(totalCost / totalArea, 2) : null,
+                costPerHa: totalCost !== null ? calc.costPerHa(totalCost, totalArea) : null,
                 ready: ready,
             },
             name: name,

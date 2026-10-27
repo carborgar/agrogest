@@ -80,17 +80,19 @@ def test_golden_case(case):
     treatment, tp = build_case(case['input'])
     exp = case['expected']
 
-    assert float(tp.total_dose) == pytest.approx(exp['total_dose'], abs=1e-4)
-    assert float(tp.dose) == pytest.approx(exp['dose'], abs=1e-4)
+    # Igualdad EXACTA (sin tolerancia): los esperados son decimales calculados a mano
+    D = lambda x: Decimal(str(x))
+    assert tp.total_dose == D(exp['total_dose'])
+    assert tp.dose == D(exp['dose'])
     assert tp.total_dose_unit == exp['total_dose_unit']
-    assert float(tp.total_price) == pytest.approx(exp['total_price'], abs=1e-2)
-    assert float(tp.price_per_ha) == pytest.approx(exp['price_per_ha'], abs=1e-2)
+    assert tp.total_price == D(exp['total_price'])
+    assert tp.price_per_ha == D(exp['price_per_ha'])
 
     per_load = tp.get_dose_per_load()
     if exp['dose_per_load'] is None:
         assert per_load is None
     else:
-        assert float(per_load) == pytest.approx(exp['dose_per_load'], abs=1e-4)
+        assert Decimal(str(per_load)) == D(exp['dose_per_load'])
 
     loads = treatment.calculate_machine_loads()
     if exp['loads'] is None:
@@ -98,7 +100,7 @@ def test_golden_case(case):
     else:
         assert loads == exp['loads']
 
-    assert treatment.calculate_product_for_partial_load(tp) == pytest.approx(exp['partial_product'], abs=1e-4)
+    assert Decimal(str(treatment.calculate_product_for_partial_load(tp))) == D(exp['partial_product'])
 
 
 @pytest.mark.parametrize('item', DATA['rounding'], ids=lambda i: i['id'])
