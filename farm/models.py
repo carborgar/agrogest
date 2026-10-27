@@ -735,19 +735,13 @@ class TreatmentProduct(OrganizationOwnedModel):
         # Calculamos la dosis total antes de guardar
         self.set_dose_units()
 
-        is_new = self.pk is None
-
-        if is_new or not self.total_overridden:
-            # Fuente de verdad: dose → calculamos total
-            self.calculate_total_dose()
-        else:
-            # El usuario sobreescribió el total → derivamos dose desde total
-            # (necesario para que get_dose_per_load y carga parcial sigan funcionando)
+        if self.total_overridden:
+            # El usuario puso el total a mano (también en líneas nuevas): el total manda
+            # y la dosis se deriva de él con el mojado vigente (el real si lo hay).
+            # Necesario para que get_dose_per_load y la carga parcial sigan funcionando.
             self.calculate_dose_from_total()
-
-        # Cuando cambia el mojado hay que recalcular el total aunque no haya override
-        # (este caso llega desde Treatment.recalculate_product_doses)
-        if not is_new and self.treatment.water_per_ha_changed():
+        else:
+            # Fuente de verdad: dose → calculamos total (también cuando cambia el mojado)
             self.calculate_total_dose()
 
         # Calculamos los precios finales

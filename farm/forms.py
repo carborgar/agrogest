@@ -8,7 +8,7 @@ from django.forms import BaseInlineFormSet
 from django.forms import inlineformset_factory
 
 from core.forms import NoPlaceholderModelForm
-from .models import Treatment, TreatmentProduct, Expense, Product, Harvest, ProductType, Field, StoragePoint
+from .models import Treatment, TreatmentProduct, Expense, Product, Harvest, ProductType, Field, Machine, StoragePoint
 
 
 class TreatmentForm(forms.ModelForm):
@@ -22,22 +22,48 @@ class TreatmentForm(forms.ModelForm):
         initial=Datetime.today().strftime('%Y-%m-%d')
     )
 
-    # must be in the past
+    # No puede ser futura (se valida en clean)
     finish_date = forms.DateField(
         widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
         required=False
     )
 
+    # Mojado realmente usado (L/ha). Solo cuenta en pulverización con fecha de realización.
+    real_water_per_ha = forms.IntegerField(
+        required=False,
+        help_text="Mojado real usado por hectárea (en litros)",
+    )
+
+    # Solo al crear: parcelas adicionales (una copia del tratamiento por parcela).
+    # `field` sigue siendo la primera parcela.
+    extra_fields = forms.ModelMultipleChoiceField(
+        queryset=Field.objects.none(),
+        required=False,
+    )
+
     class Meta:
         model = Treatment
         fields = ['name', 'type', 'date', 'field', 'machine', 'water_per_ha', 'finish_date',
-                  'applied_area', 'zone_notes']
+                  'real_water_per_ha', 'applied_area', 'zone_notes']
         widgets = {
             'applied_area': forms.NumberInput(attrs={'step': '0.01'}),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
+
+        # Parcelas y máquinas solo de la organización del usuario (sin usuario, ninguna).
+        if user is not None:
+            fields_qs = Field.ownership_objects.get_queryset_for_user(user)
+            machines_qs = Machine.ownership_objects.get_queryset_for_user(user)
+        else:
+            fields_qs = Field.objects.none()
+            machines_qs = Machine.objects.none()
+        self.fields['field'].queryset = fields_qs
+        self.fields['machine'].queryset = machines_qs
+        self.fields['extra_fields'].queryset = fields_qs
+        if self.instance.pk:
+            del self.fields['extra_fields']
 
         # Only default to today on creation; in edit keep stored model values.
         if not self.instance.pk:
@@ -75,6 +101,34 @@ class TreatmentForm(forms.ModelForm):
                 f'El área parcial ({applied_area} ha) no puede superar el área de la parcela ({field.area} ha)'
             )
 
+        # La fecha de realización no puede ser futura
+        finish_date = cleaned_data.get('finish_date')
+        if finish_date and finish_date > datetime.date.today():
+            self.add_error('finish_date', 'La fecha de realización no puede ser futura')
+
+        # Mojado real: solo en pulverización ya realizada, y mayor que 0.
+        # En cualquier otro caso se descarta (el modelo también lo limpia).
+        real_water = cleaned_data.get('real_water_per_ha')
+        if self.instance.pk and 'real_water_per_ha' not in self.data:
+            # Cliente que no envía el campo: conservar el valor guardado
+            real_water = cleaned_data['real_water_per_ha'] = self.instance.real_water_per_ha
+        if treatment_type == 'spraying' and finish_date:
+            if real_water is not None and real_water <= 0:
+                self.add_error('real_water_per_ha', 'El mojado real tiene que ser mayor que 0')
+        else:
+            cleaned_data['real_water_per_ha'] = None
+
+        # Varias parcelas (solo al crear): la parcela principal no se repite y no hay
+        # tratamiento parcial (cada parcela se trata entera).
+        if 'extra_fields' in self.fields:
+            extras = [f for f in (cleaned_data.get('extra_fields') or []) if f != field]
+            cleaned_data['extra_fields'] = extras
+            if extras:
+                if applied_area:
+                    self.add_error('applied_area', 'Con varias parcelas no se puede indicar un área parcial')
+                if cleaned_data.get('zone_notes'):
+                    self.add_error('zone_notes', 'Con varias parcelas no se puede indicar una zona')
+
         return cleaned_data
 
 
@@ -86,16 +140,26 @@ def _normalize_dose(value):
 
 
 class TreatmentProductForm(forms.ModelForm):
+    # Si es True, el usuario puso el total a mano y la dosis se deriva de él.
+    total_overridden = forms.BooleanField(required=False, widget=forms.HiddenInput)
+
     class Meta:
         model = TreatmentProduct
-        fields = ['product', 'dose', 'total_dose']
+        fields = ['product', 'dose', 'total_dose', 'total_overridden']
         widgets = {
             'dose': forms.NumberInput(attrs={'step': '0.001'}),
             'total_dose': forms.NumberInput(attrs={'step': '0.001'}),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
+        # Solo productos de la organización del usuario (sin usuario, ninguno)
+        if user is not None:
+            self.fields['product'].queryset = Product.ownership_objects.get_queryset_for_user(user)
+        else:
+            self.fields['product'].queryset = Product.objects.none()
+        # El total solo es obligatorio si viene puesto a mano; si no, el backend lo calcula
+        self.fields['total_dose'].required = False
         # Normalizar visualización de dosis para no mostrar ceros finales (ej: 0.075 en vez de 0.0750)
         if self.instance and self.instance.pk:
             if self.instance.dose:
@@ -121,6 +185,17 @@ class TreatmentProductForm(forms.ModelForm):
             dose = dose.quantize(Decimal('0.001'), rounding=ROUND_UP)
         return dose
 
+    def clean(self):
+        cleaned_data = super().clean()
+        if cleaned_data.get('total_overridden'):
+            total = cleaned_data.get('total_dose')
+            if 'total_dose' not in self.errors and (total is None or total <= 0):
+                self.add_error('total_dose', 'El total a mano tiene que ser mayor que 0')
+        elif cleaned_data.get('total_dose') is None and 'total_dose' not in self.errors:
+            # Sin total a mano el modelo lo recalcula desde la dosis al guardar
+            cleaned_data['total_dose'] = Decimal('0')
+        return cleaned_data
+
 
 class BaseTreatmentProductFormSet(BaseInlineFormSet):
     def clean(self):
@@ -133,6 +208,15 @@ class BaseTreatmentProductFormSet(BaseInlineFormSet):
 
         seen_products = {}
         valid_forms = 0
+        flagged = False  # alguna línea marcada con error aquí (no repetir «añade un producto»)
+
+        # El tipo de tratamiento llega en el mismo POST que el formset
+        treatment_type = self.data.get('type') if self.is_bound else None
+        # Varias parcelas al crear: el total a mano no tiene sentido (cada parcela tiene su área)
+        multi_field = (
+            self.is_bound and self.instance.pk is None
+            and any(v for v in self.data.getlist('extra_fields'))
+        )
 
         for form in self.forms:
             if not form.is_valid() or not form.cleaned_data:
@@ -141,6 +225,18 @@ class BaseTreatmentProductFormSet(BaseInlineFormSet):
                 continue
             product = form.cleaned_data.get('product')
             dose = form.cleaned_data.get('dose')
+
+            if product and treatment_type in ('spraying', 'fertigation') \
+                    and not product.supports_application_type(treatment_type):
+                label = 'pulverización' if treatment_type == 'spraying' else 'fertirrigación'
+                form.add_error('product', f"'{product.name}' no tiene dosis para {label}")
+                flagged = True
+                continue
+
+            if multi_field and form.cleaned_data.get('total_overridden'):
+                form.add_error('total_dose', 'Con varias parcelas no se puede fijar el total a mano')
+                flagged = True
+                continue
 
             if product and dose:
                 if product.pk in seen_products:
@@ -151,7 +247,7 @@ class BaseTreatmentProductFormSet(BaseInlineFormSet):
                 seen_products[product.pk] = True
                 valid_forms += 1
 
-        if valid_forms < 1:
+        if valid_forms < 1 and not flagged:
             raise forms.ValidationError("Debe agregar al menos un producto al tratamiento.")
 
     def save(self, commit=True):

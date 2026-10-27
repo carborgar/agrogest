@@ -23,10 +23,7 @@ CASES_PATH = Path(__file__).parent / 'fixtures' / 'treatment_calc_cases.json'
 DATA = json.loads(CASES_PATH.read_text(encoding='utf-8'))
 
 # Casos que hoy fallan por un error conocido del plan; se quita de aquí al arreglarlo.
-KNOWN_FAILING = {
-    'H': 'E2: save() ignora el total a mano en líneas nuevas',
-    'I': 'E2: save() ignora el total a mano en líneas nuevas',
-}
+KNOWN_FAILING = {}
 
 
 def _params():
