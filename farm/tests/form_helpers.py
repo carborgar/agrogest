@@ -21,4 +21,6 @@ def formset_data(lines, initial=0, prefix="treatmentproduct_set"):
         data[p + "DELETE"] = "on" if line.get("delete") else ""
         if "total_overridden" in line:
             data[p + "total_overridden"] = line["total_overridden"]
+        if "position" in line:
+            data[p + "position"] = str(line["position"])
     return data

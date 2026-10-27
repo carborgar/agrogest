@@ -509,3 +509,136 @@ class FormDataTests(BackendBase):
                              organization=self.org)
         html = self.client.get(self.create_url).content.decode()
         self.assertNotIn("</script><b>x", html)
+
+
+# ── Orden de las líneas (position) y errores para el formulario ───────────────
+
+@pytest.mark.django_db
+class LinePositionAndErrorsTests(BackendBase):
+
+    def test_posted_position_sets_the_order_of_lines(self):
+        """El orden de las líneas lo decide `position`, no el orden de las filas del POST."""
+        response = self.post_create([
+            {"product": self.kgha.pk, "dose": "3", "total_dose": "12.6", "position": 1},
+            {"product": self.l1000.pk, "dose": "1", "total_dose": "4.2", "position": 0},
+        ])
+        self.assertEqual(response.status_code, 302)
+        treatment = Treatment.objects.get(name="Caso backend")
+        ordered = [tp.product_id for tp in treatment.treatmentproduct_set.order_by("position")]
+        self.assertEqual(ordered, [self.l1000.pk, self.kgha.pk])
+        self.assertEqual(
+            [tp.position for tp in treatment.treatmentproduct_set.order_by("position")], [0, 1])
+
+    def test_without_position_form_order_is_kept(self):
+        self.post_create([
+            {"product": self.kgha.pk, "dose": "3", "total_dose": "12.6"},
+            {"product": self.l1000.pk, "dose": "1", "total_dose": "4.2"},
+        ])
+        treatment = Treatment.objects.get(name="Caso backend")
+        ordered = [tp.product_id for tp in treatment.treatmentproduct_set.order_by("position")]
+        self.assertEqual(ordered, [self.kgha.pk, self.l1000.pk])
+
+    def test_edit_can_reorder_and_delete_lines(self):
+        self.post_create([
+            {"product": self.kgha.pk, "dose": "3", "total_dose": "12.6"},
+            {"product": self.l1000.pk, "dose": "1", "total_dose": "4.2"},
+            {"product": self.lha.pk, "dose": "2", "total_dose": "8.4"},
+        ])
+        treatment = Treatment.objects.get(name="Caso backend")
+        by_product = {tp.product_id: tp for tp in treatment.treatmentproduct_set.all()}
+        data = self.base()
+        data.update(formset_data([
+            {"id": by_product[self.kgha.pk].pk, "product": self.kgha.pk, "dose": "3", "total_dose": "12.6",
+             "position": 1},
+            {"id": by_product[self.l1000.pk].pk, "product": self.l1000.pk, "dose": "1", "total_dose": "4.2",
+             "delete": True, "position": 5},
+            {"id": by_product[self.lha.pk].pk, "product": self.lha.pk, "dose": "2", "total_dose": "8.4",
+             "position": 0},
+        ], initial=3))
+        response = self.client.post(self.edit_url(treatment), data)
+        self.assertEqual(response.status_code, 302)
+        ordered = [tp.product_id for tp in treatment.treatmentproduct_set.order_by("position")]
+        self.assertEqual(ordered, [self.lha.pk, self.kgha.pk])
+
+    def test_invalid_post_exposes_errors_as_json_for_the_form(self):
+        response = self.post_create([{"product": self.kgha.pk, "dose": "3", "total_dose": "12.6"}],
+                                    field=str(self.o_field.pk))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="treatment-form-errors"')
+        errors = response.context["form_errors"]
+        self.assertIn("field", errors["form"])
+        self.assertEqual(response.context["form_data"]["bound"], True)
+
+    def test_unbound_page_has_no_errors_block_and_is_not_bound(self):
+        response = self.client.get(self.create_url)
+        self.assertNotContains(response, 'id="treatment-form-errors"')
+        self.assertEqual(response.context["form_data"]["bound"], False)
+
+    def test_formset_errors_are_mapped_by_line(self):
+        response = self.post_create([
+            {"product": self.kgha.pk, "dose": "3", "total_dose": "12.6"},
+            {"product": self.o_product.pk, "dose": "3", "total_dose": "12.6"},
+        ])
+        errors = response.context["form_errors"]["formset"]
+        self.assertIn("product", errors["lines"]["1"])
+        self.assertNotIn("0", errors["lines"])
+
+    def test_machine_create_link_only_for_users_who_can_add_machines(self):
+        self.assertIsNone(self.client.get(self.create_url).context["machine_create_url"])
+
+    def test_machine_create_link_for_staff_with_permission(self):
+        from django.contrib.auth.models import Permission
+        self.user.is_staff = True
+        self.user.save()
+        self.user.user_permissions.add(Permission.objects.get(codename="add_machine"))
+        url = self.client.get(self.create_url).context["machine_create_url"]
+        self.assertEqual(url, reverse("admin:farm_machine_add"))
+
+
+class FormPageRenderTests(BackendBase):
+    """La página nueva se renderiza con los ids que usa el controlador JS y los inputs reales de Django."""
+
+    REAL_IDS = ["id_name", "id_type", "id_date", "id_field", "id_machine", "id_water_per_ha", "id_finish_date",
+                "id_real_water_per_ha", "id_applied_area", "id_zone_notes", "id_extra_fields"]
+    JS_IDS = ["tfRoot", "treatmentForm", "tfFieldBtn", "tfLines", "tfAddInput", "tfSummary", "tfSave", "tfRowTpl",
+              "tfFieldsSheet", "tfProductsSheet", "treatment-form-data"]
+
+    def test_create_page_has_controller_hooks_and_real_inputs(self):
+        response = self.client.get(self.create_url)
+        self.assertEqual(response.status_code, 200)
+        for dom_id in self.REAL_IDS + self.JS_IDS:
+            self.assertContains(response, f'id="{dom_id}"')
+        for script in ("treatment-calc.js", "treatment-form-state.js", "treatment-form.js"):
+            self.assertContains(response, script)
+        self.assertContains(response, "Nuevo tratamiento")
+        self.assertNotContains(response, 'id="treatment-form-errors"')
+
+    def test_create_page_has_no_extra_fields_input_when_editing(self):
+        t = Treatment.objects.create(organization=self.org, field=self.field, machine=self.machine, name="X",
+                                     type="spraying", date=date.today(), water_per_ha=1000)
+        response = self.client.get(reverse("treatment-edit", kwargs={"pk": t.pk}))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'id="id_extra_fields"')
+        self.assertEqual(response.context["form_data"]["bound"], False)
+
+    def test_edit_page_renders_saved_rows_and_exact_values(self):
+        t = Treatment.objects.create(organization=self.org, field=self.field, machine=self.machine, name="Guardado",
+                                     type="spraying", date=date.today(), water_per_ha=1000)
+        TreatmentProduct.objects.create(treatment=t, product=self.kgha, dose=Decimal("3"),
+                                        total_dose=Decimal("12.6"), position=0)
+        response = self.client.get(reverse("treatment-edit", kwargs={"pk": t.pk}))
+        self.assertContains(response, "Editar tratamiento")
+        self.assertContains(response, "data-row", count=2)           # la fila guardada y la plantilla
+        self.assertEqual(response.context["form_data"]["lines"][0]["product_id"], self.kgha.pk)
+
+    def test_failed_post_rerenders_with_errors_json_and_bound_flag(self):
+        data = {"name": "", "type": "spraying", "date": date.today().isoformat(), "field": str(self.field.pk),
+                "machine": str(self.machine.pk), "water_per_ha": "1000", "finish_date": ""}
+        data.update(formset_data([{"product": self.kgha.pk, "dose": "3", "total_dose": "12.6"}]))
+        response = self.client.post(self.create_url, data)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="treatment-form-errors"')
+        self.assertTrue(response.context["form_data"]["bound"])
+        self.assertIn("name", response.context["form_errors"]["form"])
+        # el valor que había en el formulario no se pierde
+        self.assertContains(response, 'value="1000"')

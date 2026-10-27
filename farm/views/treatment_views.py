@@ -286,6 +286,27 @@ class TreatmentDetailView(BaseSecureViewMixin, DetailView):
         return context
 
 
+def collect_form_errors(form, formset):
+    """
+    Errores del formulario y del formset en un dict serializable, para que la plantilla
+    los pinte en su sección o línea (sin alert()).
+    {form: {campo: [msg]}, non_field: [msg], formset: {non_form: [msg], lines: {"índice": {campo: [msg]}}}}
+    """
+    field_errors = {name: [str(e) for e in errs] for name, errs in form.errors.items() if name != '__all__'}
+    lines = {}
+    for index, errs in enumerate(formset.errors):
+        if errs:
+            lines[str(index)] = {name: [str(e) for e in msgs] for name, msgs in errs.items()}
+    return {
+        'form': field_errors,
+        'non_field': [str(e) for e in form.non_field_errors()],
+        'formset': {
+            'non_form': [str(e) for e in formset.non_form_errors()],
+            'lines': lines,
+        },
+    }
+
+
 class TreatmentFormView(BaseSecureViewMixin, SuccessMessageMixin, UpdateView):
     model = Treatment
     form_class = TreatmentForm
@@ -358,6 +379,16 @@ class TreatmentFormView(BaseSecureViewMixin, SuccessMessageMixin, UpdateView):
 
         # Datos para pintar el formulario sin peticiones (json_script en la plantilla)
         context['form_data'] = build_treatment_form_data(self.request.user, self.object)
+        context['form_data']['bound'] = context['form'].is_bound
+        context['form_errors'] = (
+            collect_form_errors(context['form'], fs) if context['form'].is_bound else None
+        )
+
+        # Sin máquinas en la app solo se crean desde el admin de Django: enlace solo si puede
+        user = self.request.user
+        context['machine_create_url'] = (
+            reverse('admin:farm_machine_add') if user.has_perm('farm.add_machine') and user.is_staff else None
+        )
 
         return context
 

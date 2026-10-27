@@ -143,9 +143,12 @@ class TreatmentProductForm(forms.ModelForm):
     # Si es True, el usuario puso el total a mano y la dosis se deriva de él.
     total_overridden = forms.BooleanField(required=False, widget=forms.HiddenInput)
 
+    # Orden de la línea dentro del tratamiento (lo decide el formulario; si no llega, el orden de las filas)
+    position = forms.IntegerField(required=False, min_value=0, widget=forms.HiddenInput)
+
     class Meta:
         model = TreatmentProduct
-        fields = ['product', 'dose', 'total_dose', 'total_overridden']
+        fields = ['product', 'dose', 'total_dose', 'total_overridden', 'position']
         widgets = {
             'dose': forms.NumberInput(attrs={'step': '0.001'}),
             'total_dose': forms.NumberInput(attrs={'step': '0.001'}),
@@ -252,21 +255,24 @@ class BaseTreatmentProductFormSet(BaseInlineFormSet):
 
     def save(self, commit=True):
         """
-        Asigna el campo `position` a cada instancia según el orden visual
-        del formulario antes de delegar el guardado al padre.
-        Esto garantiza el orden correcto independientemente del ID asignado por la BD
-        (crítico en PostgreSQL con connection pooling, donde los IDs no son estrictamente secuenciales).
+        Asigna el campo `position` a cada instancia antes de delegar el guardado al padre:
+        el orden que indique el formulario (campo `position`) o, si no llega, el orden de las
+        filas; siempre renumerado de 0 a n-1 sin huecos. Esto garantiza el orden correcto
+        independientemente del ID asignado por la BD (crítico en PostgreSQL con connection
+        pooling, donde los IDs no son estrictamente secuenciales).
         """
-        position = 0
-        for form in self.forms:
+        active = []
+        for index, form in enumerate(self.forms):
             if not getattr(form, 'cleaned_data', None):
                 continue
             if form.cleaned_data.get('DELETE', False):
                 continue
             if not form.cleaned_data.get('product'):
                 continue
+            posted = form.cleaned_data.get('position')
+            active.append((posted if posted is not None else index, index, form))
+        for position, (_, _, form) in enumerate(sorted(active, key=lambda item: (item[0], item[1]))):
             form.instance.position = position
-            position += 1
         return super().save(commit=commit)
 
 
