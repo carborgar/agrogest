@@ -142,11 +142,15 @@ class TreatmentForm(forms.ModelForm):
         return cleaned_data
 
 
-def _normalize_dose(value):
-    """Devuelve la dosis como string sin ceros finales, máx 3 decimales para display."""
+def _normalize_dose(value, decimals=3):
+    """Dosis como texto sin ceros finales y con `decimals` decimales como máximo.
+
+    En las líneas de tratamiento se usan 4 (los que guarda la base de datos): con 3, una dosis derivada de un total a mano
+    (25 L → 5,9524) se enseñaba como 5,952 al reabrir y, al quitar el total a mano, el formulario recalculaba desde un
+    valor distinto del guardado."""
     if value is None:
         return value
-    return f"{value:.3f}".rstrip('0').rstrip('.')
+    return f"{value:.4f}".rstrip('0').rstrip('.')
 
 
 class TreatmentProductForm(forms.ModelForm):
@@ -176,7 +180,7 @@ class TreatmentProductForm(forms.ModelForm):
         # Normalizar visualización de dosis para no mostrar ceros finales (ej: 0.075 en vez de 0.0750)
         if self.instance and self.instance.pk:
             if self.instance.dose:
-                self.initial['dose'] = _normalize_dose(self.instance.dose)
+                self.initial['dose'] = _normalize_dose(self.instance.dose, 4)
             if self.instance.total_dose is not None:
                 # total_dose se muestra con 2 decimales en el formulario
                 self.initial['total_dose'] = f"{self.instance.total_dose:.2f}"
