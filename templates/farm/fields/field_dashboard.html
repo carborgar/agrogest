@@ -1,158 +1,166 @@
 {% extends 'base.html' %}
-{% load custom_filters %}
-{% load django_bootstrap5 %}
 {% load static %}
 
-{% block title %}Dashboard{% endblock %}
+{% block title %}Inicio{% endblock %}
 
 {% block header %}Bienvenido, {{ user.first_name|default:user.username }}{% endblock %}
-{% block sub_header %}Resumen de tu explotación · {{ fields.count }} parcela{{ fields.count|pluralize }} · {{ total_area }} ha{% endblock %}
+{% block sub_header %}{% now "l j \d\e F" as today_label %}{{ today_label|capfirst }} · {{ fields.count }} parcela{{ fields.count|pluralize }} · {{ total_area }} ha{% endblock %}
+
+{% block actions %}
+<a class="btn btn-primary d-none d-md-inline-block" href="{% url 'treatment-create' %}">
+    <i class="fa fa-plus me-1"></i>Nuevo tratamiento
+</a>
+{% endblock %}
 
 {% block content %}
 
-<!-- ── STAT CARDS ───────────────────────────────────────── -->
-<div class="row g-3 mb-4">
+{# ── Chips de estado: cada uno abre el listado con el mismo filtro ── #}
+<nav class="hm-chips" aria-label="Resumen por estado">
+    {% for chip in chips %}
+    <a class="hm-chip" href="{{ chip.url }}">
+        <span class="hm-chip-count hm-chip-count--{% if chip.count %}{{ chip.tone }}{% else %}none{% endif %}">{{ chip.count }}</span>
+        {% if chip.tone == 0 %}{{ chip.label }}{% else %}Próximos {{ chip.label }}{% endif %}
+        <i class="fa fa-chevron-right" aria-hidden="true"></i>
+    </a>
+    {% endfor %}
+</nav>
 
-    <!-- Atrasados -->
-    <div class="col-6 col-lg-3">
-        <a class="text-decoration-none" href="{% url 'treatment-list' %}?status=delayed">
-            <div class="dashboard-stat-card dashboard-stat-card--action {% if delayed_treatments_count > 0 %}dashboard-stat-card--danger{% else %}dashboard-stat-card--success{% endif %}">
-                <div class="dashboard-stat-icon">
-                    <i class="fa {% if delayed_treatments_count > 0 %}fa-triangle-exclamation{% else %}fa-check-circle{% endif %}"></i>
-                </div>
-                <div class="dashboard-stat-body">
-                    <div class="dashboard-stat-value">{{ delayed_treatments_count }}</div>
-                    <div class="dashboard-stat-label">Atrasados</div>
-                </div>
-                {% if delayed_treatments_count > 0 %}
-                <i class="fa fa-arrow-right dashboard-stat-arrow"></i>
+<div class="row g-3 align-items-start">
+
+    {# ── Qué toca ── #}
+    <div class="col-12 col-xl-8 order-1">
+        <section class="dt-card" aria-labelledby="hm-todo-title">
+            <div class="dt-card-head">
+                <h2 class="dt-card-title" id="hm-todo-title">Qué toca</h2>
+                <a class="small fw-semibold text-decoration-none" href="{% url 'treatment-calendar' %}">Calendario</a>
+            </div>
+
+            {% if not has_work %}
+            <div class="hm-empty">
+                <span class="hm-empty-icon"><i class="fa fa-check" aria-hidden="true"></i></span>
+                <b>Todo al día</b>
+                <span>Nada atrasado ni programado en los próximos {{ upcoming_days }} días.</span>
+            </div>
+            {% else %}
+            {% for group in groups %}
+            <div class="tl-group-header tl-group-header--{{ group.tone }} hm-group">
+                <span>
+                    {% if group.index == 2 %}Del {{ group.range_start|date:"j" }} al {{ group.range_end|date:"j b" }}{% else %}{{ group.label }}{% endif %}
+                    · {{ group.total }}
+                </span>
+                {% if group.total > group.treatments|length %}
+                <a class="hm-group-more" href="{{ group.url }}">Ver los {{ group.total }}</a>
                 {% endif %}
             </div>
-        </a>
-    </div>
-
-    <!-- Próximos -->
-    <div class="col-6 col-lg-3">
-        <a class="text-decoration-none" href="{% url 'treatment-list' %}?status=pending">
-            <div class="dashboard-stat-card dashboard-stat-card--action {% if pending_treatments_count > 0 %}dashboard-stat-card--warning{% else %}dashboard-stat-card--success{% endif %}">
-                <div class="dashboard-stat-icon">
-                    <i class="fa {% if pending_treatments_count > 0 %}fa-calendar-check{% else %}fa-check-circle{% endif %}"></i>
-                </div>
-                <div class="dashboard-stat-body">
-                    <div class="dashboard-stat-value">{{ pending_treatments_count }}</div>
-                    <div class="dashboard-stat-label">Próximos {{ upcoming_days }}d</div>
-                </div>
-                {% if pending_treatments_count > 0 %}
-                <i class="fa fa-arrow-right dashboard-stat-arrow"></i>
-                {% endif %}
-            </div>
-        </a>
-    </div>
-
-    <!-- Parcelas -->
-    <div class="col-6 col-lg-3">
-        <a class="text-decoration-none" href="{% url 'field-list' %}">
-            <div class="dashboard-stat-card dashboard-stat-card--action dashboard-stat-card--primary">
-                <div class="dashboard-stat-icon">
-                    <i class="fa fa-map"></i>
-                </div>
-                <div class="dashboard-stat-body">
-                    <div class="dashboard-stat-value">{{ fields.count }}</div>
-                    <div class="dashboard-stat-label">Parcelas</div>
-                </div>
-                <i class="fa fa-arrow-right dashboard-stat-arrow"></i>
-            </div>
-        </a>
-    </div>
-
-    <!-- Hectáreas -->
-    <div class="col-6 col-lg-3">
-        <div class="dashboard-stat-card dashboard-stat-card--neutral">
-            <div class="dashboard-stat-icon">
-                <i class="fa fa-up-right-and-down-left-from-center"></i>
-            </div>
-            <div class="dashboard-stat-body">
-                <div class="dashboard-stat-value">{{ total_area }}</div>
-                <div class="dashboard-stat-label">Hectáreas</div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ── TREATMENT LISTS ──────────────────────────────────── -->
-<div class="row g-3">
-
-    <!-- Atrasados -->
-    <div class="col-12 col-lg-6">
-        <div class="card h-100">
-            <div class="card-header d-flex align-items-center justify-content-between">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="dashboard-section-dot bg-danger"></span>
-                    <span>Tratamientos atrasados</span>
-                    {% if delayed_treatments_count %}
-                    <span class="badge bg-danger rounded-pill">{{ delayed_treatments_count }}</span>
-                    {% endif %}
-                </div>
-                <a class="btn btn-outline-danger btn-xs"
-                   href="{% url 'treatment-list' %}?status=delayed">
-                    Ver todos <i class="fa fa-arrow-right ms-1"></i>
-                </a>
-            </div>
-            <div class="card-body p-0">
-                {% for treatment in delayed_treatments %}
-                {% include 'farm/fields/_treatment_alert.html' %}
-                {% empty %}
-                <div class="dashboard-empty-state">
-                    <i class="fa fa-circle-check fa-2x text-success mb-2"></i>
-                    <p class="mb-0">Sin tratamientos atrasados</p>
-                </div>
-                {% endfor %}
-            </div>
-            {% if delayed_total > delayed_treatments|length %}
-            <div class="card-footer bg-transparent text-center">
-                <a class="small fw-semibold text-decoration-none" href="{% url 'treatment-list' %}">Ver los {{ delayed_total }} atrasados <i class="fa fa-arrow-right ms-1"></i></a>
+            {% if group.treatments %}
+            {% include 'farm/treatments/treatment_list_item.html' with treatment_list=group.treatments hide_menu=True %}
+            {% else %}
+            <div class="hm-group-empty">
+                {% if group.index == 0 %}Nada atrasado.{% elif group.index == 1 %}Nada en los próximos 7 días.{% else %}Nada programado hasta el {{ group.range_end|date:"j b" }}.{% endif %}
             </div>
             {% endif %}
-        </div>
+            {% endfor %}
+            {% endif %}
+        </section>
     </div>
 
-    <!-- Próximos -->
-    <div class="col-12 col-lg-6">
-        <div class="card h-100">
-            <div class="card-header d-flex align-items-center justify-content-between">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="dashboard-section-dot bg-warning"></span>
-                    <span>Próximos {{ upcoming_days }} días</span>
-                    {% if pending_treatments_count %}
-                    <span class="badge bg-warning text-dark rounded-pill">{{ pending_treatments_count }}</span>
-                    {% endif %}
+    {# ── Columna secundaria: debajo en móvil ── #}
+    <div class="col-12 col-xl-4 order-2 d-flex flex-column gap-3">
+
+        <section class="dt-card" aria-labelledby="hm-prod-title">
+            <div class="dt-card-head">
+                <div>
+                    <h2 class="dt-card-title" id="hm-prod-title">Producto que vas a necesitar</h2>
+                    <div class="dt-muted">Atrasados + próximos 7 días{% if products_total %} · {{ products_total }} producto{{ products_total|pluralize }}{% endif %}</div>
                 </div>
-                <a class="btn btn-outline-warning btn-xs"
-                   href="{% url 'treatment-list' %}?status=pending">
-                    Ver todos <i class="fa fa-arrow-right ms-1"></i>
-                </a>
             </div>
-            <div class="card-body p-0">
-                {% for treatment in upcoming_treatments %}
-                {% include 'farm/fields/_treatment_alert.html' %}
-                {% empty %}
-                <div class="dashboard-empty-state">
-                    <i class="fa fa-circle-check fa-2x text-success mb-2"></i>
-                    <p class="mb-0">No hay tratamientos programados</p>
+            {% for p in products %}
+            <div class="hm-prod">
+                <div class="hm-prod-name">
+                    <b>{{ p.product_name }}</b>
+                    <span>{{ p.treatment_count }} tratamiento{{ p.treatment_count|pluralize }}</span>
                 </div>
-                {% endfor %}
+                <b class="hm-prod-qty">{{ p.total_dose|floatformat:"-2" }} {{ p.unit }}</b>
             </div>
-            {% if upcoming_total > upcoming_treatments|length %}
-            <div class="card-footer bg-transparent text-center">
-                <a class="small fw-semibold text-decoration-none" href="{% url 'treatment-list' %}">Ver los {{ upcoming_total }} próximos <i class="fa fa-arrow-right ms-1"></i></a>
-            </div>
-            {% endif %}
-        </div>
+            {% empty %}
+            <div class="hm-group-empty">Nada pendiente de aplicar.</div>
+            {% endfor %}
+            <a class="hm-card-link" href="{% url 'treatment-shopping-list' %}">
+                Preparar productos{% if products_hidden %} ({{ products_hidden }} más){% endif %}
+                <i class="fa fa-arrow-right" aria-hidden="true"></i>
+            </a>
+        </section>
+
+        {# Una tarjeta por municipio de las parcelas (casi siempre una); se rellena por JS #}
+        {% if show_weather %}
+        <div class="hm-weather" id="hmWeather" data-url="{% url 'api-weather-summary' %}" hidden></div>
+        {% endif %}
     </div>
 </div>
 
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/treatment-calendar.js' %}"></script>
+{% if show_weather %}
+<script>
+    // El tiempo se pide aparte (AEMET tarda): si falla o no hay datos, no se muestra nada.
+    document.addEventListener('DOMContentLoaded', function () {
+        const box = document.getElementById('hmWeather');
+        if (!box) return;
+        const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => (
+            { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const hh = (h) => String(h).padStart(2, '0') + ':00';
+        const LEVEL = { ok: 'buena', warn: 'dudosa', bad: 'mala' };
+
+        const day = (d) => {
+            const best = d.windows.length
+                ? `<span class="hm-wx-win hm-wx-win--ok">Se puede tratar ${d.windows.map(w => hh(w.from) + '–' + hh(w.to)).join(' · ')}</span>`
+                : '<span class="hm-wx-win hm-wx-win--none">Sin horas buenas</span>';
+            const cells = d.hours.map(h => `
+                <div class="hm-h hm-h--${h.level}" title="${hh(h.hour)} · hora ${LEVEL[h.level]} · ${h.temp === null ? '' : Math.round(h.temp) + '° · '}viento ${h.wind} km/h · lluvia ${h.rain} %">
+                    <span>${h.hour}</span><b>${h.wind}</b><i>${h.rain}</i>
+                </div>`).join('');
+            const aria = d.label + ': ' + d.hours.map(h => hh(h.hour) + ' viento ' + h.wind + ' km/h, lluvia ' + h.rain + ' %').join('; ');
+            return `<div class="hm-wx-day">
+                <div class="hm-wx-day-head"><b>${esc(d.label)}</b>${best}</div>
+                <div class="hm-hours-wrap" role="img" aria-label="${esc(aria)}">
+                    <div class="hm-h-labels" aria-hidden="true">
+                        <span><i class="fa fa-clock"></i>Hora</span>
+                        <span><i class="fa fa-wind"></i>Viento km/h</span>
+                        <span><i class="fa fa-droplet"></i>Lluvia %</span>
+                    </div>
+                    <div class="hm-hours">${cells}</div>
+                </div>
+            </div>`;
+        };
+
+        const card = (m) => `
+            <section class="dt-card" aria-label="Tiempo para tratar en ${esc(m.name)}">
+                <div class="dt-card-head">
+                    <div>
+                        <h2 class="dt-card-title">Tiempo para tratar</h2>
+                        <div class="dt-muted">${esc(m.name)} · ${m.fields.length} parcela${m.fields.length === 1 ? '' : 's'}</div>
+                    </div>
+                    <a class="small fw-semibold text-decoration-none" href="{% url 'weather-overview' %}">El Tiempo</a>
+                </div>
+                ${m.days.map(day).join('')}
+                <div class="hm-legend" aria-hidden="true">
+                    <span><i class="hm-sw hm-sw--ok"></i>Buena: viento ≤ 20 km/h y lluvia &lt; 20 %</span>
+                    <span><i class="hm-sw hm-sw--warn"></i>Dudosa</span>
+                    <span><i class="hm-sw hm-sw--bad"></i>Mala: viento &gt; 25 km/h o lluvia ≥ 50 %</span>
+                </div>
+            </section>`;
+
+        fetch(box.dataset.url, { headers: { 'Accept': 'application/json' } })
+            .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+            .then(data => {
+                const list = data.municipalities || [];
+                if (!list.length) return;
+                box.innerHTML = list.map(card).join('');
+                box.hidden = false;
+            })
+            .catch(() => { /* sin datos de tiempo: no se muestra */ });
+    });
+</script>
+{% endif %}
 {% endblock %}

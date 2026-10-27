@@ -532,3 +532,66 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
     .treatment-product-card .dose-info { margin: .25rem 0 0; padding: .3rem .5rem; font-size: .78rem; }
     .treatment-product-card .duplicate-badge { grid-column: 2; grid-row: 2; justify-self: start; }
 }
+
+/* ═══════════════════════════════════════════════
+   INICIO (hm-*): chips de estado, «Qué toca», productos y tiempo.
+   La fila de tratamiento es la misma del listado (tl-*); aquí solo lo que es propio de Inicio.
+═══════════════════════════════════════════════ */
+.hm-chips { display: flex; gap: .5rem; margin-bottom: 1rem; overflow-x: auto; scrollbar-width: none; }
+.hm-chips::-webkit-scrollbar { display: none; }
+.hm-chip { flex: none; display: inline-flex; align-items: center; gap: .55rem; min-height: 44px; padding: .25rem .85rem .25rem .4rem; background: #fff; border: 1px solid var(--bs-border-color); border-radius: 22px; color: var(--tl-ink); font-size: .9rem; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.hm-chip:hover { color: var(--tl-ink); border-color: var(--tl-head-line); box-shadow: 0 1px 4px rgba(0, 0, 0, .08); }
+.hm-chip > i { font-size: .7rem; color: var(--tl-muted); }
+.hm-chip-count { display: inline-flex; align-items: center; justify-content: center; min-width: 1.9rem; height: 1.9rem; padding: 0 .5rem; border-radius: 1rem; font-weight: 700; }
+.hm-chip-count--0 { background: var(--tl-0-bg); color: var(--tl-0-fg); }
+.hm-chip-count--1 { background: var(--tl-1-bg); color: var(--tl-1-fg); }
+.hm-chip-count--2 { background: var(--tl-2-bg); color: var(--tl-2-fg); }
+.hm-chip-count--none { background: var(--tl-2-bg); color: var(--tl-muted); }
+
+/* Cabecera de grupo con «Ver los N» a la derecha; las filas pueden pasar ya de la primera */
+.hm-group { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding-bottom: .5rem; border-bottom: 1px solid var(--tl-line); }
+.hm-group + .tl-item { border-top: 0; }
+.hm-group-more { font-size: .8rem; font-weight: 600; letter-spacing: 0; text-transform: none; text-decoration: none; }
+.hm-group-empty { padding: .75rem 1rem; font-size: .9rem; color: var(--tl-muted); border-bottom: 1px solid var(--tl-line); }
+.dt-card > :last-child { border-bottom: 0; }
+
+.hm-empty { display: flex; flex-direction: column; align-items: center; gap: .35rem; padding: 2.5rem 1rem; text-align: center; color: var(--tl-muted); }
+.hm-empty b { font-size: 1rem; color: var(--tl-ink); }
+.hm-empty-icon { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; background: var(--tl-3-bg); color: var(--tl-3-fg); }
+
+/* Producto que vas a necesitar */
+.hm-prod { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; padding: .55rem 1rem; border-bottom: 1px solid var(--tl-line); }
+.hm-prod-name { min-width: 0; }
+.hm-prod-name b { display: block; overflow: hidden; font-size: .9rem; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.hm-prod-name span { font-size: .75rem; color: var(--tl-muted); }
+.hm-prod-qty { flex: none; font-size: .95rem; }
+.hm-card-link { display: flex; align-items: center; justify-content: center; gap: .4rem; min-height: 44px; font-size: .9rem; font-weight: 600; text-decoration: none; }
+
+/* Tiempo para tratar: tira de horas por día; el color es el nivel de la hora y las cifras lo repiten */
+.hm-weather { display: flex; flex-direction: column; gap: 1rem; }
+.hm-weather[hidden] { display: none; }
+.hm-wx-day { padding: .6rem 1rem .75rem; border-bottom: 1px solid var(--tl-line); }
+.hm-wx-day-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .25rem .75rem; margin-bottom: .45rem; font-size: .9rem; }
+.hm-wx-win { font-size: .8rem; font-weight: 700; }
+.hm-wx-win--ok { color: var(--tl-3-fg); }
+.hm-wx-win--none { color: var(--tl-0-fg); }
+/* Etiquetas de fila fijas a la izquierda; las horas se desplazan. Misma altura de fila en ambos lados. */
+.hm-hours-wrap { display: flex; gap: .5rem; }
+.hm-h-labels { flex: none; display: flex; flex-direction: column; padding: .3rem 0; font-size: .7rem; font-weight: 600; color: var(--tl-muted); }
+.hm-h-labels span, .hm-h > * { display: flex; align-items: center; height: 1.4rem; }
+.hm-h-labels i { width: 1.1rem; font-size: .7rem; }
+.hm-hours { flex: 1; min-width: 0; display: flex; gap: 3px; overflow-x: auto; padding-bottom: 4px; }
+.hm-h { flex: 0 0 2.1rem; display: flex; flex-direction: column; align-items: center; padding: .3rem 0; border-radius: 6px; font-size: .7rem; }
+.hm-h > * { justify-content: center; }
+.hm-h span { font-weight: 600; opacity: .8; }
+.hm-h b { font-size: .85rem; }
+.hm-h i { font-style: normal; opacity: .85; }
+.hm-legend { display: flex; flex-wrap: wrap; gap: .25rem 1rem; padding: .6rem 1rem; font-size: .75rem; color: var(--tl-muted); }
+.hm-legend span { display: inline-flex; align-items: center; gap: .35rem; }
+.hm-sw { width: .8rem; height: .8rem; border-radius: 3px; }
+.hm-sw--ok { background: var(--tl-3-bg); border: 1px solid var(--tl-3-fg); }
+.hm-sw--warn { background: var(--tl-1-bg); border: 1px solid var(--tl-1-fg); }
+.hm-sw--bad { background: var(--tl-0-bg); border: 1px solid var(--tl-0-fg); }
+.hm-h--ok { background: var(--tl-3-bg); color: var(--tl-3-fg); }
+.hm-h--warn { background: var(--tl-1-bg); color: var(--tl-1-fg); }
+.hm-h--bad { background: var(--tl-0-bg); color: var(--tl-0-fg); }

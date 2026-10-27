@@ -3,6 +3,7 @@
 Fila del listado de tratamientos. Una sola plantilla para desktop y móvil:
 - Desktop (≥ md): rejilla Fecha | Tratamiento | Productos | Máquina/Coste | acciones.
 - Móvil: fecha + nombre + ✓. Al tocar la fila se despliegan los productos con la dosis por cuba.
+- También se usa en Inicio, sin cabeceras de grupo (`show_groups` vacío) y con `hide_menu=True`.
 La fecha va en una pastilla con el color del grupo de urgencia (tl-date--0…3).
 {% endcomment %}
 {% for treatment in treatment_list %}
@@ -93,6 +94,7 @@ La fecha va en una pastilla con el color del grupo de urgencia (tl-date--0…3).
                 <i class="fa fa-check" aria-hidden="true"></i><span class="d-none d-md-inline">Hecho</span>
             </button>
             {% endif %}
+{% if not hide_menu %}
             <div class="dropdown d-none d-md-block">
                 <button class="tl-icon-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Más acciones" title="Más acciones">
                     <i class="fa fa-ellipsis-vertical"></i>
@@ -101,6 +103,7 @@ La fecha va en una pastilla con el color del grupo de urgencia (tl-date--0…3).
                     {% include 'farm/treatments/_treatment_menu_items.html' %}
                 </ul>
             </div>
+            {% endif %}
             <button class="tl-icon-btn tl-expand d-none d-md-flex" type="button"
                     data-bs-toggle="collapse" data-bs-target="#tlC{{ treatment.id }}"
                     aria-expanded="false" aria-controls="tlC{{ treatment.id }}" aria-label="Ver dosis" title="Ver dosis">
@@ -194,6 +197,7 @@ La fecha va en una pastilla con el color del grupo de urgencia (tl-date--0…3).
         <div class="tl-detail-actions d-md-none">
             <a class="btn btn-outline-secondary" href="{% url 'treatment-detail' treatment.id %}">Ver detalle</a>
             <a class="btn btn-outline-secondary" href="{% url 'treatment-instructions' treatment.id %}">Instrucciones</a>
+{% if not hide_menu %}
             <div class="dropdown">
                 <button class="btn btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Más acciones">
                     <i class="fa fa-ellipsis"></i>
@@ -202,6 +206,7 @@ La fecha va en una pastilla con el color del grupo de urgencia (tl-date--0…3).
                     {% include 'farm/treatments/_treatment_menu_items.html' %}
                 </ul>
             </div>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -210,4 +215,4 @@ La fecha va en una pastilla con el color del grupo de urgencia (tl-date--0…3).
 {% endwith %}
 {% endfor %}
 
-{# El form #deleteTreatmentForm y confirmDeleteTreatment() los provee treatment_list.html #}
+{# El form #deleteTreatmentForm y confirmDeleteTreatment() los provee treatment_list.html; con hide_menu=True (Inicio) no hace falta el menú ⋮ #}

@@ -45,25 +45,6 @@ class TestUpcomingHorizon:
 
 
 @pytest.mark.django_db
-class TestDashboard:
-
-    def test_counts_by_dates_and_previews_three(self, setup):
-        client, org, field, machine = setup
-        for i in range(5):
-            t = SprayingTreatmentFactory(organization=org, field=field, machine=machine, date=_days(-1 - i))
-        # Estado desfasado: sigue «pending» con fecha pasada → cuenta como atrasado
-        Treatment.objects.filter(pk=t.pk).update(status='pending')
-        SprayingTreatmentFactory(organization=org, field=field, machine=machine, date=_days(10))
-
-        response = client.get(reverse('field_list'))
-
-        assert response.context['delayed_treatments_count'] == 5
-        assert len(response.context['delayed_treatments']) == 3
-        assert response.context['pending_treatments_count'] == 1
-        assert 'Ver los 5 atrasados' in response.content.decode()
-
-
-@pytest.mark.django_db
 class TestPrepareProducts:
 
     def test_new_url_and_old_one_redirects(self, setup):

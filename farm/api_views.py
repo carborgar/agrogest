@@ -433,3 +433,17 @@ def get_no_price_products(user, fields, start_date, end_date):
     result.sort(key=lambda x: x['name'])
     return result
 
+
+@api_login_required
+def get_weather_summary(request):
+    """
+    Tiempo por horas (hoy y mañana) de los municipios de todas las parcelas del usuario.
+    GET /api/weather/summary/
+    """
+    from core.models import is_enabled
+    from .weather_service import get_weather_summary as build_summary
+
+    if not is_enabled('WEATHER'):
+        return JsonResponse({"error": "Módulo desactivado"}, status=404)
+    fields = Field.ownership_objects.get_queryset_for_user(request.user).exclude(geometry='')
+    return JsonResponse({"municipalities": build_summary(fields)})

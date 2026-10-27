@@ -16,8 +16,10 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import date
+from datetime import date, timedelta
 from django.conf import settings
+from django.core.cache import cache
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 AEMET_BASE = "https://opendata.aemet.es/opendata"
@@ -743,3 +745,105 @@ def get_weather_for_field(field) -> dict | None:
             "sample_horaria": sample_hora_raw,
         },
     }
+
+
+# ── Resumen por municipio y hora (Inicio) ─────────────────────────────
+# Umbrales del nivel de cada hora. «ok» es el mismo `treatment_ok` de la previsión horaria;
+# «bad» coincide con el rojo de El Tiempo.
+BAD_RAIN_PROB = 50
+BAD_WIND_KMH = 25
+_HOURLY_TTL = 1800       # AEMET actualiza la previsión varias veces al día; 30 min sobra
+_HOURLY_FAIL_TTL = 300   # si falla, no se reintenta en cada carga de Inicio
+
+
+def hour_level(hour: dict) -> str:
+    """'ok' (se puede tratar), 'bad' (lluvia probable o viento fuerte) o 'warn' (en medio)."""
+    if hour["treatment_ok"]:
+        return "ok"
+    if hour["precipitation_probability"] >= BAD_RAIN_PROB or hour["wind_speed"] > BAD_WIND_KMH:
+        return "bad"
+    return "warn"
+
+
+def ok_windows(hours: list) -> list:
+    """Tramos de horas seguidas con nivel 'ok': [{'from': 15, 'to': 19}] (19 = hasta las 19:00)."""
+    windows, start, last = [], None, None
+    for h in hours:
+        if h["level"] == "ok" and last is not None and h["hour"] == last + 1:
+            last = h["hour"]
+            continue
+        if start is not None:
+            windows.append({"from": start, "to": last + 1})
+            start = last = None
+        if h["level"] == "ok":
+            start = last = h["hour"]
+    if start is not None:
+        windows.append({"from": start, "to": last + 1})
+    return windows
+
+
+def municipality_for_field(field) -> dict | None:
+    """Municipio AEMET ({'cod', 'nombre', ...}) más cercano al centro de la parcela, o None."""
+    if not getattr(field, "geometry", None):
+        return None
+    coords = _get_centroid(field.geometry)
+    if coords is None:
+        return None
+    return _nearest_municipio(*coords)
+
+
+def get_hourly_for_municipio(cod: str) -> list:
+    """Previsión horaria de un municipio, con caché. Lista vacía si AEMET no responde."""
+    key = f"aemet:horaria:{cod}"
+    cached = cache.get(key)
+    if cached is not None:
+        return cached
+    raw = _aemet_fetch(f"/api/prediccion/especifica/municipio/horaria/{cod}")
+    hourly = _parse_horaria(raw) if raw else []
+    cache.set(key, hourly, _HOURLY_TTL if hourly else _HOURLY_FAIL_TTL)
+    return hourly
+
+
+def get_weather_summary(fields) -> list:
+    """Tiempo por horas (las 24) de hoy y mañana, una entrada por municipio de las parcelas.
+
+    Las parcelas de un mismo municipio comparten previsión (AEMET es municipal), así que se
+    agrupan y se pide una sola vez. Devuelve [] si no hay clave, coordenadas o datos.
+    """
+    if not getattr(settings, "AEMET_API_KEY", ""):
+        return []
+    groups: dict = {}
+    for field in fields:
+        municipio = municipality_for_field(field)
+        if municipio:
+            group = groups.setdefault(municipio["cod"], {"name": municipio["nombre"], "fields": []})
+            group["fields"].append(field.name)
+
+    now = timezone.localtime()
+    result = []
+    for cod, group in groups.items():
+        hourly = get_hourly_for_municipio(cod)
+        days = []
+        for offset, label in ((0, "Hoy"), (1, "Mañana")):
+            day = (now + timedelta(days=offset)).date().isoformat()
+            hours = []
+            for h in hourly:
+                hr = int(h["hour"][:2])
+                if h["date"] != day:
+                    continue
+                # Se muestran las 24 h (tratar de noche o de madrugada, con menos viento, es habitual);
+                # solo se quitan las ya pasadas de hoy
+                if offset == 0 and hr < now.hour:
+                    continue
+                hours.append({
+                    "hour": hr,
+                    "temp": h["temperature"],
+                    "wind": round(h["wind_speed"]),
+                    "rain": h["precipitation_probability"],
+                    "level": hour_level(h),
+                })
+            if hours:
+                days.append({"label": label, "hours": hours, "windows": ok_windows(hours)})
+        if days:
+            result.append({"name": group["name"], "fields": sorted(group["fields"]), "days": days})
+    return sorted(result, key=lambda m: -len(m["fields"]))
