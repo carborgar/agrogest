@@ -4,7 +4,7 @@
  *  - Un estado plano (JSON) con lo que ha tecleado/elegido el usuario.
  *  - Acciones puras  (state, payload, data) → state.
  *  - derive(state, data) → TODO lo que se pinta: líneas con total, coste, por cuba y aviso;
- *    cubas; resumen; lista «Falta: …»; errores por sección; nombre automático.
+ *    cubas; resumen; lista «Falta: …»; errores por sección.
  *    (Es el equivalente de renderVals() del prototipo.)
  *  - toFormValues(state, data) → valores normalizados (punto decimal) para los inputs reales
  *    del formulario Django.
@@ -26,9 +26,6 @@
 })(typeof window !== 'undefined' ? window : globalThis, function (calc) {
     'use strict';
 
-    const NAME_MAX = 100;
-    const NAME_PRODUCTS_MAX = 3;
-
     // ── Utilidades ────────────────────────────────────────────────────────────
 
     const fmt = (n, d) => n.toLocaleString('es-ES', {
@@ -47,18 +44,6 @@
     function doseToText(value) {
         if (value === null || value === undefined || !Number.isFinite(value)) return '';
         return fmt(value, 3).replace(/\./g, '');
-    }
-
-    function autoName(state, data) {
-        const products = byId(data.products);
-        const names = [];
-        for (const line of state.lines) {
-            const p = products[line.productId];
-            if (p && doseOption(p, state.type)) names.push(p.name);
-            if (names.length === NAME_PRODUCTS_MAX) break;
-        }
-        const joined = names.join(' + ');
-        return joined.length > NAME_MAX ? joined.slice(0, NAME_MAX - 1) + '…' : joined;
     }
 
     function plain(lines, patchByKey) {
@@ -106,11 +91,8 @@
             finishDate: initial.finishDate || '',
             realWater: isSpray && initial.finishDate && initial.realWater ? String(initial.realWater) : '',
             name: initial.name || '',
-            nameTouched: false,
             tried: false,
         };
-        // En edición el nombre cuenta como tocado. Al volver de un error de envío, solo si no es el automático.
-        state.nameTouched = isEdit || (!!state.name && state.name !== autoName(state, data));
         return state;
     }
 
@@ -242,9 +224,9 @@
             return Object.assign({}, state, { realWater: String(payload.water) });
         },
 
-        /** Regla 10: tocar el nombre lo fija (deja de ser automático). */
+        /** Regla 10: el nombre se escribe a mano (Carlos anuló el nombre automático, 27/10). */
         setName(state, payload) {
-            return Object.assign({}, state, { name: String(payload.name), nameTouched: true });
+            return Object.assign({}, state, { name: String(payload.name) });
         },
 
         /** Se intentó guardar: a partir de aquí se enseñan los errores de las secciones. */
@@ -389,9 +371,7 @@
             });
         }
 
-        // Nombre automático (regla 10 / D2)
-        const auto = autoName(state, data);
-        const name = state.nameTouched ? state.name : auto;
+        const name = state.name;
 
         // Resumen
         const supportedLines = lines.filter((l) => l.supported);
@@ -457,9 +437,7 @@
                 costPerHa: totalCost !== null && totalArea > 0 ? calc.roundTo(totalCost / totalArea, 2) : null,
                 ready: ready,
             },
-            autoName: auto,
             name: name,
-            nameHint: state.nameTouched ? 'touched' : (auto ? 'auto' : 'empty'),
             finishFuture: finishFuture,
             missing: missing,
             missingText: missing.length ? 'Falta: ' + missing.map((m) => m.label).join(', ') : '',
@@ -511,9 +489,7 @@
     }
 
     return {
-        NAME_MAX,
         doseToText,
-        autoName,
         initialState,
         actions,
         reduce,

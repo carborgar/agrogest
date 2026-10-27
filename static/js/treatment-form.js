@@ -76,7 +76,7 @@
         loads: $('tfLoads'), loadsHead: $('tfLoadsHead'), loadRows: $('tfLoadRows'),
         dateTitle: $('tfDateTitle'), dateChips: $('tfDateChips'), customDate: $('tfCustomDate'), dateLong: $('tfDateLong'),
         done: $('tfDone'), doneFields: $('tfDoneFields'), finish: $('tfFinish'), realWrap: $('tfRealWrap'), realWater: $('tfRealWater'),
-        name: $('tfName'), nameHint: $('tfNameHint'),
+        name: $('tfName'),
         summary: $('tfSummary'), sumMain: $('tfSumMain'), sumSub: $('tfSumSub'), kv: $('tfKv'), missing: $('tfMissing'), save: $('tfSave'),
     };
     const SECTIONS = ['field', 'products', 'application', 'date', 'name'];
@@ -382,14 +382,8 @@
         }
     }
 
-    function paintName(d) {
-        setVal(ui_.name, d.name);
-        const hints = {
-            touched: 'Es el nombre que verás en el listado y el calendario.',
-            auto: 'Puesto a partir de los productos. Cámbialo si quieres.',
-            empty: 'Se rellena solo al añadir productos.',
-        };
-        setText(ui_.nameHint, hints[d.nameHint]);
+    function paintName() {
+        setVal(ui_.name, state.name);
     }
 
     function paintSummary(d) {

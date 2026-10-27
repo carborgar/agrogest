@@ -49,6 +49,7 @@ const near = (a, b, eps = 1e-4) => assert.ok(a !== null && Math.abs(a - b) <= ep
 function base(extra = {}) {
     return run(fresh(Object.assign({ machineId: 1, water: '1000' }, extra)), [
         ['toggleField', { id: 1 }], ['addProduct', { productId: 1 }], ['addProduct', { productId: 2 }],
+        ['setName', { name: 'Cobre + Mojante' }],
     ]);
 }
 
@@ -83,7 +84,7 @@ test('R1 productos sin dosis para el nuevo tipo: no válidos y bloquean el guard
     assert.match(d.lines[0].unsupportedMessage, /fertirrigación/);
     assert.equal(d.canSave, false);
     assert.ok(d.missing.some((m) => m.key === 'unsupported'));
-    assert.equal(d.name, '');                         // el nombre automático solo cuenta los válidos
+    assert.equal(d.name, 'Cobre + Mojante');          // el nombre escrito a mano no cambia con el tipo
 
     // al volver a pulverización dejan de estar marcados
     s = run(s, [['setType', { type: 'spraying' }]]);
@@ -236,7 +237,7 @@ test('R5 quitar renumera las posiciones', () => {
 
 // ── Regla 6: editar ───────────────────────────────────────────────────────────
 
-test('R6 editar: dosis guardada (no la recomendada), total a mano y precio congelado; el nombre cuenta como tocado', () => {
+test('R6 editar: dosis guardada (no la recomendada), total a mano y precio congelado; el nombre guardado se conserva', () => {
     const s = fresh({
         isEdit: true, type: 'spraying', fieldIds: [1], machineId: 1, water: '1000', date: '2026-10-20', name: 'Mi nombre',
         lines: [
@@ -245,7 +246,6 @@ test('R6 editar: dosis guardada (no la recomendada), total a mano y precio conge
             { productId: 2, dose: '0,5', unitPrice: 0 },                       // se guardó sin precio: usa el del producto
         ],
     });
-    assert.equal(s.nameTouched, true);
     assert.equal(s.mode, 'edit');
     const d = derive(s, DATA);
     assert.equal(d.name, 'Mi nombre');
@@ -259,14 +259,6 @@ test('R6 editar: dosis guardada (no la recomendada), total a mano y precio conge
     // y lo que se enviaría mantiene el total a mano
     const v = toFormValues(s, DATA).lines;
     assert.deepEqual(v.map((l) => l.total_overridden), ['false', 'true', 'false']);
-});
-
-test('R6 un nombre propio al volver de un error de envío sigue siendo propio; el automático no', () => {
-    const lines = [{ productId: 1, dose: '3' }, { productId: 2, dose: '0,5' }];
-    const auto = fresh({ type: 'spraying', fieldIds: [1], machineId: 1, water: '1000', name: 'Oxicloruro de cobre 50% + Mojante no iónico', lines });
-    assert.equal(auto.nameTouched, false);
-    const own = fresh({ type: 'spraying', fieldIds: [1], machineId: 1, water: '1000', name: 'Mi tratamiento', lines });
-    assert.equal(own.nameTouched, true);
 });
 
 test('R6 editar un hecho: hecho, fecha y mojado real cargados', () => {
@@ -396,7 +388,7 @@ test('R9 con varias máquinas hay que elegir; con ninguna, aviso y bloqueo en pu
     assert.equal(d.canSave, false);
     assert.match(d.errors.application[0], /ninguna máquina/);
     // en fertirrigación no hace falta máquina
-    s = run(fresh({ type: 'fertigation' }, NO_MACHINE), [['toggleField', { id: 1 }], ['addProduct', { productId: 6 }]], NO_MACHINE);
+    s = run(fresh({ type: 'fertigation' }, NO_MACHINE), [['toggleField', { id: 1 }], ['addProduct', { productId: 6 }], ['setName', { name: 'Abonado' }]], NO_MACHINE);
     d = derive(s, NO_MACHINE);
     assert.equal(d.machineMode, 'none');
     assert.equal(d.canSave, true);
@@ -412,38 +404,30 @@ test('cubas: llenas + parcial por parcela y por cuba llena', () => {
     assert.equal(d.loadsTotalWater, 4200);
 });
 
-// ── Regla 10: nombre automático (D2) ──────────────────────────────────────────
+// ── Regla 10: el nombre se escribe a mano (D2 anulada por Carlos, 27/10) ─────
 
-test('R10/D2 nombre automático con nombres completos unidos con « + » (máx. 3)', () => {
-    let s = fresh({ machineId: 1, water: '1000' });
-    s = run(s, [['addProduct', { productId: 1 }]]);
-    assert.equal(derive(s, DATA).name, 'Oxicloruro de cobre 50%');
-    s = run(s, [['addProduct', { productId: 2 }], ['addProduct', { productId: 3 }], ['addProduct', { productId: 5 }]]);
-    assert.equal(derive(s, DATA).name, 'Oxicloruro de cobre 50% + Mojante no iónico + Deltametrina 2,5%');
-    assert.equal(derive(s, DATA).nameHint, 'auto');
+test('R10 el nombre no se rellena solo: vacío al crear y obligatorio', () => {
+    const s = run(fresh({ machineId: 1, water: '1000' }), [['addProduct', { productId: 1 }], ['addProduct', { productId: 2 }]]);
+    const d = derive(s, DATA);
+    assert.equal(d.name, '');
+    assert.equal(d.canSave, false);
+    assert.deepEqual(d.errors.name, ['Pon un nombre al tratamiento.']);
+    assert.match(d.missingText, /nombre/);
+    assert.equal('autoName' in d || 'nameHint' in d, false);
 });
 
-test('R10/D2 si pasa de 100 caracteres se corta a 99 y se añade «…»', () => {
-    const long = (id, n) => ({ id, name: 'P'.repeat(n), type_name: 'x', spraying: opt(1, 'l_per_ha', 'L/ha'), fertigation: null, price: 1, recent: false });
-    const data = Object.assign({}, DATA, { products: [long(21, 40), long(22, 40), long(23, 40)] });
-    const s = run(fresh({ machineId: 1, water: '1000' }, data), [['addProduct', { productId: 21 }], ['addProduct', { productId: 22 }], ['addProduct', { productId: 23 }]], data);
-    const name = derive(s, data).name;
-    assert.equal(name.length, 100);
-    assert.ok(name.endsWith('…'));
-    assert.equal(name.slice(0, 99), ('P'.repeat(40) + ' + ' + 'P'.repeat(40) + ' + ' + 'P'.repeat(40)).slice(0, 99));
-    // justo 100 caracteres no se corta
-    const exact = Object.assign({}, DATA, { products: [long(31, 50), long(32, 47)] });   // 50 + 3 + 47 = 100
-    const s2 = run(fresh({}, exact), [['addProduct', { productId: 31 }], ['addProduct', { productId: 32 }]], exact);
-    assert.equal(derive(s2, exact).name.length, 100);
-    assert.equal(derive(s2, exact).name.endsWith('…'), false);
+test('R10 con nombre escrito a mano se puede guardar y añadir productos no lo toca', () => {
+    let s = run(fresh({ machineId: 1, water: '1000' }), [['addProduct', { productId: 1 }], ['setName', { name: 'Mi cobre' }]]);
+    s = run(s, [['addProduct', { productId: 2 }]]);
+    const d = derive(s, DATA);
+    assert.equal(d.name, 'Mi cobre');
+    assert.deepEqual(d.errors.name, []);
+    assert.equal(toFormValues(s, DATA).name, 'Mi cobre');
 });
 
-test('R10 se rellena hasta que el usuario toca el nombre', () => {
-    let s = run(fresh({ machineId: 1, water: '1000' }), [['addProduct', { productId: 1 }]]);
-    s = run(s, [['setName', { name: 'Mi cobre' }], ['addProduct', { productId: 2 }]]);
-    assert.equal(derive(s, DATA).name, 'Mi cobre');
-    assert.equal(derive(s, DATA).nameHint, 'touched');
-    assert.equal(derive(s, DATA).autoName, 'Oxicloruro de cobre 50% + Mojante no iónico');
+test('R10 un nombre de solo espacios cuenta como vacío', () => {
+    const s = run(fresh({ machineId: 1, water: '1000' }), [['addProduct', { productId: 1 }], ['setName', { name: '   ' }]]);
+    assert.deepEqual(derive(s, DATA).errors.name, ['Pon un nombre al tratamiento.']);
 });
 
 // ── Regla 11: área parcial ────────────────────────────────────────────────────
@@ -498,7 +482,7 @@ test('R12 formulario completo: se puede guardar, sin «Falta»', () => {
     // cobre 3 kg/1000L × 9,5 + mojante 0,5 L/1000L × 6 sobre 4200 L de caldo
     near(d.summary.totalCost, 12.6 * 9.5 + 2.1 * 6, 1e-2);
     near(d.summary.costPerHa, (12.6 * 9.5 + 2.1 * 6) / 4.2, 1e-2);
-    assert.equal(d.name, 'Oxicloruro de cobre 50% + Mojante no iónico');
+    assert.equal(d.name, 'Cobre + Mojante');
 });
 
 test('R12 dosis vacía o 0 bloquea; markTried no cambia los cálculos', () => {
@@ -544,7 +528,7 @@ test('las acciones no mutan el estado anterior', () => {
 test('toFormValues de una pulverización completa', () => {
     const s = run(base(), [['setMachine', { id: 1 }], ['setDate', { date: '2026-10-29' }]]);
     assert.deepEqual(toFormValues(s, DATA), {
-        name: 'Oxicloruro de cobre 50% + Mojante no iónico',
+        name: 'Cobre + Mojante',
         type: 'spraying', date: '2026-10-29', field: '1', extra_fields: [], machine: '1', water_per_ha: '1000',
         finish_date: '', real_water_per_ha: '', applied_area: '', zone_notes: '',
         lines: [

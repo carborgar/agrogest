@@ -36,6 +36,7 @@ function fill(p) {
     p.q('#tfAddClose').click();
     p.q('#tfMachineChips .tf-chip').click();
     p.type(p.q('#tfWater'), '1000');
+    p.type(p.q('#tfName'), 'Mi tratamiento');
 }
 
 test('arranca vacío y dice qué falta', () => {
@@ -53,7 +54,7 @@ test('flujo completo: parcela, producto, máquina y mojado dan coste y escriben 
     assert.equal(ev.defaultPrevented, false);
     assert.equal(p.q('#id_type').value, 'spraying');
     assert.equal(p.q('#id_water_per_ha').value, '1000');
-    assert.equal(p.q('#id_name').value, 'Fungicida');
+    assert.equal(p.q('#id_name').value, 'Mi tratamiento');
     assert.equal(p.d.getElementById('id_treatmentproduct_set-TOTAL_FORMS').value, '1');
     assert.equal(p.q('[name="treatmentproduct_set-0-dose"]').value, '3.000');
     assert.equal(p.q('[name="treatmentproduct_set-0-position"]').value, '0');

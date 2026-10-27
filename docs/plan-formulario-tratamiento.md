@@ -152,7 +152,7 @@ Tests: el JSON de la fase 0 más casos límite (sin mojado, área 0, `"0,5"`, `"
    - La fecha de realización no puede ser futura.
 8. **Pulverización sin mojado:** las líneas `*_per_1000l` y `pct` muestran total «—» y coste «Falta el mojado»; las `*_per_ha` sí se calculan.
 9. **Con una sola máquina** queda seleccionada siempre y no se muestran chips. Con ninguna, aviso con enlace para crear una (bloquea en pulverización).
-10. **Nombre automático:** se rellena hasta que el usuario lo toca (ver D2).
+10. ~~**Nombre automático:** se rellena hasta que el usuario lo toca (ver D2).~~ **Anulada (27/10):** el nombre se escribe a mano, vacío al crear y obligatorio.
 11. **Área parcial:** entre 0 y el área de la parcela; si no, error en la sección.
 12. **Errores:** la lista «Falta: …» y el error de cada sección salen de `derive()`, no del DOM.
 
@@ -196,7 +196,7 @@ Sustituye `templates/farm/treatments/treatment_form.html` (hoy 1271 líneas con 
 ## 8. Decisiones de Carlos (27/10)
 
 - **D1 — Respetar el total a mano** en tratamientos hechos con mojado real distinto. En `TreatmentProduct.save()`, el bloque `if not is_new and self.treatment.water_per_ha_changed(): calculate_total_dose()` no se aplica si `total_overridden=True` (en ese caso se deriva la dosis del total). Test que lo demuestre (falla antes, pasa después). Sustituye el «test que documente lo que hace hoy» de la fase 1.
-- **D2 — Nombre automático con nombres completos**: hasta 3 productos válidos unidos con « + »; si pasa de 100 caracteres, cortar a 99 y añadir «…». Se rellena mientras el usuario no toque el nombre; en edición se considera tocado.
+- **D2 — ANULADA por Carlos el 27/10** (con muchos productos el nombre automático no tiene sentido; el nombre se escribe a mano, campo vacío con placeholder «Ej. Cobre + Mojante», obligatorio). Texto original: **Nombre automático con nombres completos**: hasta 3 productos válidos unidos con « + »; si pasa de 100 caracteres, cortar a 99 y añadir «…». Se rellena mientras el usuario no toque el nombre; en edición se considera tocado.
 
 ---
 
@@ -211,7 +211,7 @@ Rama `feature/formulario-tratamiento` (sin push), un commit por fase.
 - **Fase 0**: casos golden (`farm/tests/fixtures/treatment_calc_cases.json`, compartidos con JS) y tests de caracterización del POST actual.
 - **Fase 1**: backend. E1 a E8 y D1 con test escrito antes y visto en rojo; `total_dose` opcional si no hay total a mano; mojado real conservado al editar si el cliente no lo manda; varias parcelas al crear; `build_treatment_form_data` (datos por `json_script`, sin fetch).
 - **Fase 2**: `static/js/treatment-calc.js` (cálculo puro), probado contra los mismos casos golden que Python.
-- **Fase 3**: `static/js/treatment-form-state.js` (acciones puras, `derive()`, `toFormValues()`), incluido D2 (nombre automático).
+- **Fase 3**: `static/js/treatment-form-state.js` (acciones puras, `derive()`, `toFormValues()`), sin nombre automático (D2 anulada en la segunda ronda).
 - **Fase 4**: plantilla nueva, controlador `treatment-form.js`, estilos `.tf-*` en `scss/custom-bootstrap.scss` (CSS recompilado y versionado), campo oculto `position`, errores del servidor por sección y por línea, tests de render y del controlador (jsdom sobre el HTML real).
 - **Fase 5**: `farm/tests/test_treatment_form_e2e.py` (ver desviaciones).
 
