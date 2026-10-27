@@ -152,14 +152,17 @@ document.addEventListener('DOMContentLoaded', function () {
     function renderPlaces(agg) {
         return '<div class="pp-places">' + agg.places.map(pl => {
             const names = Object.keys(pl.fields).sort();
-            const sub = pl.indep
-                ? `El producto se deja en la parcela (${ha(pl.fields[names[0]])})`
-                : 'Parcelas: ' + names.map(n => `${esc(n)} (${ha(pl.fields[n])})`).join(', ');
+            const totalHa = names.reduce((sum, n) => sum + pl.fields[n], 0);
+            // Cabecera en una línea; los nombres de las parcelas van en el tooltip
+            const meta = pl.indep ? ha(totalHa)
+                : names.length === 1 ? `${esc(names[0])} · ${ha(totalHa)}`
+                : `${names.length} parcelas · ${ha(totalHa)}`;
+            const tip = !pl.indep && names.length > 1
+                ? ` title="${esc(names.map(n => `${n} ${ha(pl.fields[n])}`).join(' · '))}"` : '';
             const prods = Object.values(pl.prods).sort(byName);
             return `<div class="pp-place">
                 <div class="pp-place-head">
-                    <div><b>${esc(pl.name)}${pl.indep ? ' · independiente' : ''}</b><small>${sub}</small></div>
-                    <span class="dt-muted">${plural(prods.length, 'producto', 'productos')}</span>
+                    <div${tip}><b>${esc(pl.name)}</b> <span class="pp-place-meta">${meta}</span></div>
                 </div>` + prods.map(p => {
                     const parts = Object.keys(p.byField).sort();
                     const split = parts.length > 1

@@ -512,10 +512,11 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
    PREPARAR PRODUCTOS (pp-*): selección de tratamientos y resultado por producto o casetilla.
    Fecha (tl-date), cabeceras de grupo (tl-group-header + hm-group) y pestañas (tl-tabs) son las del listado.
 ═══════════════════════════════════════════════ */
-.pp-row { display: flex; align-items: center; gap: .75rem; min-height: 56px; margin: 0; padding: .4rem 1rem; border-bottom: 1px solid var(--tl-line); cursor: pointer; }
+.pp-row { display: flex; align-items: center; gap: .75rem; min-height: 48px; margin: 0; padding: .25rem 1rem; border-bottom: 1px solid var(--tl-line); cursor: pointer; }
 .pp-row:has(.pp-cb:checked) { background: var(--tl-soft); }
 .pp-cb { flex: none; width: 20px; height: 20px; margin: 0; accent-color: var(--bs-primary); }
-.pp-row .tl-date { width: 2.9rem; }
+.pp-row .tl-date { width: 2.6rem; height: 2.6rem; }
+.pp-row .tl-day { font-size: 1rem; }
 .pp-row-main { flex: 1; min-width: 0; }
 .pp-row-name { display: block; overflow: hidden; font-size: .9rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .pp-row-meta { display: block; font-size: .78rem; color: var(--tl-muted); }
@@ -547,12 +548,14 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
 }
 
 /* Por casetilla: un bloque por punto de reparto */
-.pp-places { display: flex; flex-direction: column; gap: .85rem; padding: .85rem 1rem 1rem; }
+/* Rejilla: cada bloque solo lleva nombre y cantidad, así que con ~18rem basta y caben 2-3 por fila */
+.pp-places { display: grid; grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr)); align-items: start; gap: .75rem; padding: .85rem 1rem 1rem; }
 .pp-place { overflow: hidden; border: 1px solid var(--bs-border-color); border-radius: 10px; }
-.pp-place-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .25rem .75rem; padding: .6rem .85rem; border-bottom: 1px solid var(--tl-head-line); }
-.pp-place-head b, .pp-place-head small, .pp-place-row b, .pp-place-row small { display: block; }
+.pp-place-head { padding: .5rem .85rem; border-bottom: 1px solid var(--tl-head-line); }
+.pp-place-meta { font-size: .78rem; color: var(--tl-muted); }
+.pp-place-head small, .pp-place-row b, .pp-place-row small { display: block; }
 .pp-place-head small, .pp-place-row small { font-size: .75rem; color: var(--tl-muted); }
-.pp-place-row { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; padding: .5rem .85rem; border-bottom: 1px solid var(--tl-line); font-size: .9rem; }
+.pp-place-row { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; padding: .4rem .85rem; border-bottom: 1px solid var(--tl-line); font-size: .9rem; }
 .pp-place-row:last-child { border-bottom: 0; }
 .pp-place-row b { font-weight: 600; }
 
