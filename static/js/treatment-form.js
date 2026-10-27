@@ -52,7 +52,6 @@
 
     const data = readJson('treatment-form-data');
     const serverErrors = readJson('treatment-form-errors');
-    const machineUrl = readJson('treatment-machine-url');
     const isEdit = root.dataset.edit === '1';
     const form = $('treatmentForm');
     const PREFIX = 'treatmentproduct_set';
@@ -71,8 +70,7 @@
         lines: $('tfLines'), orderHint: $('tfOrderHint'), totalHead: $('tfTotalHead'), loadHead: $('tfLoadHead'),
         addBtn: $('tfAddBtn'), addLabel: $('tfAddLabel'), addInput: $('tfAddInput'), addClose: $('tfAddClose'),
         secApp: $('tfSecApp'), machineChips: $('tfMachineChips'), machineSingle: $('tfMachineSingle'),
-        machineName: $('tfMachineName'), machineCap: $('tfMachineCap'), machineNone: $('tfMachineNone'),
-        machineLink: $('tfMachineLink'), machineAsk: $('tfMachineAsk'), water: $('tfWater'),
+        machineName: $('tfMachineName'), machineCap: $('tfMachineCap'), water: $('tfWater'),
         loads: $('tfLoads'), loadsHead: $('tfLoadsHead'), loadRows: $('tfLoadRows'),
         dateTitle: $('tfDateTitle'), dateChips: $('tfDateChips'), customDate: $('tfCustomDate'), dateLong: $('tfDateLong'),
         done: $('tfDone'), doneFields: $('tfDoneFields'), finish: $('tfFinish'), realWrap: $('tfRealWrap'), realWater: $('tfRealWater'),
@@ -327,7 +325,6 @@
         if (!d.isSpray) return;
         setHidden(ui_.machineChips, d.machineMode !== 'multi');
         setHidden(ui_.machineSingle, d.machineMode !== 'single');
-        setHidden(ui_.machineNone, d.machineMode !== 'none');
         if (d.machineMode === 'multi') {
             const sig = data.machines.map((m) => m.id + ':' + (d.machine && d.machine.id === m.id)).join('|');
             if (ui_.machineChips.dataset.sig !== sig) {
@@ -338,8 +335,6 @@
         } else if (d.machineMode === 'single') {
             setText(ui_.machineName, d.machine.name);
             setText(ui_.machineCap, nf(d.machine.capacity, 0) + ' L · tu única máquina');
-        } else {
-            if (machineUrl) { ui_.machineLink.href = machineUrl; ui_.machineLink.hidden = false; } else ui_.machineAsk.hidden = false;
         }
         setVal(ui_.water, state.water);
         ui_.water.setAttribute('aria-invalid', String(state.tried && d.errors.application.some((m) => /mojado/.test(m))));

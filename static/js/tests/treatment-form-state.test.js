@@ -373,7 +373,7 @@ test('R9 con una sola máquina queda seleccionada y no hay chips', () => {
     assert.equal(d.missing.some((m) => m.key === 'machine'), false);
 });
 
-test('R9 con varias máquinas hay que elegir; con ninguna, aviso y bloqueo en pulverización', () => {
+test('R9 con varias máquinas hay que elegir', () => {
     let s = run(fresh({ water: '1000' }), [['toggleField', { id: 1 }], ['addProduct', { productId: 1 }]]);
     let d = derive(s, DATA);
     assert.equal(d.machineMode, 'multi');
@@ -381,17 +381,17 @@ test('R9 con varias máquinas hay que elegir; con ninguna, aviso y bloqueo en pu
     assert.ok(d.missing.some((m) => m.key === 'machine'));
     s = run(s, [['setMachine', { id: 2 }]]);
     assert.equal(derive(s, DATA).machine.id, 2);
+});
 
-    s = run(fresh({ water: '1000' }, NO_MACHINE), [['toggleField', { id: 1 }], ['addProduct', { productId: 1 }]], NO_MACHINE);
-    d = derive(s, NO_MACHINE);
-    assert.equal(d.machineMode, 'none');
+test('A3 sin máquinas no hay estado especial: se pide elegir máquina y el servidor decide (en fertirrigación no hace falta)', () => {
+    let s = run(fresh({ water: '1000' }, NO_MACHINE), [['toggleField', { id: 1 }], ['addProduct', { productId: 1 }], ['setName', { name: 'X' }]], NO_MACHINE);
+    let d = derive(s, NO_MACHINE);
+    assert.equal(d.machineMode, 'multi');
+    assert.equal(d.machine, null);
     assert.equal(d.canSave, false);
-    assert.match(d.errors.application[0], /ninguna máquina/);
-    // en fertirrigación no hace falta máquina
+    assert.deepEqual(d.errors.application, ['Elige la máquina.']);
     s = run(fresh({ type: 'fertigation' }, NO_MACHINE), [['toggleField', { id: 1 }], ['addProduct', { productId: 6 }], ['setName', { name: 'Abonado' }]], NO_MACHINE);
-    d = derive(s, NO_MACHINE);
-    assert.equal(d.machineMode, 'none');
-    assert.equal(d.canSave, true);
+    assert.equal(derive(s, NO_MACHINE).canSave, true);
 });
 
 test('cubas: llenas + parcial por parcela y por cuba llena', () => {

@@ -384,12 +384,6 @@ class TreatmentFormView(BaseSecureViewMixin, SuccessMessageMixin, UpdateView):
             collect_form_errors(context['form'], fs) if context['form'].is_bound else None
         )
 
-        # Sin máquinas en la app solo se crean desde el admin de Django: enlace solo si puede
-        user = self.request.user
-        context['machine_create_url'] = (
-            reverse('admin:farm_machine_add') if user.has_perm('farm.add_machine') and user.is_staff else None
-        )
-
         return context
 
     def post(self, request, *args, **kwargs):

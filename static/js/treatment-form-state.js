@@ -271,13 +271,13 @@
         // Máquina (regla 9)
         const machines = data.machines || [];
         let machine = null;
-        let machineMode = 'none';
+        // Con una sola máquina se usa sin preguntar; con 0 o varias se elige (si no hay ninguna, el servidor decide)
+        let machineMode = 'multi';
         if (isSpray) {
             if (machines.length === 1) {
                 machine = machines[0];
                 machineMode = 'single';
-            } else if (machines.length > 1) {
-                machineMode = 'multi';
+            } else {
                 machine = machines.find((m) => m.id === state.machineId) || null;
             }
         }
@@ -400,8 +400,7 @@
         else if (unsupportedLines.length) add('products', 'unsupported', 'quitar producto no válido', 'Hay productos sin dosis para este tipo. Quítalos o cambia el tipo.');
         else if (supportedLines.some((l) => !l.valid)) add('products', 'dose', 'dosis', 'Revisa las dosis: tienen que ser mayores que 0.');
         if (isSpray) {
-            if (machineMode === 'none') add('application', 'machine', 'máquina', 'No tienes ninguna máquina. Crea una para poder pulverizar.');
-            else if (!machine) add('application', 'machine', 'máquina', 'Elige la máquina.');
+            if (!machine) add('application', 'machine', 'máquina', 'Elige la máquina.');
             if (!(plannedWater > 0)) add('application', 'water', 'mojado', 'Indica el mojado previsto (L/ha).');
         }
         if (!state.date) add('date', 'date', 'fecha', 'Elige una fecha.');

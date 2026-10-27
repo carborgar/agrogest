@@ -15,7 +15,6 @@
 {# Datos para pintar el formulario sin peticiones (en campo hay mala cobertura) #}
 {{ form_data|json_script:"treatment-form-data" }}
 {% if form_errors %}{{ form_errors|json_script:"treatment-form-errors" }}{% endif %}
-{% if machine_create_url %}{{ machine_create_url|json_script:"treatment-machine-url" }}{% endif %}
 <script>document.body.classList.add('tf-page');</script>
 
 <div class="tf" id="tfRoot" data-edit="{% if is_edit %}1{% else %}0{% endif %}">
@@ -124,11 +123,6 @@
                         <p class="tf-machine-single" id="tfMachineSingle" hidden>
                             <i class="bi bi-check2" aria-hidden="true"></i>
                             <span><b id="tfMachineName"></b> <span class="tf-hint" id="tfMachineCap"></span></span>
-                        </p>
-                        <p class="tf-note tf-note--warn" id="tfMachineNone" hidden>
-                            No tienes ninguna máquina.
-                            <a id="tfMachineLink" href="#" hidden>Crear una</a>
-                            <span id="tfMachineAsk" hidden>Pídele a quien administre la cuenta que la dé de alta.</span>
                         </p>
                         <label class="tf-label-col" for="tfWater">Mojado previsto
                             <span class="tf-inline">

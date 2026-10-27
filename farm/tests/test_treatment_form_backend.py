@@ -583,17 +583,6 @@ class LinePositionAndErrorsTests(BackendBase):
         self.assertIn("product", errors["lines"]["1"])
         self.assertNotIn("0", errors["lines"])
 
-    def test_machine_create_link_only_for_users_who_can_add_machines(self):
-        self.assertIsNone(self.client.get(self.create_url).context["machine_create_url"])
-
-    def test_machine_create_link_for_staff_with_permission(self):
-        from django.contrib.auth.models import Permission
-        self.user.is_staff = True
-        self.user.save()
-        self.user.user_permissions.add(Permission.objects.get(codename="add_machine"))
-        url = self.client.get(self.create_url).context["machine_create_url"]
-        self.assertEqual(url, reverse("admin:farm_machine_add"))
-
 
 class FormPageRenderTests(BackendBase):
     """La página nueva se renderiza con los ids que usa el controlador JS y los inputs reales de Django."""
