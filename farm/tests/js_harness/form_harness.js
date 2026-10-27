@@ -85,6 +85,7 @@ function run(req) {
         dose: (s) => typeInto(line(s.n).querySelector('[data-role="dose"]'), s.value),
         total: (s) => typeInto(line(s.n).querySelector('[data-role="total"]'), s.value),
         clearTotal: (s) => line(s.n).querySelector('[data-act="clear-total"]').click(),
+        snap: () => { view = snapshot(); },      // vista después del último paso (p. ej. tras un envío bloqueado)
         submit: () => {
             view = snapshot();
             const e = new w.Event('submit', { bubbles: true, cancelable: true });
