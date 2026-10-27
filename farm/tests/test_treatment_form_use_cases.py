@@ -5,7 +5,7 @@ Cada test: teclear en el formulario real (JS real en jsdom) → POST real → ba
 → reabrir la edición y comparar el TEXTO mostrado → guardar sin tocar nada 3 veces y exigir base de datos idéntica.
 Escenario base: parcela A de 4,2 ha, cuba de 2000 L, 1000 L de agua/ha → 4200 L de caldo; B = 2,8 ha; C = 6,5 ha.
 """
-from decimal import Decimal
+from decimal import ROUND_HALF_EVEN, Decimal
 
 from farm.models import Treatment
 from farm.tests.form_cycle import (SUBMIT, S_date, S_done, S_dose, S_fields, S_machine, S_partial, S_product, S_remove, S_set,
@@ -476,3 +476,156 @@ class Caso14TextoTecleadoTests(UseCaseBase):
                 self.assertTrue(prevented, f'tecleado=1.500 en {kind}: no debería dejar guardar')
                 texts = ' '.join([view['missing'] or '', view['save'] or '', view['lines'][0]['notes']] + [m or '' for _, m in view['errors']])
                 self.assertIn('Usa coma', texts, f'sin aviso de usar coma: missing={view["missing"]!r}, errores={view["errors"]}')
+
+
+# ── Caso 15: barrido sistemático de totales ───────────────────────────────────
+
+def _q4(x):
+    return x.quantize(Decimal('0.0001'), rounding=ROUND_HALF_EVEN)
+
+
+def _q2(x):
+    return x.quantize(Decimal('0.01'), rounding=ROUND_HALF_EVEN)
+
+
+def spec_dose(dose_type, total, water, area):
+    """Dosis derivada del total, escrita a mano como en el plan (sección 3): por 1000 L, por hectárea o porcentaje."""
+    if dose_type in ('l_per_1000l', 'kg_per_1000l'):
+        return _q4(total * 1000 / (water * area))
+    if dose_type == 'pct':
+        return _q4(total * 100 / (water * area))
+    return _q4(total / area)            # l_per_ha, kg_per_ha
+
+
+ALL_TOTALS = [Decimal(x) / 2 for x in range(2, 41)] + [Decimal(x) for x in range(21, 201)]   # 1; 1,5; … 20 y 21 … 200
+
+
+class Caso15BarridoTests(UseCaseBase):
+    """Tecleado → guardado → mostrado EXACTAMENTE igual (con el total a mano activo, «50» tiene que verse «50»).
+    Cualquier diferencia es un error real: se reúnen todas y se informan juntas («tecleado=…, guardado=…, mostrado=…»)."""
+
+    def setUp(self):
+        super().setUp()
+        from farm.models import Product
+        ptype = self.pL1000.product_type
+
+        def twin(base, name):
+            return Product.objects.create(name=name, product_type=ptype, price=base.price + Decimal('0.35'), organization=self.org,
+                                          spraying_dose=base.spraying_dose, spraying_dose_type=base.spraying_dose_type,
+                                          fertigation_dose=base.fertigation_dose, fertigation_dose_type=base.fertigation_dose_type)
+        self.spray_products = [self.pPct, self.pL1000, self.pKg1000, self.pKgHa, self.pLHa,
+                               twin(self.pPct, 'Aceite % bis'), twin(self.pL1000, 'Insecticida bis'), twin(self.pKg1000, 'Cobre bis'),
+                               twin(self.pKgHa, 'Foliar kg/ha bis'), twin(self.pLHa, 'Foliar L/ha bis')]
+        self.ferti_products = [self.pLHa, self.pFerti, twin(self.pLHa, 'Foliar L/ha ferti 2'), twin(self.pFerti, 'Nitrato 2'),
+                               twin(self.pLHa, 'Foliar L/ha ferti 3'), twin(self.pFerti, 'Nitrato 3')]
+
+    def sweep(self, kind, field, totals, products, water=None, cycles=2):
+        """Un tratamiento por cada len(products) totales; devuelve la lista de discrepancias."""
+        problems = []
+        area = Decimal(str(field.area))
+        per = len(products)
+        for start in range(0, len(totals), per):
+            chunk = totals[start:start + per]
+            prods = products[:len(chunk)]
+            steps = [S_type(kind), S_set('name', f'Barrido {start}'), S_fields(field.pk)]
+            if kind == 'spraying':
+                steps += [S_set('water', water), S_machine(self.m2000.pk)]
+            for n, (p, total) in enumerate(zip(prods, chunk), start=1):
+                steps += [S_product(p.pk), S_total(n, es(total))]
+            t, view = self.type_and_save_new(steps)
+            lines = list(t.treatmentproduct_set.order_by('position'))
+            for tp, total in zip(lines, chunk):
+                dose_type = tp.dose_type
+                tag = f'{kind} {field.name} {dose_type} {tp.product.name}'
+                want_dose = spec_dose(dose_type, total, Decimal(water) if water else Decimal(1), area)
+                want_price = _q2(tp.unit_price * total)
+                want = (total, True, want_dose, want_price, _q2(want_price / area))
+                got = (tp.total_dose, tp.total_overridden, tp.dose, tp.total_price, tp.price_per_ha)
+                if got != want:
+                    problems.append(f'{tag}: tecleado={es(total)}, guardado (total, a mano, dosis, coste, €/ha)={got}, esperado={want}')
+            before = self.db_snapshot(t)
+            for i in range(cycles):
+                shown, post, prevented = self.play(self.open_edit(t), [SUBMIT])
+                if prevented:
+                    problems.append(f'{kind} {field.name} {start}: al reabrir no deja guardar sin tocar: {shown["errors"]}')
+                    break
+                for tp, total, line in zip(lines, chunk, shown['lines']):
+                    tag = f'{kind} {field.name} {tp.dose_type} {tp.product.name} (ciclo {i + 1})'
+                    if line['total'] != es(total):
+                        problems.append(f'{tag}: tecleado={es(total)}, guardado={tp.total_dose}, mostrado={line["total"]}')
+                    if line['dose'] != es(tp.dose):
+                        problems.append(f'{tag}: dosis guardada={tp.dose}, mostrada={line["dose"]}')
+                    if line['cost'] != eur(tp.total_price):
+                        problems.append(f'{tag}: coste guardado={tp.total_price}, mostrado={line["cost"]}')
+                    if not line['manual']:
+                        problems.append(f'{tag}: el total a mano se perdió al reabrir')
+                self.assertEqual(self.client.post(self.edit_url(t), post).status_code, 302)
+                if self.db_snapshot(t) != before:
+                    problems.append(f'{kind} {field.name} {start} ciclo {i + 1}: guardar sin tocar cambió la base de datos: '
+                                    f'{before["lines"]} → {self.db_snapshot(t)["lines"]}')
+                    break
+        return problems
+
+    def assert_no_problems(self, problems):
+        self.assertEqual(problems, [], f'{len(problems)} discrepancias:\n' + '\n'.join(problems[:30]))
+
+    def test_pulverizacion_totales_1_a_60_en_4_2_ha(self):
+        """Caso 15: totales de 1 a 20 L de 0,5 en 0,5 y de 21 a 60 L de 1 en 1 en la parcela de 4,2 ha, 10 productos
+        (los 5 tipos de dosis, dos de cada), 1000 L de agua por ha."""
+        self.assert_no_problems(self.sweep('spraying', self.fA, [t for t in ALL_TOTALS if t <= 60], self.spray_products, water=1000))
+
+    def test_pulverizacion_totales_61_a_200_en_4_2_ha(self):
+        """Caso 15: totales de 61 a 200 L de 1 en 1 en la parcela de 4,2 ha (incluye los 100 y 200 L de dos y tres cifras)."""
+        self.assert_no_problems(self.sweep('spraying', self.fA, [t for t in ALL_TOTALS if t > 60], self.spray_products, water=1000))
+
+    def test_pulverizacion_en_las_otras_areas_y_con_otra_agua(self):
+        """Caso 15: parcelas de 2,8 / 6,5 / 1,1 ha (una de ellas con 1500 L/ha) con un total de cada 5; incluye siempre 50 L."""
+        totals = ALL_TOTALS[::5]
+        if Decimal(50) not in totals:
+            totals = sorted(totals + [Decimal(50)])
+        problems = []
+        for field, water in ((self.fB, 1000), (self.fC, 1500), (self.fD, 1000)):
+            problems += self.sweep('spraying', field, totals, self.spray_products, water=water)
+        self.assert_no_problems(problems)
+
+    def test_fertirriego_sin_agua_en_varias_areas(self):
+        """Caso 15: fertirriego (sin cuba ni agua): kg/ha y L/ha, parcelas de 2,8 / 6,5 / 1,1 ha, un total de cada 9 más el 50."""
+        totals = ALL_TOTALS[::9]
+        if Decimal(50) not in totals:
+            totals = sorted(totals + [Decimal(50)])
+        problems = []
+        for field in (self.fB, self.fC, self.fD):
+            problems += self.sweep('fertigation', field, totals, self.ferti_products)
+        self.assert_no_problems(problems)
+
+    def test_barrido_de_dosis_con_decimales_traicioneros(self):
+        """Caso 15 (dosis): 0,1 / 0,2 / 0,3 / 0,7 / 1,1 / 2,3 / 0,015 / 0,125 / 3,333 / 0,0754 sobre los 5 tipos, 4,2 ha y 1000 L/ha.
+        Total = dosis (redondeada hacia arriba a 3 decimales: 0,0754 → 0,076) × factor, a 4 decimales, sin ruido de coma flotante;
+        al reabrir se ve la dosis tecleada (o su redondeo) y el total exacto."""
+        from decimal import ROUND_UP
+        doses = ['0,1', '0,2', '0,3', '0,7', '1,1', '2,3', '0,015', '0,125', '3,333', '0,0754']
+        steps = [S_type('spraying'), S_set('name', 'Dosis'), S_set('water', 1000), S_fields(self.fA.pk), S_machine(self.m2000.pk)]
+        for n, (p, d) in enumerate(zip(self.spray_products, doses), start=1):
+            steps += [S_product(p.pk), S_dose(n, d)]
+        t, _ = self.type_and_save_new(steps)
+        area, water = Decimal('4.2'), Decimal(1000)
+        problems = []
+        lines = list(t.treatmentproduct_set.order_by('position'))
+        for tp, typed in zip(lines, doses):
+            dose = Decimal(typed.replace(',', '.')).quantize(Decimal('0.001'), rounding=ROUND_UP)
+            if tp.dose_type in ('l_per_1000l', 'kg_per_1000l'):
+                total = dose * water * area / 1000
+            elif tp.dose_type == 'pct':
+                total = dose / 100 * water * area
+            else:
+                total = dose * area
+            total = _q4(total)
+            got, want = (tp.dose, tp.total_dose, tp.total_overridden), (dose, total, False)
+            if got != want:
+                problems.append(f'{tp.product.name}: tecleado={typed}, guardado (dosis, total, a mano)={got}, esperado={want}')
+        self.assert_no_problems(problems)
+        self.assert_cycle_is_idempotent(t, context='dosis traicioneras')
+        view, _, _ = self.play(self.open_edit(t), [])
+        for line, tp, typed in zip(view['lines'], lines, doses):
+            expected_dose = es(Decimal(typed.replace(',', '.')).quantize(Decimal('0.001'), rounding=ROUND_UP))
+            self.assertEqual(line['dose'], expected_dose, f'{tp.product.name}: tecleado={typed}, guardado={tp.dose}, mostrado={line["dose"]}')

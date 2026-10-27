@@ -254,3 +254,30 @@ Arreglos de la revisión:
 - El reparto de la mitad al par frente a mitad arriba es una decisión de producto no consultada: se mantuvo el comportamiento existente del backend.
 - Los 15 tests fallidos de `main` siguen igual y no se han tocado.
 - Cuando haya navegador: repetir a mano los casos B, D, H, 3 parcelas, un total redondeado al envase (p. ej. 24 L a 25 L en fertirrigación), producto no válido al cambiar de tipo, editar un tratamiento hecho, un error de envío y el uso sin Bootstrap (bloqueando el CDN).
+
+### 9.x Tercera ronda: tests de casos de uso (ciclo completo)
+
+**Qué son y cómo se ejecutan.** `farm/tests/test_treatment_form_use_cases.py` (con `farm/tests/form_cycle.py` y el arnés Node `farm/tests/js_harness/form_harness.js`). Cada test teclea en el formulario REAL (HTML renderizado por Django, JS real en jsdom), envía por POST exactamente lo que escribe el controlador, comprueba la base de datos contra valores calculados a mano (comentados en el test), reabre la edición y compara el TEXTO mostrado (es-ES, igualdad exacta), y guarda sin tocar nada 3 veces exigiendo base de datos idéntica (detecta deriva tipo 49,99). Además compara el detalle con el formulario. Se lanzan con `pytest` como siempre (un único proceso Node atiende todas las sesiones); sin Node o sin `npm install` los tests se saltan con el motivo. Coste: unos 0,7 s por sesión de jsdom; el fichero tarda unos 6 minutos (los barridos, ~4 min, son los tres últimos tests).
+
+**Casos cubiertos.**
+1. Editar la dosis (0,5 → 0,6 L/1000L; fertirriego 10 → 12 L/ha): total recalculado, sin «a mano».
+2. Editar el total (24 → 25 L; 50 L en el alta): total exacto 25,0000, a mano, dosis derivada, coste = total × precio; se ve «25».
+3. Fertirriego 10 L/ha × 2,8 ha = 28 L → total 30 L: dosis 10,7143.
+4. Editar sin total a mano: solo fecha, solo nombre, solo máquina; dosis y totales intactos.
+5. Editar con total a mano de 25 L: fecha/nombre, agua, parcial (mantienen el total y rederivan la dosis), parcela y tipo (quitan el «a mano»).
+6. Completado con agua real: se ve el agua real, guardar sin tocar no cambia nada, D1 (total a mano respetado con otra agua real).
+7. Marcar como hecho al editar (fecha fin + agua real): totales con el agua real.
+8. Total y luego dosis (y al revés): gana el último; vaciar el total y «Volver a calcularlo».
+9. Dos productos: un total y una dosis, posiciones estables, quitar y volver a poner, añadir en edición.
+10. Varias parcelas al crear: totales exactos por parcela, suma en pantalla = suma en base de datos, total no editable, abrir cada uno.
+11. Superficie parcial (L/1000L, kg/ha, cambio de área en edición).
+12. Cambio de precio del producto: completado conserva el precio; pendiente sigue al producto (regla de `Product.save`); re-añadir conserva el precio de la línea.
+13. Error del servidor en otra sección (alta y edición): vuelve con lo tecleado, sin perder el 25 «a mano», se corrige y se guarda.
+14. Texto tecleado: coma, punto, espacios, 1,125, 1,1255 (→ 1,126), 24,999999, 24,99994, «1.500» rechazado con aviso.
+15. Barridos: totales de 1 a 200 L (0,5 y 1 de paso) en 4,2 ha con 10 productos (los 5 tipos de dosis), un total de cada 5 en 2,8 / 6,5 (1500 L/ha) / 1,1 ha, fertirriego sin agua en 3 parcelas, y dosis con decimales traicioneros. Tecleado = guardado = mostrado, sin tolerancias.
+
+**Errores reales encontrados.**
+- `TreatmentProductForm` enseñaba la dosis con 3 decimales (`_normalize_dose`): una dosis derivada de un total a mano (5,9524) aparecía como 5,952 al reabrir, y al quitar el total a mano cambiando de parcela se recalculaba desde 5,952 (16,6656 L en vez de 16,6684 L). Corregido: las líneas usan los 4 decimales que guarda la base de datos.
+- El barrido de totales no encontró ninguna otra discrepancia (50 sale 50 en todas las áreas y tipos). Se comprobó que el test detecta el fallo inyectando un 24,9999 en lugar de 25.
+
+**No cubierto.** Navegador real (solo jsdom; sin layout ni foco real); formularios con la pantalla abierta mientras otro usuario cambia el precio (la pantalla enseña el precio de la carga); sweeps completos de todas las áreas (se usa una muestra por tiempo).

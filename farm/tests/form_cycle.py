@@ -21,7 +21,7 @@ import os
 import shutil
 import subprocess
 import unittest
-from decimal import ROUND_HALF_EVEN, Decimal
+from decimal import ROUND_HALF_EVEN, ROUND_HALF_UP, Decimal
 from pathlib import Path
 
 from django.contrib.auth import get_user_model
@@ -296,3 +296,13 @@ class FormCycleTestCase(TestCase):
         view, _, _ = self.play(self.open_edit(t), [])
         self.assertEqual(view['sumMain'], eur(response.context['total_cost']),
                          f'Detalle={response.context["total_cost"]}, formulario={view["sumMain"]}')
+        # El detalle enseña cada línea con su total a 2 decimales, el coste y los €/ha: los mismos valores guardados
+        import re
+        text = re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', response.content.decode())).replace('\u00a0', ' ')
+        for tp in lines:
+            total2 = {es(Decimal(tp.total_dose).quantize(Decimal('0.01'), rounding=r), 2) for r in (ROUND_HALF_EVEN, ROUND_HALF_UP)}
+            total2 = {(x if ',' in x else x + ',00') if len(x.split(',')[-1:][0]) == 2 or ',' not in x else x + '0' for x in total2}
+            self.assertTrue(any(f'{x} {tp.total_dose_unit}' in text for x in total2),
+                            f'El detalle no enseña el total {tp.total_dose} {tp.total_dose_unit} (esperado como {sorted(total2)})')
+            for label, value in (('coste', tp.total_price), ('€/ha', tp.price_per_ha)):
+                self.assertIn(eur(value).replace('\u00a0', ' '), text, f'El detalle no enseña el {label} {value}')
