@@ -140,6 +140,8 @@ AUTH_PASSWORD_VALIDATORS = [
 LANGUAGE_CODE = 'es-ES'
 
 TIME_ZONE = 'UTC'
+# Zona de las explotaciones: solo para el «hoy» del formulario de tratamiento (ver farm/timeutils.py)
+FARM_TIME_ZONE = 'Europe/Madrid'
 
 USE_L10N = True
 USE_I18N = True

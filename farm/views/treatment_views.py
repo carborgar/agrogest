@@ -391,7 +391,11 @@ class TreatmentFormView(BaseSecureViewMixin, SuccessMessageMixin, UpdateView):
         form = self.get_form()
         # Guardar referencia al formset validado para reutilizarlo en get_context_data
         self._products_formset = self._products_formset_for(request.POST)
-        if form.is_valid() and self._products_formset.is_valid():
+        form_ok = form.is_valid()
+        if form_ok:
+            # Parcelas extra ya validadas (sin la principal): el formset decide con ellas si es multi-parcela
+            self._products_formset.extra_field_ids = [str(f.pk) for f in form.cleaned_data.get('extra_fields') or []]
+        if form_ok and self._products_formset.is_valid():
             extra_fields = form.cleaned_data.get('extra_fields') or []
             if self.object is None and extra_fields:
                 # Varias parcelas: un tratamiento por parcela, todo o nada, una notificación

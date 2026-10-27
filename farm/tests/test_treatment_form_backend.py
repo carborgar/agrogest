@@ -631,3 +631,97 @@ class FormPageRenderTests(BackendBase):
         self.assertIn("name", response.context["form_errors"]["form"])
         # el valor que había en el formulario no se pierde
         self.assertContains(response, 'value="1000"')
+
+
+# ── Segunda ronda: validaciones (B3), parcelas extra (B8) y «hoy» en hora local (B7) ──────────────
+
+class PositiveValuesValidationTests(BackendBase):
+    """B3: el servidor no acepta mojado, dosis ni área parcial negativos, ni líneas con dosis 0."""
+
+    def assertRejected(self, response, where):
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Treatment.objects.filter(name="Caso backend").exists())
+        return response.context["form_errors"][where] if where in ("form",) else response.context["form_errors"]
+
+    def test_negative_water_is_rejected(self):
+        response = self.post_create([{"product": self.kgha.pk, "dose": "3", "total_dose": ""}], water_per_ha="-5")
+        errors = self.assertRejected(response, "form")
+        self.assertIn("water_per_ha", errors)
+
+    def test_negative_applied_area_is_rejected(self):
+        response = self.post_create([{"product": self.kgha.pk, "dose": "3", "total_dose": ""}], applied_area="-1")
+        self.assertIn("applied_area", self.assertRejected(response, "form"))
+
+    def test_zero_applied_area_is_rejected_not_silently_ignored(self):
+        response = self.post_create([{"product": self.kgha.pk, "dose": "3", "total_dose": ""}], applied_area="0")
+        self.assertIn("applied_area", self.assertRejected(response, "form"))
+
+    def test_zero_and_negative_dose_lines_are_rejected_with_a_line_error(self):
+        for bad in ("0", "-1", "0.000"):
+            with self.subTest(dose=bad):
+                response = self.post_create([{"product": self.kgha.pk, "dose": bad, "total_dose": ""}])
+                self.assertEqual(response.status_code, 200)
+                lines = response.context["form_errors"]["formset"]["lines"]
+                self.assertIn("dose", lines["0"])
+                self.assertFalse(Treatment.objects.filter(name="Caso backend").exists())
+
+    def test_negative_manual_total_is_rejected(self):
+        response = self.post_create([{"product": self.kgha.pk, "dose": "1", "total_dose": "-3", "total_overridden": "true"}])
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("total_dose", response.context["form_errors"]["formset"]["lines"]["0"])
+
+    def test_valid_small_dose_still_works(self):
+        response = self.post_create([{"product": self.kgha.pk, "dose": "0.0004", "total_dose": ""}])
+        self.assertEqual(response.status_code, 302)               # 0,0004 se redondea hacia arriba a 0,001
+
+
+class ExtraFieldsFromCleanedDataTests(BackendBase):
+    """B8: la parcela principal repetida en extra_fields no cuenta como «varias parcelas»."""
+
+    def test_main_field_repeated_in_extra_fields_is_a_single_field_treatment(self):
+        response = self.post_create(
+            [{"product": self.kgha.pk, "dose": "1", "total_dose": "10", "total_overridden": "true"}],
+            extra_fields=[str(self.field.pk)])
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Treatment.objects.filter(name="Caso backend").count(), 1)
+        self.assertTrue(TreatmentProduct.objects.get(treatment__name="Caso backend").total_overridden)
+
+    def test_a_real_extra_field_still_rejects_manual_total(self):
+        response = self.post_create(
+            [{"product": self.kgha.pk, "dose": "1", "total_dose": "10", "total_overridden": "true"}],
+            extra_fields=[str(self.field.pk), str(self.field_b.pk)])
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("total_dose", response.context["form_errors"]["formset"]["lines"]["0"])
+
+
+class LocalTodayTests(BackendBase):
+    """
+    B7: «hoy» es la fecha de España (Europe/Madrid), no la UTC del servidor. A las 23:30 UTC del 26/10 ya es 27/10
+    en España: el formulario ofrece el 27 y deja marcar como hecho el 27.
+    """
+
+    NOW = None
+
+    def setUp(self):
+        super().setUp()
+        from datetime import datetime, timezone as dt_tz
+        self.fake_now = datetime(2026, 10, 26, 23, 30, tzinfo=dt_tz.utc)
+
+    def test_form_data_today_is_the_spanish_date(self):
+        with mock.patch("django.utils.timezone.now", return_value=self.fake_now):
+            data = self.client.get(self.create_url).context["form_data"]
+        self.assertEqual(data["today"], "2026-10-27")
+
+    def test_default_date_of_the_form_is_the_spanish_date(self):
+        with mock.patch("django.utils.timezone.now", return_value=self.fake_now):
+            form = self.client.get(self.create_url).context["form"]
+        self.assertEqual(form["date"].value(), "2026-10-27")
+
+    def test_finish_date_is_validated_against_the_spanish_date(self):
+        lines = [{"product": self.kgha.pk, "dose": "3", "total_dose": ""}]
+        with mock.patch("django.utils.timezone.now", return_value=self.fake_now):
+            ok = self.post_create(lines, date="2026-10-27", finish_date="2026-10-27")
+            future = self.post_create(lines, name="Futuro", date="2026-10-27", finish_date="2026-10-28")
+        self.assertEqual(ok.status_code, 302)
+        self.assertEqual(future.status_code, 200)
+        self.assertIn("finish_date", future.context["form_errors"]["form"])

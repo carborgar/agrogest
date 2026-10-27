@@ -20,6 +20,7 @@ from django.urls import reverse
 from accounts.models import Organization
 from farm.models import Field, Machine, Product, ProductType, Treatment, TreatmentProduct
 from farm.tests.form_helpers import formset_data
+from farm.timeutils import local_today
 
 User = get_user_model()
 FIXTURES = Path(__file__).resolve().parents[2] / 'static' / 'js' / 'tests' / 'fixtures'
@@ -27,7 +28,7 @@ FIXED_TODAY = '2030-06-15'
 
 
 def _normalize(html):
-    html = html.replace(date.today().isoformat(), FIXED_TODAY)
+    html = html.replace(local_today().isoformat(), FIXED_TODAY)
     html = re.sub(r'(name="csrfmiddlewaretoken" value=")[^"]+', r'\1TOKEN', html)
     return re.sub(r'(csrfToken: ")[^"]+', r'\1TOKEN', html)
 
@@ -57,7 +58,7 @@ class FormPageFixtures(TestCase):
         pages = {'treatment_form_create.html': self.client.get(reverse('treatment-create')).content.decode()}
 
         t = Treatment.objects.create(organization=self.org, field=self.field_a, machine=Machine.objects.get(pk=1),
-                                     name="Guardado", type="spraying", date=date.today(), water_per_ha=1000)
+                                     name="Guardado", type="spraying", date=local_today(), water_per_ha=1000)
         for pos, (prod, dose, total, ovr) in enumerate([
                 (self.fung, "3", "12.6", False), (self.insec, "0.5", "2.1", True), (self.moj, "1.5", "6.3", False)]):
             TreatmentProduct.objects.create(treatment=t, product=prod, dose=Decimal(dose),
@@ -71,7 +72,7 @@ class FormPageFixtures(TestCase):
         pages['treatment_form_edit.html'] = edit
 
         # Envío fallido: sin nombre y con una dosis de 3 decimales ≥ 1 («1.500», que no es «mil quinientos»)
-        data = {'name': '', 'type': 'spraying', 'date': date.today().isoformat(), 'field': '1', 'machine': '1',
+        data = {'name': '', 'type': 'spraying', 'date': local_today().isoformat(), 'field': '1', 'machine': '1',
                 'water_per_ha': '1000', 'finish_date': ''}
         data.update(formset_data([{'product': self.fung.pk, 'dose': '3.000', 'total_dose': '12.6000', 'total_overridden': 'false'},
                                   {'product': self.moj.pk, 'dose': '1.500', 'total_dose': '6.3000', 'total_overridden': 'false'}]))

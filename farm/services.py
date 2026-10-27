@@ -15,6 +15,7 @@ from django.db.models.functions import Coalesce
 from django.urls import reverse
 from django.utils.timezone import now
 
+from .timeutils import local_today
 from .models import Field, Machine, Product, ProductPriceHistory, Treatment, TreatmentProduct
 
 
@@ -390,7 +391,7 @@ def build_treatment_form_data(user, treatment=None, recent_days=90):
     from datetime import timedelta
     from django.db.models import Max
 
-    today = date.today()
+    today = local_today()
 
     fields = (
         Field.ownership_objects.get_queryset_for_user(user)

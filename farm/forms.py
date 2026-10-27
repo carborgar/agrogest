@@ -8,6 +8,7 @@ from django.forms import BaseInlineFormSet
 from django.forms import inlineformset_factory
 
 from core.forms import NoPlaceholderModelForm
+from .timeutils import local_today
 from .models import Treatment, TreatmentProduct, Expense, Product, Harvest, ProductType, Field, Machine, StoragePoint
 
 
@@ -19,7 +20,7 @@ class TreatmentForm(forms.ModelForm):
 
     date = forms.DateField(
         widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-        initial=Datetime.today().strftime('%Y-%m-%d')
+        initial=lambda: local_today().strftime('%Y-%m-%d')
     )
 
     # No puede ser futura (se valida en clean)
@@ -67,12 +68,18 @@ class TreatmentForm(forms.ModelForm):
 
         # Only default to today on creation; in edit keep stored model values.
         if not self.instance.pk:
-            self.fields['date'].initial = Datetime.today().strftime('%Y-%m-%d')
+            self.fields['date'].initial = local_today().strftime('%Y-%m-%d')
         elif self.instance.date:
             self.initial['date'] = self.instance.date.strftime('%Y-%m-%d')
 
         if self.instance.pk and self.instance.finish_date:
             self.initial['finish_date'] = self.instance.finish_date.strftime('%Y-%m-%d')
+
+    def clean_applied_area(self):
+        area = self.cleaned_data.get('applied_area')
+        if area is not None and area <= 0:
+            raise ValidationError('El área parcial tiene que ser mayor que 0')
+        return area
 
     def clean(self):
         cleaned_data = super().clean()
@@ -86,6 +93,9 @@ class TreatmentForm(forms.ModelForm):
 
             if not water_per_ha:
                 self.add_error('water_per_ha', 'Para tratamientos de pulverización, debe indicar el volumen de caldo')
+
+        if water_per_ha is not None and water_per_ha < 0:
+            self.add_error('water_per_ha', 'El mojado tiene que ser mayor que 0')
 
         # Para fertirrigación, asegurar que máquina sea None y water_per_ha sea 0
         if treatment_type == 'fertigation':
@@ -103,7 +113,7 @@ class TreatmentForm(forms.ModelForm):
 
         # La fecha de realización no puede ser futura
         finish_date = cleaned_data.get('finish_date')
-        if finish_date and finish_date > datetime.date.today():
+        if finish_date and finish_date > local_today():
             self.add_error('finish_date', 'La fecha de realización no puede ser futura')
 
         # Mojado real: solo en pulverización ya realizada, y mayor que 0.
@@ -183,6 +193,8 @@ class TreatmentProductForm(forms.ModelForm):
 
     def clean_dose(self):
         dose = self.cleaned_data.get('dose')
+        if dose is not None and dose <= 0:
+            raise ValidationError('La dosis tiene que ser mayor que 0')
         if dose is not None:
             # Redondear a 3 decimales (ej: 0.075 kg/1000L)
             dose = dose.quantize(Decimal('0.001'), rounding=ROUND_UP)
@@ -215,11 +227,14 @@ class BaseTreatmentProductFormSet(BaseInlineFormSet):
 
         # El tipo de tratamiento llega en el mismo POST que el formset
         treatment_type = self.data.get('type') if self.is_bound else None
-        # Varias parcelas al crear: el total a mano no tiene sentido (cada parcela tiene su área)
-        multi_field = (
-            self.is_bound and self.instance.pk is None
-            and any(v for v in self.data.getlist('extra_fields'))
-        )
+        # Varias parcelas al crear: el total a mano no tiene sentido (cada parcela tiene su área).
+        # La vista pasa las parcelas extra YA validadas (sin la principal); si no, se leen del POST
+        # descontando la parcela principal.
+        extra_ids = getattr(self, 'extra_field_ids', None)
+        if extra_ids is None and self.is_bound:
+            main = self.data.get('field')
+            extra_ids = [v for v in self.data.getlist('extra_fields') if v and v != main]
+        multi_field = self.is_bound and self.instance.pk is None and bool(extra_ids)
 
         for form in self.forms:
             if not form.is_valid() or not form.cleaned_data:
