@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}El Tiempo – AgroGest{% endblock %}
 
@@ -363,10 +364,12 @@
 
 {% block extra_js %}
 {% if fields_with_geo %}
+{{ fields_with_geo|json_script:"wov-fields" }}
+<script src="{% static 'js/weather.js' %}"></script>
 <script>
 (function () {
 
-    const FIELDS = {{ fields_with_geo|safe }};
+    const FIELDS = JSON.parse(document.getElementById('wov-fields').textContent);
 
     // ── Sky class según icono FA ───────────────────────────────────
     function skyClass(icon) {
@@ -384,11 +387,9 @@
     // ── Treatment badge ────────────────────────────────────────────
     function treatmentBadge(day) {
         if (!day) return '';
-        if (day.treatment_ok)
+        if (day.level === 'ok')
             return `<span class="muni-treatment-badge muni-treatment-ok"><i class="fa fa-check me-1"></i>Apto tratar</span>`;
-        const prob = day.max_precipitation_probability || 0;
-        const wind = day.max_wind_speed || 0;
-        if (prob >= 50 || wind > 25)
+        if (day.level === 'bad')
             return `<span class="muni-treatment-badge muni-treatment-bad"><i class="fa fa-xmark me-1"></i>Adverso</span>`;
         return `<span class="muni-treatment-badge muni-treatment-warn"><i class="fa fa-exclamation me-1"></i>Precaución</span>`;
     }
@@ -436,13 +437,9 @@
             return `<p class="text-center text-muted small py-3">Sin datos horarios para este día.</p>`;
         }
 
-        // Filter out past hours for today
-        const nowDate = new Date().toISOString().slice(0, 10);
-        const nowHour = new Date().getHours();
-        if (day.date === nowDate) {
-            const filtered = hours.filter(h => parseInt(h.hour) >= nowHour);
-            if (filtered.length > 0) hours = filtered;
-        }
+        // Hoy, sin las horas pasadas (si no queda ninguna, se muestra el día entero)
+        const upcoming = AgroWeather.upcomingHours(day);
+        if (upcoming.length > 0) hours = upcoming;
 
         const sunriseMin = day.sunrise ? timeToMinutes(day.sunrise) : null;
         const sunsetMin  = day.sunset  ? timeToMinutes(day.sunset)  : null;
@@ -454,7 +451,7 @@
         const sumMaxT = day.max_temp != null ? `${Math.round(day.max_temp)}°` : (validTemps.length ? `${Math.round(Math.max(...validTemps))}°` : '—');
         const sumMinT = day.min_temp != null ? `${Math.round(day.min_temp)}°` : (validTemps.length ? `${Math.round(Math.min(...validTemps))}°` : '—');
         const sumMaxWind = day.max_wind_speed != null ? day.max_wind_speed : 0;
-        const sumWindLvl = sumMaxWind <= 10 ? 0 : sumMaxWind <= 15 ? 1 : sumMaxWind < 20 ? 2 : 3;
+        const sumWindLvl = day.wind_level ?? 0;
         const sumWindColors = ['#43a047','#f9a825','#fd7e14','#dc3545'];
         const sumRainProb = day.max_precipitation_probability || 0;
         const sumRainMm  = day.total_precipitation > 0 ? `${day.total_precipitation} L/m²` : null;
@@ -465,9 +462,9 @@
                 ? ` <span style="opacity:.55">·</span> <span style="color:#0d6efd;font-size:.68rem">${sumRainMm}</span>`
                 : ` <span style="opacity:.55">·</span> <span style="opacity:.35;font-size:.68rem" title="AEMET no provee mm para días >48h">— L/m²</span>`)
             : '';
-        const sumTreat = day.treatment_ok
+        const sumTreat = day.level === 'ok'
             ? `<span style="color:#198754;font-weight:700"><i class="fa fa-check-circle me-1"></i>Apto tratar</span>`
-            : (sumRainProb >= 50 || sumMaxWind > 25
+            : (day.level === 'bad'
                 ? `<span style="color:#dc3545;font-weight:700"><i class="fa fa-xmark-circle me-1"></i>Adverso</span>`
                 : `<span style="color:#cc8800;font-weight:700"><i class="fa fa-exclamation-circle me-1"></i>Precaución</span>`);
         const sunSummary = (day.sunrise || day.sunset)
@@ -504,8 +501,8 @@
                 sunsetInserted = true;
             }
 
-            const treatCls  = h.treatment_ok ? 'ok' : (h.precipitation_probability >= 50 || h.wind_speed > 25 ? 'bad' : 'warn');
-            const windLvl   = h.wind_level ?? (h.wind_speed <= 10 ? 0 : h.wind_speed <= 15 ? 1 : h.wind_speed < 20 ? 2 : 3);
+            const treatCls  = h.level;
+            const windLvl   = h.wind_level ?? 0;
             const tempTxt   = h.temperature != null ? `${Math.round(h.temperature)}°` : '—';
             const tempCls   = h.temperature != null ? '' : ' no-data';
             const prob      = h.precipitation_probability || 0;
@@ -685,9 +682,9 @@
     // ── Fetch and group ────────────────────────────────────────────
     const muniMap  = {};
     const errFields = []; // fields that failed
-    let completed = 0;
 
     function friendlyError(status, msg) {
+        if (msg && msg.length < 120) return msg;   // el servidor ya lo explica
         if (status === 429) return 'AEMET ha alcanzado el límite de consultas. Inténtalo de nuevo en unos minutos.';
         if (status === 401 || status === 403) return 'API key de AEMET no válida o sin permisos.';
         if (status === 404) return 'No se encontraron datos AEMET para esta localización.';
@@ -696,31 +693,24 @@
         return 'No se pudieron obtener datos meteorológicos para esta parcela.';
     }
 
-    async function fetchField(field) {
-        try {
-            const res = await fetch(`/api/fields/${field.id}/weather/`);
-            if (!res.ok) throw { status: res.status };
-            const data = await res.json();
-            if (data.error) throw { status: 0, msg: data.error };
-
-            const mname = data.municipality || `Zona ${field.id}`;
-            if (!muniMap[mname]) {
-                const today = new Date().toISOString().slice(0, 10);
-                const todayData = data.daily.find(d => d.date >= today) || data.daily[0];
-                muniMap[mname] = {
-                    name: mname,
-                    fields: [],
-                    today: todayData || null,
-                    daily: data.daily,
-                };
-            }
-            muniMap[mname].fields.push(field);
-        } catch (e) {
-            errFields.push({ field, reason: friendlyError(e.status, e.msg) });
-        } finally {
-            completed++;
-            if (completed === FIELDS.length) renderAll();
-        }
+    // Una sola llamada: el servidor agrupa las parcelas por municipio y guarda la previsión en caché
+    function loadAll() {
+        const fieldById = Object.fromEntries(FIELDS.map(f => [f.id, f]));
+        const today = AgroWeather.localDate();
+        AgroWeather.load('{% url "api-weather-summary" %}')
+            .then(data => {
+                (data.municipalities || []).forEach(m => {
+                    muniMap[m.name] = {
+                        name: m.name,
+                        fields: m.fields.map(f => fieldById[f.id] || f),
+                        today: m.daily.find(d => d.date >= today) || m.daily[0] || null,
+                        daily: m.daily,
+                    };
+                });
+                (data.errors || []).forEach(e => e.fields.forEach(name => errFields.push({ field: { name }, reason: e.reason })));
+            })
+            .catch(e => FIELDS.forEach(field => errFields.push({ field, reason: friendlyError(e.status, e.msg) })))
+            .finally(renderAll);
     }
 
     function renderAll() {
@@ -794,7 +784,7 @@
                 : `Sin datos disponibles · ${fmt}`;
     }
 
-    FIELDS.forEach(f => fetchField(f));
+    loadAll();
 
 })();
 </script>

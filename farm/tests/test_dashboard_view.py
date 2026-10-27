@@ -160,7 +160,10 @@ class TestDashboardWeather:
         response = self._show(client)
 
         assert response.context['show_weather'] is True
-        assert reverse('api-weather-summary') in response.content.decode()
+        html = response.content.decode()
+        assert reverse('api-weather-summary') in html
+        # Esqueleto visible desde el principio, no una tarjeta oculta que aparece de golpe
+        assert 'Cargando previsión' in html and 'aria-busy="true"' in html
 
     def test_shown_even_without_pending_treatments(self, setup):
         client, org, *_ = setup

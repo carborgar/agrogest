@@ -15,12 +15,12 @@
 {% block content %}
 
 {# ── Chips de estado: cada uno abre el listado con el mismo filtro ── #}
-<nav class="hm-chips" aria-label="Resumen por estado">
+<nav aria-label="Resumen por estado" class="hm-chips">
     {% for chip in chips %}
     <a class="hm-chip" href="{{ chip.url }}">
         <span class="hm-chip-count hm-chip-count--{% if chip.count %}{{ chip.tone }}{% else %}none{% endif %}">{{ chip.count }}</span>
         {% if chip.tone == 0 %}{{ chip.label }}{% else %}Próximos {{ chip.label }}{% endif %}
-        <i class="fa fa-chevron-right" aria-hidden="true"></i>
+        <i aria-hidden="true" class="fa fa-chevron-right"></i>
     </a>
     {% endfor %}
 </nav>
@@ -29,7 +29,7 @@
 
     {# ── Qué toca ── #}
     <div class="col-12 col-xl-8 order-1">
-        <section class="dt-card" aria-labelledby="hm-todo-title">
+        <section aria-labelledby="hm-todo-title" class="dt-card">
             <div class="dt-card-head">
                 <h2 class="dt-card-title" id="hm-todo-title">Qué toca</h2>
                 <a class="small fw-semibold text-decoration-none" href="{% url 'treatment-calendar' %}">Calendario</a>
@@ -37,7 +37,7 @@
 
             {% if not has_work %}
             <div class="hm-empty">
-                <span class="hm-empty-icon"><i class="fa fa-check" aria-hidden="true"></i></span>
+                <span class="hm-empty-icon"><i aria-hidden="true" class="fa fa-check"></i></span>
                 <b>Todo al día</b>
                 <span>Nada atrasado ni programado en los próximos {{ upcoming_days }} días.</span>
             </div>
@@ -67,7 +67,7 @@
     {# ── Columna secundaria: debajo en móvil ── #}
     <div class="col-12 col-xl-4 order-2 d-flex flex-column gap-3">
 
-        <section class="dt-card" aria-labelledby="hm-prod-title">
+        <section aria-labelledby="hm-prod-title" class="dt-card">
             <div class="dt-card-head">
                 <div>
                     <h2 class="dt-card-title" id="hm-prod-title">Producto que vas a necesitar</h2>
@@ -87,13 +87,28 @@
             {% endfor %}
             <a class="hm-card-link" href="{% url 'treatment-shopping-list' %}">
                 Preparar productos{% if products_hidden %} ({{ products_hidden }} más){% endif %}
-                <i class="fa fa-arrow-right" aria-hidden="true"></i>
+                <i aria-hidden="true" class="fa fa-arrow-right"></i>
             </a>
         </section>
 
-        {# Una tarjeta por municipio de las parcelas (casi siempre una); se rellena por JS #}
         {% if show_weather %}
-        <div class="hm-weather" id="hmWeather" data-url="{% url 'api-weather-summary' %}" hidden></div>
+        <div aria-busy="true" class="hm-weather" data-url="{% url 'api-weather-summary' %}" id="hmWeather">
+            <section aria-label="Tiempo para tratar: cargando" class="dt-card">
+                <div class="dt-card-head">
+                    <div>
+                        <h2 class="dt-card-title">Tiempo para tratar</h2>
+                        <div class="dt-muted">Cargando previsión…</div>
+                    </div>
+                    <a class="small fw-semibold text-decoration-none" href="{% url 'weather-overview' %}">El Tiempo</a>
+                </div>
+                {% for _ in "12" %}
+                <div aria-hidden="true" class="hm-wx-day placeholder-glow">
+                    <div class="hm-wx-day-head"><span class="placeholder col-2"></span><span class="placeholder col-5"></span></div>
+                    <span class="placeholder hm-skel-strip"></span>
+                </div>
+                {% endfor %}
+            </section>
+        </div>
         {% endif %}
     </div>
 </div>
@@ -102,30 +117,44 @@
 
 {% block extra_js %}
 {% if show_weather %}
+<script src="{% static 'js/weather.js' %}"></script>
 <script>
-    // El tiempo se pide aparte (AEMET tarda): si falla o no hay datos, no se muestra nada.
+    // Misma llamada y mismos niveles que El Tiempo (AgroWeather); aquí solo hoy y mañana, por horas.
     document.addEventListener('DOMContentLoaded', function () {
         const box = document.getElementById('hmWeather');
         if (!box) return;
         const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => (
             { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         const hh = (h) => String(h).padStart(2, '0') + ':00';
+        const deg = (t) => t === null || t === undefined ? '–' : Math.round(t) + '°';
         const LEVEL = { ok: 'buena', warn: 'dudosa', bad: 'mala' };
 
+        const now = new Date();
+        const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        const LABELS = { [AgroWeather.localDate(now)]: 'Hoy', [AgroWeather.localDate(tomorrow)]: 'Mañana' };
+
         const day = (d) => {
-            const best = d.windows.length
-                ? `<span class="hm-wx-win hm-wx-win--ok">Se puede tratar ${d.windows.map(w => hh(w.from) + '–' + hh(w.to)).join(' · ')}</span>`
+            const hours = AgroWeather.upcomingHours(d, now);
+            const windows = AgroWeather.okWindows(hours);
+            const best = windows.length
+                ? `<span class="hm-wx-win hm-wx-win--ok">Se puede tratar ${windows.map(w => hh(w.from) + '–' + hh(w.to)).join(' · ')}</span>`
                 : '<span class="hm-wx-win hm-wx-win--none">Sin horas buenas</span>';
-            const cells = d.hours.map(h => `
-                <div class="hm-h hm-h--${h.level}" title="${hh(h.hour)} · hora ${LEVEL[h.level]} · ${h.temp === null ? '' : Math.round(h.temp) + '° · '}viento ${h.wind} km/h · lluvia ${h.rain} %">
-                    <span>${h.hour}</span><b>${h.wind}</b><i>${h.rain}</i>
-                </div>`).join('');
-            const aria = d.label + ': ' + d.hours.map(h => hh(h.hour) + ' viento ' + h.wind + ' km/h, lluvia ' + h.rain + ' %').join('; ');
+            const cells = hours.map(h => {
+                const hr = AgroWeather.hourOf(h);
+                const wind = Math.round(h.wind_speed);
+                const rain = h.precipitation_probability;
+                return `<div class="hm-h hm-h--${h.level}" title="${hh(hr)} · hora ${LEVEL[h.level]} · ${deg(h.temperature)} · viento ${wind} km/h · lluvia ${rain} %">
+                    <span>${hr}</span><em>${deg(h.temperature)}</em><b>${wind}</b><i>${rain}</i>
+                </div>`;
+            }).join('');
+            const aria = LABELS[d.date] + ': ' + hours.map(h =>
+                `${hh(AgroWeather.hourOf(h))} ${deg(h.temperature)}, viento ${Math.round(h.wind_speed)} km/h, lluvia ${h.precipitation_probability} %`).join('; ');
             return `<div class="hm-wx-day">
-                <div class="hm-wx-day-head"><b>${esc(d.label)}</b>${best}</div>
+                <div class="hm-wx-day-head"><b>${LABELS[d.date]}</b>${best}</div>
                 <div class="hm-hours-wrap" role="img" aria-label="${esc(aria)}">
                     <div class="hm-h-labels" aria-hidden="true">
                         <span><i class="fa fa-clock"></i>Hora</span>
+                        <span><i class="fa fa-temperature-half"></i>Temp.</span>
                         <span><i class="fa fa-wind"></i>Viento km/h</span>
                         <span><i class="fa fa-droplet"></i>Lluvia %</span>
                     </div>
@@ -134,8 +163,20 @@
             </div>`;
         };
 
-        const card = (m) => `
-            <section class="dt-card" aria-label="Tiempo para tratar en ${esc(m.name)}">
+        // Si falla, se dice en vez de quitar la tarjeta: así no parece que no haya tiempo
+        const failCard = (msg) => `
+            <section class="dt-card" aria-label="Tiempo para tratar">
+                <div class="dt-card-head">
+                    <h2 class="dt-card-title">Tiempo para tratar</h2>
+                    <a class="small fw-semibold text-decoration-none" href="{% url 'weather-overview' %}">El Tiempo</a>
+                </div>
+                <p class="hm-group-empty mb-0">${esc(msg)}</p>
+            </section>`;
+
+        const card = (m) => {
+            const days = m.daily.filter(d => LABELS[d.date] && AgroWeather.upcomingHours(d, now).length);
+            if (!days.length) return '';
+            return `<section class="dt-card" aria-label="Tiempo para tratar en ${esc(m.name)}">
                 <div class="dt-card-head">
                     <div>
                         <h2 class="dt-card-title">Tiempo para tratar</h2>
@@ -143,23 +184,23 @@
                     </div>
                     <a class="small fw-semibold text-decoration-none" href="{% url 'weather-overview' %}">El Tiempo</a>
                 </div>
-                ${m.days.map(day).join('')}
+                ${days.map(day).join('')}
                 <div class="hm-legend" aria-hidden="true">
                     <span><i class="hm-sw hm-sw--ok"></i>Buena: viento ≤ 20 km/h y lluvia &lt; 20 %</span>
                     <span><i class="hm-sw hm-sw--warn"></i>Dudosa</span>
                     <span><i class="hm-sw hm-sw--bad"></i>Mala: viento &gt; 25 km/h o lluvia ≥ 50 %</span>
                 </div>
             </section>`;
+        };
 
-        fetch(box.dataset.url, { headers: { 'Accept': 'application/json' } })
-            .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+        AgroWeather.load(box.dataset.url)
             .then(data => {
-                const list = data.municipalities || [];
-                if (!list.length) return;
-                box.innerHTML = list.map(card).join('');
-                box.hidden = false;
+                const html = (data.municipalities || []).map(card).join('');
+                box.innerHTML = html || failCard(
+                    data.errors && data.errors.length ? data.errors[0].reason : 'No hay previsión para hoy ni mañana.');
             })
-            .catch(() => { /* sin datos de tiempo: no se muestra */ });
+            .catch(e => { box.innerHTML = failCard(e.msg || 'No se ha podido cargar la previsión. Inténtalo en unos minutos.'); })
+            .finally(() => box.setAttribute('aria-busy', 'false'));
     });
 </script>
 {% endif %}

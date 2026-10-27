@@ -11,10 +11,11 @@ class WeatherOverviewView(FeatureFlagMixin, LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Parcelas con geometría del usuario
-        fields = Field.objects.filter(
-            geometry__isnull=False
-        ).exclude(geometry="").order_by("name")
+        # Parcelas con contorno de la organización del usuario (antes salían las de todas)
+        fields = (
+            Field.ownership_objects.get_queryset_for_user(self.request.user)
+            .exclude(geometry="").order_by("name")
+        )
         context["fields_with_geo"] = list(fields.values("id", "name", "crop", "area"))
         context["nav_weather"] = True
         return context

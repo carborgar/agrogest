@@ -292,28 +292,6 @@ def field_costs_data(request):
     })
 
 
-def get_field_weather(request, field_id):
-    """
-    Devuelve la previsión meteorológica de una parcela usando AEMET OpenData.
-    GET /api/fields/<field_id>/weather/
-    """
-    from .weather_service import get_weather_for_field
-
-    try:
-        field = Field.ownership_objects.get_queryset_for_user(request.user).get(pk=field_id)
-    except Field.DoesNotExist:
-        return JsonResponse({"error": "Parcela no encontrada"}, status=404)
-
-    weather = get_weather_for_field(field)
-    if weather is None:
-        return JsonResponse(
-            {"error": "No se pueden obtener datos meteorológicos. La parcela no tiene coordenadas definidas."},
-            status=422,
-        )
-
-    return JsonResponse(weather)
-
-
 def get_field_product_breakdown(user, fields_or_field, start_date, end_date):
     # Preparar filtro de parcelas
     if hasattr(fields_or_field, '__iter__') and not isinstance(fields_or_field, Field):
@@ -437,13 +415,16 @@ def get_no_price_products(user, fields, start_date, end_date):
 @api_login_required
 def get_weather_summary(request):
     """
-    Tiempo por horas (hoy y mañana) de los municipios de todas las parcelas del usuario.
-    GET /api/weather/summary/
+    Previsión por municipio de las parcelas del usuario (una sola llamada para Inicio y El Tiempo).
+    GET /api/weather/summary/ → {"municipalities": [{name, fields, daily}], "errors": [{reason, fields}]}
     """
+    from django.conf import settings
     from core.models import is_enabled
     from .weather_service import get_weather_summary as build_summary
 
     if not is_enabled('WEATHER'):
         return JsonResponse({"error": "Módulo desactivado"}, status=404)
-    fields = Field.ownership_objects.get_queryset_for_user(request.user).exclude(geometry='')
-    return JsonResponse({"municipalities": build_summary(fields)})
+    if not getattr(settings, 'AEMET_API_KEY', ''):
+        return JsonResponse({"error": "Falta la clave de AEMET en la configuración."}, status=503)
+    fields = Field.ownership_objects.get_queryset_for_user(request.user).exclude(geometry='').order_by('name')
+    return JsonResponse(build_summary(fields))
