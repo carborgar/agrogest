@@ -1,0 +1,85 @@
+{
+  "_doc": "Casos compartidos Python/JS de cálculo de tratamientos. Los valores 'expected' están calculados A MANO (ver docs/plan-formulario-tratamiento.md, sección 2.1), no copiados de la salida del código. 'input': type=spraying|fertigation; dose_type = tipo de dosis del producto para ese tipo de tratamiento; water_per_ha = mojado previsto; real_water_per_ha = mojado real (solo con finish_date); capacity = capacidad de la máquina (null = sin máquina); total_override = total tecleado a mano (la dosis se deriva de él). 'expected': total_dose/dose/total_price/price_per_ha tal y como quedan guardados (2 decimales en precios, 4 en dosis); dose_per_load = TreatmentProduct.get_dose_per_load(); loads = Treatment.calculate_machine_loads() (null si no aplica); partial_product = Treatment.calculate_product_for_partial_load().",
+  "cases": [
+    {
+      "id": "A",
+      "title": "Pulverización L/1000L, 2 cubas llenas + parcial",
+      "input": {"type": "spraying", "dose_type": "l_per_1000l", "dose": "0.5", "field_area": 4.2, "applied_area": null, "water_per_ha": 1000, "real_water_per_ha": null, "finish_date": false, "capacity": 2000, "price": "10.00", "total_override": null},
+      "expected": {"total_dose": 2.1, "dose": 0.5, "total_dose_unit": "L", "total_price": 21.0, "price_per_ha": 5.0, "dose_per_load": 1.0, "loads": {"total_water": 4200, "full_loads": 2, "partial_water": 200, "partial_load": true}, "partial_product": 0.1}
+    },
+    {
+      "id": "B",
+      "title": "Pulverización kg/1000L con precio 9,50",
+      "input": {"type": "spraying", "dose_type": "kg_per_1000l", "dose": "3", "field_area": 4.2, "applied_area": null, "water_per_ha": 1000, "real_water_per_ha": null, "finish_date": false, "capacity": 2000, "price": "9.50", "total_override": null},
+      "expected": {"total_dose": 12.6, "dose": 3.0, "total_dose_unit": "kg", "total_price": 119.7, "price_per_ha": 28.5, "dose_per_load": 6.0, "loads": {"total_water": 4200, "full_loads": 2, "partial_water": 200, "partial_load": true}, "partial_product": 0.6}
+    },
+    {
+      "id": "C",
+      "title": "Pulverización kg/ha con mojado 800",
+      "input": {"type": "spraying", "dose_type": "kg_per_ha", "dose": "3", "field_area": 4.2, "applied_area": null, "water_per_ha": 800, "real_water_per_ha": null, "finish_date": false, "capacity": 2000, "price": "10.00", "total_override": null},
+      "expected": {"total_dose": 12.6, "dose": 3.0, "total_dose_unit": "kg", "total_price": 126.0, "price_per_ha": 30.0, "dose_per_load": 7.5, "loads": {"total_water": 3360, "full_loads": 1, "partial_water": 1360, "partial_load": true}, "partial_product": 5.1}
+    },
+    {
+      "id": "D",
+      "title": "Pulverización en % (E3: el JS no lo calculaba)",
+      "input": {"type": "spraying", "dose_type": "pct", "dose": "1", "field_area": 4.2, "applied_area": null, "water_per_ha": 1000, "real_water_per_ha": null, "finish_date": false, "capacity": 2000, "price": "10.00", "total_override": null},
+      "expected": {"total_dose": 42.0, "dose": 1.0, "total_dose_unit": "L", "total_price": 420.0, "price_per_ha": 100.0, "dose_per_load": 20.0, "loads": {"total_water": 4200, "full_loads": 2, "partial_water": 200, "partial_load": true}, "partial_product": 2.0}
+    },
+    {
+      "id": "E",
+      "title": "Fertirrigación L/ha, sin máquina ni mojado",
+      "input": {"type": "fertigation", "dose_type": "l_per_ha", "dose": "10", "field_area": 2.8, "applied_area": null, "water_per_ha": 0, "real_water_per_ha": null, "finish_date": false, "capacity": null, "price": "10.00", "total_override": null},
+      "expected": {"total_dose": 28.0, "dose": 10.0, "total_dose_unit": "L", "total_price": 280.0, "price_per_ha": 100.0, "dose_per_load": 28.0, "loads": null, "partial_product": 0}
+    },
+    {
+      "id": "F",
+      "title": "Tratamiento parcial: 2,0 ha de 4,2",
+      "input": {"type": "spraying", "dose_type": "l_per_1000l", "dose": "0.5", "field_area": 4.2, "applied_area": 2.0, "water_per_ha": 1000, "real_water_per_ha": null, "finish_date": false, "capacity": 2000, "price": "10.00", "total_override": null},
+      "expected": {"total_dose": 1.0, "dose": 0.5, "total_dose_unit": "L", "total_price": 10.0, "price_per_ha": 5.0, "dose_per_load": 1.0, "loads": {"total_water": 2000, "full_loads": 1, "partial_water": 0, "partial_load": false}, "partial_product": 0}
+    },
+    {
+      "id": "G",
+      "title": "Hecho con mojado real 1100 (se usa el real)",
+      "input": {"type": "spraying", "dose_type": "kg_per_1000l", "dose": "3", "field_area": 4.2, "applied_area": null, "water_per_ha": 1000, "real_water_per_ha": 1100, "finish_date": true, "capacity": 2000, "price": "9.50", "total_override": null},
+      "expected": {"total_dose": 13.86, "dose": 3.0, "total_dose_unit": "kg", "total_price": 131.67, "price_per_ha": 31.35, "dose_per_load": 6.0, "loads": {"total_water": 4620, "full_loads": 2, "partial_water": 620, "partial_load": true}, "partial_product": 1.86}
+    },
+    {
+      "id": "H",
+      "title": "Total a mano en kg/ha (E1/E2)",
+      "input": {"type": "spraying", "dose_type": "kg_per_ha", "dose": "1", "field_area": 4.2, "applied_area": null, "water_per_ha": 1000, "real_water_per_ha": null, "finish_date": false, "capacity": 2000, "price": "10.00", "total_override": "10"},
+      "expected": {"total_dose": 10.0, "dose": 2.381, "total_dose_unit": "kg", "total_price": 100.0, "price_per_ha": 23.81, "dose_per_load": 4.762, "loads": {"total_water": 4200, "full_loads": 2, "partial_water": 200, "partial_load": true}, "partial_product": 0.4762}
+    },
+    {
+      "id": "I",
+      "title": "Total a mano en L/1000L (E1/E2)",
+      "input": {"type": "spraying", "dose_type": "l_per_1000l", "dose": "1", "field_area": 4.2, "applied_area": null, "water_per_ha": 1000, "real_water_per_ha": null, "finish_date": false, "capacity": 2000, "price": "10.00", "total_override": "5"},
+      "expected": {"total_dose": 5.0, "dose": 1.1905, "total_dose_unit": "L", "total_price": 50.0, "price_per_ha": 11.9, "dose_per_load": 2.381, "loads": {"total_water": 4200, "full_loads": 2, "partial_water": 200, "partial_load": true}, "partial_product": 0.2381}
+    },
+    {
+      "id": "K",
+      "title": "Sin precio y sin máquina",
+      "input": {"type": "spraying", "dose_type": "l_per_1000l", "dose": "0.5", "field_area": 4.2, "applied_area": null, "water_per_ha": 1000, "real_water_per_ha": null, "finish_date": false, "capacity": null, "price": "0", "total_override": null},
+      "expected": {"total_dose": 2.1, "dose": 0.5, "total_dose_unit": "L", "total_price": 0.0, "price_per_ha": 0.0, "dose_per_load": null, "loads": null, "partial_product": 0}
+    },
+    {
+      "id": "L",
+      "title": "Carga parcial pequeña (30 L <= 50): no cuenta",
+      "input": {"type": "spraying", "dose_type": "l_per_1000l", "dose": "1", "field_area": 1.0, "applied_area": null, "water_per_ha": 2030, "real_water_per_ha": null, "finish_date": false, "capacity": 2000, "price": "10.00", "total_override": null},
+      "expected": {"total_dose": 2.03, "dose": 1.0, "total_dose_unit": "L", "total_price": 20.3, "price_per_ha": 20.3, "dose_per_load": 2.0, "loads": {"total_water": 2030, "full_loads": 1, "partial_water": 30, "partial_load": false}, "partial_product": 0}
+    },
+    {
+      "id": "M",
+      "title": "L/ha con mojado que no divide la cuba",
+      "input": {"type": "spraying", "dose_type": "l_per_ha", "dose": "2", "field_area": 5.0, "applied_area": null, "water_per_ha": 600, "real_water_per_ha": null, "finish_date": false, "capacity": 1000, "price": "10.00", "total_override": null},
+      "expected": {"total_dose": 10.0, "dose": 2.0, "total_dose_unit": "L", "total_price": 100.0, "price_per_ha": 20.0, "dose_per_load": 3.3333, "loads": {"total_water": 3000, "full_loads": 3, "partial_water": 0, "partial_load": false}, "partial_product": 0}
+    }
+  ],
+  "rounding": [
+    {"id": "J", "input": "0.0754", "expected": "0.076"},
+    {"id": "J2", "input": "1.0001", "expected": "1.001"},
+    {"id": "J3", "input": "2.1", "expected": "2.1"},
+    {"id": "J4", "input": "0.3", "expected": "0.3"},
+    {"id": "J5", "input": "0.075", "expected": "0.075"},
+    {"id": "J6", "input": "0.0001", "expected": "0.001"}
+  ]
+}
