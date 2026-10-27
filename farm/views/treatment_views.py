@@ -19,7 +19,7 @@ from django.views.generic.edit import UpdateView
 from farm.forms import TreatmentForm, TreatmentProductFormSet
 from farm.mixins import BaseSecureViewMixin
 from farm.models import Field, Product, ProductType, Treatment, TreatmentProduct
-from farm.services import save_treatment_with_products, get_shopping_list, clone_treatment
+from farm.services import save_treatment_with_products, clone_treatment
 from farm.templatetags.custom_filters import treatment_tone
 
 logger = logging.getLogger(__name__)
@@ -527,38 +527,86 @@ class TreatmentExportView(BaseSecureViewMixin, DetailView):
         return context
 
 
-class ShoppingListView(BaseSecureViewMixin, ListView):
+class ShoppingListView(BaseSecureViewMixin, TemplateView):
+    """Preparar productos: qué sacar del almacén y qué dejar en cada casetilla.
+
+    El servidor manda los tratamientos sin hacer, agrupados por fechas como el listado, y las
+    líneas de producto de cada uno (`pp_data`). El navegador suma lo marcado al momento, sin
+    recargar: los datos ya están en la página y en el campo la cobertura puede ser mala.
+    """
     template_name = 'farm/treatments/shopping_list.html'
-    context_object_name = 'product_items'
+    # Preselección: atrasados + próximos 7 días, lo mismo que suma «Producto que vas a necesitar» en Inicio
+    soon_days = 7
 
-    def _selected_treatments(self):
-        return [tid for tid in self.request.GET.getlist('treatment') if tid.isdigit()]
-
-    def _selected_fields(self):
-        return [fid for fid in self.request.GET.getlist('field') if fid.isdigit()]
-
-    def get_queryset(self):
-        return get_shopping_list(
-            self.request.user,
-            field_ids=self._selected_fields() or None,
-            treatment_ids=self._selected_treatments() or None,
-        )
+    def _selected_ids(self):
+        """Ids marcados en la URL, o None si no viene `treatment` (se usa la preselección)."""
+        if 'treatment' not in self.request.GET:
+            return None
+        return {int(t) for t in self.request.GET.getlist('treatment') if t.isdigit()}
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['fields'] = Field.objects.filter(organization=self.request.user.organization)
-        context['selected_fields'] = self._selected_fields()
-        context['selected_treatments'] = self._selected_treatments()
-        context['available_treatments'] = (
-            Treatment.ownership_objects
-            .get_queryset_for_user(self.request.user)
-            .filter(status__in=['pending', 'delayed'])
-            .select_related('field')
-            .order_by('date')
+        today = timezone.localdate()
+        soon_limit = today + timedelta(days=self.soon_days)
+        upcoming_limit = today + timedelta(days=Treatment.UPCOMING_DAYS)
+
+        # Por fechas y no por `status` (puede estar desfasado), igual que el listado e Inicio
+        treatments = list(
+            Treatment.ownership_objects.get_queryset_for_user(self.request.user)
+            .filter(finish_date__isnull=True)
+            .select_related('field', 'field__storage_point')
+            .prefetch_related('treatmentproduct_set__product')
+            .order_by('date', 'name')
         )
-        total_price = sum(item['total_price'] for item in self.object_list)
-        context['total_price'] = round(total_price, 2)
-        context['total_count'] = len(self.object_list)
+
+        def group_of(t):
+            if t.date < today:
+                return 0
+            if t.date <= soon_limit:
+                return 1
+            if t.date <= upcoming_limit:
+                return 2
+            return 3
+
+        selected = self._selected_ids()
+        groups = [
+            {'index': 0, 'tone': 0, 'label': 'Atrasados', 'treatments': []},
+            {'index': 1, 'tone': 1, 'label': f'Próximos {self.soon_days} días', 'treatments': []},
+            {'index': 2, 'tone': 1, 'label': '', 'treatments': [],
+             'range_start': soon_limit + timedelta(days=1), 'range_end': upcoming_limit},
+            {'index': 3, 'tone': 2, 'label': 'Más adelante', 'treatments': []},
+        ]
+        data = []
+        for t in treatments:
+            g = group_of(t)
+            t.checked = g <= 1 if selected is None else t.id in selected
+            t.tone = groups[g]['tone']
+            groups[g]['treatments'].append(t)
+            field = t.field
+            data.append({
+                'id': t.id,
+                'field': {
+                    'id': field.id,
+                    'name': field.name,
+                    'ha': float(field.area or 0),
+                    'sp': field.storage_point_id,
+                    'spName': field.storage_point.name if field.storage_point_id else None,
+                },
+                'lines': [
+                    {
+                        'p': tp.product_id,
+                        'n': tp.product.name,
+                        'u': tp.total_dose_unit,
+                        'q': float(tp.total_dose or 0),
+                        'c': float(tp.total_price or 0),
+                    }
+                    for tp in t.treatmentproduct_set.all()
+                ],
+            })
+
+        context['groups'] = [g for g in groups if g['treatments']]
+        context['total_count'] = len(treatments)
+        context['pp_data'] = data
         return context
 
 

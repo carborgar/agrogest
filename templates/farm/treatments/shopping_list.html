@@ -3,453 +3,234 @@
 
 {% block title %}Preparar productos{% endblock %}
 {% block header %}Preparar productos{% endblock %}
-{% block sub_header %}Selecciona los tratamientos que vas a preparar{% endblock %}
+{% block sub_header %}<span class="d-none d-md-inline">Marca los tratamientos que vas a preparar</span>{% endblock %}
+
+{% block actions %}
+<button type="button" class="btn btn-outline-secondary d-none d-md-inline-block" onclick="window.print()">
+    <i class="fa fa-print me-1"></i>Imprimir
+</button>
+{% endblock %}
 
 {% block content %}
-<form method="GET" id="sl-form">
+{% if not total_count %}
+<div class="dt-card hm-empty">
+    <span class="hm-empty-icon"><i class="fa fa-check" aria-hidden="true"></i></span>
+    <b>No hay tratamientos pendientes</b>
+    <span>Cuando programes alguno, aquí verás qué productos preparar.</span>
+</div>
+{% else %}
+<div class="row g-3 align-items-start">
 
-    <div class="row g-3 align-items-start">
-
-        <!-- ── Columna izquierda: selección de tratamientos ── -->
-        <div class="col-12 col-md-4 col-lg-3">
-            <div class="card">
-                <!-- Header: siempre visible, toggle en mobile -->
-                <div class="card-header d-flex align-items-center gap-2"
-                     role="button"
-                     data-bs-toggle="collapse"
-                     data-bs-target="#sl-panel"
-                     aria-expanded="{% if selected_treatments %}false{% else %}true{% endif %}"
-                     aria-controls="sl-panel"
-                     style="cursor:pointer">
-                    <i class="fa fa-list-check"></i>
-                    <span>Tratamientos</span>
-                    <span class="badge bg-secondary rounded-pill" id="sl-count-badge">
-                    {{ available_treatments|length }}
-                </span>
-                    <i class="fa fa-chevron-down ms-auto text-muted sl-chevron d-md-none"
-                       style="font-size:.75rem; transition:transform .2s"></i>
-                </div>
-
-                <div class="collapse {% if not selected_treatments %}show{% endif %} d-md-block" id="sl-panel">
-                    <div class="card-body p-0 border-bottom">
-                        <!-- Buscador inline -->
-                        <div class="p-2 border-bottom">
-                            <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-transparent border-end-0">
-                                <i class="fa fa-magnifying-glass text-muted" style="font-size:.75rem"></i>
-                            </span>
-                                <input type="text" id="sl-search"
-                                       class="form-control border-start-0 ps-0"
-                                       placeholder="Buscar tratamiento…"
-                                       autocomplete="off">
-                            </div>
-                        </div>
-
-                        {% if not available_treatments %}
-                        <p class="text-muted small p-3 mb-0">No hay tratamientos pendientes.</p>
-                        {% else %}
-                        <div class="sl-treatment-list">
-                            {% for t in available_treatments %}
-                            <label class="sl-treatment-item {% if t.id|stringformat:'s' in selected_treatments %}sl-treatment-item--selected{% endif %}"
-                                   data-search="{{ t.name|lower }} {{ t.field.name|lower }}">
-                                <input class="sl-cb" type="checkbox" name="treatment" value="{{ t.id }}"
-                                       {% if t.id|stringformat:'s' in selected_treatments %}checked{% endif %}>
-                                <div class="sl-treatment-body">
-                                    <div class="sl-treatment-name">{{ t.name }}</div>
-                                    <div class="sl-treatment-meta">
-                                        <i class="fa fa-map-marked-alt me-1"></i>{{ t.field.name }}
-                                        <span class="mx-1 text-muted">·</span>
-                                        {{ t.date|date:"d/m/Y" }}
-                                    </div>
-                                </div>
-                                {% with tone=t|treatment_tone %}<span class="dt-status dt-tone-{{ tone }} flex-shrink-0">{% if tone == 0 %}Atrasado{% else %}{{ t.get_status_display }}{% endif %}</span>{% endwith %}
-                            </label>
-                            {% endfor %}
-                            <p class="sl-no-results text-muted small text-center py-3 mb-0 d-none">
-                                Sin resultados
-                            </p>
-                        </div>
-                        {% endif %}
-                    </div>
-
-                    <div class="card-footer d-flex gap-2">
-                        <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
-                            <i class="fa fa-calculator me-1"></i>Calcular
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" id="sl-select-all"
-                                title="Seleccionar todos">
-                            <i class="fa fa-check-double"></i>
-                        </button>
-                        <a class="btn btn-outline-secondary btn-sm" href="{% url 'treatment-shopping-list' %}"
-                           title="Limpiar selección">
-                            <i class="fa fa-rotate-left"></i>
-                        </a>
-                    </div>
-                </div>
+    {# ── Selección de tratamientos: agrupados como en el listado ── #}
+    <div class="col-12 col-md-5 col-xl-4 pp-sel-col">
+        <section class="dt-card" aria-labelledby="pp-sel-title">
+            <div class="dt-card-head d-none d-md-flex">
+                <h2 class="dt-card-title" id="pp-sel-title">Tratamientos</h2>
+                <span class="dt-muted fw-semibold" data-pp-count></span>
             </div>
-        </div>
+            {# Móvil: la selección se resume en una fila que se despliega #}
+            <button type="button" class="pp-sum d-md-none" data-bs-toggle="collapse" data-bs-target="#ppSelList"
+                    aria-expanded="false" aria-controls="ppSelList">
+                <span><b data-pp-count-long></b><small data-pp-count-sub></small></span>
+                <span class="pp-sum-action">Cambiar</span>
+            </button>
 
-        <!-- ── Columna derecha: resultados ── -->
-        <div class="col-12 col-md-8 col-lg-9">
-
-            {% if not product_items and not selected_treatments %}
-            <!-- Estado vacío inicial -->
-            <div class="card sl-empty-card">
-                <div class="card-body text-center py-5">
-                    <div class="sl-empty-icon mx-auto mb-3">
-                        <i class="fa fa-flask-vial"></i>
+            <div class="collapse d-md-block" id="ppSelList">
+                {% for group in groups %}
+                <div class="pp-group{% if group.index == 3 %} pp-later d-none{% endif %}">
+                    <div class="tl-group-header tl-group-header--{{ group.tone }} hm-group">
+                        <span>{% if group.index == 2 %}Del {{ group.range_start|date:"j" }} al {{ group.range_end|date:"j b" }}{% else %}{{ group.label }}{% endif %} · {{ group.treatments|length }}</span>
+                        <button type="button" class="pp-all" data-pp-group="{{ group.index }}">Marcar todos</button>
                     </div>
-                    <h6 class="fw-bold mb-1">¿Qué tratamientos vas a preparar hoy?</h6>
-                    <p class="text-muted small mb-0">
-                        Selecciona uno o más tratamientos a la izquierda y pulsa <strong>Calcular</strong>.
-                    </p>
-                </div>
-            </div>
-
-            {% elif not product_items %}
-            <div class="alert alert-warning d-flex align-items-center gap-2">
-                <i class="fa fa-triangle-exclamation fa-lg"></i>
-                <div>Los tratamientos seleccionados <strong>no tienen productos asociados</strong>.</div>
-            </div>
-
-            {% else %}
-            <!-- ── Barra de resumen ─────────────────────────────── -->
-            <div class="sl-summary-bar d-print-none mb-3">
-                <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <span class="sl-summary-pill sl-summary-pill--products">
-                        <i class="fa fa-boxes-stacked me-1"></i>
-                        {{ total_count }} producto{{ total_count|pluralize }}
-                    </span>
-                    {% if total_price %}
-                    <span class="sl-summary-pill sl-summary-pill--price">
-                        <i class="fa fa-euro-sign me-1"></i>{{ total_price }}€ estimado
-                    </span>
-                    {% endif %}
-                </div>
-                <div class="d-flex gap-2">
-                    {% if product_items|length > 1 %}
-                    <button class="btn btn-outline-secondary btn-sm d-print-none" id="sl-toggle-all"
-                            type="button" data-state="collapsed">
-                        <i class="fa fa-down-left-and-up-right-to-center me-1"></i>Expandir todo
-                    </button>
-                    {% endif %}
-                    <button class="btn btn-outline-secondary btn-sm d-print-none"
-                            onclick="window.print(); return false;">
-                        <i class="fa fa-print me-1"></i>Imprimir
-                    </button>
-                </div>
-            </div>
-
-            <!-- ── Tarjetas de producto ──────────────────────────── -->
-            {% for item in product_items %}
-            <div class="sl-product-card mb-3">
-
-                <!-- Cabecera del producto -->
-                <div class="sl-product-header {% if item.distribution_groups %}sl-product-header--toggle{% endif %}"
-                     {% if item.distribution_groups %}
-                     role="button"
-                     data-bs-toggle="collapse"
-                     data-bs-target="#sl-product-body-{{ forloop.counter }}"
-                     aria-expanded="false"
-                     aria-controls="sl-product-body-{{ forloop.counter }}"
-                     {% endif %}>
-                    <div class="sl-product-avatar">
-                        <i class="fa fa-flask"></i>
-                    </div>
-                    <div class="flex-grow-1 min-w-0">
-                        <div class="sl-product-name">{{ item.product_name }}</div>
-                        <div class="sl-product-type">{{ item.product_type }}</div>
-                    </div>
-                    <div class="text-end flex-shrink-0">
-                        <div class="sl-product-total-val">{{ item.total_dose|floatformat:"2" }} <span class="sl-product-unit">{{ item.unit }}</span></div>
-                        {% if item.total_price %}
-                        <div class="sl-product-price">{{ item.total_price|floatformat:"2" }}€</div>
-                        {% endif %}
-                    </div>
-                    {% if item.distribution_groups %}
-                    <i class="fa fa-chevron-down ms-2 text-muted sl-product-chevron d-print-none"
-                       style="font-size:.75rem; transition:transform .2s"></i>
-                    {% endif %}
-                </div>
-
-                <!-- Grupos de distribución (casetillas) -->
-                {% if item.distribution_groups %}
-                <div class="collapse" id="sl-product-body-{{ forloop.counter }}">
-                <div class="sl-groups">
-                    {% for group in item.distribution_groups %}
-                    <div class="sl-group">
-                        <div class="sl-group-header">
-                            <div class="sl-group-avatar">
-                                <i class="fa fa-warehouse"></i>
-                            </div>
-                            <span class="sl-group-name">{{ group.name }}</span>
-                            <span class="sl-group-total ms-auto">{{ group.group_total }} {{ group.unit }}</span>
-                        </div>
-
-                        <!-- Filas de parcela: sólo si hay más de una -->
-                        {% if group.fields|length > 1 %}
-                        <div class="sl-group-fields">
-                            {% for fg in group.fields %}
-                            <div class="sl-field-row">
-                                <div class="sl-field-dot"></div>
-                                <div class="flex-grow-1 min-w-0">
-                                    <span class="sl-field-row-name">{{ fg.field }}</span>
-                                    <span class="sl-field-row-area">{{ fg.field_area }} ha</span>
-                                    {% if fg.treatments|length > 1 %}
-                                    <div class="sl-field-breakdown">
-                                        {% for t in fg.treatments %}
-                                        <span class="sl-field-breakdown-item">
-                                            <i class="fa fa-turn-down fa-flip-horizontal" style="font-size:.5rem;opacity:.5"></i>
-                                            {{ t.treatment }} — {{ t.dose }} {{ fg.unit }}
-                                        </span>
-                                        {% endfor %}
-                                    </div>
-                                    {% endif %}
-                                </div>
-                                <span class="sl-field-row-total">{{ fg.field_total }} {{ fg.unit }}</span>
-                            </div>
-                            {% endfor %}
-                        </div>
-                        {% elif group.fields|length == 1 and group.fields.0.treatments|length > 1 %}
-                        <!-- 1 parcela con varios tratamientos: mostrar sólo el desglose -->
-                        <div class="sl-group-fields">
-                            <div class="sl-field-breakdown" style="padding:.25rem .75rem .5rem .75rem">
-                                {% for t in group.fields.0.treatments %}
-                                <span class="sl-field-breakdown-item">
-                                    <i class="fa fa-turn-down fa-flip-horizontal" style="font-size:.5rem;opacity:.5"></i>
-                                    {{ t.treatment }} — {{ t.dose }} {{ group.unit }}
-                                </span>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        {% endif %}
-                    </div>
+                    {% for t in group.treatments %}
+                    <label class="pp-row">
+                        <input type="checkbox" class="pp-cb" value="{{ t.id }}" data-group="{{ group.index }}"{% if t.checked %} checked{% endif %}>
+                        <span class="tl-date tl-date--{{ t.tone }}" title="{{ t.date|date:'d/m/Y' }}">
+                            <span class="tl-day">{{ t.date|date:"j" }}</span>
+                            <span class="tl-month">{{ t.date|date:"b" }}</span>
+                        </span>
+                        <span class="pp-row-main">
+                            <span class="pp-row-name">{{ t.name }}</span>
+                            <span class="pp-row-meta">{{ t.field.name }} · <span class="tl-rel tl-rel--{{ t.tone }}">{{ t.date|relative_days }}</span></span>
+                        </span>
+                    </label>
                     {% endfor %}
                 </div>
-                </div>
-                {% endif %}
-
+                {% endfor %}
+                {% for group in groups %}{% if group.index == 3 %}
+                <button type="button" class="pp-later-btn" data-pp-later aria-expanded="false"
+                        data-show="Mostrar {{ group.treatments|length }} más adelante" data-hide="Ocultar los de más adelante">
+                    Mostrar {{ group.treatments|length }} más adelante
+                </button>
+                {% endif %}{% endfor %}
             </div>
-            {% endfor %}
-
-            {% if total_price %}
-            <div class="sl-grand-total">
-                <i class="fa fa-receipt me-2 text-success"></i>
-                Coste total estimado: <strong class="text-success ms-1">{{ total_price }}€</strong>
-            </div>
-            {% endif %}
-
-            {% endif %}
-
-        </div>
+        </section>
     </div>
 
-</form>
-
-<style>
-/* ── Shopping list: new product cards & distribution groups ── */
-.sl-empty-card .sl-empty-icon {
-    width: 60px; height: 60px;
-    border-radius: 16px;
-    background: linear-gradient(135deg, rgba(13,110,253,.12) 0%, rgba(13,110,253,.06) 100%);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.6rem; color: var(--bs-primary);
-}
-
-.sl-summary-bar {
-    display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap;
-}
-.sl-summary-pill {
-    display: inline-flex; align-items: center;
-    padding: .3rem .85rem; border-radius: 30px; font-size: .8rem; font-weight: 600;
-}
-.sl-summary-pill--products { background: rgba(13,110,253,.1); color: var(--bs-primary); }
-.sl-summary-pill--price    { background: rgba(25,135,84,.1);  color: #146b3a; }
-
-/* Product card */
-.sl-product-card {
-    background: #fff;
-    border-radius: 14px;
-    box-shadow: 0 2px 14px rgba(0,0,0,.06);
-    overflow: hidden;
-}
-.sl-product-header {
-    display: flex; align-items: center; gap: .9rem;
-    padding: 1rem 1.1rem;
-    border-bottom: 1px solid rgba(0,0,0,.06);
-}
-.sl-product-header--toggle { cursor: pointer; }
-.sl-product-header--toggle:hover { background: rgba(0,0,0,.015); }
-.sl-product-header--toggle[aria-expanded="true"] { border-bottom-color: rgba(0,0,0,.06); }
-.sl-product-header--toggle[aria-expanded="true"] .sl-product-chevron { transform: rotate(180deg); }
-.sl-product-avatar {
-    width: 38px; height: 38px; border-radius: 10px;
-    background: linear-gradient(135deg, rgba(13,110,253,.15) 0%, rgba(13,110,253,.07) 100%);
-    display: flex; align-items: center; justify-content: center;
-    font-size: .9rem; color: var(--bs-primary); flex-shrink: 0;
-}
-.sl-product-name  { font-size: .95rem; font-weight: 700; color: #1a1a2e; }
-.sl-product-type  { font-size: .72rem; color: #6c757d; text-transform: uppercase; letter-spacing: .04em; }
-.sl-product-total-val { font-size: 1.1rem; font-weight: 800; color: #212529; }
-.sl-product-unit  { font-size: .72rem; color: #6c757d; font-weight: 500; }
-.sl-product-price { font-size: .78rem; color: #146b3a; font-weight: 600; }
-
-/* Distribution groups */
-.sl-groups      { padding: .6rem .75rem; display: flex; flex-direction: column; gap: .6rem; }
-.sl-group       { background: #fff; border-radius: 10px; overflow: hidden; border: 1px solid rgba(0,0,0,.06); }
-.sl-group-header {
-    display: flex; align-items: center; gap: .6rem;
-    padding: .55rem .85rem;
-    background: #fff;
-    border-bottom: 1px solid #D9DED5;
-}
-.sl-group-avatar {
-    width: 26px; height: 26px; border-radius: 7px;
-    background: rgba(82,183,136,.18); color: #2D6A4F;
-    display: flex; align-items: center; justify-content: center;
-    font-size: .72rem; flex-shrink: 0;
-}
-
-.sl-group-name  { font-size: .82rem; font-weight: 700; color: #1a2e1e; }
-.sl-group-total { font-size: .82rem; font-weight: 800; color: #2D6A4F; white-space: nowrap; }
-
-.sl-group-fields { padding: .4rem .85rem .6rem; }
-.sl-field-row {
-    display: flex; align-items: flex-start; gap: .55rem;
-    padding: .3rem 0;
-    border-bottom: 1px solid rgba(0,0,0,.05);
-}
-.sl-field-row:last-child { border-bottom: none; }
-.sl-field-dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: #52B788; flex-shrink: 0; margin-top: .45rem;
-}
-.sl-field-row-name  { font-size: .82rem; font-weight: 600; color: #212529; }
-.sl-field-row-area  { font-size: .71rem; color: #6c757d; margin-left: .4rem; }
-.sl-field-row-total { font-size: .82rem; font-weight: 700; color: #495057; white-space: nowrap; margin-left: auto; }
-.sl-field-breakdown { margin-top: .2rem; display: flex; flex-direction: column; gap: .1rem; }
-.sl-field-breakdown-item { font-size: .71rem; color: #6c757d; }
-
-.sl-grand-total {
-    background: linear-gradient(90deg, rgba(25,135,84,.08) 0%, rgba(25,135,84,.04) 100%);
-    border-radius: 10px; padding: .75rem 1rem;
-    font-size: .88rem; font-weight: 600; color: #212529;
-    border: 1px solid rgba(25,135,84,.15);
-}
-</style>
-
-<!-- Print styles -->
-<style>
-    @media print {
-        .sl-treatment-list, .card-footer, .d-print-none, nav, footer {
-            display: none !important;
-        }
-
-        .col-md-4 {
-            display: none !important;
-        }
-
-        .col-md-8 {
-            width: 100% !important;
-            max-width: 100% !important;
-            flex: none !important;
-        }
-
-        /* Al imprimir, las tarjetas de producto siempre van expandidas */
-        .sl-product-card .collapse {
-            display: block !important;
-            height: auto !important;
-            visibility: visible !important;
-        }
-        .sl-product-header--toggle { cursor: default !important; }
-    }
-</style>
+    {# ── Resultado: se calcula en el navegador con pp-data ── #}
+    <div class="col-12 col-md-7 col-xl-8">
+        <section class="dt-card" aria-labelledby="pp-res-title">
+            <div class="dt-card-head">
+                <div>
+                    <h2 class="dt-card-title" id="pp-res-title">Qué preparar</h2>
+                    <div class="dt-muted" data-pp-summary></div>
+                </div>
+                <div class="tl-tabs pp-tabs d-print-none" role="tablist" aria-label="Agrupar por">
+                    <button type="button" class="tl-tab" role="tab" data-pp-tab="prod" aria-selected="false">Por producto</button>
+                    <button type="button" class="tl-tab" role="tab" data-pp-tab="cas" aria-selected="false">Por casetilla</button>
+                </div>
+            </div>
+            <div id="ppResult" aria-live="polite"></div>
+        </section>
+    </div>
+</div>
+{{ pp_data|json_script:"pp-data" }}
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
+{% if total_count %}
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const cbs = document.querySelectorAll('.sl-cb');
-        const badge = document.getElementById('sl-count-badge');
-        const selectAllBtn = document.getElementById('sl-select-all');
-        const searchInput = document.getElementById('sl-search');
-        const panel = document.getElementById('sl-panel');
-        const chevron = document.querySelector('.sl-chevron');
+document.addEventListener('DOMContentLoaded', function () {
+    const DATA = JSON.parse(document.getElementById('pp-data').textContent);
+    const byId = Object.fromEntries(DATA.map(t => [String(t.id), t]));
+    const cbs = [...document.querySelectorAll('.pp-cb')];
+    const result = document.getElementById('ppResult');
+    const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => (
+        { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const num = (v) => v.toLocaleString('es-ES', { maximumFractionDigits: 2 });
+    const eur = (v) => v.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+    const ha = (v) => v.toLocaleString('es-ES', { maximumFractionDigits: 2 }) + ' ha';
+    const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
+    const byName = (a, b) => a.name.localeCompare(b.name, 'es');
 
-        // ── Badge ──────────────────────────────────────────────────────
-        function updateBadge() {
-            const checked = document.querySelectorAll('.sl-cb:checked').length;
-            badge.textContent = checked > 0 ? checked + ' sel.' : '{{ available_treatments|length }}';
-            badge.className = checked > 0
-                ? 'badge bg-primary rounded-pill'
-                : 'badge bg-secondary rounded-pill';
+    // Pestaña: la última elegida en este dispositivo; si no hay, casetilla en móvil (se reparte en el campo)
+    const TAB_KEY = 'agrogest.preparar.tab';
+    let tab;
+    try { tab = localStorage.getItem(TAB_KEY); } catch (e) { tab = null; }
+    if (tab !== 'prod' && tab !== 'cas') tab = window.innerWidth < 768 ? 'cas' : 'prod';
+
+    function aggregate(chosen) {
+        const products = {}, places = {};
+        let cost = 0;
+        chosen.forEach(t => {
+            const f = t.field;
+            // Las parcelas sin casetilla son su propio punto de reparto, como en Parcelas
+            const key = f.sp ? 'sp' + f.sp : 'f' + f.id;
+            const place = places[key] ||= { name: f.sp ? f.spName : f.name, indep: !f.sp, fields: {}, prods: {} };
+            place.fields[f.name] = f.ha;
+            t.lines.forEach(l => {
+                const k = l.p + '|' + l.u;
+                const p = products[k] ||= { name: l.n, u: l.u, q: 0, c: 0, tr: 0, fields: new Set() };
+                p.q += l.q; p.c += l.c; p.tr += 1; p.fields.add(f.name);
+                const pp = place.prods[k] ||= { name: l.n, u: l.u, q: 0, byField: {} };
+                pp.q += l.q; pp.byField[f.name] = (pp.byField[f.name] || 0) + l.q;
+                cost += l.c;
+            });
+        });
+        return {
+            products: Object.values(products).sort(byName),
+            places: Object.values(places).sort((a, b) => (a.indep - b.indep) || byName(a, b)),
+            cost,
+        };
+    }
+
+    function renderProducts(agg) {
+        return `<div class="pp-prod pp-prod--head" aria-hidden="true">
+                <span>Producto</span><span>Cantidad</span><span>Para</span><span>Coste est.</span>
+            </div>` + agg.products.map(p => {
+            const fields = [...p.fields].sort().join(', ');
+            return `<div class="pp-prod">
+                <span><b>${esc(p.name)}</b><small>${plural(p.tr, 'tratamiento', 'tratamientos')}<span class="d-md-none"> · ${esc(fields)}</span></small></span>
+                <span class="pp-qty">${num(p.q)} ${esc(p.u)}</span>
+                <span class="pp-for">${esc(fields)}</span>
+                <span class="pp-cost">${eur(p.c)}</span>
+            </div>`;
+        }).join('') + `<div class="pp-total">Coste estimado <b>${eur(agg.cost)}</b></div>`;
+    }
+
+    function renderPlaces(agg) {
+        return '<div class="pp-places">' + agg.places.map(pl => {
+            const names = Object.keys(pl.fields).sort();
+            const sub = pl.indep
+                ? `El producto se deja en la parcela (${ha(pl.fields[names[0]])})`
+                : 'Parcelas: ' + names.map(n => `${esc(n)} (${ha(pl.fields[n])})`).join(', ');
+            const prods = Object.values(pl.prods).sort(byName);
+            return `<div class="pp-place">
+                <div class="pp-place-head">
+                    <div><b>${esc(pl.name)}${pl.indep ? ' · independiente' : ''}</b><small>${sub}</small></div>
+                    <span class="dt-muted">${plural(prods.length, 'producto', 'productos')}</span>
+                </div>` + prods.map(p => {
+                    const parts = Object.keys(p.byField).sort();
+                    const split = parts.length > 1
+                        ? `<small>${parts.map(f => `${esc(f)} ${num(p.byField[f])} ${esc(p.u)}`).join(' · ')}</small>` : '';
+                    return `<div class="pp-place-row"><span><b>${esc(p.name)}</b>${split}</span><span class="pp-qty">${num(p.q)} ${esc(p.u)}</span></div>`;
+                }).join('') + '</div>';
+        }).join('') + '</div>';
+    }
+
+    function render() {
+        const chosen = cbs.filter(cb => cb.checked).map(cb => byId[cb.value]).filter(Boolean);
+        const agg = aggregate(chosen);
+        const late = cbs.filter(cb => cb.checked && cb.dataset.group === '0').length;
+
+        document.querySelectorAll('[data-pp-count]').forEach(el => el.textContent = `${chosen.length} de ${cbs.length} marcados`);
+        document.querySelectorAll('[data-pp-count-long]').forEach(el => el.textContent = plural(chosen.length, 'tratamiento marcado', 'tratamientos marcados'));
+        document.querySelectorAll('[data-pp-count-sub]').forEach(el => el.textContent =
+            chosen.length ? `${late} atrasado${late === 1 ? '' : 's'} · ${chosen.length - late} próximo${chosen.length - late === 1 ? '' : 's'}` : 'Toca para elegir');
+        document.querySelector('[data-pp-summary]').textContent = chosen.length
+            ? `${plural(agg.products.length, 'producto', 'productos')} · ${plural(chosen.length, 'tratamiento', 'tratamientos')} · ${plural(agg.places.length, 'punto de reparto', 'puntos de reparto')}`
+            : 'Ningún tratamiento marcado';
+
+        document.querySelectorAll('[data-pp-tab]').forEach(b => {
+            const on = b.dataset.ppTab === tab;
+            b.classList.toggle('active', on);
+            b.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        document.querySelectorAll('.pp-all').forEach(btn => {
+            const own = cbs.filter(cb => cb.dataset.group === btn.dataset.ppGroup);
+            btn.textContent = own.every(cb => cb.checked) ? 'Quitar todos' : 'Marcar todos';
+        });
+
+        if (!chosen.length) {
+            result.innerHTML = '<p class="pp-empty">Marca algún tratamiento para ver qué preparar.</p>';
+        } else if (!agg.products.length) {
+            result.innerHTML = '<p class="pp-empty">Los tratamientos marcados no tienen productos.</p>';
+        } else {
+            result.innerHTML = tab === 'prod' ? renderProducts(agg) : renderPlaces(agg);
         }
 
-        cbs.forEach(cb => {
-            cb.addEventListener('change', function () {
-                this.closest('.sl-treatment-item').classList.toggle('sl-treatment-item--selected', this.checked);
-                updateBadge();
-            });
-        });
+        // La URL guarda la selección: recargar o compartir el enlace deja lo mismo marcado
+        const params = new URLSearchParams();
+        cbs.filter(cb => cb.checked).forEach(cb => params.append('treatment', cb.value));
+        history.replaceState(null, '', '?' + (params.toString() || 'treatment='));
+    }
 
-        // ── Seleccionar todos ──────────────────────────────────────────
-        let allSelected = false;
-        selectAllBtn?.addEventListener('click', function () {
-            allSelected = !allSelected;
-            // Solo afecta a los visibles (no filtrados por búsqueda)
-            const visibleCbs = [...document.querySelectorAll('.sl-treatment-item:not(.d-none) .sl-cb')];
-            visibleCbs.forEach(cb => {
-                cb.checked = allSelected;
-                cb.closest('.sl-treatment-item').classList.toggle('sl-treatment-item--selected', allSelected);
-            });
-            this.innerHTML = allSelected
-                ? '<i class="fa fa-square"></i>'
-                : '<i class="fa fa-check-double"></i>';
-            updateBadge();
-        });
-
-        // ── Buscador (filtrado instantáneo) ───────────────────────────
-        searchInput?.addEventListener('input', function () {
-            const q = this.value.trim().toLowerCase();
-            const items = document.querySelectorAll('.sl-treatment-item');
-            let visible = 0;
-            items.forEach(item => {
-                const match = !q || (item.dataset.search || '').includes(q);
-                item.classList.toggle('d-none', !match);
-                if (match) visible++;
-            });
-            const noResults = document.querySelector('.sl-no-results');
-            if (noResults) noResults.classList.toggle('d-none', visible > 0);
-            // Resetear "seleccionar todos" si cambia el filtro
-            allSelected = false;
-            selectAllBtn.innerHTML = '<i class="fa fa-check-double"></i>';
-        });
-
-        // ── Chevron rotate al colapsar ────────────────────────────────
-        if (panel && chevron) {
-            panel.addEventListener('show.bs.collapse', () => chevron.style.transform = 'rotate(180deg)');
-            panel.addEventListener('hide.bs.collapse', () => chevron.style.transform = 'rotate(0deg)');
-            // Estado inicial
-            if (panel.classList.contains('show')) {
-                chevron.style.transform = 'rotate(180deg)';
-            }
-        }
-
-        updateBadge();
-
-        // ── Expandir / colapsar todas las tarjetas de producto ─────────
-        const toggleAllBtn = document.getElementById('sl-toggle-all');
-        toggleAllBtn?.addEventListener('click', function () {
-            const expanding = this.dataset.state === 'collapsed';
-            document.querySelectorAll('.sl-product-card .collapse').forEach(el => {
-                const instance = bootstrap.Collapse.getOrCreateInstance(el, {toggle: false});
-                expanding ? instance.show() : instance.hide();
-            });
-            this.dataset.state = expanding ? 'expanded' : 'collapsed';
-            this.innerHTML = expanding
-                ? '<i class="fa fa-up-right-and-down-left-from-center me-1"></i>Colapsar todo'
-                : '<i class="fa fa-down-left-and-up-right-to-center me-1"></i>Expandir todo';
-        });
+    cbs.forEach(cb => cb.addEventListener('change', render));
+    document.querySelectorAll('.pp-all').forEach(btn => btn.addEventListener('click', () => {
+        const own = cbs.filter(cb => cb.dataset.group === btn.dataset.ppGroup);
+        const on = !own.every(cb => cb.checked);
+        own.forEach(cb => cb.checked = on);
+        render();
+    }));
+    document.querySelectorAll('[data-pp-tab]').forEach(b => b.addEventListener('click', () => {
+        tab = b.dataset.ppTab;
+        try { localStorage.setItem(TAB_KEY, tab); } catch (e) { /* sin almacenamiento */ }
+        render();
+    }));
+    const laterBtn = document.querySelector('[data-pp-later]');
+    laterBtn?.addEventListener('click', () => {
+        const later = document.querySelector('.pp-later');
+        const show = later.classList.contains('d-none');
+        later.classList.toggle('d-none', !show);
+        laterBtn.textContent = show ? laterBtn.dataset.hide : laterBtn.dataset.show;
+        laterBtn.setAttribute('aria-expanded', show ? 'true' : 'false');
     });
+    // Si hay marcados entre los de «más adelante» (p. ej. desde un enlace), se muestran
+    if (cbs.some(cb => cb.checked && cb.dataset.group === '3')) laterBtn?.click();
+
+    render();
+});
 </script>
+{% endif %}
 {% endblock %}

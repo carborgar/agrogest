@@ -2,149 +2,116 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
-from django.contrib.auth import get_user_model
-from django.test import TestCase
 from django.urls import reverse
 
-from accounts.models import Organization
-from farm.models import Field, Machine, ProductType, Product, Treatment, TreatmentProduct, StoragePoint
+from accounts.models import User
+from farm.models import StoragePoint, Treatment
+from farm.tests.factories import *
 
-User = get_user_model()
+
+def _days(n):
+    return date.today() + timedelta(days=n)
+
+
+@pytest.fixture
+def setup(client):
+    org = OrganizationFactory()
+    user = User.objects.create_user(username='preparar', password='pass', organization=org)
+    client.force_login(user)
+    field = FieldFactory(organization=org, name='Vegueta', area=2.5)
+    machine = MachineFactory(organization=org)
+    return client, org, field, machine
+
+
+def _spray(org, field, machine, **kwargs):
+    return SprayingTreatmentFactory(organization=org, field=field, machine=machine, **kwargs)
+
+
+def _get(client, params=None):
+    return client.get(reverse('treatment-shopping-list'), params or {})
+
+
+def _checked(response):
+    return {t.id for g in response.context['groups'] for t in g['treatments'] if t.checked}
 
 
 @pytest.mark.django_db
-class ShoppingListViewTest(TestCase):
-    def setUp(self):
-        self.organization = Organization.objects.create(name="Org Shopping List")
-        self.user = User.objects.create_user(
-            username="shopping-user",
-            email="shopping@example.com",
-            password="pass123",
-            organization=self.organization,
-        )
-        self.client.force_login(self.user)
+class TestPrepareSelection:
 
-        self.field = Field.objects.create(
-            name="Parcela Shopping",
-            area=2,
-            crop="Olivo",
-            planting_year=2020,
-            organization=self.organization,
-        )
-        self.machine = Machine.objects.create(
-            name="Pulverizador Shopping",
-            type="Pulverizador",
-            capacity=1000,
-            organization=self.organization,
-        )
-        product_type = ProductType.objects.create(
-            name="Fitosanitario",
-            organization=self.organization,
-        )
+    def test_groups_by_dates_and_preselects_overdue_and_next_7_days(self, setup):
+        client, org, field, machine = setup
+        late = _spray(org, field, machine, date=_days(-3))
+        # Estado desfasado: sigue «pending» con fecha pasada → atrasado
+        Treatment.objects.filter(pk=late.pk).update(status='pending')
+        soon = _spray(org, field, machine, date=_days(7))
+        mid = _spray(org, field, machine, date=_days(8))
+        later = _spray(org, field, machine, date=_days(Treatment.UPCOMING_DAYS + 1))
+        _spray(org, field, machine, date=_days(-5), finish_date=_days(-4))  # completado: no sale
 
-        self.treatment = Treatment.objects.create(
-            name="Tratamiento compra",
-            type="spraying",
-            date=date.today() + timedelta(days=1),
-            field=self.field,
-            machine=self.machine,
-            water_per_ha=1000,
-            organization=self.organization,
-        )
+        response = _get(client)
+        groups = {g['index']: [t.id for t in g['treatments']] for g in response.context['groups']}
 
-        product_1 = Product.objects.create(
-            name="Producto 1",
-            product_type=product_type,
-            spraying_dose=Decimal("1.00"),
-            spraying_dose_type="l_per_ha",
-            price=Decimal("10.00"),
-            organization=self.organization,
-        )
-        product_2 = Product.objects.create(
-            name="Producto 2",
-            product_type=product_type,
-            spraying_dose=Decimal("1.00"),
-            spraying_dose_type="l_per_ha",
-            price=Decimal("7.50"),
-            organization=self.organization,
-        )
+        assert groups == {0: [late.id], 1: [soon.id], 2: [mid.id], 3: [later.id]}
+        assert _checked(response) == {late.id, soon.id}
+        assert response.context['total_count'] == 4
 
-        TreatmentProduct.objects.create(
-            treatment=self.treatment,
-            product=product_1,
-            dose=Decimal("1.00"),
-            total_dose=Decimal("2.00"),
-            dose_type="l_per_ha",
-            total_dose_unit="L",
-            unit_price=Decimal("10.00"),
-            organization=self.organization,
-        )
-        TreatmentProduct.objects.create(
-            treatment=self.treatment,
-            product=product_2,
-            dose=Decimal("1.00"),
-            total_dose=Decimal("2.00"),
-            dose_type="l_per_ha",
-            total_dose_unit="L",
-            unit_price=Decimal("7.50"),
-            organization=self.organization,
-        )
+    def test_selection_from_the_url_replaces_the_default(self, setup):
+        client, org, field, machine = setup
+        late = _spray(org, field, machine, date=_days(-3))
+        mid = _spray(org, field, machine, date=_days(10))
 
-    def test_shopping_list_shows_total_euros_per_product(self):
-        response = self.client.get(
-            reverse("treatment-shopping-list"),
-            {"treatment": [str(self.treatment.pk)]},
-        )
+        assert _checked(_get(client, {'treatment': [str(mid.id)]})) == {mid.id}
+        # `treatment=` vacío: el usuario lo desmarcó todo y se respeta al recargar
+        assert _checked(_get(client, {'treatment': ''})) == set()
+        assert late.id not in _checked(_get(client, {'treatment': ['x', str(mid.id)]}))
 
-        self.assertEqual(response.status_code, 200)
-        content = response.content.decode()
-        self.assertRegex(content, r"20[,.]00€")
-        self.assertRegex(content, r"15[,.]00€")
+    def test_other_organization_is_not_shown(self, setup):
+        client, org, field, machine = setup
+        other = OrganizationFactory(name='Otra')
+        SprayingTreatmentFactory(organization=other, field=FieldFactory(organization=other),
+                                 machine=MachineFactory(organization=other), date=_days(-1))
 
-    def test_shopping_list_groups_distribution_by_storage_point(self):
-        storage_point = StoragePoint.objects.create(
-            name='Injeros',
-            organization=self.organization,
-        )
-        self.field.storage_point = storage_point
-        self.field.save(update_fields=['storage_point'])
+        response = _get(client)
 
-        field_2 = Field.objects.create(
-            name='Parcela Sin Casetilla',
-            area=1,
-            crop='Olivo',
-            planting_year=2022,
-            organization=self.organization,
-        )
-        treatment_2 = Treatment.objects.create(
-            name='Tratamiento manual',
-            type='spraying',
-            date=date.today() + timedelta(days=2),
-            field=field_2,
-            machine=self.machine,
-            water_per_ha=1000,
-            organization=self.organization,
-        )
-        treatment_product = self.treatment.treatmentproduct_set.first()
-        TreatmentProduct.objects.create(
-            treatment=treatment_2,
-            product=treatment_product.product,
-            dose=Decimal('1.00'),
-            total_dose=Decimal('1.00'),
-            dose_type='l_per_ha',
-            total_dose_unit='L',
-            unit_price=Decimal('10.00'),
-            organization=self.organization,
-        )
+        assert response.context['total_count'] == 0
+        assert 'No hay tratamientos pendientes' in response.content.decode()
 
-        response = self.client.get(
-            reverse('treatment-shopping-list'),
-            {'treatment': [str(self.treatment.pk), str(treatment_2.pk)]},
-        )
 
-        self.assertEqual(response.status_code, 200)
-        content = response.content.decode()
-        self.assertIn('Injeros', content)
-        self.assertIn('Parcela Sin Casetilla', content)
-        self.assertIn('Manual', content)
+@pytest.mark.django_db
+class TestPrepareData:
 
+    def test_lines_carry_totals_cost_and_storage_point(self, setup):
+        client, org, field, machine = setup
+        field.storage_point = StoragePoint.objects.create(name='Injeros', organization=org)
+        field.save()
+        t = _spray(org, field, machine, date=_days(-1))
+        tp = TreatmentProductFactory(treatment=t, organization=org,
+                                     product=SprayingProductFactory(organization=org, name='COBRE'))
+        tp.refresh_from_db()
+
+        data = _get(client).context['pp_data']
+
+        assert data == [{
+            'id': t.id,
+            'field': {'id': field.id, 'name': 'Vegueta', 'ha': 2.5, 'sp': field.storage_point_id, 'spName': 'Injeros'},
+            'lines': [{'p': tp.product_id, 'n': 'COBRE', 'u': tp.total_dose_unit,
+                       'q': float(tp.total_dose), 'c': float(tp.total_price)}],
+        }]
+
+    def test_field_without_storage_point_is_its_own_place(self, setup):
+        client, org, field, machine = setup
+        _spray(org, field, machine, date=_days(-1))
+
+        data = _get(client).context['pp_data']
+
+        assert data[0]['field']['sp'] is None and data[0]['field']['spName'] is None
+
+    def test_page_embeds_the_data_and_has_no_calculate_button(self, setup):
+        client, org, field, machine = setup
+        _spray(org, field, machine, date=_days(-1))
+
+        html = _get(client).content.decode()
+
+        assert 'id="pp-data"' in html
+        assert 'Calcular' not in html
+        assert 'Por casetilla' in html and 'Por producto' in html

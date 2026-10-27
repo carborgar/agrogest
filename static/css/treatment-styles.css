@@ -292,10 +292,9 @@ a.filter-active-chip:hover {
 }
 
 /* ═══════════════════════════════════════════════
-   SHOPPING LIST — sl-* namespace
+   Columna lateral fija al hacer scroll (desktop). Venía con la antigua Preparar productos,
+   pero afecta a cualquier .card en col-md-4 / col-lg-3 de otras pantallas: se conserva hasta revisarlo.
 ═══════════════════════════════════════════════ */
-
-/* Panel izquierdo sticky en desktop */
 @media (min-width: 768px) {
     .col-md-4 .card,
     .col-lg-3 .card {
@@ -304,95 +303,6 @@ a.filter-active-chip:hover {
     }
 }
 
-.sl-treatment-list {
-    max-height: 55vh;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-}
-
-.sl-treatment-item {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    padding: 0.65rem 1rem;
-    border-bottom: 1px solid #f1f3f5;
-    cursor: pointer;
-    transition: background 0.1s;
-    user-select: none;
-}
-
-.sl-treatment-item:last-child {
-    border-bottom: none;
-}
-
-.sl-treatment-item:hover {
-    background: #f8f9fa;
-}
-
-.sl-treatment-item--selected {
-    background: #eff6ff;
-    border-bottom-color: #dbeafe;
-}
-
-.sl-treatment-item--selected:hover {
-    background: #dbeafe;
-}
-
-.sl-cb {
-    flex-shrink: 0;
-    width: 16px;
-    height: 16px;
-    accent-color: var(--bs-primary);
-    cursor: pointer;
-}
-
-.sl-treatment-body {
-    flex: 1;
-    min-width: 0;
-}
-
-.sl-treatment-name {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #212529;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.sl-treatment-meta {
-    font-size: 0.72rem;
-    color: #868e96;
-    margin-top: 0.05rem;
-}
-
-.sl-breakdown-line {
-    font-size: 0.7rem;
-    color: #868e96;
-    margin-top: 0.1rem;
-    line-height: 1.4;
-    padding-left: 0.75rem;
-}
-
-/* Línea de total por parcela — dato clave para repartir */
-.sl-field-line {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    margin-top: 0.3rem;
-    padding: 0.18rem 0.5rem;
-    background: #f1f5f9;
-    border-radius: 5px;
-    font-size: 0.75rem;
-}
-
-.sl-field-total {
-    font-weight: 700;
-    color: #1e40af;
-    white-space: nowrap;
-    flex-shrink: 0;
-}
 
 /* ═══════════════════════════════════════════════
    ADVANCED FILTER TOGGLE ICON
@@ -595,3 +505,58 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
 .hm-h--ok { background: var(--tl-3-bg); color: var(--tl-3-fg); }
 .hm-h--warn { background: var(--tl-1-bg); color: var(--tl-1-fg); }
 .hm-h--bad { background: var(--tl-0-bg); color: var(--tl-0-fg); }
+
+/* ═══════════════════════════════════════════════
+   PREPARAR PRODUCTOS (pp-*): selección de tratamientos y resultado por producto o casetilla.
+   Fecha (tl-date), cabeceras de grupo (tl-group-header + hm-group) y pestañas (tl-tabs) son las del listado.
+═══════════════════════════════════════════════ */
+.pp-row { display: flex; align-items: center; gap: .75rem; min-height: 56px; margin: 0; padding: .4rem 1rem; border-bottom: 1px solid var(--tl-line); cursor: pointer; }
+.pp-row:has(.pp-cb:checked) { background: var(--tl-soft); }
+.pp-cb { flex: none; width: 20px; height: 20px; margin: 0; accent-color: var(--bs-primary); }
+.pp-row .tl-date { width: 2.9rem; }
+.pp-row-main { flex: 1; min-width: 0; }
+.pp-row-name { display: block; overflow: hidden; font-size: .9rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.pp-row-meta { display: block; font-size: .78rem; color: var(--tl-muted); }
+.pp-all { padding: .35rem 0; border: 0; background: transparent; font-size: .8rem; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--bs-primary); }
+.pp-later-btn { width: 100%; min-height: 44px; border: 0; background: #fff; font-size: .85rem; font-weight: 600; color: var(--bs-primary); }
+.pp-sum { display: flex; align-items: center; justify-content: space-between; gap: .75rem; width: 100%; min-height: 56px; padding: .6rem 1rem; border: 0; background: #fff; text-align: left; color: var(--tl-ink); }
+.pp-sum b, .pp-sum small { display: block; }
+.pp-sum small { font-size: .75rem; color: var(--tl-muted); }
+.pp-sum-action { flex: none; font-size: .85rem; font-weight: 600; color: var(--bs-primary); }
+.pp-sum[aria-expanded="true"] { border-bottom: 1px solid var(--tl-head-line); }
+.pp-tabs .tl-tab { border: 0; background: transparent; }
+.pp-tabs .tl-tab.active { background: #fff; }
+.pp-empty { margin: 0; padding: 2.5rem 1rem; text-align: center; color: var(--tl-muted); }
+
+/* Por producto: tabla en desktop; en móvil, nombre + cantidad y las parcelas debajo */
+.pp-prod { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .75rem; align-items: baseline; padding: .6rem 1rem; border-bottom: 1px solid var(--tl-line); font-size: .9rem; }
+.pp-prod b, .pp-prod small { display: block; }
+.pp-prod small { font-size: .75rem; color: var(--tl-muted); }
+.pp-prod--head, .pp-for, .pp-cost { display: none; }
+.pp-qty { font-size: 1rem; font-weight: 700; text-align: right; white-space: nowrap; }
+.pp-total { display: flex; justify-content: flex-end; gap: .5rem; padding: .75rem 1rem; color: #475048; }
+.pp-total b { color: var(--tl-ink); }
+@media (min-width: 768px) {
+    .pp-prod { grid-template-columns: minmax(0, 1.5fr) 7rem minmax(0, 1.5fr) 6.5rem; gap: 1rem; }
+    .pp-prod--head { display: grid; padding-top: .45rem; padding-bottom: .45rem; border-bottom-color: var(--tl-head-line); font-size: .72rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--tl-muted); }
+    .pp-prod--head > :nth-child(2), .pp-prod--head > :nth-child(4), .pp-cost { text-align: right; }
+    .pp-for { display: block; font-size: .85rem; color: #475048; }
+    .pp-cost { display: block; color: #475048; }
+}
+
+/* Por casetilla: un bloque por punto de reparto */
+.pp-places { display: flex; flex-direction: column; gap: .85rem; padding: .85rem 1rem 1rem; }
+.pp-place { overflow: hidden; border: 1px solid var(--bs-border-color); border-radius: 10px; }
+.pp-place-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .25rem .75rem; padding: .6rem .85rem; border-bottom: 1px solid var(--tl-head-line); }
+.pp-place-head b, .pp-place-head small, .pp-place-row b, .pp-place-row small { display: block; }
+.pp-place-head small, .pp-place-row small { font-size: .75rem; color: var(--tl-muted); }
+.pp-place-row { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; padding: .5rem .85rem; border-bottom: 1px solid var(--tl-line); font-size: .9rem; }
+.pp-place-row:last-child { border-bottom: 0; }
+.pp-place-row b { font-weight: 600; }
+
+/* Impresión: solo el resultado (la pestaña activa) */
+@media print {
+    .pp-sel-col, .pp-tabs, .page-header .btn { display: none !important; }
+    .pp-sel-col + div { width: 100% !important; max-width: 100% !important; flex: none !important; }
+    .pp-place { break-inside: avoid; }
+}
