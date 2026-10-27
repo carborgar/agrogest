@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html class="" lang="es">
+<head>
+    
+    
+
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Editar tratamiento · AgroGest</title>
+
+    <link rel="icon" href="/static/img/favicon.svg" type="image/svg+xml">
+
+    <!-- Brand typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Use our custom Bootstrap theme instead of the default -->
+    <link href="/static/css/custom-bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+
+    <link href="/static/css/styles.css" rel="stylesheet">
+    <link href="/static/css/treatment-styles.css" rel="stylesheet">
+    <link href="/static/css/calendar.css" rel="stylesheet">
+    <link href="/static/css/menu.css" rel="stylesheet">
+    <link href="/static/css/sweetalert2-custom.css" rel="stylesheet">
+    <link href="/static/css/tables.css" rel="stylesheet">
+
+     
+</head>
+<body>
+
+
+
+
+<nav class="mobile-navbar d-md-none">
+    <div class="container-fluid d-flex align-items-center justify-content-between px-3">
+        <div class="d-flex align-items-center gap-2">
+            <svg fill="none" height="26" viewBox="0 0 34 34" width="26" xmlns="http://www.w3.org/2000/svg">
+                <path d="M17 4 C17 4 9 9.5 9 16.5 C9 20.9 12.6 24.5 17 24.5 C21.4 24.5 25 20.9 25 16.5 C25 9.5 17 4 17 4Z"
+                      fill="url(#bmt)"/>
+                <path d="M17 4.5 L17 24" stroke="rgba(255,255,255,0.22)" stroke-linecap="round" stroke-width="0.8"/>
+                <path d="M17 25.5 C14.8 27.8 13.5 29.2 13.5 30.3 C13.5 31.8 15.1 33 17 33 C18.9 33 20.5 31.8 20.5 30.3 C20.5 29.2 19.2 27.8 17 25.5Z"
+                      fill="#D4A017"/>
+                <defs>
+                    <linearGradient gradientUnits="userSpaceOnUse" id="bmt" x1="17" x2="17" y1="4" y2="24.5">
+                        <stop stop-color="#52B788"/>
+                        <stop offset="1" stop-color="#2D6A4F"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+            <span class="navbar-brand mb-0 ms-1">AgroGest</span>
+        </div>
+        <div class="dropdown">
+            <button aria-label="Perfil de usuario" class="btn-ghost-nav position-relative" data-bs-toggle="dropdown"
+                    type="button">
+                <i class="fas fa-user-circle" style="font-size:1.35rem;"></i>
+                
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><h6 class="dropdown-header">fix</h6></li>
+                <li>
+                    <a class="dropdown-item d-flex align-items-center justify-content-between"
+                       href="/usuarios/notificaciones/">
+                        <span><i class="fas fa-bell me-2"></i>Notificaciones</span>
+                        
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="/usuarios/preferencias/notificaciones/">
+                        <i class="fas fa-sliders me-2"></i>Preferencias
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <form action="/usuarios/logout/" method="post">
+                        <input type="hidden" name="csrfmiddlewaretoken" value="TOKEN">
+                        <button class="dropdown-item text-danger" type="submit">
+                            <i class="fas fa-sign-out-alt me-2"></i>Cerrar sesión
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+
+
+<div class="sidebar-desktop d-none d-md-block" id="sidebarDesktop">
+    <div class="sidebar-content">
+
+        
+        <a class="brand" href="/parcelas/vistazo/">
+            <div class="brand-icon">
+                <svg fill="none" height="34" viewBox="0 0 34 34" width="34" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M17 4 C17 4 9 9.5 9 16.5 C9 20.9 12.6 24.5 17 24.5 C21.4 24.5 25 20.9 25 16.5 C25 9.5 17 4 17 4Z"
+                          fill="url(#bmd)"/>
+                    <path d="M17 4.5 L17 24" stroke="rgba(255,255,255,0.22)" stroke-linecap="round" stroke-width="0.8"/>
+                    <path d="M17 25.5 C14.8 27.8 13.5 29.2 13.5 30.3 C13.5 31.8 15.1 33 17 33 C18.9 33 20.5 31.8 20.5 30.3 C20.5 29.2 19.2 27.8 17 25.5Z"
+                          fill="#D4A017"/>
+                    <defs>
+                        <linearGradient gradientUnits="userSpaceOnUse" id="bmd" x1="17" x2="17" y1="4" y2="24.5">
+                            <stop stop-color="#52B788"/>
+                            <stop offset="1" stop-color="#2D6A4F"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+            <h4 class="brand-text">AgroGest</h4>
+        </a>
+
+        
+        <div class="nav-container desktop-menu-nav-container">
+            
+
+
+
+
+<div class="nav-section">
+    <ul class="nav flex-column">
+
+        <li class="nav-item">
+            <a class="nav-link "
+               href="/parcelas/vistazo/" data-label="Inicio">
+                <i class="fas fa-house"></i>
+                <span class="nav-link-text">Inicio</span>
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link "
+               href="/tratamientos/" data-label="Tratamientos">
+                <i class="fas fa-droplet"></i>
+                <span class="nav-link-text">Tratamientos</span>
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link "
+               href="/tratamientos/calendario/" data-label="Calendario">
+                <i class="fas fa-calendar-days"></i>
+                <span class="nav-link-text">Calendario</span>
+            </a>
+        </li>
+
+        
+        <li class="nav-item">
+            <a class="nav-link"
+               aria-expanded="false"
+               data-bs-toggle="collapse"
+               data-bs-target="#gastosMenudesktop"
+               href="#"
+               data-label="Gastos">
+                <i class="fa fa-coins"></i>
+                <span class="nav-link-text">Gastos</span>
+                <i class="fas fa-chevron-down chevron"></i>
+            </a>
+            <div class="collapse nav-submenu "
+                 id="gastosMenudesktop">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link "
+                           href="/parcelas/gastos/">
+                            <i class="fa fa-chart-bar"></i>
+                            <span class="nav-link-text">Informe</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link "
+                           href="/gastos/gestionar/">
+                            <i class="fa fa-receipt"></i>
+                            <span class="nav-link-text">Gestionar gastos</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link "
+               href="/tratamientos/preparar/" data-label="Preparar productos">
+                <i class="fa fa-boxes-packing"></i>
+                <span class="nav-link-text">Preparar productos</span>
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link "
+               href="/cosechas/resumen/" data-label="Cosechas">
+                <i class="fa fa-apple-whole"></i>
+                <span class="nav-link-text">Cosechas</span>
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link "
+               href="/estadisticas/" data-label="Estadísticas">
+                <i class="fa fa-chart-line"></i>
+                <span class="nav-link-text">Estadísticas</span>
+            </a>
+        </li>
+
+        
+        <li class="nav-item">
+            <a class="nav-link "
+               href="/parcelas/"
+               data-label="Parcelas">
+                <i class="fas fa-map-location-dot"></i>
+                <span class="nav-link-text">Parcelas</span>
+            </a>
+        </li>
+
+        
+
+        
+        <li class="nav-item">
+            <a class="nav-link "
+               href="/productos/" data-label="Productos">
+                <i class="fa fa-box"></i>
+                <span class="nav-link-text">Productos</span>
+            </a>
+        </li>
+
+    </ul>
+</div>
+
+
+<div class="nav-section">
+    <div class="nav-title"><span class="nav-link-text">Herramientas</span></div>
+    <ul class="nav flex-column">
+        <li class="nav-item">
+            <a class="nav-link "
+               href="/asistente/" data-label="Asistente IA">
+                <span class="nav-icon-wrap nav-icon-wrap--beta">
+                    <i class="fa fa-robot"></i>
+                    <span class="nav-beta-collapsed">BETA</span>
+                </span>
+                <span class="nav-link-text">Asistente IA</span>
+                <span class="badge bg-warning text-dark ms-auto nav-beta-expanded" style="font-size:0.6rem;">BETA</span>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+<div class="nav-section">
+    <div class="nav-title"><span class="nav-link-text">Utilidades</span></div>
+    <ul class="nav flex-column">
+        <li class="nav-item">
+            <a class="nav-link "
+               href="/administracion/recalculo-costes-tratamientos/" data-label="Recalculo">
+                <i class="fa fa-calculator"></i>
+                <span class="nav-link-text">Recalculo de costes</span>
+            </a>
+        </li>
+    </ul>
+</div>
+
+<div class="nav-section">
+    <div class="nav-title"><span class="nav-link-text">Configuración</span></div>
+    <ul class="nav flex-column">
+        <li class="nav-item">
+            <a class="nav-link" href="/usuarios/notificaciones/"
+               data-label="Notificaciones">
+                <span class="nav-icon-wrap">
+                    <i class="fas fa-bell"></i>
+                    
+                </span>
+                <span class="nav-link-text">Notificaciones</span>
+                
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link "
+               href="/gastos/tipos/" data-label="Tipos de gasto">
+                <i class="fa fa-tags"></i>
+                <span class="nav-link-text">Tipos de gasto</span>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        </div>
+
+        
+        <div class="sidebar-collapse-section">
+            <button class="nav-link sidebar-collapse-btn w-100" id="sidebarCollapseBtn"
+                    title="Colapsar menú" type="button">
+                <i class="fas fa-chevron-left"></i>
+                <span class="nav-link-text">Colapsar</span>
+            </button>
+        </div>
+
+        
+        <div class="user-menu">
+            <a class="user-profile" data-bs-toggle="dropdown" href="#">
+                <div class="user-avatar">
+                    <i class="fa fa-user"></i>
+                    
+                </div>
+                <div class="user-info">
+                    <h6>fix</h6>
+                    <small>Usuario</small>
+                </div>
+                <i class="fas fa-ellipsis-v ms-auto user-ellipsis"></i>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                    <a class="dropdown-item d-flex align-items-center justify-content-between"
+                       href="/usuarios/notificaciones/">
+                        <span><i class="fas fa-bell me-2"></i>Notificaciones</span>
+                        
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="/usuarios/preferencias/notificaciones/">
+                        <i class="fas fa-sliders me-2"></i>Preferencias
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <form action="/usuarios/logout/" method="post">
+                        <input type="hidden" name="csrfmiddlewaretoken" value="TOKEN">
+                        <button class="dropdown-item text-danger" type="submit">
+                            <i class="fas fa-sign-out-alt me-2"></i>Cerrar sesión
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+
+    </div>
+</div>
+
+
+
+<div class="offcanvas offcanvas-start" id="sidebarOffcanvas" tabindex="-1">
+    <div class="offcanvas-header">
+        <div class="d-flex align-items-center">
+            <div class="brand-icon me-2">
+                <svg fill="none" height="34" viewBox="0 0 34 34" width="34" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M17 4 C17 4 9 9.5 9 16.5 C9 20.9 12.6 24.5 17 24.5 C21.4 24.5 25 20.9 25 16.5 C25 9.5 17 4 17 4Z"
+                          fill="url(#bmm)"/>
+                    <path d="M17 4.5 L17 24" stroke="rgba(255,255,255,0.22)" stroke-linecap="round" stroke-width="0.8"/>
+                    <path d="M17 25.5 C14.8 27.8 13.5 29.2 13.5 30.3 C13.5 31.8 15.1 33 17 33 C18.9 33 20.5 31.8 20.5 30.3 C20.5 29.2 19.2 27.8 17 25.5Z"
+                          fill="#D4A017"/>
+                    <defs>
+                        <linearGradient gradientUnits="userSpaceOnUse" id="bmm" x1="17" x2="17" y1="4" y2="24.5">
+                            <stop stop-color="#52B788"/>
+                            <stop offset="1" stop-color="#2D6A4F"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+            <h5 class="offcanvas-title mb-0">AgroGest</h5>
+        </div>
+        <button aria-label="Cerrar" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"
+                type="button"></button>
+    </div>
+    <div class="offcanvas-body">
+        <div class="sidebar-content">
+            <div class="nav-container">
+                
+
+
+
+
+<div class="nav-section">
+    <ul class="nav flex-column">
+
+        <li class="nav-item">
+            <a class="nav-link "
+               href="/parcelas/vistazo/" data-label="Inicio">
+                <i class="fas fa-house"></i>
+                <span class="nav-link-text">Inicio</span>
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link "
+               href="/tratamientos/" data-label="Tratamientos">
+                <i class="fas fa-droplet"></i>
+                <span class="nav-link-text">Tratamientos</span>
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link "
+               href="/tratamientos/calendario/" data-label="Calendario">
+                <i class="fas fa-calendar-days"></i>
+                <span class="nav-link-text">Calendario</span>
+            </a>
+        </li>
+
+        
+        <li class="nav-item">
+            <a class="nav-link"
+               aria-expanded="false"
+               data-bs-toggle="collapse"
+               data-bs-target="#gastosMenumobile"
+               href="#"
+               data-label="Gastos">
+                <i class="fa fa-coins"></i>
+                <span class="nav-link-text">Gastos</span>
+                <i class="fas fa-chevron-down chevron"></i>
+            </a>
+            <div class="collapse nav-submenu "
+                 id="gastosMenumobile">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link "
+                           href="/parcelas/gastos/">
+                            <i class="fa fa-chart-bar"></i>
+                            <span class="nav-link-text">Informe</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link "
+                           href="/gastos/gestionar/">
+                            <i class="fa fa-receipt"></i>
+                            <span class="nav-link-text">Gestionar gastos</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link "
+               href="/tratamientos/preparar/" data-label="Preparar productos">
+                <i class="fa fa-boxes-packing"></i>
+                <span class="nav-link-text">Preparar productos</span>
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link "
+               href="/cosechas/resumen/" data-label="Cosechas">
+                <i class="fa fa-apple-whole"></i>
+                <span class="nav-link-text">Cosechas</span>
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link "
+               href="/estadisticas/" data-label="Estadísticas">
+                <i class="fa fa-chart-line"></i>
+                <span class="nav-link-text">Estadísticas</span>
+            </a>
+        </li>
+
+        
+        <li class="nav-item">
+            <a class="nav-link "
+               href="/parcelas/"
+               data-label="Parcelas">
+                <i class="fas fa-map-location-dot"></i>
+                <span class="nav-link-text">Parcelas</span>
+            </a>
+        </li>
+
+        
+
+        
+        <li class="nav-item">
+            <a class="nav-link "
+               href="/productos/" data-label="Productos">
+                <i class="fa fa-box"></i>
+                <span class="nav-link-text">Productos</span>
+            </a>
+        </li>
+
+    </ul>
+</div>
+
+
+<div class="nav-section">
+    <div class="nav-title"><span class="nav-link-text">Herramientas</span></div>
+    <ul class="nav flex-column">
+        <li class="nav-item">
+            <a class="nav-link "
+               href="/asistente/" data-label="Asistente IA">
+                <span class="nav-icon-wrap nav-icon-wrap--beta">
+                    <i class="fa fa-robot"></i>
+                    <span class="nav-beta-collapsed">BETA</span>
+                </span>
+                <span class="nav-link-text">Asistente IA</span>
+                <span class="badge bg-warning text-dark ms-auto nav-beta-expanded" style="font-size:0.6rem;">BETA</span>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+<div class="nav-section">
+    <div class="nav-title"><span class="nav-link-text">Utilidades</span></div>
+    <ul class="nav flex-column">
+        <li class="nav-item">
+            <a class="nav-link "
+               href="/administracion/recalculo-costes-tratamientos/" data-label="Recalculo">
+                <i class="fa fa-calculator"></i>
+                <span class="nav-link-text">Recalculo de costes</span>
+            </a>
+        </li>
+    </ul>
+</div>
+
+<div class="nav-section">
+    <div class="nav-title"><span class="nav-link-text">Configuración</span></div>
+    <ul class="nav flex-column">
+        <li class="nav-item">
+            <a class="nav-link" href="/usuarios/notificaciones/"
+               data-label="Notificaciones">
+                <span class="nav-icon-wrap">
+                    <i class="fas fa-bell"></i>
+                    
+                </span>
+                <span class="nav-link-text">Notificaciones</span>
+                
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link "
+               href="/gastos/tipos/" data-label="Tipos de gasto">
+                <i class="fa fa-tags"></i>
+                <span class="nav-link-text">Tipos de gasto</span>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+            </div>
+
+            
+            <div class="offcanvas-user-footer">
+                <div class="user-avatar-sm">
+                    <i class="fa fa-user"></i>
+                </div>
+                <div style="flex:1; min-width:0;">
+                    <div class="offcanvas-username">fix</div>
+                    <a class="offcanvas-prefs-link" href="/usuarios/preferencias/notificaciones/">
+                        Preferencias
+                    </a>
+                </div>
+                <form action="/usuarios/logout/" class="ms-auto" method="post">
+                    <input type="hidden" name="csrfmiddlewaretoken" value="TOKEN">
+                    <button class="btn-logout-offcanvas" title="Cerrar sesión" type="submit">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<nav aria-label="Navegación principal" class="bottom-tab-bar d-md-none">
+    <a class="tab-item " href="/parcelas/vistazo/">
+        <i class="fas fa-house"></i>
+        <span>Inicio</span>
+    </a>
+    <a class="tab-item " href="/tratamientos/">
+        <i class="fas fa-droplet"></i>
+        <span>Tratamientos</span>
+    </a>
+    <a class="tab-item " href="/tratamientos/calendario/">
+        <i class="fas fa-calendar-days"></i>
+        <span>Calendario</span>
+    </a>
+    <a class="tab-item " href="/productos/">
+        <i class="fa fa-box"></i>
+        <span>Productos</span>
+    </a>
+    <button aria-label="Más opciones"
+            class="tab-item active"
+            data-bs-target="#sidebarOffcanvas"
+            data-bs-toggle="offcanvas"
+            type="button">
+        <i class="fas fa-bars"></i>
+        <span>Más</span>
+    </button>
+</nav>
+
+
+<div class="main-content">
+
+    <div class="page-header">
+        <div class="page-header-main">
+            <div class="page-header-text">
+                <h1 class="mb-0 fw-bold page-title">Editar tratamiento</h1>
+                <div class="page-subtitle"></div>
+            </div>
+            <div class="page-header-actions">
+                
+<span class="tf-status" id="tfStatus" hidden></span>
+<a class="btn btn-outline-secondary btn-sm d-lg-none"
+   href="/tratamientos/1">Cancelar</a>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="page-content mt-3">
+
+        <section class="d-print-none" id="messages">
+            
+
+
+        </section>
+
+        
+
+<script id="treatment-form-data" type="application/json">{"today": "2030-06-15", "fields": [{"id": 1, "name": "Parcela A", "crop": "Olivo", "area": 4.2, "last_treatment_date": "2030-06-15"}, {"id": 2, "name": "Parcela B", "crop": "Vid", "area": 2.0, "last_treatment_date": null}], "machines": [{"id": 2, "name": "Cuba 1000", "capacity": 1000}, {"id": 1, "name": "Cuba 2000", "capacity": 2000}], "products": [{"id": 3, "name": "Abono", "type_name": "Fitosanitario", "spraying": null, "fertigation": {"dose": 10.0, "dose_type": "l_per_ha", "label": "L/ha"}, "price": 10.0, "recent": false}, {"id": 1, "name": "Fungicida", "type_name": "Fitosanitario", "spraying": {"dose": 3.0, "dose_type": "kg_per_1000l", "label": "kg/1000L"}, "fertigation": null, "price": 9.5, "recent": true}, {"id": 2, "name": "Insecticida", "type_name": "Fitosanitario", "spraying": {"dose": 0.5, "dose_type": "l_per_1000l", "label": "L/1000L"}, "fertigation": null, "price": 10.0, "recent": true}, {"id": 4, "name": "Mojante", "type_name": "Fitosanitario", "spraying": {"dose": 1.5, "dose_type": "l_per_ha", "label": "L/ha"}, "fertigation": null, "price": 6.0, "recent": true}], "lines": [{"product_id": 1, "dose": 3.0, "total_dose": 12.6, "total_overridden": false, "unit_price": 9.5, "position": 0}, {"product_id": 2, "dose": 0.5, "total_dose": 2.1, "total_overridden": true, "unit_price": 10.0, "position": 1}, {"product_id": 4, "dose": 1.5, "total_dose": 6.3, "total_overridden": false, "unit_price": 6.0, "position": 2}], "bound": false}</script>
+
+<script>document.body.classList.add('tf-page');</script>
+
+<div class="tf" id="tfRoot" data-edit="1">
+    <div class="alert alert-danger tf-banner" id="tfBanner" role="alert" tabindex="-1" hidden></div>
+
+    <form id="treatmentForm" method="post" novalidate autocomplete="off">
+        <input type="hidden" name="csrfmiddlewaretoken" value="TOKEN">
+
+        
+        <div hidden id="tfReal">
+            <input type="text" name="name" value="Guardado" maxlength="100" required id="id_name"><select name="type" required id="id_type">
+  <option value="">---------</option>
+
+  <option value="fertigation">Fertirrigación</option>
+
+  <option value="spraying" selected>Pulverización</option>
+
+</select><input type="date" name="date" value="2030-06-15" class="form-control" required id="id_date"><select name="field" required id="id_field">
+  <option value="">---------</option>
+
+  <option value="1" selected>Parcela A</option>
+
+  <option value="2">Parcela B</option>
+
+</select><select name="machine" id="id_machine">
+  <option value="">---------</option>
+
+  <option value="2">Cuba 1000</option>
+
+  <option value="1" selected>Cuba 2000</option>
+
+</select><input type="number" name="water_per_ha" value="1000" step="any" aria-describedby="id_water_per_ha_helptext" id="id_water_per_ha">
+            <input type="date" name="finish_date" class="form-control" id="id_finish_date"><input type="number" name="real_water_per_ha" aria-describedby="id_real_water_per_ha_helptext" id="id_real_water_per_ha"><input type="number" name="applied_area" step="0.01" aria-describedby="id_applied_area_helptext" id="id_applied_area"><input type="text" name="zone_notes" maxlength="200" aria-describedby="id_zone_notes_helptext" id="id_zone_notes">
+            
+            <input type="hidden" name="treatmentproduct_set-TOTAL_FORMS" value="3" id="id_treatmentproduct_set-TOTAL_FORMS"><input type="hidden" name="treatmentproduct_set-INITIAL_FORMS" value="3" id="id_treatmentproduct_set-INITIAL_FORMS"><input type="hidden" name="treatmentproduct_set-MIN_NUM_FORMS" value="1" id="id_treatmentproduct_set-MIN_NUM_FORMS"><input type="hidden" name="treatmentproduct_set-MAX_NUM_FORMS" value="1000" id="id_treatmentproduct_set-MAX_NUM_FORMS">
+            <div id="tfRows">
+                
+                <div data-row><input type="hidden" name="treatmentproduct_set-0-id" value="1" id="id_treatmentproduct_set-0-id"><select name="treatmentproduct_set-0-product" id="id_treatmentproduct_set-0-product">
+  <option value="">---------</option>
+
+  <option value="3">Abono</option>
+
+  <option value="1" selected>Fungicida</option>
+
+  <option value="2">Insecticida</option>
+
+  <option value="4">Mojante</option>
+
+</select><input type="number" name="treatmentproduct_set-0-dose" value="3" step="0.001" id="id_treatmentproduct_set-0-dose"><input type="number" name="treatmentproduct_set-0-total_dose" value="12.60" step="0.001" id="id_treatmentproduct_set-0-total_dose"><input type="hidden" name="treatmentproduct_set-0-total_overridden" value="False" id="id_treatmentproduct_set-0-total_overridden"><input type="hidden" name="treatmentproduct_set-0-position" value="0" id="id_treatmentproduct_set-0-position"><input type="checkbox" name="treatmentproduct_set-0-DELETE" id="id_treatmentproduct_set-0-DELETE"></div>
+                
+                <div data-row><input type="hidden" name="treatmentproduct_set-1-id" value="2" id="id_treatmentproduct_set-1-id"><select name="treatmentproduct_set-1-product" id="id_treatmentproduct_set-1-product">
+  <option value="">---------</option>
+
+  <option value="3">Abono</option>
+
+  <option value="1">Fungicida</option>
+
+  <option value="2" selected>Insecticida</option>
+
+  <option value="4">Mojante</option>
+
+</select><input type="number" name="treatmentproduct_set-1-dose" value="0.5" step="0.001" id="id_treatmentproduct_set-1-dose"><input type="number" name="treatmentproduct_set-1-total_dose" value="2.10" step="0.001" id="id_treatmentproduct_set-1-total_dose"><input type="hidden" name="treatmentproduct_set-1-total_overridden" value="True" id="id_treatmentproduct_set-1-total_overridden"><input type="hidden" name="treatmentproduct_set-1-position" value="1" id="id_treatmentproduct_set-1-position"><input type="checkbox" name="treatmentproduct_set-1-DELETE" id="id_treatmentproduct_set-1-DELETE"></div>
+                
+                <div data-row><input type="hidden" name="treatmentproduct_set-2-id" value="3" id="id_treatmentproduct_set-2-id"><select name="treatmentproduct_set-2-product" id="id_treatmentproduct_set-2-product">
+  <option value="">---------</option>
+
+  <option value="3">Abono</option>
+
+  <option value="1">Fungicida</option>
+
+  <option value="2">Insecticida</option>
+
+  <option value="4" selected>Mojante</option>
+
+</select><input type="number" name="treatmentproduct_set-2-dose" value="1.5" step="0.001" id="id_treatmentproduct_set-2-dose"><input type="number" name="treatmentproduct_set-2-total_dose" value="6.30" step="0.001" id="id_treatmentproduct_set-2-total_dose"><input type="hidden" name="treatmentproduct_set-2-total_overridden" value="False" id="id_treatmentproduct_set-2-total_overridden"><input type="hidden" name="treatmentproduct_set-2-position" value="2" id="id_treatmentproduct_set-2-position"><input type="checkbox" name="treatmentproduct_set-2-DELETE" id="id_treatmentproduct_set-2-DELETE"></div>
+                
+            </div>
+            <template id="tfRowTpl">
+                
+                <div data-row><input type="hidden" name="treatmentproduct_set-__prefix__-id" id="id_treatmentproduct_set-__prefix__-id"><select name="treatmentproduct_set-__prefix__-product" id="id_treatmentproduct_set-__prefix__-product">
+  <option value="" selected>---------</option>
+
+  <option value="3">Abono</option>
+
+  <option value="1">Fungicida</option>
+
+  <option value="2">Insecticida</option>
+
+  <option value="4">Mojante</option>
+
+</select><input type="number" name="treatmentproduct_set-__prefix__-dose" step="0.001" id="id_treatmentproduct_set-__prefix__-dose"><input type="number" name="treatmentproduct_set-__prefix__-total_dose" step="0.001" id="id_treatmentproduct_set-__prefix__-total_dose"><input type="hidden" name="treatmentproduct_set-__prefix__-total_overridden" id="id_treatmentproduct_set-__prefix__-total_overridden"><input type="hidden" name="treatmentproduct_set-__prefix__-position" id="id_treatmentproduct_set-__prefix__-position"><input type="checkbox" name="treatmentproduct_set-__prefix__-DELETE" id="id_treatmentproduct_set-__prefix__-DELETE"></div>
+                
+            </template>
+        </div>
+
+        <div class="tf-layout">
+            <div class="tf-main">
+
+                
+                <section class="tf-card" id="tfSecField" data-sec="field">
+                    <div class="tf-grid-2">
+                        <div class="tf-group">
+                            <p class="tf-lbl" id="tfTypeLbl">Tipo</p>
+                            <div class="tf-seg" role="group" aria-labelledby="tfTypeLbl">
+                                <button type="button" class="tf-seg-btn" data-type="spraying" aria-pressed="false">Pulverización</button>
+                                <button type="button" class="tf-seg-btn" data-type="fertigation" aria-pressed="false">Fertirrigación</button>
+                            </div>
+                        </div>
+                        <div class="tf-group">
+                            <p class="tf-lbl" id="tfFieldLbl">Parcela</p>
+                            <button type="button" class="tf-pick" id="tfFieldBtn" aria-haspopup="dialog"
+                                    aria-expanded="false" aria-labelledby="tfFieldLbl tfFieldTitle">
+                                <span class="tf-pick-body">
+                                    <span class="tf-pick-title" id="tfFieldTitle"></span>
+                                    <span class="tf-pick-sub" id="tfFieldSub"></span>
+                                </span>
+                                <i class="bi bi-chevron-right tf-chev" aria-hidden="true"></i>
+                            </button>
+                            
+                            <div class="tf-pop" id="tfFieldsPop" hidden>
+                                <input type="search" class="tf-inp" data-search="fields" placeholder="Buscar parcela o cultivo"
+                                       aria-label="Buscar parcela" autocomplete="off">
+                                <div class="tf-opts" data-list="fields"></div>
+                                <button type="button" class="tf-btn tf-btn--primary" data-done="fields">Listo</button>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="tf-note" id="tfMultiNote" hidden>Se creará un tratamiento por parcela, con las cantidades de cada una.</p>
+                    <button type="button" class="tf-link" id="tfPartialOpen" hidden>Tratar solo una parte de la parcela</button>
+                    <div class="tf-partial" id="tfPartial" hidden>
+                        <label class="tf-label-col" for="tfArea">Superficie (ha)
+                            <input class="tf-inp tf-num" id="tfArea" inputmode="decimal" autocomplete="off">
+                        </label>
+                        <label class="tf-label-col" for="tfZone">Zona
+                            <input class="tf-inp" id="tfZone" maxlength="200" placeholder="Ej. sector norte" autocomplete="off">
+                        </label>
+                        <button type="button" class="tf-link" id="tfPartialClose">Tratar la parcela entera</button>
+                    </div>
+                    <div class="tf-err" data-err="field" role="alert"></div>
+                </section>
+
+                
+                <section class="tf-card" id="tfSecProducts" data-sec="products">
+                    <div class="tf-head">
+                        <h2 class="tf-h2">Productos</h2>
+                        <span class="tf-hint" id="tfOrderHint" hidden>En este orden en la cuba</span>
+                    </div>
+                    <div class="tf-lines-head" aria-hidden="true">
+                        <span>#</span><span>Producto</span><span>Dosis</span>
+                        <span class="tf-r" id="tfLoadHead">Por cuba llena</span>
+                        <span class="tf-r" id="tfTotalHead">Total parcela</span><span class="tf-r">Coste</span><span></span>
+                    </div>
+                    <div class="tf-lines" id="tfLines"></div>
+                    <button type="button" class="tf-add" id="tfAddBtn" aria-haspopup="dialog" aria-expanded="false">
+                        <i class="bi bi-plus-lg" aria-hidden="true"></i><span id="tfAddLabel">Añadir producto</span>
+                    </button>
+                    <div class="tf-add-inline" id="tfAddInline">
+                        <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                        <input type="text" id="tfAddInput" role="combobox" aria-expanded="false" aria-controls="tfProductsPop"
+                               aria-autocomplete="list" aria-label="Añadir producto" autocomplete="off"
+                               placeholder="Añadir producto: escribe para buscar y pulsa Intro">
+                        <button type="button" class="tf-link" id="tfAddClose" hidden>Cerrar</button>
+                        <div class="tf-pop" id="tfProductsPop" hidden>
+                            <div class="tf-opts" data-list="products" role="listbox" aria-label="Productos"></div>
+                        </div>
+                    </div>
+                    <div class="tf-err" data-err="products" role="alert"></div>
+                </section>
+
+                <div class="tf-row-2">
+                    
+                    <section class="tf-card" id="tfSecApp" data-sec="application">
+                        <h2 class="tf-h2" id="tfMachineTitle">Máquina y mojado</h2>
+                        <div class="tf-chips" id="tfMachineChips" role="radiogroup" aria-labelledby="tfMachineTitle" hidden></div>
+                        <p class="tf-machine-single" id="tfMachineSingle" hidden>
+                            <i class="bi bi-check2" aria-hidden="true"></i>
+                            <span><b id="tfMachineName"></b> <span class="tf-hint" id="tfMachineCap"></span></span>
+                        </p>
+                        <label class="tf-label-col" for="tfWater">Mojado previsto
+                            <span class="tf-inline">
+                                <input class="tf-inp tf-num" id="tfWater" inputmode="numeric" placeholder="Ej. 1000"
+                                       autocomplete="off" style="max-width: 140px">
+                                <span class="tf-unit">L/ha</span>
+                            </span>
+                        </label>
+                        <div class="tf-loads" id="tfLoads" hidden>
+                            <span class="tf-loads-head" id="tfLoadsHead"></span>
+                            <div id="tfLoadRows"></div>
+                        </div>
+                        <div class="tf-err" data-err="application" role="alert"></div>
+                    </section>
+
+                    
+                    <section class="tf-card" id="tfSecDate" data-sec="date">
+                        <h2 class="tf-h2" id="tfDateTitle">Cuándo</h2>
+                        <div class="tf-chips" id="tfDateChips" role="radiogroup" aria-labelledby="tfDateTitle"></div>
+                        <input type="date" class="tf-inp" id="tfCustomDate" aria-label="Fecha programada" hidden>
+                        <span class="tf-hint" id="tfDateLong"></span>
+                        <hr class="tf-sep">
+                        <div class="tf-switch-row">
+                            <div>
+                                <div class="tf-switch-title" id="tfDoneLbl">Ya está hecho</div>
+                                <div class="tf-hint">Para apuntar un tratamiento que ya se ha aplicado</div>
+                            </div>
+                            <button type="button" class="tf-switch" id="tfDone" role="switch" aria-checked="false"
+                                    aria-labelledby="tfDoneLbl"><span class="tf-knob"></span></button>
+                        </div>
+                        <div class="tf-done-fields" id="tfDoneFields" hidden>
+                            <label class="tf-label-col" for="tfFinish">Hecho el
+                                <input type="date" class="tf-inp" id="tfFinish">
+                            </label>
+                            <label class="tf-label-col" for="tfRealWater" id="tfRealWrap">Mojado real (L/ha)
+                                <input class="tf-inp tf-num" id="tfRealWater" inputmode="numeric" autocomplete="off">
+                            </label>
+                        </div>
+                        <div class="tf-err" data-err="date" role="alert"></div>
+                    </section>
+                </div>
+
+                
+                <section class="tf-card" id="tfSecName" data-sec="name">
+                    <label class="tf-lbl" for="tfName">Nombre del tratamiento</label>
+                    <input class="tf-inp" id="tfName" maxlength="100" placeholder="Ej. Cobre + Mojante" autocomplete="off">
+                    <div class="tf-err" data-err="name" role="alert"></div>
+                </section>
+            </div>
+
+            
+            <aside class="tf-summary" id="tfSummary" aria-label="Resumen del tratamiento">
+                <div class="tf-sum-top">
+                    <span class="tf-lbl tf-sum-label">Resumen</span>
+                    <div class="tf-sum-main-wrap">
+                        <span class="tf-sum-main" id="tfSumMain"></span>
+                        <span class="tf-sum-sub" id="tfSumSub"></span>
+                    </div>
+                    <dl class="tf-kv" id="tfKv"></dl>
+                    <p class="tf-missing" id="tfMissing" role="status"></p>
+                </div>
+                <div class="tf-sum-actions">
+                    <button type="submit" class="tf-btn tf-btn--primary" id="tfSave">Guardar</button>
+                    <a class="tf-btn tf-btn--sec tf-sum-cancel"
+                       href="/tratamientos/1">Cancelar</a>
+                </div>
+            </aside>
+        </div>
+    </form>
+
+    
+    <div class="offcanvas offcanvas-bottom tf-sheet" tabindex="-1" id="tfFieldsSheet" aria-labelledby="tfFieldsSheetTitle">
+        <div class="tf-sheet-grab" aria-hidden="true"></div>
+        <div class="offcanvas-header">
+            <h2 class="offcanvas-title" id="tfFieldsSheetTitle">Elige parcelas</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+        </div>
+        <div class="tf-sheet-search">
+            <input type="search" class="tf-inp" data-search="fields" placeholder="Buscar parcela o cultivo"
+                   aria-label="Buscar parcela" autocomplete="off">
+        </div>
+        <div class="offcanvas-body tf-sheet-body"><div class="tf-opts" data-list="fields"></div></div>
+        <div class="tf-sheet-foot">
+            <button type="button" class="tf-btn tf-btn--primary" data-done="fields" data-bs-dismiss="offcanvas">Listo</button>
+        </div>
+    </div>
+
+    <div class="offcanvas offcanvas-bottom tf-sheet" tabindex="-1" id="tfProductsSheet" aria-labelledby="tfProductsSheetTitle">
+        <div class="tf-sheet-grab" aria-hidden="true"></div>
+        <div class="offcanvas-header">
+            <h2 class="offcanvas-title" id="tfProductsSheetTitle">Añadir productos</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+        </div>
+        <div class="tf-sheet-search">
+            <input type="search" class="tf-inp" data-search="products" placeholder="Buscar producto o tipo"
+                   aria-label="Buscar producto" autocomplete="off">
+            <span class="tf-hint">Toca para añadir o quitar. Se ponen con su dosis recomendada.</span>
+        </div>
+        <div class="offcanvas-body tf-sheet-body"><div class="tf-opts" data-list="products"></div></div>
+        <div class="tf-sheet-foot">
+            <button type="button" class="tf-btn tf-btn--primary" data-done="products" data-bs-dismiss="offcanvas">Listo</button>
+        </div>
+    </div>
+</div>
+
+
+    </div>
+</div>
+
+<!-- Footer -->
+<footer class="footer py-4 mt-auto d-print-none">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6 text-center text-md-start mb-3 mb-md-0">
+                <div class="d-flex align-items-center justify-content-center justify-content-md-start gap-2 mb-2">
+                    <svg viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg" width="22" height="22">
+                        <path d="M17 4 C17 4 9 9.5 9 16.5 C9 20.9 12.6 24.5 17 24.5 C21.4 24.5 25 20.9 25 16.5 C25 9.5 17 4 17 4Z" fill="url(#bfg)"/>
+                        <path d="M17 4.5 L17 24" stroke="rgba(255,255,255,0.22)" stroke-width="0.8" stroke-linecap="round"/>
+                        <path d="M17 25.5 C14.8 27.8 13.5 29.2 13.5 30.3 C13.5 31.8 15.1 33 17 33 C18.9 33 20.5 31.8 20.5 30.3 C20.5 29.2 19.2 27.8 17 25.5Z" fill="#D4A017"/>
+                        <defs>
+                            <linearGradient id="bfg" x1="17" y1="4" x2="17" y2="24.5" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#52B788"/><stop offset="1" stop-color="#2D6A4F"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <h5 class="fw-bold mb-0">AgroGest</h5>
+                </div>
+                <p class="mb-0">Simplificando la gestión de tratamientos agrícolas</p>
+            </div>
+            <div class="col-md-6 text-center text-md-end">
+                <p class="mb-2 small">Proyecto de
+                    <a href="https://github.com/carborgar" target="_blank" class="text-decoration-none">@carborgar</a>
+                </p>
+                <div>
+                    <a class="social-icon" href="https://github.com/carborgar/agrogest" target="_blank" title="Repositorio en GitHub">
+                        <i class="bi bi-github"></i>
+                    </a>
+                    <a class="social-icon" href="https://www.linkedin.com/in/carlosborja93/" target="_blank" title="LinkedIn">
+                        <i class="bi bi-linkedin"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <hr class="footer-divider">
+        <div class="text-center">
+            <small class="footer-copyright">© 2026 AgroGest. Todos los derechos reservados.</small>
+        </div>
+    </div>
+</footer>
+
+
+<div id="swal-container"></div>
+
+
+
+<script crossorigin="anonymous" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script crossorigin="anonymous"
+        integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3"
+        src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="/static/js/submit-guard.js"></script>
+
+
+
+<script src="/static/js/menu.js"></script>
+
+<script>
+    /**
+     * SearchableSelect — combobox genérico reutilizable
+     *
+     * Uso:
+     *   const ss = new SearchableSelect(selectElement, { placeholder: 'Buscar...' });
+     *   ss.setOptions([{ value: 1, text: 'Opción A' }, ...], restoreValue);
+     *   ss.setValue(42);
+     *   const val = ss.getValue();
+     *   ss.destroy();
+     *
+     * El <select> original queda oculto en el DOM y se usa para el envío del formulario.
+     * Escucha el evento nativo 'change' en el <select> para reaccionar a cambios.
+     */
+    class SearchableSelect {
+        constructor(selectElement, {placeholder = 'Buscar...'} = {}) {
+            if (selectElement._ssInstance) return; // ya inicializado
+            selectElement._ssInstance = this;
+            this.select = selectElement;
+            this.placeholder = placeholder;
+            this._build();
+        }
+
+        _build() {
+            const sel = this.select;
+            sel.style.display = 'none';
+
+            // Wrapper
+            this.wrapper = document.createElement('div');
+            this.wrapper.className = 'ss-wrapper';
+            sel.parentNode.insertBefore(this.wrapper, sel);
+            this.wrapper.appendChild(sel); // mover el select dentro del wrapper
+
+            // Input visible
+            this.input = document.createElement('input');
+            this.input.type = 'text';
+            this.input.className = 'form-control ss-input';
+            this.input.placeholder = this.placeholder;
+            this.input.autocomplete = 'off';
+            this.wrapper.insertBefore(this.input, sel);
+
+            // Dropdown
+            this.dropdown = document.createElement('div');
+            this.dropdown.className = 'ss-dropdown d-none';
+            this.wrapper.appendChild(this.dropdown);
+
+            // Eventos
+            this.input.addEventListener('focus', () => this._open());
+            this.input.addEventListener('input', () => this._open());
+            this.input.addEventListener('blur', () => setTimeout(() => this._close(), 160));
+            this.input.addEventListener('keydown', e => this._onKeydown(e));
+
+            this._syncDisplay();
+        }
+
+        _open() {
+            const q = this.input.value.toLowerCase().trim();
+            this.dropdown.innerHTML = '';
+            let count = 0;
+
+            Array.from(this.select.options).forEach(opt => {
+                if (!opt.value) return;
+                if (q && !opt.text.toLowerCase().includes(q)) return;
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'ss-item' + (opt.value === this.select.value ? ' ss-item--selected' : '');
+                btn.textContent = opt.text;
+                btn.dataset.value = opt.value;
+                btn.addEventListener('mousedown', e => {
+                    e.preventDefault();
+                    this._pick(opt.value, opt.text);
+                });
+                this.dropdown.appendChild(btn);
+                count++;
+            });
+
+            if (count === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'ss-empty';
+                empty.textContent = 'Sin resultados';
+                this.dropdown.appendChild(empty);
+            }
+
+            this.dropdown.classList.remove('d-none');
+            this._highlightedIndex = -1;
+        }
+
+        _close() {
+            this.dropdown.classList.add('d-none');
+            this._syncDisplay(); // restaurar texto si el usuario borrara sin seleccionar
+        }
+
+        _pick(value, text) {
+            this.select.value = value;
+            this.input.value = text;
+            this.dropdown.classList.add('d-none');
+            this.select.dispatchEvent(new Event('change', {bubbles: true}));
+        }
+
+        _syncDisplay() {
+            const selected = Array.from(this.select.options).find(o => o.value === this.select.value);
+            this.input.value = (selected && selected.value) ? selected.text : '';
+        }
+
+        _onKeydown(e) {
+            if (this.dropdown.classList.contains('d-none')) return;
+            const items = Array.from(this.dropdown.querySelectorAll('.ss-item'));
+            if (!items.length) return;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                this._highlightedIndex = Math.min((this._highlightedIndex ?? -1) + 1, items.length - 1);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                this._highlightedIndex = Math.max((this._highlightedIndex ?? 0) - 1, 0);
+            } else if (e.key === 'Enter' && this._highlightedIndex >= 0) {
+                e.preventDefault();
+                const item = items[this._highlightedIndex];
+                if (item) this._pick(item.dataset.value, item.textContent);
+                return;
+            } else if (e.key === 'Escape') {
+                this._close();
+                return;
+            }
+
+            items.forEach((it, i) => it.classList.toggle('ss-item--active', i === this._highlightedIndex));
+            items[this._highlightedIndex]?.scrollIntoView({block: 'nearest'});
+        }
+
+        /** Reemplaza las opciones del select y restaura el valor seleccionado */
+        setOptions(items, restoreValue = null) {
+            this.select.innerHTML = '<option value=""></option>';
+            items.forEach(({value, text}) => {
+                const opt = document.createElement('option');
+                opt.value = String(value);
+                opt.textContent = text;
+                this.select.appendChild(opt);
+            });
+            this.select.value = restoreValue != null ? String(restoreValue) : '';
+            this._syncDisplay();
+        }
+
+        getValue() {
+            return this.select.value;
+        }
+
+        setValue(value) {
+            this.select.value = value != null ? String(value) : '';
+            this._syncDisplay();
+        }
+
+        destroy() {
+            delete this.select._ssInstance;
+            this.wrapper.parentNode?.insertBefore(this.select, this.wrapper);
+            this.select.style.display = '';
+            this.wrapper.remove();
+        }
+    }
+</script>
+
+<script>
+    function showNotification({icon = 'info', title = '', text = '', reload = false, onOk = null}) {
+        Swal.fire({
+            target: '#swal-container',
+            icon,
+            title,
+            text,
+            confirmButtonColor: '#198754',
+            heightAuto: false
+        }).then(() => {
+            if (typeof onOk === 'function') onOk();
+            if (reload) location.reload();
+        });
+    }
+
+    function showConfirm({
+                             title = '¿Estás seguro?',
+                             text = '',
+                             icon = 'warning',
+                             confirmText = 'Sí',
+                             cancelText = 'Cancelar',
+                             onConfirm
+                         }) {
+        Swal.fire({
+            target: '#swal-container',
+            title,
+            text,
+            icon,
+            showCancelButton: true,
+            confirmButtonText: confirmText,
+            cancelButtonText: cancelText,
+            reverseButtons: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            heightAuto: false
+        }).then(result => {
+            if (result.isConfirmed && typeof onConfirm === 'function') {
+                onConfirm();
+            }
+        });
+    }
+
+    function showLoading(title = 'Cargando...', html = '') {
+        Swal.fire({
+            target: '#swal-container',
+            title,
+            html,
+            didOpen: () => Swal.showLoading(),
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            allowEnterKey: false,
+            heightAuto: false
+        });
+    }
+</script>
+
+<script>
+    const API_URLS = {
+        fields: "/api/fields/",
+        machines: "/api/machines/",
+        productsByTreatmentType: (treatmentType) => `/api/products/TIPO/`.replace("TIPO", treatmentType),
+        treatments: "/api/treatments/",
+        treatmentDetail: (id) => `/api/treatments/0/`.replace("0", id),
+        treatmentMove: (id) => `/api/treatments/0/move/`.replace("0", id),
+        treatmentFinish: (id) => `/tratamientos/0/finalizar`.replace("0", id),
+        treatmentCreate: "/tratamientos/nuevo/",
+        treatmentClone: (id) => `/tratamientos/0/clonar/`.replace("0", id),
+        csrfToken: "TOKEN",
+        fieldCosts: `/api/field-costs-data/`,
+    };
+</script>
+
+
+<script>
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+</script>
+
+<script>
+    // ── Filter dropdown + checkboxes (global, todas las páginas) ──────
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.filter-check-dropdown').forEach(dropdown => {
+            const btn = dropdown.querySelector('.filter-dd-btn');
+            if (!btn) return;
+            const label = btn.querySelector('.filter-dd-label');
+            const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');
+            // Guardar el texto original del botón como placeholder
+            btn.dataset.defaultLabel = btn.dataset.defaultLabel || (label ? label.textContent.trim() : '');
+
+            function updateBtn() {
+                const checked = Array.from(checkboxes).filter(cb => cb.checked);
+                const n = checked.length;
+                // Eliminar badge anterior y reconstruirlo
+                btn.querySelectorAll('.badge').forEach(el => el.remove());
+                if (n === 0) {
+                    if (label) label.textContent = btn.dataset.defaultLabel;
+                    btn.classList.remove('filter-dd-btn--active');
+                } else {
+                    const names = checked.map(cb =>
+                        dropdown.querySelector(`label[for="${cb.id}"]`)?.textContent.trim() || cb.value
+                    );
+                    if (label) label.textContent = n <= 2 ? names.join(', ') : `${n} seleccionados`;
+                    btn.classList.add('filter-dd-btn--active');
+                    const badge = document.createElement('span');
+                    badge.className = 'badge bg-primary flex-shrink-0';
+                    badge.textContent = n;
+                    btn.appendChild(badge);
+                }
+            }
+
+            checkboxes.forEach(cb => cb.addEventListener('change', updateBtn));
+
+            // Buscador dentro del dropdown
+            const searchInput = dropdown.querySelector('.filter-dd-search');
+            if (searchInput) {
+                searchInput.addEventListener('input', () => {
+                    const q = searchInput.value.toLowerCase().trim();
+                    dropdown.querySelectorAll('.filter-dd-options .form-check').forEach(item => {
+                        const text = item.querySelector('label')?.textContent.toLowerCase() || '';
+                        item.style.display = (!q || text.includes(q)) ? '' : 'none';
+                    });
+                });
+                // Evitar que el dropdown cierre al hacer click en el buscador
+                searchInput.addEventListener('click', e => e.stopPropagation());
+            }
+        });
+    });
+</script>
+
+
+<script src="/static/js/treatment-calc.js"></script>
+<script src="/static/js/treatment-form-state.js"></script>
+<script src="/static/js/treatment-form.js"></script>
+
+
+
+</body>
+</html>

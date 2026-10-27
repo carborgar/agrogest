@@ -437,7 +437,7 @@ test('R11 área parcial: entre 0 y el área de la parcela; si no, error en la se
     assert.equal(derive(s, DATA).areaError, null);                         // vacío = parcela entera
     for (const bad of ['0', '-1', '4,3', 'abc', '1.000']) {
         const d = derive(run(s, [['setAppliedArea', { area: bad }]]), DATA);
-        assert.match(d.areaError, /entre 0 y 4,2 ha/, bad);
+        assert.match(d.areaError, bad === '1.000' ? /Usa coma/ : /entre 0 y 4,2 ha/, bad);   // «1.000» es ambiguo: se pide la coma
         assert.ok(d.errors.field.length >= 1, bad);
         assert.ok(d.missing.some((m) => m.key === 'area'), bad);
         near(d.totalArea, 4.2);                                            // un área inválida no se usa

@@ -40,10 +40,10 @@
 
     const doseOption = (product, type) => (type === 'spraying' ? product.spraying : product.fertigation) || null;
 
-    /** Dosis → texto para el input (sin ceros finales, máx. 3 decimales, coma decimal como en España). */
+    /** Dosis → texto para el input: coma decimal, sin miles y hasta 4 decimales sin ceros finales (las derivadas del total tienen 4). */
     function doseToText(value) {
         if (value === null || value === undefined || !Number.isFinite(value)) return '';
-        return fmt(value, 3).replace(/\./g, '');
+        return calc.numberToText(value, 4);
     }
 
     function plain(lines, patchByKey) {
@@ -259,7 +259,9 @@
         let appliedArea = null;
         if (partialActive && areaText) {
             const n = calc.parseNumber(areaText);
-            if (n === null || n <= 0 || n > selected[0].area) {
+            if (calc.hasThousandsDot(areaText)) {
+                areaError = 'Usa coma para los decimales (1,5, no 1.500).';
+            } else if (n === null || n <= 0 || n > selected[0].area) {
                 areaError = 'Tiene que estar entre 0 y ' + fmt(selected[0].area) + ' ha.';
             } else {
                 appliedArea = n;
@@ -302,6 +304,7 @@
             }
             const doseType = opt.dose_type;
             const override = !!l.override && single;
+            const ambiguous = calc.hasThousandsDot(override ? l.total : l.dose);
             let dose = null;
             let doseRoundedUp = false;
             let total = null;
@@ -344,6 +347,7 @@
                 dose: dose,
                 doseRoundedUp: doseRoundedUp,
                 valid: valid,
+                ambiguous: ambiguous,
                 override: override,
                 total: total,
                 perField: perField,
@@ -398,6 +402,7 @@
         if (areaError) add('field', 'area', 'superficie', areaError);
         if (!lines.length) add('products', 'products', 'un producto', 'Añade al menos un producto.');
         else if (unsupportedLines.length) add('products', 'unsupported', 'quitar producto no válido', 'Hay productos sin dosis para este tipo. Quítalos o cambia el tipo.');
+        else if (supportedLines.some((l) => l.ambiguous)) add('products', 'decimal', 'dosis', 'Usa coma para los decimales (1,5, no 1.500).');
         else if (supportedLines.some((l) => !l.valid)) add('products', 'dose', 'dosis', 'Revisa las dosis: tienen que ser mayores que 0.');
         if (isSpray) {
             if (!machine) add('application', 'machine', 'máquina', 'Elige la máquina.');

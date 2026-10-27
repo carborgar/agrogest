@@ -192,3 +192,33 @@ test('parseNumber acepta números y rechaza no finitos o negativos', () => {
     assert.equal(calc.parseNumber(NaN), null);
     assert.equal(calc.parseNumber(Infinity), null);
 });
+
+// ── Números del servidor (punto decimal) frente a lo que teclea el usuario ───
+
+test('parseServerNumber: punto decimal estricto; «1.500» es uno y medio', () => {
+    assert.equal(calc.parseServerNumber('1.500'), 1.5);
+    assert.equal(calc.parseServerNumber('2.381'), 2.381);
+    assert.equal(calc.parseServerNumber('12.6000'), 12.6);
+    assert.equal(calc.parseServerNumber('1000'), 1000);
+    assert.equal(calc.parseServerNumber(3.25), 3.25);
+    for (const bad of ['', ' ', '1,5', '1.2.3', '-1', 'abc', '1e3', null, undefined]) assert.equal(calc.parseServerNumber(bad), null, String(bad));
+});
+
+test('parseNumber (lo que teclea el usuario) sigue rechazando «1.500» y hasThousandsDot lo detecta', () => {
+    assert.equal(calc.parseNumber('1.500'), null);
+    assert.equal(calc.hasThousandsDot('1.500'), true);
+    assert.equal(calc.hasThousandsDot('2.381'), true);
+    assert.equal(calc.hasThousandsDot('1.500.000'), true);
+    for (const ok of ['0.075', '1.5', '1,500', '12', '1.50', '']) assert.equal(calc.hasThousandsDot(ok), false, ok);
+});
+
+test('numberToText: coma decimal, sin miles y sin ceros finales', () => {
+    assert.equal(calc.numberToText(1.5, 4), '1,5');
+    assert.equal(calc.numberToText(1500, 4), '1500');
+    assert.equal(calc.numberToText(2.381, 4), '2,381');
+    assert.equal(calc.numberToText(2.3810, 4), '2,381');
+    assert.equal(calc.numberToText(0.4762, 4), '0,4762');
+    assert.equal(calc.numberToText(null), '');
+    // ida y vuelta con lo que parsea el usuario
+    for (const n of [1.5, 2.381, 0.075, 1500, 12.6, 0.4762]) assert.equal(calc.parseNumber(calc.numberToText(n, 4)), n);
+});

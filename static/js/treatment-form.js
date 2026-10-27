@@ -94,7 +94,13 @@
         if (real.extra) {
             Array.from(real.extra.selectedOptions).forEach((o) => { if (o.value && Number(o.value) !== fieldIds[0]) fieldIds.push(Number(o.value)); });
         }
-        const n = (v) => { const x = C.parseNumber(v); return x && x > 0 ? String(Math.round(x)) : ''; };
+        // Los valores del servidor llevan SIEMPRE punto decimal («1.500» = uno y medio): parser estricto y texto con
+        // coma para el estado. Lo que teclea el usuario se interpreta con otras reglas (parseNumber).
+        const fromServer = (v) => {
+            const x = C.parseServerNumber(v);
+            return x === null ? (v === undefined || v === null ? '' : String(v)) : C.numberToText(x, 4);
+        };
+        const n = (v) => { const x = C.parseServerNumber(v); return x && x > 0 ? String(Math.round(x)) : ''; };
         const savedLines = data.lines || [];
 
         const lines = [];
@@ -111,16 +117,16 @@
             const saved = id ? savedLines.find((l) => l.product_id === productId) : null;
             const override = TRUE_RE.test(q('total_overridden').value);
             // Con total a mano guardado se usa el valor exacto (el input solo enseña 2 decimales)
-            const total = override && saved && !data.bound ? saved.total_dose : q('total_dose').value;
+            const total = override && saved && !data.bound ? saved.total_dose : q('total_dose').value;   // exacto (el input solo enseña 2 decimales)
             rowToKey[i] = lines.length + 1;
-            lines.push({ productId: productId, dose: q('dose').value, override: override, total: total, unitPrice: saved ? saved.unit_price : null });
+            lines.push({ productId: productId, dose: fromServer(q('dose').value), override: override, total: fromServer(total), unitPrice: saved ? saved.unit_price : null });
         });
         real.total.value = String(rowsInfo.length);
 
         return {
             isEdit: isEdit, type: type, fieldIds: fieldIds, machineId: real.machine.value || null,
             water: n(real.water.value), date: real.date.value || data.today, finishDate: real.finish.value || '',
-            realWater: n(real.realWater.value), appliedArea: real.area.value, zone: real.zone.value,
+            realWater: n(real.realWater.value), appliedArea: fromServer(real.area.value), zone: real.zone.value,
             name: real.name.value, lines: lines,
         };
     }

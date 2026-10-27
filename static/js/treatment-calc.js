@@ -94,6 +94,35 @@
     }
 
     /**
+     * true si el texto tecleado tiene un punto de miles (1.500, 2.381, 1.000.000): es ambiguo, así que
+     * parseNumber lo rechaza y la pantalla pide usar la coma («1,5»). «0.075» no cuenta.
+     */
+    function hasThousandsDot(input) {
+        if (typeof input !== 'string') return false;
+        const s = input.replace(/\s+/g, '');
+        return /^\d{1,3}(\.\d{3})+(,\d+)?$/.test(s) && !/^0\./.test(s);
+    }
+
+    /**
+     * Número que viene del SERVIDOR (inputs del formset, JSON): siempre con punto decimal, nunca miles.
+     * «1.500» es uno y medio. Estricto: solo dígitos con un punto opcional; si no, null.
+     */
+    function parseServerNumber(input) {
+        if (isNum(input)) return input >= 0 ? input : null;
+        if (typeof input !== 'string') return null;
+        const s = input.trim();
+        if (!/^\d+(\.\d+)?$/.test(s)) return null;
+        const n = parseFloat(s);
+        return isNum(n) ? n : null;
+    }
+
+    /** Número → texto como lo teclearía el usuario en España: coma decimal, sin miles, sin ceros finales. */
+    function numberToText(n, maxDecimals) {
+        if (!isNum(n)) return '';
+        return n.toLocaleString('es-ES', { useGrouping: false, minimumFractionDigits: 0, maximumFractionDigits: maxDecimals === undefined ? 4 : maxDecimals });
+    }
+
+    /**
      * Redondeo de la dosis tecleada: hacia arriba a 3 decimales (clean_dose, ROUND_UP).
      * Trabaja con enteros para evitar la coma flotante (0,0754 → 0,076; 2,1 → 2,1; 0,3 → 0,3).
      * Usa 9 decimales de resolución (el plan sugería 6) para no perder el redondeo hacia
@@ -216,6 +245,9 @@
         roundTo,
         roundHalfEven,
         parseNumber,
+        hasThousandsDot,
+        parseServerNumber,
+        numberToText,
         roundDoseUp,
         effectiveArea,
         totalUnit,
