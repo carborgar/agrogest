@@ -107,44 +107,13 @@
         </li>
         {% endif %}
 
-        {# ── Productos (colapsable) ── #}
+        {# ── Productos (incluye tipos y comparativa: filtro y selección del listado) ── #}
         <li class="nav-item">
-            <a class="nav-link"
-               aria-expanded="{% if nav_products_open %}true{% else %}false{% endif %}"
-               data-bs-toggle="collapse"
-               data-bs-target="#productosMenu{{ suffix }}"
-               href="#"
-               data-label="Productos">
+            <a class="nav-link {% if nav_products %}active{% endif %}"
+               href="{% url 'product-list' %}" data-label="Productos">
                 <i class="fa fa-box"></i>
                 <span class="nav-link-text">Productos</span>
-                <i class="fas fa-chevron-down chevron"></i>
             </a>
-            <div class="collapse nav-submenu {% if nav_products_open %}show{% endif %}"
-                 id="productosMenu{{ suffix }}">
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link {% if nav_products %}active{% endif %}"
-                           href="{% url 'product-list' %}">
-                            <i class="fa fa-flask"></i>
-                            <span class="nav-link-text">Productos</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if nav_product_types %}active{% endif %}"
-                           href="{% url 'product-type-list' %}">
-                            <i class="fa fa-tags"></i>
-                            <span class="nav-link-text">Tipos de producto</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if nav_product_comparison %}active{% endif %}"
-                           href="{% url 'product-comparison' %}">
-                            <i class="fa fa-code-compare"></i>
-                            <span class="nav-link-text">Comparativa</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
         </li>
 
     </ul>

@@ -17,7 +17,7 @@ from .views.expense_views import ExpenseListView, ExpenseFormView, ExpenseDelete
     ExpenseTypeFormView, ExpenseTypeDeleteView
 from .views.field_views import FieldListView, FieldCreateView, FieldUpdateView, FieldDeleteView, FieldDetailView
 from .views.harvest_views import HarvestFormView, HarvestSummaryView, HarvestDeleteView
-from .views.product_views import ProductTypeListView, ProductTypeFormView, ProductTypeDeleteView, ProductListView, \
+from .views.product_views import ProductTypeListRedirectView, ProductTypeFormView, ProductTypeDeleteView, ProductListView, \
     ProductFormView, ProductDeleteView, ProductPriceHistoryDeleteView, ProductComparisonView
 from .views.storage_point_views import (
     StoragePointListView,
@@ -77,7 +77,8 @@ urlpatterns = [
     path('gastos/tipos/<int:pk>/eliminar/', ExpenseTypeDeleteView.as_view(), name='expense-type-delete'),
 
     # Product Type Management
-    path('productos/tipos/', ProductTypeListView.as_view(), name='product-type-list'),
+    # Los tipos se gestionan dentro de Productos; la ruta antigua redirige
+    path('productos/tipos/', ProductTypeListRedirectView.as_view(), name='product-type-list'),
     path('productos/tipos/nuevo/', ProductTypeFormView.as_view(), name='product-type-create'),
     path('productos/tipos/<int:pk>/editar/', ProductTypeFormView.as_view(), name='product-type-edit'),
     path('productos/tipos/<int:pk>/eliminar/', ProductTypeDeleteView.as_view(), name='product-type-delete'),

@@ -317,6 +317,58 @@ Define las propiedades y dosis del producto para los diferentes métodos de apli
 
     document.addEventListener('DOMContentLoaded', function () {
 
+        // ── Alta rápida de tipo: sin salir del formulario (se pierde lo escrito si se navega) ──
+        const typeSelect = document.getElementById('{{ form.product_type.id_for_label }}');
+        if (typeSelect) {
+            const addType = document.createElement('button');
+            addType.type = 'button';
+            addType.className = 'btn btn-link btn-sm p-0 mt-1 text-decoration-none';
+            addType.innerHTML = '<i class="fa fa-plus me-1"></i>Nuevo tipo';
+            typeSelect.insertAdjacentElement('afterend', addType);
+            addType.addEventListener('click', () => {
+                Swal.fire({
+                    target: '#swal-container',
+                    title: 'Nuevo tipo de producto',
+                    input: 'text',
+                    inputLabel: 'Nombre',
+                    inputAttributes: {maxlength: 100},
+                    showCancelButton: true,
+                    confirmButtonText: 'Crear',
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: '#2E7D32',
+                    heightAuto: false,
+                    showLoaderOnConfirm: true,
+                    allowOutsideClick: () => !Swal.isLoading(),
+                    preConfirm: async (name) => {
+                        name = (name || '').trim();
+                        if (!name) { Swal.showValidationMessage('Escribe un nombre'); return false; }
+                        const body = new FormData();
+                        body.append('name', name);
+                        body.append('csrfmiddlewaretoken', document.querySelector('#productForm [name=csrfmiddlewaretoken]').value);
+                        try {
+                            const r = await fetch('{% url 'product-type-create' %}', {
+                                method: 'POST', body, headers: {'X-Requested-With': 'XMLHttpRequest'}
+                            });
+                            const data = await r.json();
+                            if (!r.ok) { Swal.showValidationMessage((data.errors || ['No se pudo crear el tipo']).join(' ')); return false; }
+                            return data;
+                        } catch (e) {
+                            Swal.showValidationMessage('No se pudo crear el tipo. Inténtalo de nuevo.');
+                            return false;
+                        }
+                    }
+                }).then(result => {
+                    if (!result.isConfirmed || !result.value) return;
+                    // Se inserta en orden alfabético, como llegan los demás, y queda seleccionado
+                    const option = new Option(result.value.name, result.value.id, true, true);
+                    const after = Array.from(typeSelect.options).find(o => o.value && o.text.localeCompare(option.text, 'es') > 0);
+                    typeSelect.insertBefore(option, after || null);
+                    typeSelect.value = String(result.value.id);
+                    typeSelect.dispatchEvent(new Event('change', {bubbles: true}));
+                });
+            });
+        }
+
         // ── Dose toggles ────────────────────────────────────────────────
         const sprayingSwitch = document.getElementById('enableSpraying');
         const fertigationSwitch = document.getElementById('enableFertigation');

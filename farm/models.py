@@ -216,12 +216,38 @@ class Product(OrganizationOwnedModel):
     class Meta:
         ordering = ['name']
 
+    # Mojado (L/ha) de referencia para estimar el coste/ha de las dosis que
+    # dependen del volumen de caldo (L/1000L, kg/1000L, %).
+    REFERENCE_WATER_PER_HA = 1000
+
     def get_dose_for_application(self, application_type):
         if application_type == 'spraying':
             return self.spraying_dose_type
         elif application_type == 'fertigation':
             return self.fertigation_dose_type
         return None, None
+
+    def cost_per_ha(self, application_type, water_per_ha=None):
+        """
+        Coste (€/ha) de aplicar el producto a su dosis estándar.
+        Misma fórmula que TreatmentProduct.calculate_total_dose(): las dosis por
+        hectárea no dependen del agua; las de caldo usan `water_per_ha`
+        (por defecto, REFERENCE_WATER_PER_HA). None si no hay dosis o precio.
+        """
+        dose = self.get_dose(application_type)
+        dose_type = self.get_dose_type(application_type)
+        if not dose or not dose_type or not self.price or self.price <= 0:
+            return None
+        water = Decimal(water_per_ha if water_per_ha is not None else self.REFERENCE_WATER_PER_HA)
+        if dose_type in ('kg_per_ha', 'l_per_ha'):
+            amount = dose
+        elif dose_type in ('kg_per_1000l', 'l_per_1000l'):
+            amount = dose * water / 1000
+        elif dose_type == 'pct':
+            amount = dose / Decimal(100) * water
+        else:
+            return None
+        return round(amount * self.price, 2)
 
     def supports_application_type(self, application_type):
         if application_type == 'spraying':

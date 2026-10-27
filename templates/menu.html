@@ -210,12 +210,12 @@
         <i class="fas fa-calendar-days"></i>
         <span>Calendario</span>
     </a>
-    <a class="tab-item {% if nav_products or nav_product_types or nav_product_comparison %}active{% endif %}" href="{% url 'product-list' %}">
+    <a class="tab-item {% if nav_products %}active{% endif %}" href="{% url 'product-list' %}">
         <i class="fa fa-box"></i>
         <span>Productos</span>
     </a>
     <button aria-label="Más opciones"
-            class="tab-item {% if not nav_home and not nav_treatments and not nav_calendar and not nav_products and not nav_product_types and not nav_product_comparison %}active{% endif %}"
+            class="tab-item {% if not nav_home and not nav_treatments and not nav_calendar and not nav_products %}active{% endif %}"
             data-bs-target="#sidebarOffcanvas"
             data-bs-toggle="offcanvas"
             type="button">

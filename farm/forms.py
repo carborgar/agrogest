@@ -310,6 +310,16 @@ class ProductTypeForm(NoPlaceholderModelForm):
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
 
+    def clean_name(self):
+        # Sin distinguir mayúsculas: «Fungicida» y «fungicida» serían el mismo chip de filtro.
+        name = (self.cleaned_data.get('name') or '').strip()
+        organization_id = self.instance.organization_id
+        if organization_id and ProductType.objects.filter(
+            organization_id=organization_id, name__iexact=name
+        ).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError('Ya tienes un tipo con ese nombre.')
+        return name
+
 
 class ProductForm(NoPlaceholderModelForm):
     class Meta:

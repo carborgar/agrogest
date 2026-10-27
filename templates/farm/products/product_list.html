@@ -1,280 +1,240 @@
 {% extends "base.html" %}
 
-{% load django_bootstrap5 %}
-{% load custom_filters %}
-
 {% block header %}Productos{% endblock %}
 
-{% block sub_header %}Define y gestiona los productos que vas a usar en los tratamientos.{% endblock %}
+{% block sub_header %}<span class="d-none d-md-inline">Precios, dosis y coste por hectárea de lo que usas en los tratamientos.</span>{% endblock %}
 
 {% block actions %}
-<a class="btn btn-primary w-100 w-md-auto" href="{% url 'product-create' %}" type="button">
+<a class="btn btn-outline-secondary flex-fill flex-md-grow-0" id="plTopCompare" href="{% url 'product-comparison' %}">
+    <i class="fa fa-code-compare me-1"></i>Comparar
+</a>
+<a class="btn btn-primary flex-fill flex-md-grow-0" href="{% url 'product-create' %}">
     <i class="fa fa-plus me-1"></i>Nuevo producto
 </a>
 {% endblock %}
 
 {% block content %}
 
-<!-- Sección: Productos sin precio (solo activos) -->
-{% if products_without_price %}
-<div class="card border-warning border-opacity-50 shadow-sm mb-4">
-    <div class="card-header bg-warning-subtle d-flex align-items-center gap-2 py-2 px-3">
-        <i class="fa fa-triangle-exclamation text-warning"></i>
-        <span class="fw-semibold text-warning-emphasis">
-            {{ products_without_price|length }} producto{{ products_without_price|length|pluralize }} sin precio
-        </span>
-        <button class="btn btn-sm btn-link text-warning-emphasis ms-auto p-0 text-decoration-none"
-                type="button" data-bs-toggle="collapse" data-bs-target="#noPriceList" aria-expanded="false">
-            <i class="fa fa-chevron-down"></i>
-        </button>
+{# ── Barra superior: aplicación + búsqueda + tipo + filtros rápidos ── #}
+<div class="tl-toolbar">
+    <nav class="tl-tabs" aria-label="Aplicación">
+        <a class="pl-flink tl-tab{% if not selected_application %} active{% endif %}"
+           href="{% url 'product-list' %}{% querystring application=None %}">Todas</a>
+        <a class="pl-flink tl-tab{% if selected_application == 'spraying' %} active{% endif %}"
+           href="{% url 'product-list' %}{% querystring application='spraying' %}">Pulverización</a>
+        <a class="pl-flink tl-tab{% if selected_application == 'fertigation' %} active{% endif %}"
+           href="{% url 'product-list' %}{% querystring application='fertigation' %}">Fertirrigación</a>
+    </nav>
+    <div class="tl-search">
+        <i class="fa fa-search" aria-hidden="true"></i>
+        <input type="search" id="plSearch" class="form-control" placeholder="Buscar producto…"
+               autocomplete="off" aria-label="Buscar producto">
     </div>
-    <div class="collapse" id="noPriceList">
-        <ul class="list-group list-group-flush">
-            {% for p in products_without_price %}
-            <li class="list-group-item px-3 py-2 d-flex align-items-center gap-2">
-                <span class="badge bg-secondary-subtle text-secondary-emphasis rounded-pill small">{{ p.product_type.name }}</span>
-                <span class="flex-fill fw-semibold small">{{ p.name }}</span>
-                <a class="btn btn-outline-warning btn-sm" href="{% url 'product-edit' p.pk %}" title="Añadir precio">
-                    <i class="fa fa-tag me-1"></i>Añadir precio
-                </a>
-            </li>
-            {% endfor %}
-        </ul>
-    </div>
-</div>
-{% endif %}
-
-<!-- Search & Filter Bar -->
-<form id="filterForm" method="get">
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-body py-3">
-            <div class="row g-2 align-items-end">
-                <div class="col-12 col-md-4">
-                    <label class="form-label small text-muted mb-1" for="searchInput">
-                        <i class="fa fa-search me-1"></i>Buscar por nombre
-                    </label>
-                    <input class="form-control" id="searchInput" name="search"
-                           placeholder="Nombre del producto…"
-                           type="text" value="{{ search }}">
+    <div class="pl-toolbar-switch">
+        {# Tipo: desplegable con buscador (con ~20 tipos, una fila de chips ocupaba tres líneas) #}
+        <div class="dropdown">
+            <button class="pl-chip{% if selected_type %} active{% endif %}" type="button" id="plTypeBtn"
+                    data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                <i class="fa fa-tags" aria-hidden="true"></i>{% if selected_type_name %}{{ selected_type_name }}{% else %}Tipo{% endif %}
+                <i class="fa fa-chevron-down pl-caret" aria-hidden="true"></i>
+            </button>
+            <div class="dropdown-menu pl-typemenu p-2 shadow-sm" aria-labelledby="plTypeBtn">
+                <input type="search" id="plTypeSearch" class="form-control form-control-sm mb-2"
+                       placeholder="Buscar tipo…" aria-label="Buscar tipo" autocomplete="off">
+                <div class="pl-typelist" id="plTypeList">
+                    <a class="pl-flink dropdown-item pl-typeitem{% if not selected_type %} active{% endif %}"
+                       href="{% url 'product-list' %}{% querystring type=None %}" data-name="todos los tipos">
+                        <span>Todos</span><small>{{ total_visible }}</small></a>
+                    {% for pt in type_chips %}
+                    <a class="pl-flink dropdown-item pl-typeitem{% if selected_type == pt.pk|stringformat:'s' %} active{% endif %}"
+                       href="{% url 'product-list' %}{% querystring type=pt.pk %}" data-name="{{ pt.name|lower }}">
+                        <span>{{ pt.name }}</span><small>{{ pt.visible_count }}</small></a>
+                    {% endfor %}
+                    <p class="pl-typeempty" id="plTypeEmpty" hidden>Ningún tipo coincide.</p>
                 </div>
-                <div class="col-6 col-md-2">
-                    <label class="form-label small text-muted mb-1" for="typeFilter">
-                        <i class="fa fa-tags me-1"></i>Tipo
-                    </label>
-                    <select class="form-select" id="typeFilter" name="type">
-                        <option value="">Todos los tipos</option>
-                        {% for pt in product_types %}
-                        <option value="{{ pt.pk }}" {% if selected_type == pt.pk|stringformat:"s" %}selected{% endif %}>
-                            {{ pt.name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-6 col-md-2">
-                    <label class="form-label small text-muted mb-1" for="appFilter">
-                        <i class="fa fa-spray-can me-1"></i>Aplicación
-                    </label>
-                    <select class="form-select" id="appFilter" name="application">
-                        <option value="">Todos</option>
-                        <option value="spraying" {% if selected_application == 'spraying' %}selected{% endif %}>Pulverización</option>
-                        <option value="fertigation" {% if selected_application == 'fertigation' %}selected{% endif %}>Fertirrigación</option>
-                    </select>
-                </div>
-                <!-- Archived toggle -->
-                <div class="col-12 col-md-2">
-                    <label class="form-label small text-muted mb-1 d-block">
-                        <i class="fa fa-archive me-1"></i>Ver archivados
-                    </label>
-                    <div class="form-check form-switch mt-1 ms-1">
-                        <input class="form-check-input" type="checkbox" id="archivedToggle"
-                               name="archived" value="1" {% if show_archived %}checked{% endif %}>
-                        <label class="form-check-label small text-muted" for="archivedToggle">
-                            {% if archived_count > 0 %}
-                                <span class="badge bg-secondary-subtle text-secondary-emphasis rounded-pill">{{ archived_count }}</span>
-                            {% else %}
-                                Ninguno
-                            {% endif %}
-                        </label>
-                    </div>
-                </div>
-                <div class="col-12 col-md-2 d-flex gap-2">
-                    <button class="btn btn-primary flex-fill" type="submit">
-                        <i class="fa fa-filter me-1"></i>Filtrar
-                    </button>
-                    {% if search or selected_type or selected_application or show_archived %}
-                    <a class="btn btn-outline-secondary" href="{% url 'product-list' %}" title="Limpiar filtros">
-                        <i class="fa fa-times"></i>
-                    </a>
-                    {% endif %}
-                </div>
+                <div class="dropdown-divider"></div>
+                <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#typesModal">
+                    <i class="fa fa-sliders me-2" aria-hidden="true"></i>Gestionar tipos
+                </button>
             </div>
         </div>
+        <a class="pl-flink pl-chip pl-chip--warn{% if only_no_price %} active{% endif %}"
+           href="{% url 'product-list' %}{% if only_no_price %}{% querystring no_price=None %}{% else %}{% querystring no_price='1' %}{% endif %}"
+           title="Productos sin precio: no se puede calcular su coste">
+            <i class="fa fa-tag" aria-hidden="true"></i>Sin precio <small>{{ no_price_count }}</small>
+        </a>
+        {% if archived_count or show_archived %}
+        <a class="pl-flink pl-chip{% if show_archived %} active{% endif %}"
+           href="{% url 'product-list' %}{% if show_archived %}{% querystring archived=None %}{% else %}{% querystring archived='1' %}{% endif %}">
+            <i class="fa fa-box-archive" aria-hidden="true"></i>Archivados <small>{{ archived_count }}</small>
+        </a>
+        {% endif %}
     </div>
-</form>
+</div>
 
 {% if not products %}
-<div class="text-center py-5">
-    <div class="mb-4">
-        <i class="fa fa-box-open text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
-    </div>
-    {% if search or selected_type or selected_application %}
-    <h4 class="text-muted mb-3">Sin resultados</h4>
-    <p class="text-muted mb-4">No hay productos que coincidan con los filtros aplicados.</p>
-    <a class="btn btn-outline-secondary" href="{% url 'product-list' %}">
-        <i class="fa fa-times me-1"></i>Quitar filtros
-    </a>
-    {% elif show_archived %}
-    <h4 class="text-muted mb-3">Sin productos archivados</h4>
-    <p class="text-muted mb-4">No hay ningún producto archivado en este momento.</p>
-    <a class="btn btn-outline-secondary" href="{% url 'product-list' %}">
-        <i class="fa fa-arrow-left me-1"></i>Ver productos activos
-    </a>
+<div class="pl-list">
+    {% if has_filters %}
+    <p class="pl-empty">No hay productos con estos filtros.<br>
+        <a class="btn btn-outline-secondary mt-3" href="{% url 'product-list' %}"><i class="fa fa-times me-1"></i>Quitar filtros</a></p>
     {% else %}
-    <h4 class="text-muted mb-3">No hay productos</h4>
-    <p class="text-muted mb-4 lead">Comienza creando tu primer producto.</p>
-    <a class="btn btn-primary btn-lg shadow-sm" href="{% url 'product-create' %}">
-        <i class="fa fa-plus me-2"></i>Crear Primer Producto
-    </a>
+    <p class="pl-empty">Todavía no hay productos.<br>
+        <a class="btn btn-primary mt-3" href="{% url 'product-create' %}"><i class="fa fa-plus me-1"></i>Crear el primero</a></p>
     {% endif %}
 </div>
 {% else %}
 
-<div class="text-muted small mb-2 ps-1 d-flex align-items-center gap-2">
-    {% if is_paginated %}
-        Mostrando {{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ paginator.count }} productos
-    {% else %}
-        {{ products|length }} producto{{ products|length|pluralize }}
-    {% endif %}
-    {% if show_archived %}
-    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
-        <i class="fa fa-archive me-1"></i>Mostrando archivados
-    </span>
-    {% endif %}
-</div>
+<p class="pl-count"><span id="plCount">{{ products|length }}</span> producto{{ products|length|pluralize }}</p>
 
-<div class="card border-0 shadow-sm">
-    <ul class="list-group list-group-flush">
-        {% for product in products %}
-        <li class="list-group-item px-4 py-3 {% if not product.is_active %}opacity-60{% endif %}">
-            <div class="d-flex align-items-center gap-3">
+<details class="pl-help d-md-none">
+    <summary>¿Qué significan los importes?</summary>
+    <p><b>€/ud:</b> precio del producto (arriba a la derecha).<br>
+       <b>€/ha</b> (Pulv/Fert): coste por hectárea a la dosis estándar. Las dosis por volumen de caldo usan un mojado de {{ reference_water }} L/ha.<br>
+       <b>Gastado:</b> tratamientos completados en {{ current_year }}.<br>
+       <b>Previsto:</b> tratamientos pendientes o atrasados.</p>
+</details>
 
-                <!-- Icon -->
-                <div class="flex-shrink-0 {% if product.is_active %}text-primary opacity-75{% else %}text-muted opacity-40{% endif %} d-none d-sm-block">
-                    <i class="fa {% if product.is_active %}fa-box{% else %}fa-archive{% endif %} fa-lg"></i>
-                </div>
+<div class="pl-list" id="plList">
+    <div class="pl-head">
+        <span></span><span>Producto</span><span>Dosis</span>
+        <span class="pl-r">Precio</span>
+        <span class="pl-r">Coste / ha
+            <button type="button" class="pl-info" data-bs-toggle="popover" data-bs-placement="top"
+                    aria-label="Cómo se calcula el coste por hectárea"
+                    data-bs-content="Coste a la dosis estándar del producto. Las dosis por volumen de caldo (L/1000L, kg/1000L, %) usan un mojado de {{ reference_water }} L/ha."><i class="fa fa-circle-info" aria-hidden="true"></i></button></span>
+        <span class="pl-r">Este año
+            <button type="button" class="pl-info" data-bs-toggle="popover" data-bs-placement="top"
+                    aria-label="Qué significan gastado y previsto"
+                    data-bs-content="Gastado: tratamientos completados en {{ current_year }}. Previsto: tratamientos pendientes y atrasados."><i class="fa fa-circle-info" aria-hidden="true"></i></button></span>
+        <span></span>
+    </div>
 
-                <!-- Main info -->
-                <div class="flex-fill overflow-hidden">
-                    <div class="d-flex align-items-baseline gap-2 flex-wrap">
-                        <span class="fw-semibold text-truncate {% if not product.is_active %}text-muted text-decoration-line-through{% endif %}">{{ product.name }}</span>
-                        <span class="badge bg-primary-subtle text-primary-emphasis rounded-pill small">{{ product.product_type.name }}</span>
-                        {% if not product.is_active %}
-                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle small">
-                            <i class="fa fa-archive me-1"></i>Archivado
-                        </span>
-                        {% endif %}
-                    </div>
-                    <!-- Dose info -->
-                    <div class="d-flex gap-3 flex-wrap mt-1">
-                        {% if product.spraying_dose %}
-                        <span class="small text-muted">
-                            <i class="fa fa-spray-can fa-xs me-1"></i>{{ product.full_spraying_dose }}
-                        </span>
-                        {% endif %}
-                        {% if product.fertigation_dose %}
-                        <span class="small text-muted">
-                            <i class="fa fa-droplet fa-xs me-1"></i>{{ product.full_fertigation_dose }}
-                        </span>
-                        {% endif %}
-                        {% if not product.spraying_dose and not product.fertigation_dose %}
-                        <span class="small text-danger-emphasis opacity-75">
-                            <i class="fa fa-exclamation-triangle fa-xs me-1"></i>Sin dosis
-                        </span>
-                        {% endif %}
-                    </div>
-                    {% if product.comments %}
-                    <button type="button"
-                            class="btn btn-link p-0 text-start text-muted small mt-1 d-flex align-items-center gap-1 w-100 comment-trigger"
-                            style="text-decoration:none; max-width:100%;"
-                            data-comment="{{ product.comments }}"
-                            data-product="{{ product.name }}">
-                        <i class="fa fa-comment fa-xs opacity-50 flex-shrink-0"></i>
-                        <span class="text-truncate flex-fill" style="text-decoration:underline; text-decoration-style:dotted; text-underline-offset:3px;">{{ product.comments }}</span>
-                        <i class="fa fa-up-right-from-square fa-xs opacity-40 flex-shrink-0"></i>
-                    </button>
-                    {% endif %}
-                </div>
+    {% for product in products %}
+    <div class="pl-item{% if not product.is_active %} pl-item--archived{% endif %}"
+         data-id="{{ product.pk }}" data-search="{{ product.name|lower }} {{ product.product_type.name|lower }}">
+        <div class="pl-row">
+            <label class="pl-check">
+                <input type="checkbox" class="form-check-input pl-select" value="{{ product.pk }}"
+                       aria-label="Seleccionar {{ product.name }} para comparar">
+            </label>
 
-                <!-- Price -->
-                <div class="flex-shrink-0 text-end" style="min-width: 70px;">
-                    {% if product.price %}
-                    <span class="fw-semibold {% if product.is_active %}text-dark{% else %}text-muted{% endif %} small">{{ product.price }}€/ud</span>
-                    {% else %}
-                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle small">
-                        <i class="fa fa-tag me-1"></i>Sin precio
-                    </span>
-                    {% endif %}
-                </div>
+            <div class="pl-main">
+                <a class="pl-name" href="{% url 'product-edit' product.pk %}">{{ product.name }}</a>
+                {% if not product.is_active %}<span class="pl-badge">Archivado</span>{% endif %}
+                <span class="pl-type">{{ product.product_type.name }}{% if product.comments %} · <i class="fa fa-comment fa-xs" aria-hidden="true"></i> <span title="{{ product.comments }}">{{ product.comments|truncatechars:60 }}</span>{% endif %}</span>
+            </div>
 
-                <!-- Actions -->
-                <div class="flex-shrink-0 d-flex gap-2">
-                    <a class="btn btn-outline-primary btn-sm" href="{% url 'product-edit' product.pk %}" title="Editar">
-                        <i class="fa fa-edit"></i>
-                    </a>
+            <div class="pl-doses">
+                {% if product.spraying_dose %}<span><span class="pl-tag pl-tag--spray">Pulv</span>{{ product.full_spraying_dose }}</span>{% endif %}
+                {% if product.fertigation_dose %}<span><span class="pl-tag pl-tag--fert">Fert</span>{{ product.full_fertigation_dose }}</span>{% endif %}
+                {% if not product.spraying_dose and not product.fertigation_dose %}<span class="pl-nodose">Sin dosis</span>{% endif %}
+            </div>
+
+            <div class="pl-price">
+                {% if product.price > 0 %}
+                <b>{{ product.price|floatformat:2 }} €</b>/ud
+                {% with trend=product.price_trend %}
+                {% if trend %}
+                <span class="pl-trend pl-trend--{% if trend.up %}up{% else %}down{% endif %}"
+                      title="Antes {{ trend.previous_price|floatformat:2 }} € · cambió el {{ trend.since|date:'d/m/Y' }}">{% if trend.up %}▲ +{% else %}▼ −{% endif %}{{ trend.percent }} %</span>
+                {% endif %}
+                {% endwith %}
+                {% else %}
+                <a class="pl-noprice" href="{% url 'product-edit' product.pk %}">Añadir precio</a>
+                {% endif %}
+            </div>
+
+            <div class="pl-cost">
+                {% if product.cost_spraying is not None %}<span><span class="pl-tag pl-tag--spray">Pulv</span><b>{{ product.cost_spraying|floatformat:"2g" }} €</b><span class="pl-m">/ha</span></span>{% endif %}
+                {% if product.cost_fertigation is not None %}<span><span class="pl-tag pl-tag--fert">Fert</span><b>{{ product.cost_fertigation|floatformat:"2g" }} €</b><span class="pl-m">/ha</span></span>{% endif %}
+                {% if product.cost_spraying is None and product.cost_fertigation is None %}<span>—</span>{% endif %}
+            </div>
+
+            <div class="pl-year">
+                {% if product.done_count %}<span class="pl-m">Gastado </span><b>{{ product.spent|floatformat:"0g" }} €</b> · {{ product.done_count }} trat.{% endif %}
+                {% if product.planned_count %}<span class="pl-planned">{% if product.done_count %}<br>{% endif %}Previsto {{ product.planned_cost|floatformat:"0g" }} € · {{ product.planned_count }} trat.</span>{% endif %}
+                {% if not product.done_count and not product.planned_count %}Sin usar{% endif %}
+            </div>
+
+            <div class="pl-menu dropdown">
+                <button class="tl-icon-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                        aria-label="Más acciones de {{ product.name }}" title="Más acciones">
+                    <i class="fa fa-ellipsis-vertical"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm small">
+                    <li><a class="dropdown-item" href="{% url 'product-edit' product.pk %}"><i class="fa fa-pen me-2 text-primary"></i>Editar</a></li>
                     {% if not product.has_treatments %}
-                    <button class="btn btn-outline-danger btn-sm"
-                            data-url="{% url 'product-delete' product.pk %}"
-                            onclick="confirmDelete(this)" title="Eliminar">
-                        <i class="fa fa-trash"></i>
-                    </button>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><button class="dropdown-item text-danger" type="button" data-url="{% url 'product-delete' product.pk %}"
+                                data-confirm="Esta acción eliminará el producto de forma permanente y no se podrá deshacer."
+                                onclick="confirmDelete(this)"><i class="fa fa-trash me-2"></i>Eliminar</button></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <p class="pl-empty" id="plNoResults" hidden>Ningún producto coincide con la búsqueda.</p>
+</div>
+
+<div class="pl-bar" id="plBar" role="region" aria-label="Comparar productos">
+    <span class="pl-bar-text" id="plBarText"></span>
+    <button type="button" class="btn btn-link" id="plBarClear">Quitar</button>
+    <a class="btn btn-success pl-bar-go" id="plBarGo" href="{% url 'product-comparison' %}">Comparar</a>
+</div>
+
+{% endif %}
+
+{# ── Gestionar tipos (hoja inferior en móvil) ── #}
+<div class="modal fade" id="typesModal" tabindex="-1" aria-labelledby="typesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <div>
+                    <h5 class="modal-title fw-bold" id="typesModalLabel">Tipos de producto</h5>
+                    <p class="text-muted small mb-0">Solo se pueden eliminar los que no tienen productos.</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form class="px-3 pt-3 pb-2" id="typeForm" method="post" action="{% url 'product-type-create' %}" autocomplete="off">
+                {% csrf_token %}
+                <div class="d-flex gap-2">
+                    <div class="tl-search flex-fill">
+                        <i class="fa fa-search" aria-hidden="true"></i>
+                        <input class="form-control" type="search" id="typeSearch" name="name" maxlength="100"
+                               placeholder="Buscar o crear tipo…" aria-label="Buscar o crear tipo">
+                    </div>
+                    <button class="btn btn-primary flex-shrink-0 text-truncate" type="button" id="typeCreate" hidden style="max-width: 55%;"></button>
+                </div>
+            </form>
+            <div class="modal-body pt-1">
+                {% for pt in product_types %}
+                <div class="pl-types-row" data-name="{{ pt.name|lower }}">
+                    <span class="pl-types-name">{{ pt.name }}</span>
+                    <span class="pl-types-count{% if not pt.product_count %} pl-types-count--empty{% endif %}">{{ pt.product_count }} producto{{ pt.product_count|pluralize }}</span>
+                    <a class="tl-icon-btn" href="{% url 'product-type-edit' pt.pk %}" aria-label="Editar {{ pt.name }}" title="Editar"><i class="fa fa-pen"></i></a>
+                    {% if not pt.product_count %}
+                    <button class="tl-icon-btn text-danger" type="button" data-url="{% url 'product-type-delete' pt.pk %}"
+                            data-confirm="Se eliminará el tipo «{{ pt.name }}»."
+                            onclick="confirmDelete(this)" aria-label="Eliminar {{ pt.name }}" title="Eliminar"><i class="fa fa-trash"></i></button>
+                    {% else %}
+                    <span class="pl-types-slot" aria-hidden="true"></span>
                     {% endif %}
                 </div>
-
-            </div>
-        </li>
-        {% endfor %}
-    </ul>
-</div>
-
-{% endif %}
-
-{% if is_paginated %}
-<div class="mt-4">
-    {% with request.GET.urlencode as querystring %}
-    {% bootstrap_pagination page_obj pages_to_show="5" extra="&"|add:querystring %}
-    {% endwith %}
-</div>
-{% endif %}
-
-<!-- Formulario oculto para las acciones de eliminación -->
-<form class="d-none" id="deleteForm" method="POST">
-    {% csrf_token %}
-</form>
-
-<!-- Modal comentario -->
-<div class="modal fade" id="commentModal" tabindex="-1" aria-labelledby="commentModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header border-0 pb-1">
-                <div>
-                    <p class="text-muted small mb-0"><i class="fa fa-comment me-1 opacity-50"></i>Comentario</p>
-                    <h6 class="modal-title fw-semibold" id="commentModalLabel"></h6>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body pt-2">
-                <p id="commentModalText" class="text-muted mb-0" style="white-space:pre-wrap; line-height:1.6;"></p>
+                {% empty %}
+                <p class="text-muted text-center my-4">Todavía no hay tipos. Escribe un nombre arriba para crear el primero.</p>
+                {% endfor %}
+                <p class="text-muted text-center my-4" id="typesNoMatch" hidden>Ningún tipo coincide: puedes crearlo con el botón.</p>
             </div>
         </div>
     </div>
 </div>
 
-{% endblock %}
+<form class="d-none" id="deleteForm" method="POST">
+    {% csrf_token %}
+</form>
 
-{% block extra_head %}
-<style>
-    .opacity-60 { opacity: 0.6; }
-</style>
 {% endblock %}
 
 {% block extra_js %}
@@ -282,7 +242,7 @@
     function confirmDelete(button) {
         const url = button.getAttribute('data-url');
         showConfirm({
-            text: 'Esta acción eliminará el producto de forma permanente y no se podrá deshacer.',
+            text: button.getAttribute('data-confirm') || 'Esta acción no se podrá deshacer.',
             onConfirm: () => {
                 const form = document.getElementById('deleteForm');
                 form.action = url;
@@ -292,25 +252,178 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        document.getElementById('typeFilter').addEventListener('change', function () {
-            document.getElementById('filterForm').submit();
-        });
-        document.getElementById('appFilter').addEventListener('change', function () {
-            document.getElementById('filterForm').submit();
-        });
-        document.getElementById('archivedToggle').addEventListener('change', function () {
-            document.getElementById('filterForm').submit();
+        const MAX_SELECTED = {{ max_compare|default:12 }};
+        const STORAGE_KEY = 'agrogest.compare';
+        const compareUrl = "{% url 'product-comparison' %}";
+
+        // ── Búsqueda en vivo sobre lo que ya está en pantalla ──
+        const list = document.getElementById('plList');
+        const items = list ? Array.from(list.querySelectorAll('.pl-item')) : [];
+        const search = document.getElementById('plSearch');
+        const countEl = document.getElementById('plCount');
+        const noResults = document.getElementById('plNoResults');
+        const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+        items.forEach(it => { it.dataset.search = norm(it.dataset.search); });
+
+        function applySearch() {
+            const q = norm(search.value.trim());
+            let shown = 0;
+            items.forEach(it => {
+                const ok = !q || it.dataset.search.includes(q);
+                it.hidden = !ok;
+                if (ok) shown++;
+            });
+            if (countEl) {
+                countEl.textContent = shown;
+                countEl.parentElement.lastChild.textContent = shown === 1 ? ' producto' : ' productos';
+            }
+            if (noResults) noResults.hidden = shown !== 0;
+        }
+        // La búsqueda viaja en la URL (?q=) y en los enlaces de filtro: cambiar de pestaña, tipo o
+        // «Sin precio» recarga la página, pero lo escrito se mantiene.
+        function syncSearchToUrl() {
+            const v = search.value.trim();
+            document.querySelectorAll('a.pl-flink').forEach(a => {
+                const u = new URL(a.getAttribute('href'), location.origin);
+                if (v) u.searchParams.set('q', v); else u.searchParams.delete('q');
+                a.setAttribute('href', u.pathname + u.search);
+            });
+            const here = new URL(location.href);
+            if (v) here.searchParams.set('q', v); else here.searchParams.delete('q');
+            history.replaceState(null, '', here.pathname + here.search);
+        }
+        if (search) {
+            const initialQ = new URLSearchParams(location.search).get('q');
+            if (initialQ) { search.value = initialQ; applySearch(); }
+            search.addEventListener('input', () => { applySearch(); syncSearchToUrl(); });
+            search.addEventListener('keydown', e => { if (e.key === 'Enter') e.preventDefault(); });
+        }
+
+        // ── Desplegable «Tipo»: buscador interno ──
+        const typeSearch = document.getElementById('plTypeSearch');
+        if (typeSearch) {
+            const typeItems = Array.from(document.querySelectorAll('.pl-typeitem'));
+            const typeEmpty = document.getElementById('plTypeEmpty');
+            const typeDropdown = typeSearch.closest('.dropdown');
+            const filterTypeItems = () => {
+                const q = norm(typeSearch.value.trim());
+                let shown = 0;
+                typeItems.forEach(a => {
+                    const ok = !q || norm(a.dataset.name).includes(q);
+                    a.hidden = !ok;
+                    if (ok) shown++;
+                });
+                typeEmpty.hidden = shown !== 0;
+            };
+            typeSearch.addEventListener('input', filterTypeItems);
+            typeSearch.addEventListener('keydown', e => {
+                if (e.key !== 'Enter') return;
+                e.preventDefault();
+                // Intro abre el primer tipo que coincide (nunca «Todos»: eso es no haber escrito nada)
+                const first = typeItems.find(a => !a.hidden && a.dataset.name !== 'todos los tipos');
+                if (typeSearch.value.trim() && first) location.href = first.href;
+            });
+            typeDropdown.addEventListener('shown.bs.dropdown', () => typeSearch.focus());
+            typeDropdown.addEventListener('hidden.bs.dropdown', () => { typeSearch.value = ''; filterTypeItems(); });
+            // «Gestionar tipos» abre la hoja: el desplegable no debe quedarse abierto detrás
+            typeDropdown.querySelector('[data-bs-target="#typesModal"]')?.addEventListener('click', () => {
+                bootstrap.Dropdown.getOrCreateInstance(document.getElementById('plTypeBtn')).hide();
+            });
+        }
+
+        // ── Ayuda ⓘ de las cabeceras ──
+        document.querySelectorAll('.pl-info').forEach(el => new bootstrap.Popover(el, {trigger: 'click', container: 'body', customClass: 'pl-popover'}));
+        document.addEventListener('click', e => {
+            if (e.target.closest('.pl-info') || e.target.closest('.popover')) return;
+            document.querySelectorAll('.pl-info').forEach(el => bootstrap.Popover.getInstance(el)?.hide());
         });
 
-        // Modal de comentarios
-        const commentModal = new bootstrap.Modal(document.getElementById('commentModal'));
-        document.querySelectorAll('.comment-trigger').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                document.getElementById('commentModalLabel').textContent = btn.dataset.product;
-                document.getElementById('commentModalText').textContent = btn.dataset.comment;
-                commentModal.show();
+        // ── «Gestionar tipos»: un solo campo «Buscar o crear» ──
+        const typeForm = document.getElementById('typeForm');
+        if (typeForm) {
+            const tInput = document.getElementById('typeSearch');
+            const tCreate = document.getElementById('typeCreate');
+            const tRows = Array.from(document.querySelectorAll('.pl-types-row'));
+            const tNoMatch = document.getElementById('typesNoMatch');
+            const filterTypes = () => {
+                const raw = tInput.value.trim();
+                const q = norm(raw);
+                let shown = 0, exact = false;
+                tRows.forEach(r => {
+                    const ok = !q || norm(r.dataset.name).includes(q);
+                    r.hidden = !ok;
+                    if (ok) shown++;
+                    if (r.dataset.name === raw.toLowerCase()) exact = true;
+                });
+                tNoMatch.hidden = !(q && shown === 0);
+                // «Crear» solo si hay texto y no existe ya un tipo con ese nombre
+                tCreate.hidden = !raw || exact;
+                tCreate.textContent = 'Crear «' + raw + '»';
+            };
+            tInput.addEventListener('input', filterTypes);
+            tCreate.addEventListener('click', () => typeForm.submit());
+            // Intro: si hay coincidencias es una búsqueda, no un alta (evita crear «fung» al buscar «Fungicida»)
+            typeForm.addEventListener('submit', e => {
+                if (!tInput.value.trim() || tRows.some(r => !r.hidden)) e.preventDefault();
             });
+            const modalEl = document.getElementById('typesModal');
+            modalEl.addEventListener('shown.bs.modal', () => {
+                if (window.matchMedia('(min-width: 768px)').matches) tInput.focus();   // en móvil no abrir el teclado
+            });
+            modalEl.addEventListener('hidden.bs.modal', () => { tInput.value = ''; filterTypes(); });
+        }
+
+        // ── Selección para comparar: sobrevive a los cambios de filtro (sessionStorage) ──
+        function loadSel() {
+            try {
+                const v = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '[]');
+                return Array.isArray(v) ? v.map(String) : [];
+            } catch (e) { return []; }
+        }
+        function saveSel(ids) {
+            try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(ids)); } catch (e) { /* sin almacenamiento: se pierde al filtrar */ }
+        }
+        let selected = loadSel();
+
+        const bar = document.getElementById('plBar');
+        const barText = document.getElementById('plBarText');
+        const barGo = document.getElementById('plBarGo');
+        const checks = Array.from(document.querySelectorAll('.pl-select'));
+
+        const topCompare = document.getElementById('plTopCompare');
+
+        function refreshSelection() {
+            // El botón de la cabecera lleva la misma selección que la barra de abajo
+            // (con 1 producto ya abre la comparativa; la barra pide 2 para no abrir una vacía)
+            if (topCompare) topCompare.href = selected.length ? compareUrl + '?ids=' + selected.join(',') : compareUrl;
+            checks.forEach(cb => {
+                const on = selected.includes(cb.value);
+                cb.checked = on;
+                cb.disabled = !on && selected.length >= MAX_SELECTED;
+                cb.closest('.pl-item').classList.toggle('pl-item--selected', on);
+            });
+            if (!bar) return;
+            const n = selected.length;
+            bar.classList.toggle('show', n > 0);
+            barText.textContent = n === 1 ? '1 producto seleccionado · elige otro para comparar' : n + ' productos seleccionados';
+            barGo.textContent = 'Comparar (' + n + ')';
+            barGo.classList.toggle('disabled', n < 2);
+            barGo.setAttribute('aria-disabled', n < 2 ? 'true' : 'false');
+            barGo.href = n < 2 ? compareUrl : compareUrl + '?ids=' + selected.join(',');
+        }
+        checks.forEach(cb => cb.addEventListener('change', () => {
+            selected = selected.filter(id => id !== cb.value);
+            if (cb.checked) selected.push(cb.value);
+            saveSel(selected);
+            refreshSelection();
+        }));
+        document.getElementById('plBarClear')?.addEventListener('click', () => {
+            selected = [];
+            saveSel(selected);
+            refreshSelection();
         });
+        barGo?.addEventListener('click', e => { if (selected.length < 2) e.preventDefault(); });
+        refreshSelection();
     });
 </script>
 {% endblock %}

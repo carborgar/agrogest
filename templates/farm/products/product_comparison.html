@@ -2,151 +2,72 @@
 
 {% block header %}Comparativa de productos{% endblock %}
 
-{% block sub_header %}Añade varias alternativas para una misma necesidad y descubre cuál sale más económica.{% endblock %}
+{% block sub_header %}<span class="d-none d-md-inline">Compara el coste por hectárea de varias alternativas; el más barato queda marcado.</span>{% endblock %}
 
-{% block extra_head %}
-<style>
-    .btn-add {
-        width: 100%;
-        border: 2px dashed var(--primary);
-        background: rgba(74, 124, 89, 0.05);
-        color: var(--primary);
-        border-radius: 12px;
-        padding: 1rem;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-    }
-
-    .comparison-card {
-        height: 100%;
-    }
-
-    .application-result {
-        background: var(--gray-100);
-        border-radius: 8px;
-        padding: .75rem;
-    }
-
-    .application-result + .application-result {
-        margin-top: .75rem;
-    }
-
-    .application-result.application-result--cheapest {
-        background: rgba(25, 135, 84, .1);
-        outline: 1px solid var(--bs-success, #198754);
-    }
-
-    .application-result .cost-per-ha {
-        font-size: 1.15rem;
-        font-weight: 700;
-    }
-
-    .comparison-empty {
-        text-align: center;
-        padding: 3rem 1rem;
-        color: var(--gray-500);
-    }
-
-    .comparison-empty i {
-        font-size: 2.5rem;
-        opacity: .4;
-        margin-bottom: .75rem;
-        display: block;
-    }
-</style>
+{% block actions %}
+<a class="btn btn-outline-secondary" href="{% url 'product-list' %}">
+    <i class="fa fa-arrow-left me-1"></i>Productos
+</a>
 {% endblock %}
 
 {% block content %}
 
-<!-- Parámetros del tratamiento -->
-<div class="card border-0 shadow-sm mb-3">
-    <div class="card-body py-3">
-        <div class="row g-3 align-items-end">
-            <div class="col-6 col-md-3">
-                <label class="form-label small text-muted mb-1" for="compareArea">
-                    <i class="fa fa-ruler-combined me-1"></i>Hectáreas a tratar
-                </label>
-                <input class="form-control" id="compareArea" min="0.01" step="0.01" type="number" value="1">
-            </div>
-            <div class="col-6 col-md-3">
-                <label class="form-label small text-muted mb-1" for="compareWater">
-                    <i class="fa fa-tint me-1"></i>Mojado (L/ha)
-                </label>
-                <input class="form-control" id="compareWater" min="0" step="1" type="number" value="1000">
-            </div>
-            <div class="col-12 col-md-6 text-muted small">
-                El mojado solo afecta a los productos dosificados por volumen de caldo (L/1000L, kg/1000L o %);
-                los dosificados por hectárea no lo necesitan.
-            </div>
+<div class="cmp-params">
+    <div>
+        <label class="d-block mb-1" for="compareArea">Hectáreas a tratar</label>
+        <input class="form-control" id="compareArea" min="0.01" step="0.01" type="number" value="1" inputmode="decimal">
+    </div>
+    <div>
+        <label class="d-block mb-1" for="compareWater">Mojado (L/ha)</label>
+        <input class="form-control" id="compareWater" min="0" step="50" type="number" value="{{ reference_water }}" inputmode="numeric">
+    </div>
+    <p>El mojado solo afecta a las dosis por volumen de caldo (L/1000L, kg/1000L o %); las dosis por hectárea no lo necesitan.
+        Cambia la dosis de cualquier fila para probar otras alternativas.</p>
+</div>
+
+<div class="cmp-list" id="cmpList">
+    <div class="cmp-head" aria-hidden="true">
+        <span>Producto</span><span>Dosis</span><span class="cmp-r">Total</span><span class="cmp-r">Coste total</span>
+        <span class="cmp-r">Coste / ha</span><span class="cmp-r">Diferencia</span><span></span>
+    </div>
+    <div id="cmpRows"></div>
+    <p class="cmp-empty" id="cmpEmpty">Todavía no hay productos en la comparativa.<br>
+        Añádelos aquí abajo o márcalos en el <a href="{% url 'product-list' %}">listado de productos</a>.</p>
+    <div class="cmp-add">
+        <div class="cmp-add-box">
+            <label class="visually-hidden" for="cmpPicker">Añadir producto</label>
+            <select id="cmpPicker" class="form-select"><option value=""></option></select>
         </div>
+        <div class="small text-muted mt-1" id="cmpLimit" hidden>Máximo {{ max_products }} productos.</div>
     </div>
 </div>
 
-<div class="row g-3" id="comparisonContainer"></div>
-
-<div class="comparison-empty" id="comparisonEmpty">
-    <i class="fa fa-code-compare"></i>
-    <p class="mb-0">Todavía no has añadido ningún producto a la comparativa.</p>
-</div>
-
-<button class="btn-add mt-3" id="addComparisonProduct" type="button">
-    <i class="bi bi-plus-circle"></i>
-    Añadir producto
-</button>
-
-<template id="comparisonRowTemplate">
-    <div class="col-12 col-md-6 col-lg-4">
-        <div class="treatment-product-card comparison-card">
-            <div class="product-card-header">
-                <div class="product-number"></div>
-                <button class="btn btn-sm btn-outline-danger rounded-circle remove-row" type="button">
-                    <i class="bi bi-trash"></i>
-                </button>
+<template id="cmpRowTemplate">
+    <div class="cmp-row">
+        <div class="cmp-cell cmp-cell--wide">
+            <span class="cmp-name"></span><span class="cmp-best" hidden>Más barato</span>
+            <span class="cmp-sub"></span>
+        </div>
+        <div class="cmp-cell cmp-cell--wide">
+            <span class="cmp-label">Dosis</span>
+            <div class="input-group input-group-sm cmp-dose">
+                <input class="form-control cmp-dose-input" type="number" step="0.01" min="0" inputmode="decimal" aria-label="Dosis">
+                <span class="input-group-text cmp-unit"></span>
             </div>
-
-            <div class="mb-3">
-                <label class="form-label small fw-semibold text-muted">Producto</label>
-                <select class="form-select comparison-product-select">
-                    <option value=""></option>
-                </select>
-            </div>
-
-            <div class="applications-results"></div>
-
-            <div class="text-muted small no-price-info d-none mt-2">
-                <i class="fa fa-triangle-exclamation me-1"></i>
-                Este producto no tiene precio configurado.
-            </div>
+        </div>
+        <div class="cmp-cell cmp-r"><span class="cmp-label">Total</span><span class="cmp-total">—</span></div>
+        <div class="cmp-cell cmp-r"><span class="cmp-label">Coste total</span><span class="cmp-cost">—</span></div>
+        <div class="cmp-cell cmp-r"><span class="cmp-label">Coste / ha</span><span class="cmp-perha cmp-perha-val">—</span></div>
+        <div class="cmp-cell cmp-r"><span class="cmp-label">Diferencia</span><span class="cmp-diff cmp-diff--none">—</span></div>
+        <div class="cmp-cell cmp-cell--wide cmp-r cmp-rm">
+            <button class="btn btn-sm btn-outline-secondary cmp-remove" type="button" aria-label="Quitar de la comparativa" title="Quitar">
+                <i class="fa fa-xmark"></i>
+            </button>
         </div>
     </div>
 </template>
 
-<template id="applicationResultTemplate">
-    <div class="application-result">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <span class="fw-semibold small application-label">-</span>
-        </div>
-        <div class="input-group input-group-sm mb-2">
-            <input class="form-control application-dose-input" step="0.01" type="number">
-            <span class="input-group-text application-unit">-</span>
-        </div>
-        <div class="d-flex justify-content-between small text-muted mb-1">
-            <span>Dosis total</span>
-            <span class="application-total-dose">-</span>
-        </div>
-        <div class="d-flex justify-content-between small text-muted mb-2">
-            <span>Coste total tratamiento</span>
-            <span class="application-total-cost">-</span>
-        </div>
-        <div class="d-flex justify-content-between align-items-end border-top pt-2">
-            <span class="text-muted small">Coste / ha</span>
-            <span class="cost-per-ha text-primary application-cost-per-ha">-</span>
-        </div>
-    </div>
-</template>
+{{ initial_ids|json_script:"cmpInitialIds" }}
 
 {% endblock %}
 
@@ -154,208 +75,156 @@
 <script>
     document.addEventListener('DOMContentLoaded', async () => {
         const APPLICATION_LABELS = {spraying: 'Pulverización', fertigation: 'Fertirrigación'};
+        const MAX_PRODUCTS = {{ max_products }};
 
-        const container = document.getElementById('comparisonContainer');
-        const emptyState = document.getElementById('comparisonEmpty');
-        const rowTemplate = document.getElementById('comparisonRowTemplate');
-        const resultTemplate = document.getElementById('applicationResultTemplate');
-        const addBtn = document.getElementById('addComparisonProduct');
+        const rowsEl = document.getElementById('cmpRows');
+        const emptyEl = document.getElementById('cmpEmpty');
+        const limitEl = document.getElementById('cmpLimit');
+        const template = document.getElementById('cmpRowTemplate');
         const areaInput = document.getElementById('compareArea');
         const waterInput = document.getElementById('compareWater');
-        const ssInstances = new Map();
+        const picker = document.getElementById('cmpPicker');
+        const fmt = (n, d = 2) => n.toLocaleString('es-ES', {minimumFractionDigits: d, maximumFractionDigits: d});
 
-        let products = new Map();
+        let products = new Map();   // id -> {id, name, type, price, applications}
+        let order = [];             // ids en pantalla, en orden de alta
+        const doses = new Map();    // "id:aplicación" -> dosis editada por el usuario
+        let ss = null;
 
         async function loadProducts() {
             const [spraying, fertigation] = await Promise.all([
                 fetch('/api/products/spraying/').then(r => r.json()),
                 fetch('/api/products/fertigation/').then(r => r.json()),
             ]);
-
             const merged = new Map();
-            spraying.forEach(p => merged.set(p.id, {
-                id: p.id, name: p.name, price: p.price,
-                applications: {spraying: {dose: p.dose, dose_type: p.dose_type, dose_type_display: p.dose_type_display}}
-            }));
-            fertigation.forEach(p => {
-                const existing = merged.get(p.id) || {id: p.id, name: p.name, price: p.price, applications: {}};
-                existing.applications.fertigation = {dose: p.dose, dose_type: p.dose_type, dose_type_display: p.dose_type_display};
-                merged.set(p.id, existing);
-            });
-
+            const add = (kind, p) => {
+                const item = merged.get(p.id) || {id: p.id, name: p.name, price: p.price, applications: {}};
+                item.applications[kind] = {dose: p.dose, dose_type: p.dose_type, dose_type_display: p.dose_type_display};
+                merged.set(p.id, item);
+            };
+            spraying.forEach(p => add('spraying', p));
+            fertigation.forEach(p => add('fertigation', p));
             products = merged;
         }
 
-        function getArea() {
-            return parseFloat(areaInput.value) || 1;
+        const getArea = () => parseFloat(areaInput.value) || 1;
+        const getWater = () => parseFloat(waterInput.value) || {{ reference_water }};
+
+        // Misma fórmula que TreatmentProduct.calculate_total_dose() / Product.cost_per_ha() (farm/models.py):
+        // las dosis por hectárea solo usan el área; las de caldo usan además el agua total (área × mojado).
+        function calculate(price, doseType, dose, area, water) {
+            if (!dose || !price) return null;
+            let total;
+            if (doseType.includes('_per_ha')) total = dose * area;
+            else if (doseType === 'pct') total = dose / 100 * area * water;
+            else total = dose / 1000 * area * water;
+            const cost = total * price;
+            return {total, cost, perHa: cost / area};
         }
 
-        function getWaterPerHa() {
-            return parseFloat(waterInput.value) || 1000;
+        function refreshPicker() {
+            const items = Array.from(products.values())
+                .filter(p => !order.includes(p.id))
+                .sort((a, b) => a.name.localeCompare(b.name, 'es'))
+                .map(p => ({value: p.id, text: p.name}));
+            if (!ss) ss = new SearchableSelect(picker, {placeholder: 'Añadir producto…'});
+            ss.setOptions(items, null);
+            const full = order.length >= MAX_PRODUCTS;
+            ss.input.disabled = full;
+            limitEl.hidden = !full;
         }
 
-        function getRows() {
-            return Array.from(container.querySelectorAll('.comparison-card'));
-        }
-
-        function updateEmptyState() {
-            emptyState.classList.toggle('d-none', getRows().length > 0);
-        }
-
-        function renumberRows() {
-            getRows().forEach((row, index) => {
-                row.querySelector('.product-number').textContent = index + 1;
-            });
-        }
-
-        function populateRowOptions(row, restoreValue) {
-            const select = row.querySelector('.comparison-product-select');
-            const items = Array.from(products.values()).map(p => ({value: p.id, text: p.name}));
-
-            let ss = ssInstances.get(select);
-            if (!ss) {
-                ss = new SearchableSelect(select, {placeholder: 'Buscar producto…'});
-                ssInstances.set(select, ss);
-            }
-            ss.setOptions(items, restoreValue || null);
-        }
-
-        // Misma fórmula que TreatmentProduct.calculate_total_dose()/calculate_prices() en farm/models.py:
-        // los tipos "_per_ha" solo necesitan el área; los de volumen de caldo (L/1000L, kg/1000L, %)
-        // necesitan además el agua total (área × mojado).
-        function calculateDoseAndCost(price, doseType, dose, area, waterPerHa) {
-            if (!dose) return null;
-
-            let totalDose;
-            if (doseType.includes('_per_ha')) {
-                totalDose = dose * area;
-            } else {
-                const totalWater = area * waterPerHa;
-                if (doseType === 'l_per_1000l' || doseType === 'kg_per_1000l') {
-                    totalDose = (dose / 1000) * totalWater;
-                } else if (doseType === 'pct') {
-                    totalDose = (dose / 100) * totalWater;
-                } else {
-                    return null;
-                }
-            }
-
-            const totalCost = totalDose * price;
-            return {totalDose, totalCost, costPerHa: totalCost / area};
-        }
-
-        function recomputeBlock(block, price) {
-            const doseType = block.dataset.doseType;
-            const unit = block.querySelector('.application-unit').textContent;
-            const dose = parseFloat(block.querySelector('.application-dose-input').value);
-            const result = calculateDoseAndCost(price, doseType, dose, getArea(), getWaterPerHa());
-
-            const totalDoseEl = block.querySelector('.application-total-dose');
-            const totalCostEl = block.querySelector('.application-total-cost');
-            const costPerHaEl = block.querySelector('.application-cost-per-ha');
-
-            if (!result || !price) {
-                totalDoseEl.textContent = '-';
-                totalCostEl.textContent = '-';
-                costPerHaEl.textContent = '-';
-                delete block.dataset.cost;
-                return;
-            }
-
-            totalDoseEl.textContent = `${result.totalDose.toFixed(2)} ${unit}`;
-            totalCostEl.textContent = `${result.totalCost.toFixed(2)} €`;
-            costPerHaEl.textContent = `${result.costPerHa.toFixed(2)} €/ha`;
-            block.dataset.cost = result.costPerHa;
-        }
-
-        function recalculateAll() {
-            Array.from(container.querySelectorAll('.application-result')).forEach(block => {
-                recomputeBlock(block, parseFloat(block.dataset.price));
-            });
-            highlightCheapest();
-        }
-
-        function buildApplicationBlocks(row) {
-            const select = row.querySelector('.comparison-product-select');
-            const resultsContainer = row.querySelector('.applications-results');
-            const noPriceInfo = row.querySelector('.no-price-info');
-            resultsContainer.innerHTML = '';
-
-            const product = products.get(Number(select.value));
-            if (!product) {
-                noPriceInfo.classList.add('d-none');
-                return;
-            }
-
-            const hasPrice = product.price > 0;
-            noPriceInfo.classList.toggle('d-none', hasPrice);
-
-            Object.entries(product.applications).forEach(([applicationType, application]) => {
-                const unit = application.dose_type.includes('kg') ? 'kg' : 'L';
-
-                const fragment = resultTemplate.content.cloneNode(true);
-                const block = fragment.querySelector('.application-result');
-                block.dataset.doseType = application.dose_type;
-                block.dataset.price = product.price;
-
-                block.querySelector('.application-label').textContent =
-                    `${APPLICATION_LABELS[applicationType]} · ${application.dose_type_display}`;
-
-                const doseInput = block.querySelector('.application-dose-input');
-                doseInput.value = application.dose;
-                doseInput.addEventListener('input', () => {
-                    recomputeBlock(block, product.price);
-                    highlightCheapest();
+        function buildRows() {
+            rowsEl.innerHTML = '';
+            order.forEach(id => {
+                const product = products.get(id);
+                if (!product) return;
+                const kinds = Object.keys(product.applications);
+                kinds.forEach((kind, index) => {
+                    const app = product.applications[kind];
+                    const row = template.content.firstElementChild.cloneNode(true);
+                    row.dataset.id = id;
+                    row.dataset.kind = kind;
+                    row.dataset.doseType = app.dose_type;
+                    row.dataset.price = product.price;
+                    row.querySelector('.cmp-name').textContent = product.name;
+                    const sub = row.querySelector('.cmp-sub');
+                    sub.textContent = APPLICATION_LABELS[kind] + (product.price > 0 ? ' · ' + fmt(product.price) + ' €/ud' : '');
+                    if (!(product.price > 0)) {
+                        const warn = document.createElement('span');
+                        warn.className = 'cmp-nopr ms-2';
+                        warn.textContent = 'Sin precio';
+                        sub.appendChild(warn);
+                    }
+                    const input = row.querySelector('.cmp-dose-input');
+                    const key = id + ':' + kind;
+                    input.value = doses.has(key) ? doses.get(key) : app.dose;
+                    input.addEventListener('input', () => { doses.set(key, input.value); recalc(); });
+                    row.querySelector('.cmp-unit').textContent = app.dose_type_display;
+                    const remove = row.querySelector('.cmp-remove');
+                    if (index === 0) {
+                        remove.addEventListener('click', () => {
+                            order = order.filter(x => x !== id);
+                            kinds.forEach(k => doses.delete(id + ':' + k));
+                            buildRows();
+                            refreshPicker();
+                        });
+                    } else {
+                        remove.closest('.cmp-cell').remove();   // se quita desde la primera fila del producto
+                    }
+                    rowsEl.appendChild(row);
                 });
+            });
+            emptyEl.hidden = order.length > 0;
+            recalc();
+        }
 
-                block.querySelector('.application-unit').textContent = unit;
-
-                resultsContainer.appendChild(block);
-                recomputeBlock(block, product.price);
+        function recalc() {
+            const area = getArea(), water = getWater();
+            const rows = Array.from(rowsEl.querySelectorAll('.cmp-row'));
+            rows.forEach(row => {
+                const price = parseFloat(row.dataset.price);
+                const dose = parseFloat(row.querySelector('.cmp-dose-input').value);
+                const unit = row.dataset.doseType.includes('kg') ? 'kg' : 'L';
+                const r = calculate(price, row.dataset.doseType, dose, area, water);
+                row.querySelector('.cmp-total').textContent = r ? fmt(r.total) + ' ' + unit : '—';
+                row.querySelector('.cmp-cost').textContent = r ? fmt(r.cost) + ' €' : '—';
+                row.querySelector('.cmp-perha-val').textContent = r ? fmt(r.perHa) + ' €' : '—';
+                row._perHa = r ? r.perHa : null;
+            });
+            // Más barato: solo compite quien tiene coste calculado, y hace falta al menos dos
+            const priced = rows.filter(row => row._perHa !== null);
+            const min = priced.length > 1 ? Math.min(...priced.map(row => row._perHa)) : null;
+            rows.forEach(row => {
+                const best = min !== null && row._perHa === min;
+                row.classList.toggle('cmp-row--best', best);
+                row.querySelector('.cmp-best').hidden = !best;
+                const diff = row.querySelector('.cmp-diff');
+                if (min === null || row._perHa === null || best) {
+                    diff.textContent = '—';
+                    diff.classList.add('cmp-diff--none');
+                } else {
+                    diff.textContent = '+' + fmt(row._perHa - min) + ' €/ha';
+                    diff.classList.remove('cmp-diff--none');
+                }
             });
         }
 
-        function highlightCheapest() {
-            const blocks = Array.from(container.querySelectorAll('.application-result[data-cost]'));
-            blocks.forEach(block => block.classList.remove('application-result--cheapest'));
-
-            if (blocks.length < 2) return;
-
-            const cheapest = blocks.reduce((min, b) =>
-                parseFloat(b.dataset.cost) < parseFloat(min.dataset.cost) ? b : min
-            );
-            cheapest.classList.add('application-result--cheapest');
-        }
-
-        function addRow() {
-            const fragment = rowTemplate.content.cloneNode(true);
-            const col = fragment.querySelector('.comparison-card').closest('.col-12');
-            container.appendChild(col);
-            const row = col.querySelector('.comparison-card');
-
-            populateRowOptions(row);
-
-            row.querySelector('.comparison-product-select').addEventListener('change', () => {
-                buildApplicationBlocks(row);
-                highlightCheapest();
-            });
-            row.querySelector('.remove-row').addEventListener('click', () => {
-                col.remove();
-                renumberRows();
-                updateEmptyState();
-                highlightCheapest();
-            });
-
-            renumberRows();
-            updateEmptyState();
-        }
-
-        addBtn.addEventListener('click', addRow);
-        areaInput.addEventListener('input', recalculateAll);
-        waterInput.addEventListener('input', recalculateAll);
+        picker.addEventListener('change', () => {
+            const id = Number(picker.value);
+            if (!id || order.includes(id) || order.length >= MAX_PRODUCTS) return;
+            order.push(id);
+            buildRows();
+            refreshPicker();
+        });
+        areaInput.addEventListener('input', recalc);
+        waterInput.addEventListener('input', recalc);
 
         await loadProducts();
-        updateEmptyState();
+        const initial = JSON.parse(document.getElementById('cmpInitialIds').textContent);
+        order = initial.filter(id => products.has(id));
+        buildRows();
+        refreshPicker();
     });
 </script>
 {% endblock %}

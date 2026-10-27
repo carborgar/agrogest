@@ -1,14 +1,20 @@
+import json
+
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db.models import Exists, OuterRef, Count
-from django.http import HttpResponseRedirect
-from django.shortcuts import get_object_or_404
+from django.db.models import Exists, OuterRef, Count, Sum, Q, Prefetch, RestrictedError
+from django.http import HttpResponseRedirect, JsonResponse
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy, reverse
-from django.views.generic import ListView, UpdateView, DeleteView, View, TemplateView
+from django.utils import timezone
+from django.views.generic import ListView, UpdateView, DeleteView, View, TemplateView, RedirectView
 
 from farm.forms import ProductForm, ProductTypeForm
 from farm.mixins import OwnershipRequiredMixin, QuerysetFilterMixin, AuditableMixin
-from farm.models import Product, ProductType, TreatmentProduct, ProductPriceHistory
+from farm.models import Product, ProductType, Treatment, TreatmentProduct, ProductPriceHistory
+
+# Máximo de productos que admite la comparativa (más no caben en pantalla)
+COMPARISON_MAX_PRODUCTS = 12
 
 
 class BaseSecureProductViewMixin(OwnershipRequiredMixin, QuerysetFilterMixin):
@@ -21,64 +27,134 @@ class BaseSecureProductFormMixin(BaseSecureProductViewMixin, AuditableMixin):
     pass
 
 
+def _price_trend(product):
+    """
+    Variación del precio respecto al anterior del historial. None si no hay
+    dos precios que comparar (la mayoría de productos solo tiene uno).
+    `product.price_history` viene precargado, del más reciente al más antiguo.
+    """
+    history = list(product.price_history.all())
+    if len(history) < 2 or history[0].price != product.price:
+        return None
+    latest, previous = history[0], history[1]
+    if not previous.price or previous.price == latest.price:
+        return None
+    change = (latest.price - previous.price) / previous.price * 100
+    return {
+        'up': latest.price > previous.price,
+        'percent': abs(round(change)),
+        'since': latest.effective_date,
+        'previous_price': previous.price,
+    }
+
+
 class ProductListView(BaseSecureProductViewMixin, ListView):
+    """
+    Listado único de productos: tipos (chips), uso en el año, coste/ha y
+    selección para la comparativa. Sin paginación: se filtra por tipo y la
+    explotación tiene pocas decenas de productos.
+    """
     model = Product
     template_name = 'farm/products/product_list.html'
     context_object_name = 'products'
-    paginate_by = 20
     ordering = ['name']
 
+    def _show_archived(self):
+        return self.request.GET.get('archived') == '1'
+
     def get_queryset(self):
-        show_archived = self.request.GET.get('archived') == '1'
+        year = timezone.localdate().year
+        tp = 'treatmentproduct__treatment'
+        # Gastado = tratamientos completados este año (por fecha de finalización).
+        done_this_year = Q(**{f'{tp}__status': Treatment.STATUS_COMPLETED}) & (
+            Q(**{f'{tp}__finish_date__year': year})
+            | Q(**{f'{tp}__finish_date__isnull': True, f'{tp}__date__year': year})
+        )
+        # Previsto = los que aún no se han hecho (pendientes y atrasados).
+        planned = Q(**{f'{tp}__status__in': [Treatment.STATUS_PENDING, Treatment.STATUS_DELAYED]})
+
         qs = (
             super().get_queryset()
-            .select_related("product_type")
+            .select_related('product_type')
+            .prefetch_related(Prefetch(
+                'price_history',
+                queryset=ProductPriceHistory.objects.order_by('-effective_date', '-created_at'),
+            ))
             .annotate(
-                has_treatments=Exists(TreatmentProduct.objects.filter(product=OuterRef('pk')))
+                has_treatments=Exists(TreatmentProduct.objects.filter(product=OuterRef('pk'))),
+                done_count=Count('treatmentproduct', filter=done_this_year),
+                spent=Sum('treatmentproduct__total_price', filter=done_this_year),
+                planned_count=Count('treatmentproduct', filter=planned),
+                planned_cost=Sum('treatmentproduct__total_price', filter=planned),
             )
         )
 
-        if not show_archived:
+        if not self._show_archived():
             qs = qs.filter(is_active=True)
 
-        search = self.request.GET.get('search', '').strip()
+        # La búsqueda por nombre es del navegador (instantánea): aquí solo filtros de servidor.
         type_id = self.request.GET.get('type')
         application = self.request.GET.get('application')
 
-        if search:
-            qs = qs.filter(name__icontains=search)
-        if type_id:
+        if type_id and type_id.isdigit():
             qs = qs.filter(product_type_id=type_id)
         if application == 'spraying':
             qs = qs.filter(spraying_dose__isnull=False)
         elif application == 'fertigation':
             qs = qs.filter(fertigation_dose__isnull=False)
+        if self.request.GET.get('no_price') == '1':
+            qs = qs.filter(price__lte=0)
 
-        return qs
+        return qs.order_by('name')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['product_types'] = ProductType.ownership_objects.get_queryset_for_user(self.request.user)
-        context['filter_params'] = self.request.GET.dict()
-        context['search'] = self.request.GET.get('search', '')
-        context['selected_type'] = self.request.GET.get('type', '')
-        context['selected_application'] = self.request.GET.get('application', '')
-        context['show_archived'] = self.request.GET.get('archived') == '1'
+        user = self.request.user
+        show_archived = self._show_archived()
 
-        # Productos sin precio (price = 0) – solo activos
-        all_qs = (
-            super().get_queryset()
-            .select_related("product_type")
-            .filter(is_active=True)
-        )
-        context['products_without_price'] = list(
-            all_qs.filter(price__lte=0).order_by('name')
-        )
+        # Atributos de presentación que no son columnas: se calculan una vez por producto
+        products = list(context['products'])
+        for product in products:
+            product.cost_spraying = product.cost_per_ha('spraying')
+            product.cost_fertigation = product.cost_per_ha('fertigation')
+            product.price_trend = _price_trend(product)
+        context['products'] = products
 
-        # Conteo de archivados para el toggle
+        # Chips de tipo: solo los que tienen productos visibles (los vacíos se ven al gestionar tipos)
+        visible = Q(product__is_active=True) if not show_archived else Q()
+        product_types = list(
+            ProductType.ownership_objects.get_queryset_for_user(user)
+            .annotate(
+                visible_count=Count('product', filter=visible),
+                product_count=Count('product'),
+            )
+            .order_by('name')
+        )
+        selected_type = self.request.GET.get('type', '')
+        context['type_chips'] = [
+            pt for pt in product_types
+            if pt.visible_count or str(pt.pk) == selected_type
+        ]
+        context['product_types'] = product_types  # para «Gestionar tipos» (con todos)
+        context['total_visible'] = sum(pt.visible_count for pt in product_types)
+
         base_qs = super().get_queryset()
+        context['no_price_count'] = base_qs.filter(is_active=True, price__lte=0).count()
         context['archived_count'] = base_qs.filter(is_active=False).count()
 
+        context['selected_type'] = selected_type
+        context['selected_type_name'] = next(
+            (pt.name for pt in product_types if str(pt.pk) == selected_type), '')
+        context['selected_application'] = self.request.GET.get('application', '')
+        context['show_archived'] = show_archived
+        context['only_no_price'] = self.request.GET.get('no_price') == '1'
+        context['reference_water'] = Product.REFERENCE_WATER_PER_HA
+        context['current_year'] = timezone.localdate().year
+        context['max_compare'] = COMPARISON_MAX_PRODUCTS
+        context['has_filters'] = bool(
+            selected_type or context['selected_application']
+            or context['only_no_price'] or show_archived
+        )
         return context
 
 
@@ -132,12 +208,30 @@ class ProductFormView(BaseSecureProductFormMixin, SuccessMessageMixin, UpdateVie
         response = super().form_valid(form)
 
         new_price = form.instance.price
-        if (
-            not self.creating
-            and old_price is not None
-            and new_price != old_price
-            and new_price > 0
-        ):
+        today = timezone.localdate()
+
+        if self.creating:
+            # El precio de alta es el primero del historial: sin él no habría
+            # con qué comparar cuando cambie (la tendencia necesita dos precios).
+            if new_price and new_price > 0:
+                ProductPriceHistory.objects.create(
+                    product=self.object,
+                    price=new_price,
+                    effective_date=today,
+                    organization=self.object.organization,
+                )
+        elif old_price is not None and new_price != old_price and new_price > 0:
+            # Productos anteriores a este cambio: si no tienen historial, se guarda
+            # primero el precio que tenían para poder mostrar la variación.
+            if old_price > 0 and not self.object.price_history.exists():
+                created = self.object.created_at.date() if self.object.created_at else None
+                if created:
+                    ProductPriceHistory.objects.create(
+                        product=self.object,
+                        price=old_price,
+                        effective_date=created,
+                        organization=self.object.organization,
+                    )
             ProductPriceHistory.objects.create(
                 product=self.object,
                 price=new_price,
@@ -180,7 +274,6 @@ class ProductFormView(BaseSecureProductFormMixin, SuccessMessageMixin, UpdateVie
                 context['price_min'] = min_entry
 
             # ── JSON seguro para el gráfico ────────────────────────────────────────────
-            import json
             context['price_history_json'] = json.dumps([
                 {'date': e.effective_date.strftime('%d/%m/%Y'), 'price': float(e.price)}
                 for e in reversed(history)  # oldest first for chart X axis
@@ -192,10 +285,16 @@ class ProductDeleteView(BaseSecureProductViewMixin, DeleteView):
     model = Product
     success_url = reverse_lazy('product-list')
 
-    def delete(self, request, *args, **kwargs):
-        messages.success(request, 'Producto eliminado con éxito.')
-        return super().delete(request, *args, **kwargs)
-
+    def form_valid(self, form):
+        # Django 5.1 ya no llama a delete() desde DeleteView: el mensaje va aquí.
+        try:
+            response = super().form_valid(form)
+        except RestrictedError:
+            messages.error(self.request, 'No se puede eliminar: el producto se ha usado en tratamientos. '
+                                         'Archívalo desde su ficha.')
+            return redirect('product-list')
+        messages.success(self.request, 'Producto eliminado con éxito.')
+        return response
 
 
 class ProductPriceHistoryDeleteView(OwnershipRequiredMixin, View):
@@ -216,28 +315,26 @@ class ProductPriceHistoryDeleteView(OwnershipRequiredMixin, View):
         return HttpResponseRedirect(reverse('product-edit', kwargs={'pk': product_pk}))
 
 
-# ProductType CRUD Views
-class ProductTypeListView(BaseSecureProductViewMixin, ListView):
-    model = ProductType
-    template_name = 'farm/products/product_type_list.html'
-    context_object_name = 'product_types'
-    ordering = ['name']
+# ── Tipos de producto ──────────────────────────────────────────────────────
+# El listado vive dentro de Productos (chips + «Gestionar tipos»); aquí quedan
+# las vistas de alta, edición y borrado.
 
-    def get_queryset(self):
-        qs = super().get_queryset().order_by("name")
-        qs = qs.annotate(
-            has_products=Exists(Product.objects.filter(product_type=OuterRef('pk'))),
-            product_count=Count('product'),
-        )
-        return qs
+class ProductTypeListRedirectView(RedirectView):
+    """La antigua pantalla de tipos se ha integrado en Productos."""
+    pattern_name = 'product-list'
+    permanent = False
 
 
 class ProductTypeFormView(BaseSecureProductFormMixin, SuccessMessageMixin, UpdateView):
-    """Unified view for creating and editing product types"""
+    """Alta y edición de tipos. Con `X-Requested-With: XMLHttpRequest` responde JSON
+    (alta rápida desde el formulario de producto)."""
     model = ProductType
     form_class = ProductTypeForm
     template_name = 'farm/products/product_type_form.html'
-    success_url = reverse_lazy('product-type-list')
+    success_url = reverse_lazy('product-list')
+
+    def _is_ajax(self):
+        return self.request.headers.get('x-requested-with') == 'XMLHttpRequest'
 
     def get_object(self, queryset=None):
         """Return existing object for edit, or None for create"""
@@ -245,15 +342,33 @@ class ProductTypeFormView(BaseSecureProductFormMixin, SuccessMessageMixin, Updat
             return super().get_object(queryset)
         return None
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        # La organización se fija antes de validar para que el formulario pueda
+        # comprobar que el nombre no está repetido en ella.
+        if kwargs.get('instance') is None:
+            kwargs['instance'] = ProductType(organization=self.request.user.organization)
+        return kwargs
+
     def get_success_message(self, cleaned_data):
-        if self.object and self.object.pk:
+        if self._is_ajax():
+            return ''  # el mensaje saldría en la siguiente pantalla, ya sin sentido
+        if self.object and self.object.pk and 'pk' in self.kwargs:
             return 'Tipo de producto actualizado con éxito.'
         return 'Tipo de producto creado con éxito.'
 
     def form_valid(self, form):
-        # Asignar la organización del usuario al tipo de producto
-        form.instance.organization = self.request.user.organization
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        if self._is_ajax():
+            return JsonResponse({'id': self.object.pk, 'name': self.object.name},
+                                status=200 if 'pk' in self.kwargs else 201)
+        return response
+
+    def form_invalid(self, form):
+        if self._is_ajax():
+            errors = [e for errs in form.errors.values() for e in errs]
+            return JsonResponse({'errors': errors}, status=400)
+        return super().form_invalid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -265,14 +380,39 @@ class ProductTypeFormView(BaseSecureProductFormMixin, SuccessMessageMixin, Updat
 
 
 class ProductComparisonView(BaseSecureProductViewMixin, TemplateView):
-    """Calculadora para comparar el coste/ha de varios productos alternativos."""
+    """Calculadora para comparar el coste/ha de varios productos alternativos.
+    Admite `?ids=1,2,3` (productos marcados en el listado) para abrirla ya cargada."""
     template_name = 'farm/products/product_comparison.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        requested = []
+        for raw in self.request.GET.get('ids', '').split(','):
+            raw = raw.strip()
+            if raw.isdigit() and int(raw) not in requested:
+                requested.append(int(raw))
+        requested = requested[:COMPARISON_MAX_PRODUCTS]
+        # Solo los del usuario: un id ajeno se ignora sin más
+        allowed = set(
+            Product.ownership_objects.get_queryset_for_user(self.request.user)
+            .filter(pk__in=requested).values_list('pk', flat=True)
+        )
+        context['initial_ids'] = [pk for pk in requested if pk in allowed]
+        context['max_products'] = COMPARISON_MAX_PRODUCTS
+        context['reference_water'] = Product.REFERENCE_WATER_PER_HA
+        return context
 
 
 class ProductTypeDeleteView(BaseSecureProductViewMixin, DeleteView):
     model = ProductType
-    success_url = reverse_lazy('product-type-list')
+    success_url = reverse_lazy('product-list')
 
-    def delete(self, request, *args, **kwargs):
-        messages.success(request, 'Tipo de producto eliminado con éxito.')
-        return super().delete(request, *args, **kwargs)
+    def form_valid(self, form):
+        # Django 5.1 ya no llama a delete() desde DeleteView: el mensaje va aquí.
+        try:
+            response = super().form_valid(form)
+        except RestrictedError:
+            messages.error(self.request, 'No se puede eliminar: hay productos de este tipo.')
+            return redirect('product-list')
+        messages.success(self.request, 'Tipo de producto eliminado con éxito.')
+        return response

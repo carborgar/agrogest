@@ -43,9 +43,9 @@ _NAV_GROUPS = {
     'nav_shopping':     {'treatment-shopping-list'},
     'nav_harvests':     {'harvest-summary', 'harvest-create', 'harvest-edit'},
     'nav_expense_types':{'expense-type-list', 'expense-type-create', 'expense-type-edit'},
-    'nav_products':     {'product-list', 'product-create', 'product-edit'},
-    'nav_product_types':{'product-type-list', 'product-type-create', 'product-type-edit'},
-    'nav_product_comparison': {'product-comparison'},
+    # Tipos de producto y comparativa se gestionan dentro de Productos
+    'nav_products':     {'product-list', 'product-create', 'product-edit',
+                         'product-type-create', 'product-type-edit', 'product-comparison'},
     'nav_treatment_cost_admin': {'treatment-cost-admin'},
     'nav_chat':         {'chat'},
 }
@@ -54,12 +54,10 @@ _NAV_GROUPS = {
 def active_nav(request):
     """
     Inyecta en el contexto un booleano por cada grupo de navegación,
-    más dos helpers para los grupos colapsables:
+    más un helper para el grupo colapsable:
       nav_gastos_open   → True si hay que mostrar el submenu de Gastos abierto
-      nav_products_open → True si hay que mostrar el submenu de Productos abierto
     """
     url_name = getattr(request.resolver_match, 'url_name', '') or ''
     ctx = {key: url_name in names for key, names in _NAV_GROUPS.items()}
     ctx['nav_gastos_open']   = ctx['nav_costs'] or ctx['nav_expenses']
-    ctx['nav_products_open'] = ctx['nav_products'] or ctx['nav_product_types'] or ctx['nav_product_comparison']
     return ctx

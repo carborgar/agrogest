@@ -565,3 +565,172 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
     .pp-sel-col + div { width: 100% !important; max-width: 100% !important; flex: none !important; }
     .pp-place { break-inside: avoid; }
 }
+
+/* ═══════════════════════════════════════════════
+   PRODUCTOS (pl-*) · una sola pantalla: tipos como chips, coste/ha, uso en el año
+   y selección para la comparativa. Reutiliza las variables y la barra de tl-*.
+   Móvil: fila de dos líneas con casilla de 44 px. Desktop: rejilla por columnas.
+═══════════════════════════════════════════════ */
+:root {
+    --pl-cols: 2.75rem minmax(0, 2.2fr) minmax(0, 1.4fr) 8.5rem 8.5rem 11rem 2.25rem;
+    --pl-spray-bg: #E3EEFB; --pl-spray-fg: #0D47A1;
+    --pl-fert-bg: #E3F1E4; --pl-fert-fg: #1F5F24;
+}
+
+/* Chips de filtro («sin precio», «archivados», desplegable de tipo) */
+.pl-chip { display: inline-flex; align-items: center; gap: .35rem; height: 34px; padding: 0 .8rem; border: 1px solid var(--bs-border-color); border-radius: 999px; background: #fff; color: var(--tl-ink); font-size: .85rem; font-weight: 600; text-decoration: none; white-space: nowrap; cursor: pointer; }
+.pl-chip:hover { border-color: var(--bs-primary); color: var(--tl-ink); }
+.pl-chip small { font-size: .75rem; font-weight: 700; opacity: .65; }
+.pl-chip.active { background: var(--bs-primary); border-color: var(--bs-primary); color: #fff; }
+.pl-chip.active:hover { color: #fff; }
+.pl-chip--warn { background: var(--tl-1-bg); border-color: #F0D9A6; color: var(--tl-1-fg); }
+.pl-chip--warn:hover { color: var(--tl-1-fg); border-color: var(--tl-1-fg); }
+.pl-chip--warn.active { background: var(--tl-1-fg); border-color: var(--tl-1-fg); color: #fff; }
+.pl-chip--ghost { border-style: dashed; background: transparent; color: var(--bs-primary); }
+.pl-chip--ghost:hover { color: var(--bs-primary); }
+.pl-toolbar-switch { display: flex; flex-wrap: wrap; gap: .5rem; }
+
+/* Desplegable «Tipo» */
+.pl-caret { font-size: .65rem; opacity: .7; }
+.pl-typemenu { width: 280px; max-width: calc(100vw - 2rem); }
+.pl-typelist { max-height: 260px; overflow-y: auto; }
+.pl-typeitem { display: flex; align-items: center; justify-content: space-between; gap: .75rem; border-radius: 6px; padding: .4rem .6rem; }
+.pl-typeitem[hidden] { display: none; }
+.pl-typeitem small { font-size: .75rem; font-weight: 700; opacity: .6; }
+.pl-typeitem.active small { opacity: .85; }
+.pl-typeempty { margin: 0; padding: .6rem; font-size: .85rem; color: var(--tl-muted); text-align: center; }
+
+/* Ayuda ⓘ en cabeceras (escritorio) y plegable (móvil) */
+.pl-info { border: 0; background: transparent; padding: 0 .15rem; margin-left: .15rem; color: var(--tl-muted); font-size: .8rem; line-height: 1; cursor: pointer; }
+.pl-info:hover, .pl-info:focus-visible { color: var(--bs-primary); }
+/* El fondo del popover heredaba el de la página (gris verdoso): blanco, como las tarjetas */
+.popover.pl-popover { --bs-popover-bg: #fff; --bs-popover-body-padding-y: .6rem; --bs-popover-body-padding-x: .8rem; box-shadow: 0 6px 20px rgba(0, 0, 0, .12); }
+.pl-help { margin: 0 .25rem .6rem; font-size: .8rem; color: var(--tl-muted); }
+.pl-help summary { cursor: pointer; padding: .25rem 0; }
+.pl-help p { margin: .25rem 0 0; }
+
+/* Lista */
+.pl-count { margin: 0 0 .4rem .25rem; font-size: .85rem; color: var(--tl-muted); }
+.pl-list { background: #fff; border: 1px solid var(--bs-border-color); border-radius: 12px; }
+.pl-head { display: none; grid-template-columns: var(--pl-cols); gap: 1rem; padding: .55rem 1rem .55rem .5rem; border-bottom: 1px solid var(--tl-head-line); border-radius: 12px 12px 0 0; background: var(--tl-head-bg); font-size: .72rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--tl-muted); }
+.pl-head .pl-r { text-align: right; }
+.pl-item { border-top: 1px solid var(--tl-line); }
+.pl-head + .pl-item, .pl-item:first-child { border-top: 0; }
+.pl-item:last-child { border-radius: 0 0 12px 12px; }
+.pl-item:first-child { border-radius: 12px 12px 0 0; }
+.pl-item:only-child { border-radius: 12px; }
+.pl-item:has(.dropdown-menu.show) { position: relative; z-index: 30; }
+.pl-item:hover { background: var(--tl-soft); }
+.pl-item--selected, .pl-item--selected:hover { background: #F1F8F2; }
+.pl-item--archived .pl-main, .pl-item--archived .pl-doses, .pl-item--archived .pl-price, .pl-item--archived .pl-cost { opacity: .6; }
+.pl-item[hidden] { display: none; }
+
+/* Móvil: casilla | nombre · tipo | precio  /  dosis | coste/ha  /  uso en el año */
+.pl-row { display: grid; grid-template-columns: 2.75rem minmax(0, 1fr) auto; grid-template-areas: "check main price" "check doses cost" "check year year"; column-gap: .5rem; row-gap: .1rem; align-items: center; padding: .55rem .75rem .55rem .15rem; }
+.pl-check { grid-area: check; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: 0; cursor: pointer; }
+.pl-check .form-check-input { width: 1.15rem; height: 1.15rem; margin: 0; cursor: pointer; }
+.pl-main { grid-area: main; min-width: 0; }
+.pl-name { display: inline; font-size: .95rem; font-weight: 700; color: var(--tl-ink); text-decoration: none; overflow-wrap: anywhere; }
+.pl-name:hover { color: var(--bs-primary); }
+.pl-badge { display: inline-block; margin-left: .35rem; padding: .05rem .45rem; border-radius: 999px; background: #E7EAE4; color: #475048; font-size: .68rem; font-weight: 700; vertical-align: middle; }
+.pl-type { display: block; overflow: hidden; font-size: .8rem; color: var(--tl-muted); white-space: nowrap; text-overflow: ellipsis; }
+.pl-doses { grid-area: doses; display: flex; flex-wrap: wrap; gap: .1rem .65rem; font-size: .82rem; color: var(--tl-muted); }
+.pl-nodose { font-weight: 600; color: var(--tl-0-fg); }
+.pl-tag { display: inline-block; min-width: 2.3rem; margin-right: .2rem; padding: .05rem .35rem; border-radius: 4px; text-align: center; font-size: .66rem; font-weight: 700; letter-spacing: .02em; }
+.pl-tag--spray { background: var(--pl-spray-bg); color: var(--pl-spray-fg); }
+.pl-tag--fert { background: var(--pl-fert-bg); color: var(--pl-fert-fg); }
+.pl-price { grid-area: price; text-align: right; line-height: 1.2; font-size: .8rem; color: var(--tl-muted); }
+.pl-price b { font-size: .95rem; color: var(--tl-ink); }
+.pl-trend { display: block; font-size: .72rem; font-weight: 700; }
+.pl-trend--up { color: var(--tl-0-fg); }
+.pl-trend--down { color: var(--tl-3-fg); }
+.pl-noprice { display: inline-block; padding: .2rem .65rem; border-radius: 999px; background: var(--tl-1-bg); color: var(--tl-1-fg); font-size: .75rem; font-weight: 700; text-decoration: none; }
+.pl-noprice:hover { color: var(--tl-1-fg); filter: brightness(.96); }
+.pl-cost { grid-area: cost; display: flex; flex-direction: column; align-items: flex-end; font-size: .8rem; color: var(--tl-muted); line-height: 1.25; }
+.pl-cost b { font-size: .88rem; color: var(--tl-ink); }
+/* Etiquetas solo móvil (en escritorio ya las dan las cabeceras de columna) */
+.pl-m { display: none; }
+@media (max-width: 767.98px) { .pl-m { display: inline; } .pl-cost .pl-m { margin-left: 1px; font-size: .75rem; } }
+.pl-year { grid-area: year; font-size: .78rem; color: var(--tl-muted); }
+.pl-year b { color: var(--tl-ink); }
+.pl-year .pl-planned { color: var(--tl-1-fg); font-weight: 600; }
+.pl-menu { grid-area: menu; display: none; }
+.pl-empty { margin: 0; padding: 2.5rem 1rem; text-align: center; color: var(--tl-muted); }
+
+/* Barra de comparación: aparece al marcar productos */
+.pl-bar { position: sticky; bottom: calc(58px + .75rem + env(safe-area-inset-bottom)); z-index: 20; display: none; align-items: center; gap: .75rem; margin-top: .75rem; padding: .55rem .55rem .55rem 1rem; border-radius: 14px; background: #1F2937; color: #fff; box-shadow: 0 8px 24px rgba(0, 0, 0, .25); }
+.pl-bar.show { display: flex; }
+.pl-bar-text { flex: 1; min-width: 0; font-size: .9rem; }
+.pl-bar .btn-link { color: #D1D5DB; text-decoration: none; font-size: .85rem; }
+.pl-bar .btn { white-space: nowrap; }
+.pl-bar-go.disabled { background: #374151; border-color: #374151; color: #9CA3AF; opacity: 1; }
+
+/* Hoja «Gestionar tipos»: en móvil sube desde abajo */
+.pl-types-row { display: flex; align-items: center; gap: .5rem; min-height: 48px; padding: .15rem 0 .15rem .25rem; border-bottom: 1px solid var(--tl-line); }
+.pl-types-row:last-child { border-bottom: 0; }
+.pl-types-name { flex: 1; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+.pl-types-count { font-size: .8rem; color: var(--tl-muted); white-space: nowrap; }
+.pl-types-count--empty { color: var(--tl-1-fg); }
+.pl-types-slot { display: flex; width: 34px; height: 34px; flex: none; }
+@media (max-width: 767.98px) {
+    #typesModal .modal-dialog { min-height: 100%; margin: 0; align-items: flex-end; max-width: none; }
+    #typesModal .modal-content { max-height: 85vh; border-radius: 16px 16px 0 0; }
+}
+
+@media (min-width: 768px) {
+    .pl-head { display: grid; }
+    .pl-row { grid-template-columns: var(--pl-cols); grid-template-areas: "check main doses price cost year menu"; column-gap: 1rem; row-gap: 0; min-height: 60px; padding: .5rem 1rem .5rem .5rem; }
+    .pl-doses { flex-direction: column; gap: .15rem; font-size: .85rem; }
+    .pl-price { font-size: .75rem; }
+    .pl-cost { font-size: .8rem; }
+    .pl-cost b { font-size: .95rem; }
+    .pl-year { font-size: .82rem; text-align: right; }
+    .pl-menu { display: block; }
+    .pl-bar { bottom: 1rem; max-width: 640px; margin-inline: auto; }
+}
+
+/* ═══════════════════════════════════════════════
+   COMPARATIVA (cmp-*)
+═══════════════════════════════════════════════ */
+:root { --cmp-cols: minmax(0, 2fr) 11rem 6.5rem 7.5rem 7.5rem 8.5rem 2.75rem; }
+.cmp-params { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 1rem; padding: 1rem; margin-bottom: 1rem; background: #fff; border: 1px solid var(--bs-border-color); border-radius: 12px; }
+.cmp-params label { font-size: .8rem; font-weight: 600; color: var(--tl-muted); }
+.cmp-params .form-control { width: 9rem; }
+.cmp-params p { flex: 1 1 260px; margin: 0; font-size: .82rem; color: var(--tl-muted); }
+.cmp-list { background: #fff; border: 1px solid var(--bs-border-color); border-radius: 12px; }
+.cmp-head { display: none; grid-template-columns: var(--cmp-cols); gap: 1rem; padding: .55rem 1rem; border-bottom: 1px solid var(--tl-head-line); border-radius: 12px 12px 0 0; font-size: .72rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--tl-muted); }
+.cmp-head .cmp-r { text-align: right; }
+.cmp-row { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem 1rem; align-items: center; padding: .85rem 1rem; border-top: 1px solid var(--tl-line); }
+.cmp-head + .cmp-row, .cmp-row:first-child { border-top: 0; }
+.cmp-row--best { background: #F1F8F2; }
+.cmp-cell { min-width: 0; font-size: .9rem; }
+.cmp-cell--wide { grid-column: 1 / -1; }
+.cmp-label { display: block; font-size: .7rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--tl-muted); }
+.cmp-name { font-size: .95rem; font-weight: 700; color: var(--tl-ink); }
+.cmp-sub { display: block; font-size: .8rem; color: var(--tl-muted); }
+.cmp-best { display: inline-block; margin-left: .4rem; padding: .05rem .5rem; border-radius: 999px; background: var(--bs-primary); color: #fff; font-size: .68rem; font-weight: 700; vertical-align: middle; }
+.cmp-nopr { display: inline-block; padding: .15rem .6rem; border-radius: 999px; background: var(--tl-1-bg); color: var(--tl-1-fg); font-size: .75rem; font-weight: 700; }
+.cmp-perha { font-size: 1.05rem; font-weight: 700; color: var(--tl-ink); }
+.cmp-row--best .cmp-perha { color: var(--tl-3-fg); }
+.cmp-diff { font-weight: 700; color: var(--tl-0-fg); }
+.cmp-diff--none { font-weight: 500; color: var(--tl-muted); }
+.cmp-dose { max-width: 11rem; }
+.cmp-remove { width: 44px; height: 44px; }
+/* Móvil: el × va en la esquina de la tarjeta, no en una fila propia */
+.cmp-row { position: relative; }
+.cmp-rm { position: absolute; top: .35rem; right: .4rem; width: auto; }
+.cmp-rm .cmp-remove { border: 0; color: var(--tl-muted); }
+.cmp-row > .cmp-cell:first-child { padding-right: 2.75rem; }
+.cmp-add { padding: .75rem 1rem; border-top: 1px solid var(--tl-line); }
+.cmp-add-box { max-width: 22rem; }
+.cmp-empty { margin: 0; padding: 2.5rem 1rem; text-align: center; color: var(--tl-muted); }
+@media (min-width: 768px) {
+    .cmp-head { display: grid; }
+    .cmp-row { grid-template-columns: var(--cmp-cols); gap: 1rem; padding: .6rem 1rem; }
+    .cmp-cell--wide { grid-column: auto; }
+    .cmp-rm { position: static; }
+    .cmp-rm .cmp-remove { border: 1px solid var(--bs-border-color); }
+    .cmp-row > .cmp-cell:first-child { padding-right: 0; }
+    .cmp-label { display: none; }
+    .cmp-r { text-align: right; }
+}
