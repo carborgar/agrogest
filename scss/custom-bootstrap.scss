@@ -410,19 +410,9 @@ $tf-error-bg: #FDECEA;
 .tf-line-tot { grid-area: tot; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .tf-line-load { display: none; }
 .tf-cap { font-size: 0.75rem; color: $tf-text-soft; }
-.tf-tot {
-  width: 100%; min-height: 48px;
-  padding: 4px 10px;
-  border: 1px dashed #C9CFC4; border-radius: 10px;
-  background: #FAFBF8;
-  color: $body-color;
-  text-align: left;
-  display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
-  cursor: pointer;
-  &:hover { border-color: $primary; }
-  &:disabled { cursor: default; border-style: solid; }
-}
-.tf-tot-val { font-size: 1rem; font-weight: 600; }
+.tf-line-totalcell { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.tf-inp:disabled { background: $gray-100; color: $tf-text-soft; cursor: not-allowed; }
+.tf-line-notes .tf-note-manual { color: $tf-text-soft; }
 .tf-line-cost { font-size: 0.75rem; color: $tf-muted; }
 .tf-line-hint { font-size: 0.75rem; color: $tf-muted; }
 .tf-line-notes { grid-area: notes; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
@@ -555,7 +545,7 @@ $tf-error-bg: #FDECEA;
   .tf-switch[aria-checked="true"] .tf-knob { left: 21px; }
 
   // Líneas: filas de rejilla
-  $tf-cols: 28px minmax(0, 2.4fr) minmax(0, 1.7fr) minmax(0, 1.1fr) minmax(0, 1.4fr) minmax(0, 1fr) 36px;
+  $tf-cols: 28px minmax(0, 2.2fr) minmax(0, 1.7fr) minmax(0, 1.1fr) minmax(0, 1.7fr) minmax(0, 1fr) 36px;
   .tf-lines { gap: 0; }
   .tf-lines-head {
     display: grid; grid-template-columns: $tf-cols; gap: 12px;
@@ -581,8 +571,7 @@ $tf-error-bg: #FDECEA;
   .tf-line-totalcell { grid-area: tot; }
   .tf-line-cost { grid-area: cost; text-align: right; font-size: 0.875rem; color: $body-color; }
   .tf-cap, .tf-line-hint { display: none; }
-  .tf-tot { min-height: 40px; padding: 0 10px; border-radius: 8px; align-items: flex-end; }
-  .tf-tot-val { font-size: 0.875rem; }
+  .tf-line .tf-inp { height: 40px; font-size: 0.875rem; }
   .tf-line-notes { padding-left: 0; }
   .tf-add { display: none; }
   .tf-sheet { display: none !important; }

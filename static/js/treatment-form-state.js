@@ -124,9 +124,15 @@
             });
         },
 
-        /** Regla 3: poner el total a mano (solo con una parcela). */
+        /** Regla 3: poner el total a mano (solo con una parcela); vacío = volver a calcularlo desde la dosis. */
         setTotal(state, payload) {
             if (state.fieldIds.length !== 1) return state;
+            if (String(payload.total).trim() === '') {
+                // Total vacío: vuelve a calcularse desde la dosis (que se conservó mientras estaba a mano)
+                const line = state.lines.find((l) => l.key === payload.key);
+                if (!line || !line.override) return state;
+                return Object.assign({}, state, { lines: plain(state.lines, { [payload.key]: { override: false, total: '' } }) });
+            }
             return Object.assign({}, state, {
                 lines: plain(state.lines, { [payload.key]: { total: String(payload.total), override: true } }),
             });

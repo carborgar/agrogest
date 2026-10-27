@@ -116,3 +116,24 @@ class FormToDetailTests(TestCase):
             self.assertAlmostEqual(float(tp.total_price), expected_cost[t.field.name], places=2)
             detail = self.client.get(reverse("treatment-detail", kwargs={"pk": t.pk}))
             self.assertAlmostEqual(float(detail.context["total_cost"]), expected_cost[t.field.name], places=2)
+
+    def test_fertigation_total_rounded_to_the_container_shows_exactly_25_l_in_detail(self):
+        """A2: la dosis da 23,94 L y el usuario pone 25 L (envase de 25 L): el detalle muestra 25 L, no 23,94."""
+        field = Field.objects.create(name="Parcela 4,2", area=4.2, crop="Olivo", planting_year=2020, organization=self.org)
+        product = Product.objects.create(name="Ácidos", product_type=self.ptype, price=Decimal("4.00"),
+                                         fertigation_dose=Decimal("5.7"), fertigation_dose_type="l_per_ha",
+                                         organization=self.org)
+        data = {"name": "Ferti 25 L", "type": "fertigation", "date": date.today().isoformat(),
+                "field": str(field.pk), "machine": "", "water_per_ha": "0", "finish_date": ""}
+        # Lo que escribe el controlador al teclear 25 en el total: dosis derivada (25 / 4,2) y total exacto
+        data.update(formset_data([{"product": product.pk, "dose": "5.9524", "total_dose": "25.0000",
+                                   "total_overridden": "true"}]))
+        self.assertEqual(self.client.post(self.create_url, data).status_code, 302)
+        t = Treatment.objects.get(name="Ferti 25 L")
+        tp = t.treatmentproduct_set.get()
+        self.assertEqual(tp.total_dose, Decimal("25.0000"))
+        self.assertTrue(tp.total_overridden)
+        self.assertEqual(tp.total_price, Decimal("100.00"))
+        detail = self.client.get(reverse("treatment-detail", kwargs={"pk": t.pk}))
+        self.assertContains(detail, "25 L")
+        self.assertNotContains(detail, "23,94")

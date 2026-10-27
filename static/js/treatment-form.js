@@ -67,7 +67,7 @@
         segBtns: Array.from(root.querySelectorAll('.tf-seg-btn')),
         fieldBtn: $('tfFieldBtn'), fieldTitle: $('tfFieldTitle'), fieldSub: $('tfFieldSub'), fieldLbl: $('tfFieldLbl'),
         multiNote: $('tfMultiNote'), partialOpen: $('tfPartialOpen'), partial: $('tfPartial'), area: $('tfArea'), zone: $('tfZone'),
-        lines: $('tfLines'), orderHint: $('tfOrderHint'), totalHead: $('tfTotalHead'), loadHead: $('tfLoadHead'),
+        lines: $('tfLines'), multiTotalNote: $('tfMultiTotalNote'), orderHint: $('tfOrderHint'), totalHead: $('tfTotalHead'), loadHead: $('tfLoadHead'),
         addBtn: $('tfAddBtn'), addLabel: $('tfAddLabel'), addInput: $('tfAddInput'), addClose: $('tfAddClose'),
         secApp: $('tfSecApp'), machineChips: $('tfMachineChips'), machineSingle: $('tfMachineSingle'),
         machineName: $('tfMachineName'), machineCap: $('tfMachineCap'), water: $('tfWater'),
@@ -160,7 +160,7 @@
 
     // ── Estado de la interfaz (no es del formulario) ─────────────────────────
 
-    const uiState = { picker: null, fieldsQuery: '', productsQuery: '', hi: -1, editingTotal: null, customDate: false };
+    const uiState = { picker: null, fieldsQuery: '', productsQuery: '', hi: -1, customDate: false };
 
     function dispatch(type, payload) {
         // Directo a la acción: el payload de setType usa la clave `type` y chocaría con la del reduce
@@ -178,13 +178,13 @@
         '<span class="tf-line-num" aria-hidden="true"></span>' +
         '<div class="tf-line-prod"><div class="tf-line-name"></div><div class="tf-line-sub"><span class="tf-type"></span><span class="tf-rec"></span></div></div>' +
         '<button type="button" class="tf-icon-btn tf-line-remove" data-act="remove"><i class="bi bi-x-lg" aria-hidden="true"></i></button>' +
-        '<div class="tf-line-dose"><span class="tf-cap">Dosis</span><span class="tf-inline"><input type="text" class="tf-inp tf-num" inputmode="decimal" autocomplete="off" data-role="dose"><span class="tf-unit"></span></span></div>' +
+        '<div class="tf-line-dose"><span class="tf-cap">Dosis</span><span class="tf-inline"><input type="text" class="tf-inp tf-num" inputmode="decimal" autocomplete="off" data-role="dose"><span class="tf-unit"></span></span>' +
+        '<div class="tf-line-hint"></div></div>' +
         '<div class="tf-line-load"></div>' +
         '<div class="tf-line-tot"><div class="tf-line-totalcell"><span class="tf-cap tf-cap-total"></span>' +
-        '<button type="button" class="tf-tot" data-act="edit-total"><span class="tf-tot-val"></span></button>' +
-        '<span class="tf-inline" data-total-edit hidden><input type="text" class="tf-inp tf-num" inputmode="decimal" autocomplete="off" data-role="total"><span class="tf-unit tf-total-unit"></span></span></div>' +
+        '<span class="tf-inline"><input type="text" class="tf-inp tf-num" inputmode="decimal" autocomplete="off" data-role="total"><span class="tf-unit tf-total-unit"></span></span></div>' +
         '<div class="tf-line-cost"></div></div>' +
-        '<div class="tf-line-hint"></div><div class="tf-line-notes"></div>';
+        '<div class="tf-line-notes"></div>';
 
     function createLine(key) {
         const node = el('div', { 'class': 'tf-line', 'data-key': String(key) });
@@ -193,9 +193,8 @@
         return {
             node: node, num: q('.tf-line-num'), name: q('.tf-line-name'), type: q('.tf-type'), rec: q('.tf-rec'),
             remove: q('[data-act="remove"]'), dose: q('[data-role="dose"]'), unit: q('.tf-line-dose .tf-unit'),
-            load: q('.tf-line-load'), capTotal: q('.tf-cap-total'), totBtn: q('[data-act="edit-total"]'), totVal: q('.tf-tot-val'),
-            totEdit: q('[data-total-edit]'), total: q('[data-role="total"]'), totalUnit: q('.tf-total-unit'),
-            cost: q('.tf-line-cost'), hint: q('.tf-line-hint'), notes: q('.tf-line-notes'),
+            load: q('.tf-line-load'), capTotal: q('.tf-cap-total'), total: q('[data-role="total"]'), totalUnit: q('.tf-total-unit'),
+            cost: q('.tf-line-cost'), hint: q('.tf-line-hint'), notes: q('.tf-line-notes'), notesSig: null,
         };
     }
 
@@ -218,54 +217,56 @@
         setText(refs.name, l.name);
         setText(refs.type, l.typeName);
         refs.remove.setAttribute('aria-label', 'Quitar ' + l.name);
-        refs.notes.textContent = '';
-        const note = (cls, text) => { refs.notes.appendChild(el('p', { 'class': cls }, text)); };
 
+        // Avisos de la línea: solo se reconstruyen si cambian (para no perder el clic en «Volver a calcularlo»)
+        const notes = [];
         const supported = l.supported;
         refs.dose.closest('.tf-line-dose').hidden = !supported;
-        refs.totBtn.closest('.tf-line-tot').hidden = !supported;
+        refs.total.closest('.tf-line-tot').hidden = !supported;
         refs.load.hidden = !supported;
         if (!supported) {
             setText(refs.rec, '');
             setText(refs.hint, '');
-            note('tf-note-warn', l.unsupportedMessage);
+            notes.push(['tf-note-warn', l.unsupportedMessage]);
         } else {
-            const editing = uiState.editingTotal === l.key && d.single;
-            const doseText = l.override ? S.doseToText(l.dose) : (state.lines.find((x) => x.key === l.key).dose);
-            setVal(refs.dose, doseText);
+            const own = state.lines.find((x) => x.key === l.key);
+            // Lo que se está tecleando no se reescribe (setVal respeta el foco); el otro campo se rederiva
+            setVal(refs.dose, l.override ? S.doseToText(l.dose) : own.dose);
             refs.dose.setAttribute('aria-label', 'Dosis de ' + l.name);
+            refs.dose.setAttribute('aria-invalid', String(!!(tried && !l.valid)));
             refs.dose.classList.toggle('tf-inp--warn', l.warn);
             setText(refs.unit, l.unit);
-            setText(refs.rec, ' · recomendada ' + nf(l.recommended, 3) + ' ' + l.unit);
-            setText(refs.capTotal, d.multi ? 'Total (' + d.fieldCount + ' parcelas)' : 'Total parcela');
+            setText(refs.rec, ' · recomendada ' + nf(l.recommended, 4) + ' ' + l.unit);
 
-            refs.totBtn.hidden = editing;
-            refs.totEdit.hidden = !editing;
-            setText(refs.totVal, l.total === null ? '—' : nf(l.total) + ' ' + l.totalUnit);
-            refs.totBtn.setAttribute('aria-label', 'Cambiar el total de ' + l.name);
-            refs.totBtn.title = d.single ? 'Cambiar el total a mano' : 'Con varias parcelas el total no se puede cambiar';
-            refs.totBtn.disabled = !d.single;
-            refs.total.setAttribute('aria-label', 'Total de ' + l.name);
+            setText(refs.capTotal, d.multi ? 'Total (' + d.fieldCount + ' parcelas)' : 'Total parcela');
+            setVal(refs.total, l.override ? own.total : C.numberToText(l.total, 4));
+            refs.total.disabled = !d.single;
+            refs.total.title = d.single ? '' : 'Con varias parcelas el total se calcula por parcela';
+            refs.total.setAttribute('aria-label', 'Total de ' + l.name + (d.multi ? ' (suma de las parcelas)' : ''));
+            refs.total.setAttribute('aria-invalid', String(!!(tried && l.override && !l.valid)));
             setText(refs.totalUnit, l.totalUnit);
-            if (editing) {
-                const own = state.lines.find((x) => x.key === l.key);
-                setVal(refs.total, l.override ? own.total : numText(l.total, 2));
-            }
             setText(refs.cost, costText(l));
-            setText(refs.load, d.isSpray ? (l.perLoad !== null ? nf(l.perLoad) + ' ' + l.totalUnit : '—') : 'No aplica');
-            let hint = 'Recomendada ' + nf(l.recommended, 3) + ' ' + l.unit;
-            if (l.perLoad !== null) hint += ' · ' + nf(l.perLoad) + ' ' + l.totalUnit + ' por cuba llena';
+            setText(refs.load, d.isSpray ? (l.perLoad !== null ? nf(l.perLoad, 4) + ' ' + l.totalUnit : '—') : 'No aplica');
+            let hint = 'Recomendada ' + nf(l.recommended, 4) + ' ' + l.unit;
+            if (l.perLoad !== null) hint += ' · ' + nf(l.perLoad, 4) + ' ' + l.totalUnit + ' por cuba llena';
             setText(refs.hint, hint);
 
-            if (l.warn) note('tf-note-warn', 'Se aparta bastante de la recomendada. Revísala.');
-            if (l.doseRoundedUp && !l.override) note('', 'Se redondea hacia arriba a ' + nf(l.dose, 3) + ' ' + l.unit + '.');
-            if (l.override && !editing) {
-                const p = el('p', {}, 'Total puesto a mano; la dosis se calcula a partir de él. ');
-                p.appendChild(el('button', { type: 'button', 'class': 'tf-link', 'data-act': 'clear-total' }, 'Volver a calcularlo'));
-                refs.notes.appendChild(p);
-            }
+            if (l.warn) notes.push(['tf-note-warn', 'Se aparta bastante de la recomendada. Revísala.']);
+            if (l.doseRoundedUp && !l.override) notes.push(['', 'Se redondea hacia arriba a ' + nf(l.dose, 3) + ' ' + l.unit + '.']);
+            if (l.override) notes.push(['tf-note-manual', 'Total puesto a mano; la dosis se calcula a partir de él.', true]);
         }
-        (serverMsgs || []).forEach((m) => note('tf-note-err', m));
+        (serverMsgs || []).forEach((m) => notes.push(['tf-note-err', m]));
+
+        const sig = JSON.stringify(notes);
+        if (refs.notesSig !== sig) {
+            refs.notesSig = sig;
+            refs.notes.textContent = '';
+            notes.forEach((n) => {
+                const p = el('p', { 'class': n[0] }, n[1] + (n[2] ? ' ' : ''));
+                if (n[2]) p.appendChild(el('button', { type: 'button', 'class': 'tf-link', 'data-act': 'clear-total' }, 'Volver a calcularlo'));
+                refs.notes.appendChild(p);
+            });
+        }
     }
 
     function paintLines(d) {
@@ -281,6 +282,7 @@
             if (!keep.has(key)) { lineEls.get(key).node.remove(); lineEls.delete(key); }
         });
         setHidden(ui_.orderHint, d.lines.length < 2 || !d.isSpray);
+        setHidden(ui_.multiTotalNote, !(d.multi && d.lines.length));
         setText(ui_.totalHead, d.multi ? 'Total (' + d.fieldCount + ' parcelas)' : 'Total parcela');
         setText(ui_.loadHead, d.isSpray ? 'Por cuba llena' : '');
         setText(ui_.addLabel, d.lines.length ? 'Añadir otro producto' : 'Añadir producto');
@@ -628,12 +630,7 @@
         const act = t.dataset.act;
         const key = keyOf(t);
         if (act === 'remove' && key) dispatch('removeProduct', { key: key });
-        else if (act === 'clear-total' && key) { uiState.editingTotal = null; dispatch('clearOverride', { key: key }); }
-        else if (act === 'edit-total' && key && !t.disabled) {
-            uiState.editingTotal = key; render();
-            const refs = lineEls.get(key);
-            if (refs) { refs.total.focus(); refs.total.select(); }
-        }
+        else if (act === 'clear-total' && key) dispatch('clearOverride', { key: key });
     });
 
     root.addEventListener('input', (e) => {
@@ -668,12 +665,9 @@
         if (e.target === ui_.customDate && e.target.value) dispatch('setDate', { date: e.target.value });
     });
 
-    // Al salir del total a mano se vuelve a la vista normal
+    // Al salir de un campo de la línea se repinta: el otro valor derivado (p. ej. un total vaciado) vuelve a enseñarse
     root.addEventListener('focusout', (e) => {
-        if (e.target.dataset && e.target.dataset.role === 'total' && uiState.editingTotal !== null) {
-            uiState.editingTotal = null;
-            render();
-        }
+        if (e.target.dataset && (e.target.dataset.role === 'total' || e.target.dataset.role === 'dose')) render();
     });
 
     form.addEventListener('keydown', (e) => {

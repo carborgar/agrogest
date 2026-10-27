@@ -581,3 +581,61 @@ for (const c of GOLDEN.cases) {
         }
     });
 }
+
+// ── A2: total siempre editable; lo último que se toca manda ───────────────────
+
+const ferti = () => run(fresh({ type: 'fertigation', date: '2026-10-29' }), [['toggleField', { id: 1 }], ['addProduct', { productId: 6 }], ['setName', { name: 'Abonado' }]]);
+
+test('A2 editar el total deriva la dosis y marca override; editar la dosis recalcula el total y lo quita', () => {
+    let s = ferti();                                                       // 40 kg/ha × 4,2 ha = 168 kg
+    near(derive(s, DATA).lines[0].total, 168);
+    s = run(s, [['setTotal', { key: 1, total: '175' }]]);
+    let l = derive(s, DATA).lines[0];
+    assert.equal(l.override, true);
+    assert.equal(l.total, 175);
+    near(l.dose, 41.6667);                                                 // 175 / 4,2
+    s = run(s, [['setDose', { key: 1, dose: '42' }]]);                     // lo último que se tocó manda
+    l = derive(s, DATA).lines[0];
+    assert.equal(l.override, false);
+    near(l.total, 176.4);
+});
+
+test('A2 total «redondeado al envase»: 25 se envía exacto (25.0000), marcado a mano y con la dosis derivada', () => {
+    const s = run(run(fresh({ type: 'fertigation', date: '2026-10-29' }), [['toggleField', { id: 1 }], ['addProduct', { productId: 5 }], ['setName', { name: 'Ácidos' }]]),
+        [['setDose', { key: 1, dose: '5,7' }]]);                           // 5,7 L/ha × 4,2 = 23,94 L
+    near(derive(s, DATA).lines[0].total, 23.94);
+    const s2 = run(s, [['setTotal', { key: 1, total: '25' }]]);
+    const v = toFormValues(s2, DATA).lines[0];
+    assert.equal(v.total_dose, '25.0000');
+    assert.equal(v.total_overridden, 'true');
+    assert.equal(v.dose, '5.9524');                                        // 25 / 4,2
+});
+
+test('A2 vaciar el total vuelve a calcularlo desde la dosis que había (sin override)', () => {
+    let s = run(ferti(), [['setDose', { key: 1, dose: '42' }], ['setTotal', { key: 1, total: '175' }]]);
+    assert.equal(derive(s, DATA).lines[0].override, true);
+    s = run(s, [['setTotal', { key: 1, total: '' }]]);
+    const l = derive(s, DATA).lines[0];
+    assert.equal(l.override, false);
+    assert.equal(s.lines[0].dose, '42');
+    near(l.total, 176.4);
+    // vaciar el total de una línea que no estaba a mano no hace nada
+    assert.equal(run(ferti(), [['setTotal', { key: 1, total: '' }]]).lines[0].override, false);
+});
+
+test('A2 total con coma o punto: «175,5» y «175.5» valen lo mismo; «1.500» pide la coma', () => {
+    const t = (txt) => derive(run(ferti(), [['setTotal', { key: 1, total: txt }]]), DATA);
+    assert.equal(t('175,5').lines[0].total, 175.5);
+    assert.equal(t('175.5').lines[0].total, 175.5);
+    const amb = t('1.500');
+    assert.equal(amb.lines[0].ambiguous, true);
+    assert.deepEqual(amb.errors.products, ['Usa coma para los decimales (1,5, no 1.500).']);
+});
+
+test('A2 con varias parcelas no hay total a mano y el total mostrado es la suma', () => {
+    const s = run(ferti(), [['toggleField', { id: 2 }]]);
+    const d = derive(s, DATA);
+    assert.equal(d.canEditTotals, false);
+    near(d.lines[0].total, 40 * (4.2 + 2.8));
+    assert.equal(run(s, [['setTotal', { key: 1, total: '100' }]]).lines[0].override, false);
+});

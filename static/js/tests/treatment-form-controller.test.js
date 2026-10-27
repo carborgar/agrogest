@@ -149,3 +149,113 @@ test('B1 lo que teclea el usuario sigue sin aceptar «1.500»: pide la coma', ()
     assert.equal(p.submit().defaultPrevented, true);
     assert.match(p.q('[data-err="products"]').textContent, /coma/);
 });
+
+// ── A2: dosis y total son dos inputs siempre visibles; lo último que se toca manda ─────────────────
+
+const total = (p, i) => p.qa('.tf-line')[i || 0].querySelector('[data-role="total"]');
+const dose = (p, i) => p.qa('.tf-line')[i || 0].querySelector('[data-role="dose"]');
+
+/** Fertirrigación con Abono (solo fertirrigación): parcela A (4,2 ha). Se añade Mojante tras cambiar de tipo no: usamos Abono. */
+function fertigation() {
+    const p = create();
+    p.q('.tf-seg-btn[data-type="fertigation"]').click();
+    p.q('#tfFieldBtn').click();
+    p.q('#tfFieldsPop [data-field="1"]').click();
+    p.q('#tfFieldBtn').click();
+    p.type(p.q('#tfAddInput'), 'abono');
+    p.key(p.q('#tfAddInput'), 'Enter');
+    p.q('#tfAddClose').click();
+    p.type(p.q('#tfName'), 'Abonado');
+    return p;
+}
+
+test('A2 el total es un input siempre visible, junto a la dosis, con su unidad', () => {
+    const p = fertigation();                                  // Abono: 10 L/ha × 4,2 ha
+    assert.equal(dose(p).value, '10');
+    assert.equal(total(p).value, '42');
+    assert.equal(total(p).hidden, false);
+    assert.equal(total(p).closest('[hidden]'), null);
+    assert.equal(total(p).disabled, false);
+    assert.equal(total(p).getAttribute('inputmode'), 'decimal');
+    assert.match(p.q('.tf-total-unit').textContent, /^L$/);
+});
+
+test('A2 teclear en el total recalcula la dosis EN EL INPUT DE DOSIS sin tocar el total ni perder el foco', () => {
+    const p = fertigation();
+    const t = total(p);
+    t.focus();
+    p.type(t, '2');
+    p.type(t, '25');
+    assert.equal(p.d.activeElement, t);                       // el foco sigue en el total
+    assert.equal(t.value, '25');                              // lo tecleado no se reescribe
+    assert.equal(dose(p).value, '5,9524');                    // 25 / 4,2
+    assert.equal(p.T.state.lines[0].override, true);
+    assert.match(p.q('.tf-line-notes').textContent, /Total puesto a mano/);
+    assert.ok(p.q('[data-act="clear-total"]'));
+});
+
+test('A2 teclear en la dosis recalcula el total en su input y quita el «a mano»', () => {
+    const p = fertigation();
+    p.type(total(p), '25');
+    p.type(dose(p), '11');
+    assert.equal(p.d.activeElement, dose(p));
+    assert.equal(dose(p).value, '11');
+    assert.equal(total(p).value, '46,2');                     // 11 × 4,2
+    assert.equal(p.T.state.lines[0].override, false);
+    assert.equal(p.q('[data-act="clear-total"]'), null);
+});
+
+test('A2 vaciar el total vuelve a calcularlo desde la dosis', () => {
+    const p = fertigation();
+    p.type(total(p), '25');
+    p.type(total(p), '');
+    assert.equal(p.T.state.lines[0].override, false);
+    assert.equal(dose(p).value, '10');
+    assert.equal(p.d.activeElement, total(p));
+    p.q('#tfName').focus();                                    // al salir, el total vuelve a enseñar el calculado
+    p.w.document.activeElement.dispatchEvent(new p.w.FocusEvent('focusout', { bubbles: true }));
+    p.type(p.q('#tfName'), 'Abonado');
+    assert.equal(total(p).value, '42');
+});
+
+test('A2 «Volver a calcularlo» quita el total a mano y deja la dosis derivada', () => {
+    const p = fertigation();
+    p.type(total(p), '25');
+    p.q('[data-act="clear-total"]').focus();                   // como al tocar el botón: el total pierde el foco
+    p.q('[data-act="clear-total"]').click();
+    assert.equal(p.T.state.lines[0].override, false);
+    assert.equal(dose(p).value, '5,9524');
+    assert.equal(total(p).value, '25,0026');                   // sin total a mano la dosis se redondea hacia arriba a 3 decimales (5,953), como hace el servidor: 5,953 × 4,2
+});
+
+test('A2 con varias parcelas el total es la suma, está deshabilitado y lo explica', () => {
+    const p = fertigation();
+    p.q('#tfFieldBtn').click();
+    p.q('#tfFieldsPop [data-field="2"]').click();
+    assert.equal(total(p).disabled, true);
+    assert.equal(total(p).value, '62');                        // 10 L/ha × 6,2 ha
+    assert.equal(p.q('#tfMultiTotalNote').hidden, false);
+    assert.match(p.q('#tfMultiTotalNote').textContent, /Con varias parcelas el total se calcula por parcela/);
+    p.q('#tfFieldsPop [data-field="2"]').click();             // desmarca B y vuelve a ser editable
+    assert.equal(total(p).disabled, false);
+    assert.equal(p.q('#tfMultiTotalNote').hidden, true);
+});
+
+test('A2 envío con total a mano: total_overridden=true, total exacto 25.0000 y la dosis derivada', () => {
+    const p = fertigation();
+    p.type(total(p), '25');
+    const ev = p.submit();
+    assert.equal(ev.defaultPrevented, false);
+    assert.equal(p.field(0, 'total_overridden').value, 'true');
+    assert.equal(p.field(0, 'total_dose').value, '25.0000');
+    assert.equal(p.field(0, 'dose').value, '5.9524');
+    assert.equal(p.q('#id_type').value, 'fertigation');
+});
+
+test('A2 editar un tratamiento con total a mano: el input de total lo enseña exacto y la línea sigue «a mano»', () => {
+    const p = load('treatment_form_edit.html');
+    assert.equal(total(p, 0).value, '12,6');
+    assert.equal(total(p, 1).value, '2,1');
+    assert.equal(p.T.state.lines[1].override, true);
+    assert.equal(p.qa('[data-act="clear-total"]').length, 1);
+});
