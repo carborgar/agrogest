@@ -197,3 +197,36 @@ Sustituye `templates/farm/treatments/treatment_form.html` (hoy 1271 líneas con 
 
 - **D1 — Respetar el total a mano** en tratamientos hechos con mojado real distinto. En `TreatmentProduct.save()`, el bloque `if not is_new and self.treatment.water_per_ha_changed(): calculate_total_dose()` no se aplica si `total_overridden=True` (en ese caso se deriva la dosis del total). Test que lo demuestre (falla antes, pasa después). Sustituye el «test que documente lo que hace hoy» de la fase 1.
 - **D2 — Nombre automático con nombres completos**: hasta 3 productos válidos unidos con « + »; si pasa de 100 caracteres, cortar a 99 y añadir «…». Se rellena mientras el usuario no toque el nombre; en edición se considera tocado.
+
+---
+
+## 9. Estado de la implementación
+
+Rama `feature/formulario-tratamiento` (sin push), un commit por fase.
+
+**Resultado de las pruebas**: `pytest` 15 fallidos / 240 pasados (en `main`: 15 / 160; son los mismos 15, ninguno nuevo; +80 tests nuevos). `npm run test:js`: 93 de 93.
+
+### Hecho por fase
+
+- **Fase 0**: casos golden (`farm/tests/fixtures/treatment_calc_cases.json`, compartidos con JS) y tests de caracterización del POST actual.
+- **Fase 1**: backend. E1 a E8 y D1 con test escrito antes y visto en rojo; `total_dose` opcional si no hay total a mano; mojado real conservado al editar si el cliente no lo manda; varias parcelas al crear; `build_treatment_form_data` (datos por `json_script`, sin fetch).
+- **Fase 2**: `static/js/treatment-calc.js` (cálculo puro), probado contra los mismos casos golden que Python.
+- **Fase 3**: `static/js/treatment-form-state.js` (acciones puras, `derive()`, `toFormValues()`), incluido D2 (nombre automático).
+- **Fase 4**: plantilla nueva, controlador `treatment-form.js`, estilos `.tf-*` en `scss/custom-bootstrap.scss` (CSS recompilado y versionado), campo oculto `position`, errores del servidor por sección y por línea, tests de render y del controlador (jsdom sobre el HTML real).
+- **Fase 5**: `farm/tests/test_treatment_form_e2e.py` (ver desviaciones).
+
+### Diferencias con el plan y por qué
+
+1. **Sin Playwright ni capturas.** En este entorno no hay navegador (ni Playwright ni Chromium) y no se instalaron navegadores pesados. La prueba E2E se sustituyó por tests de vista de Django que envían el mismo POST que escribe el controlador (`toFormValues`: dosis a 3 decimales, total a 4, punto decimal) para los casos B, D, H y una alta de 3 parcelas, y comprueban en el detalle total, coste, coste/ha, cubas y dosis por cuba contra el fichero de casos. Esto cubre el contrato formulario a detalle, no el pintado.
+2. **Campo oculto `position` en cada línea** (no estaba en el plan): el orden de la cuba lo decide el POST y se renumera 0..n-1 al guardar. Sin él, quitar y añadir líneas dejaba el orden incoherente.
+3. **Inputs numéricos `type="text" inputmode="decimal"`** en lugar de `type="number"` (coma decimal española); el controlador escribe valores normalizados en los inputs reales de Django justo antes de enviar.
+4. **Alta de máquinas**: no existe pantalla; el enlace «Crear una» apunta al admin de Django y solo aparece a usuarios staff con permiso. El resto ve un mensaje para pedirlo al administrador.
+5. **`dispatch` llama directo a `S.actions[tipo]`** y no a `S.reduce`, porque el payload de `setType` usa la clave `type` y chocaba con el tipo de acción.
+6. **Fixture HTML del test del controlador** (`static/js/tests/fixtures/treatment_form_create.html`): es un render de la plantilla; si cambian ids o estructura hay que regenerarlo (el test de Django `FormPageRenderTests` avisa de ids que faltan).
+
+### Pendiente o no verificado
+
+- **Nada se ha visto en un navegador real**: maquetación a 375 px y 1280 px, barra fija, resumen sticky, hojas inferiores (offcanvas de Bootstrap), foco y teclado móvil, cambio de ancho con `matchMedia`. jsdom no calcula layout.
+- Faltan las capturas de la fase 5 (paso 3) y la comparación visual con el prototipo.
+- Los 15 tests fallidos de `main` siguen igual y no se han tocado.
+- Cuando haya navegador: repetir a mano los casos B, D, H, 3 parcelas, fertirrigación con producto no válido, editar un tratamiento hecho y un error de envío.
