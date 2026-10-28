@@ -1,7 +1,7 @@
 {% with btn_class=btn_class|default:"btn-primary" %}
 {% if split %}
 {# Variante «split»: solo el botón desplegable y el menú, para colgarlos de un .btn-group con la acción principal #}
-<button aria-expanded="false" class="btn {{ btn_class }} rounded-end border-start border-light border-opacity-50" data-bs-toggle="dropdown"
+<button aria-expanded="false" class="btn {{ btn_class }} rounded-end border-top-0 border-end-0 border-bottom-0 border-start border-light border-opacity-50" data-bs-toggle="dropdown"
         title="Más acciones" type="button">
     <i class="fa fa-ellipsis-vertical px-1" aria-hidden="true"></i><span class="visually-hidden">Más acciones</span>
 </button>
