@@ -12,7 +12,7 @@
 
 {% block content %}
 
-<div class="cmp-params">
+<div class="cmp-params card card-flat flex-row mb-3">
     <div>
         <label class="d-block mb-1" for="compareArea">Hectáreas a tratar</label>
         <input class="form-control" id="compareArea" min="0.01" step="0.01" type="number" value="1" inputmode="decimal">
@@ -25,7 +25,7 @@
         Cambia la dosis de cualquier fila para probar otras alternativas.</p>
 </div>
 
-<div class="cmp-list" id="cmpList">
+<div class="card card-flat overflow-visible" id="cmpList">
     <div class="cmp-head" aria-hidden="true">
         <span>Producto</span><span>Dosis</span><span class="cmp-r">Total</span><span class="cmp-r">Coste total</span>
         <span class="cmp-r">Coste / ha</span><span class="cmp-r">Diferencia</span><span></span>

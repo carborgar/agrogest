@@ -300,7 +300,7 @@
 </div>
 {% else %}
 
-<div class="tl-list" id="treatmentList">
+<div class="card card-flat overflow-visible" id="treatmentList">
     <div class="tl-head d-none d-md-grid" aria-hidden="true">
         <span>{% if status_tab == 'done' %}Hecho{% else %}Fecha{% endif %}</span>
         <span>Tratamiento</span>
@@ -333,7 +333,7 @@
     <i class="fa fa-plus" aria-hidden="true"></i>
 </a>
 
-<form id="deleteTreatmentForm" method="POST" style="display:none;">{% csrf_token %}</form>
+<form id="deleteTreatmentForm" method="POST" class="d-none">{% csrf_token %}</form>
 
 {% endblock %}
 

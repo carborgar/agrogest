@@ -19,21 +19,26 @@
 {% endblock %}
 
 {% block actions %}
-<div class="d-flex gap-2">
+{# Una sola botonera: en móvil .dt-actions pasa a la barra fija inferior (junto a la barra de navegación); en escritorio queda en la cabecera #}
+<div class="dt-actions d-flex">
     {% if not treatment.finish_date %}
-    <button type="button" class="btn btn-primary d-none d-md-inline-flex align-items-center gap-2"
-            onclick="finishTreatment_{{ treatment.id }}()">
-        <i class="fa fa-check"></i>Marcar como hecho
-    </button>
-    {% endif %}
+    <div class="btn-group">
+        <button type="button" class="btn btn-primary d-inline-flex align-items-center justify-content-center gap-2"
+                onclick="finishTreatment_{{ treatment.id }}()">
+            <i class="fa fa-check"></i>Marcar como hecho
+        </button>
+        {% include 'farm/treatments/_treatment_actions_dropdown.html' with treatment=treatment hide_primary=True split=True btn_class="btn-primary" %}
+    </div>
+    {% else %}
     {% include 'farm/treatments/_treatment_actions_dropdown.html' with treatment=treatment hide_primary=True btn_class="btn-outline-secondary" %}
+    {% endif %}
 </div>
 {% endblock %}
 
 {% block content %}
 
 {# ── Resumen en una franja ─────────────────────────────────────────────── #}
-<div class="dt-summary mb-3">
+<div class="dt-summary card card-flat mb-3">
     <div class="dt-cell">
         <div class="dt-label">Parcela</div>
         <div class="dt-value">{{ treatment.field.name }}</div>
@@ -52,13 +57,13 @@
         <div class="dt-value">{{ treatment.finish_date|date:"d/m/Y" }}</div>
         {% with delay=treatment.execution_delay_days %}
         {% if delay is None %}
-        <span class="dt-badge dt-tone-3"><i class="fa fa-check me-1"></i>En plazo</span>
+        <span class="badge rounded-pill px-2 lh-sm mt-1 dt-tone-3"><i class="fa fa-check me-1"></i>En plazo</span>
         {% else %}
         <div class="dt-sub">prev. {{ treatment.date|date:"d/m/Y" }}</div>
         {% if delay > 0 %}
-        <span class="dt-badge dt-tone-0">+{{ delay }} día{{ delay|pluralize }} de retraso</span>
+        <span class="badge rounded-pill px-2 lh-sm mt-1 dt-tone-0">+{{ delay }} día{{ delay|pluralize }} de retraso</span>
         {% else %}
-        <span class="dt-badge dt-tone-3">{{ delay|cut:"-" }} día{{ delay|cut:"-"|pluralize }} antes</span>
+        <span class="badge rounded-pill px-2 lh-sm mt-1 dt-tone-3">{{ delay|cut:"-" }} día{{ delay|cut:"-"|pluralize }} antes</span>
         {% endif %}
         {% endif %}
         {% endwith %}
@@ -67,11 +72,11 @@
         <div class="dt-value">{{ treatment.date|date:"d/m/Y" }}</div>
         {% with days=treatment.date|days_from_today %}
         {% if days < 0 %}
-        <span class="dt-badge dt-tone-0">{{ days|cut:"-" }} día{{ days|cut:"-"|pluralize }} de retraso</span>
+        <span class="badge rounded-pill px-2 lh-sm mt-1 dt-tone-0">{{ days|cut:"-" }} día{{ days|cut:"-"|pluralize }} de retraso</span>
         {% elif days == 0 %}
-        <span class="dt-badge dt-tone-1">Hoy</span>
+        <span class="badge rounded-pill px-2 lh-sm mt-1 dt-tone-1">Hoy</span>
         {% elif days <= 15 %}
-        <span class="dt-badge dt-tone-1">{% if days == 1 %}Mañana{% else %}En {{ days }} días{% endif %}</span>
+        <span class="badge rounded-pill px-2 lh-sm mt-1 dt-tone-1">{% if days == 1 %}Mañana{% else %}En {{ days }} días{% endif %}</span>
         {% else %}
         <div class="dt-sub">En {{ days }} días</div>
         {% endif %}
@@ -122,17 +127,10 @@
     {% include 'farm/treatments/_detail_costs.html' %}
 {% endif %}
 
-{# Móvil: acción principal fija sobre la barra de navegación #}
-{% if not treatment.finish_date %}
-<div class="dt-sticky d-md-none">
-    <button type="button" class="btn btn-primary w-100" onclick="finishTreatment_{{ treatment.id }}()">
-        <i class="fa fa-check me-2"></i>Marcar como hecho
-    </button>
-</div>
+{# Móvil: la barra fija inferior (.dt-actions) tapa el final de la página #}
 <div class="dt-sticky-spacer d-md-none"></div>
-{% endif %}
 
-<form action="{% url 'treatment-delete' treatment.id %}" id="deleteForm" method="POST" style="display:none;">
+<form action="{% url 'treatment-delete' treatment.id %}" id="deleteForm" method="POST" class="d-none">
     {% csrf_token %}
 </form>
 

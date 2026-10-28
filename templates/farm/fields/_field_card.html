@@ -14,7 +14,7 @@ Toda la tarjeta lleva al detalle; el menú ⋮ queda por encima del enlace.
             <button class="pl-tool" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Acciones" aria-label="Acciones de {{ field.name }}">
                 <i class="fa fa-ellipsis-vertical"></i>
             </button>
-            <ul class="dropdown-menu dropdown-menu-end">
+            <ul class="dropdown-menu dropdown-menu-end dropdown-sheet">
                 <li><a class="dropdown-item" href="{% url 'field-detail' field.id %}"><i class="fa fa-info-circle me-2 text-primary"></i>Ver detalles</a></li>
                 <li><a class="dropdown-item" href="{% url 'treatment-list' %}?field={{ field.id }}"><i class="fa fa-flask me-2 text-primary"></i>Ver tratamientos</a></li>
                 <li><hr class="dropdown-divider"></li>

@@ -13,7 +13,7 @@
 
 {% block content %}
 {% if not total_count %}
-<div class="dt-card hm-empty">
+<div class="card card-flat hm-empty">
     <span class="hm-empty-icon"><i class="fa fa-check" aria-hidden="true"></i></span>
     <b>No hay tratamientos pendientes</b>
     <span>Cuando programes alguno, aquí verás qué productos preparar.</span>
@@ -23,7 +23,7 @@
 
     {# ── Selección de tratamientos: agrupados como en el listado ── #}
     <div class="col-12 col-md-5 col-xl-4 pp-sel-col">
-        <section class="dt-card" aria-labelledby="pp-sel-title">
+        <section class="card card-flat" aria-labelledby="pp-sel-title">
             <div class="dt-card-head d-none d-md-flex">
                 <h2 class="dt-card-title" id="pp-sel-title">Tratamientos</h2>
                 <span class="dt-muted fw-semibold" data-pp-count></span>
@@ -69,7 +69,7 @@
 
     {# ── Resultado: se calcula en el navegador con pp-data ── #}
     <div class="col-12 col-md-7 col-xl-8">
-        <section class="dt-card" aria-labelledby="pp-res-title">
+        <section class="card card-flat" aria-labelledby="pp-res-title">
             <div class="dt-card-head">
                 <div>
                     <h2 class="dt-card-title" id="pp-res-title">Qué preparar</h2>

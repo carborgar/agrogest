@@ -205,7 +205,6 @@ a.filter-active-chip:hover {
 }
 
 /* ── Lista ── */
-.tl-list { background: #fff; border: 1px solid var(--bs-border-color); border-radius: 12px; }
 .tl-head { grid-template-columns: var(--tl-cols); gap: 1rem; padding: .55rem 1rem; border-bottom: 1px solid var(--tl-head-line); font-size: .72rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--tl-muted); background: var(--tl-head-bg); border-radius: 12px 12px 0 0; }
 
 .tl-group-header { padding: .85rem 1rem .35rem; font-size: .75rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
@@ -346,22 +345,22 @@ a.filter-active-chip:hover {
 
 /* Resumen */
 /* Líneas entre celdas con box-shadow: el overflow recorta las de los bordes, así funciona con cualquier número de celdas visibles */
-.dt-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: hidden; background: #fff; border: 1px solid var(--bs-border-color); border-radius: 12px; }
+.dt-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .dt-cell { padding: .6rem .8rem; box-shadow: 1px 0 0 var(--tl-line), 0 1px 0 var(--tl-line); }
 /* En móvil, con el tratamiento pendiente, el coste se consulta en su bloque: el resumen deja sitio a la preparación */
 @media (max-width: 767.98px) { .dt-cell--desk { display: none; } }
 .dt-label { font-size: .7rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--tl-muted); }
 .dt-value { margin-top: .15rem; font-size: 1rem; font-weight: 700; color: var(--tl-ink); }
 .dt-sub { font-size: .78rem; font-weight: 600; color: var(--tl-muted); }
-/* Retraso / adelanto / «Hoy»: pastilla de color para que salte a la vista */
-.dt-badge { display: inline-block; margin-top: .3rem; padding: .15rem .55rem; border-radius: 999px; font-size: .75rem; font-weight: 700; white-space: nowrap; }
 @media (min-width: 768px) {
     .dt-summary { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
     .dt-value { font-size: 1.15rem; }
 }
 
 /* Tarjetas de sección */
-.dt-card { overflow: hidden; background: #fff; border: 1px solid var(--bs-border-color); border-radius: 12px; }
+/* Variante de .card (styles.css: radio 24 px, sombra, margen inferior) para listados y paneles densos:
+   borde de 1 px, radio de 12 px (= rounded-3 de Bootstrap), sin sombra ni margen. overflow:hidden ya viene de .card */
+.card.card-flat { margin-bottom: 0; border: 1px solid var(--bs-border-color); border-radius: var(--bs-border-radius-lg); box-shadow: none; }
 .dt-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; width: 100%; padding: .85rem 1rem; border: 0; border-bottom: 1px solid var(--bs-border-color); background: #fff; text-align: left; color: var(--tl-ink); }
 .dt-card-title { margin: 0; font-size: 1.05rem; font-weight: 700; }
 .dt-card-hint { margin-left: .5rem; font-size: .8rem; color: var(--tl-muted); white-space: nowrap; }
@@ -419,8 +418,17 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
 .dt-prep:has(#dtLoadLast:checked) .dt-q-full { display: none; }
 
 /* Acción principal fija en móvil, encima de la barra inferior */
-.dt-sticky { position: fixed; left: 0; right: 0; bottom: calc(58px + env(safe-area-inset-bottom)); z-index: 1029; padding: .6rem 1rem; background: rgba(255, 255, 255, .96); border-top: 1px solid var(--bs-border-color); box-shadow: 0 -4px 16px rgba(0, 0, 0, .06); }
-.dt-sticky .btn { height: 48px; font-weight: 700; }
+/* Botonera del detalle: en móvil es una barra fija sobre la navegación inferior; en escritorio, la cabecera */
+@media (max-width: 767.98px) {
+    .dt-actions { position: fixed; left: 0; right: 0; bottom: calc(58px + env(safe-area-inset-bottom)); z-index: 1029; padding: .6rem 1rem; background: rgba(255, 255, 255, .96); border-top: 1px solid var(--bs-border-color); box-shadow: 0 -4px 16px rgba(0, 0, 0, .06); }
+    .dt-actions .btn { height: 48px; font-weight: 700; }
+    .dt-actions .btn-group { width: 100%; }
+    .dt-actions .btn-group > .btn:first-child { flex: 1 1 auto; }
+    .dt-actions .btn-group > .btn:last-of-type:not(:first-child) { flex: 0 0 auto; padding-inline: 1rem; }
+    .dt-actions > .dropdown { flex: 1; }
+    .dt-actions > .dropdown .btn { width: 100%; }
+    .page-header-main:has(.dt-actions) { gap: 0; }
+}
 .dt-sticky-spacer { height: 72px; }
 
 /* ═══════════════════════════════════════════════
@@ -473,7 +481,7 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
 .hm-group + .tl-item { border-top: 0; }
 .hm-group-more { font-size: .8rem; font-weight: 600; letter-spacing: 0; text-transform: none; text-decoration: none; }
 .hm-group-empty { padding: .75rem 1rem; font-size: .9rem; color: var(--tl-muted); border-bottom: 1px solid var(--tl-line); }
-.dt-card > :last-child { border-bottom: 0; }
+.card.card-flat > :last-child { border-bottom: 0; }
 
 .hm-empty { display: flex; flex-direction: column; align-items: center; gap: .35rem; padding: 2.5rem 1rem; text-align: center; color: var(--tl-muted); }
 .hm-empty b { font-size: 1rem; color: var(--tl-ink); }
@@ -621,7 +629,6 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
 
 /* Lista */
 .pl-count { margin: 0 0 .4rem .25rem; font-size: .85rem; color: var(--tl-muted); }
-.pl-list { background: #fff; border: 1px solid var(--bs-border-color); border-radius: 12px; }
 .pl-head { display: none; grid-template-columns: var(--pl-cols); gap: 1rem; padding: .55rem 1rem .55rem .5rem; border-bottom: 1px solid var(--tl-head-line); border-radius: 12px 12px 0 0; background: var(--tl-head-bg); font-size: .72rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--tl-muted); }
 .pl-head .pl-r { text-align: right; }
 .pl-item { border-top: 1px solid var(--tl-line); }
@@ -642,7 +649,6 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
 .pl-main { grid-area: main; min-width: 0; }
 .pl-name { display: inline; font-size: .95rem; font-weight: 700; color: var(--tl-ink); text-decoration: none; overflow-wrap: anywhere; }
 .pl-name:hover { color: var(--bs-primary); }
-.pl-badge { display: inline-block; margin-left: .35rem; padding: .05rem .45rem; border-radius: 999px; background: #E7EAE4; color: #475048; font-size: .68rem; font-weight: 700; vertical-align: middle; }
 .pl-type { display: block; overflow: hidden; font-size: .8rem; color: var(--tl-muted); white-space: nowrap; text-overflow: ellipsis; }
 .pl-doses { grid-area: doses; display: flex; flex-wrap: wrap; gap: .1rem .65rem; font-size: .82rem; color: var(--tl-muted); }
 .pl-nodose { font-weight: 600; color: var(--tl-0-fg); }
@@ -654,8 +660,6 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
 .pl-trend { display: block; font-size: .72rem; font-weight: 700; }
 .pl-trend--up { color: var(--tl-0-fg); }
 .pl-trend--down { color: var(--tl-3-fg); }
-.pl-noprice { display: inline-block; padding: .2rem .65rem; border-radius: 999px; background: var(--tl-1-bg); color: var(--tl-1-fg); font-size: .75rem; font-weight: 700; text-decoration: none; }
-.pl-noprice:hover { color: var(--tl-1-fg); filter: brightness(.96); }
 .pl-cost { grid-area: cost; display: flex; flex-direction: column; align-items: flex-end; font-size: .8rem; color: var(--tl-muted); line-height: 1.25; }
 .pl-cost b { font-size: .88rem; color: var(--tl-ink); }
 /* Etiquetas solo móvil (en escritorio ya las dan las cabeceras de columna) */
@@ -703,11 +707,10 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
    COMPARATIVA (cmp-*)
 ═══════════════════════════════════════════════ */
 :root { --cmp-cols: minmax(0, 2fr) 11rem 6.5rem 7.5rem 7.5rem 8.5rem 2.75rem; }
-.cmp-params { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 1rem; padding: 1rem; margin-bottom: 1rem; background: #fff; border: 1px solid var(--bs-border-color); border-radius: 12px; }
+.cmp-params { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 1rem; padding: 1rem; }
 .cmp-params label { font-size: .8rem; font-weight: 600; color: var(--tl-muted); }
 .cmp-params .form-control { width: 9rem; }
 .cmp-params p { flex: 1 1 260px; margin: 0; font-size: .82rem; color: var(--tl-muted); }
-.cmp-list { background: #fff; border: 1px solid var(--bs-border-color); border-radius: 12px; }
 .cmp-head { display: none; grid-template-columns: var(--cmp-cols); gap: 1rem; padding: .55rem 1rem; border-bottom: 1px solid var(--tl-head-line); border-radius: 12px 12px 0 0; font-size: .72rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--tl-muted); }
 .cmp-head .cmp-r { text-align: right; }
 .cmp-row { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem 1rem; align-items: center; padding: .85rem 1rem; border-top: 1px solid var(--tl-line); }
@@ -743,4 +746,18 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
     .cmp-row > .cmp-cell:first-child { padding-right: 0; }
     .cmp-label { display: none; }
     .cmp-r { text-align: right; }
+}
+
+/* ═══════════════════════════════════════════════
+   MENÚS DE ACCIONES COMO HOJA INFERIOR (móvil)
+   Añadir .dropdown-sheet al .dropdown-menu de cualquier menú de acciones (⋮). En móvil se abre fijo abajo,
+   con el fondo oscurecido y por encima de la navegación; en escritorio sigue siendo el desplegable normal.
+   Las filas/contenedores con z-index propio se elevan mientras el menú está abierto.
+═══════════════════════════════════════════════ */
+@media (max-width: 767.98px) {
+    .dropdown-menu.dropdown-sheet { position: fixed !important; inset: auto 0 0 0 !important; transform: none !important; margin: 0 !important; width: 100%; z-index: 1050; border: 0; border-radius: 16px 16px 0 0; padding: .5rem .5rem calc(.5rem + env(safe-area-inset-bottom)); box-shadow: 0 -8px 32px rgba(0, 0, 0, .18); }
+    .dropdown-sheet .dropdown-item { padding: .8rem 1rem; border-radius: 8px; }
+    *:has(> .dropdown-sheet.show)::before { content: ''; position: fixed; inset: 0; z-index: 1049; background: rgba(0, 0, 0, .4); }
+    .dropdown:has(> .dropdown-sheet.show), .dt-actions:has(.dropdown-sheet.show), .tl-item:has(.dropdown-sheet.show), .pl-item:has(.dropdown-sheet.show),
+    .pl-group:has(.dropdown-sheet.show), .pl-field:has(.dropdown-sheet.show) { z-index: 1050 !important; }
 }
