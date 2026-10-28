@@ -243,7 +243,7 @@ $tf-error-bg: #FDECEA;
 .tf-note--warn { color: $tf-warn-fg; background: $tf-warn-bg; }
 .tf-err { font-size: 0.8125rem; color: $tf-error; display: flex; flex-direction: column; gap: 2px; }
 .tf-err:empty { display: none; }
-.tf-err > span::before { content: "\F333"; font-family: "bootstrap-icons"; margin-right: 6px; }
+.tf-err > span::before { content: "\F333"; font-family: "bootstrap-icons", sans-serif; margin-right: 6px; }
 
 .tf-inp {
   height: 48px;
