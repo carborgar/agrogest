@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static static_versioned %}
 
 {% block title %}{{ form_title }} · AgroGest{% endblock %}
 
@@ -232,7 +232,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/treatment-calc.js' %}"></script>
-<script src="{% static 'js/treatment-form-state.js' %}"></script>
-<script src="{% static 'js/treatment-form.js' %}"></script>
+<script src="{% static_v 'js/treatment-calc.js' %}"></script>
+<script src="{% static_v 'js/treatment-form-state.js' %}"></script>
+<script src="{% static_v 'js/treatment-form.js' %}"></script>
 {% endblock %}
