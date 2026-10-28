@@ -25,11 +25,11 @@
     {% endfor %}
 </nav>
 
-{# Desktop: Qué toca | producto y tiempo | Hecho últimamente. Móvil: apilado, con lo hecho arriba para que no quede enterrado #}
-<div class="hm-cols">
+{# Desktop (xl): Qué toca | producto y tiempo | Hecho últimamente. Debajo de xl se apilan; en móvil lo hecho va arriba (order-first) para que no quede enterrado #}
+<div class="row g-3 align-items-start">
 
     {# ── Qué toca ── #}
-    <div class="hm-col-todo">
+    <div class="col-12 col-xl-6">
         <section aria-labelledby="hm-todo-title" class="dt-card">
             <div class="dt-card-head">
                 <h2 class="dt-card-title" id="hm-todo-title">Qué toca</h2>
@@ -66,7 +66,7 @@
     </div>
 
     {# ── Producto y tiempo ── #}
-    <div class="hm-col-side">
+    <div class="col-12 col-xl-3 d-flex flex-column gap-3">
 
         <section aria-labelledby="hm-prod-title" class="dt-card">
             <div class="dt-card-head">
@@ -114,7 +114,7 @@
     </div>
 
     {# ── Hecho últimamente: en móvil se ven los 3 últimos (con el total en el título) para que se note que hay más ── #}
-    <div class="hm-col-done">
+    <div class="col-12 col-xl-3 order-first order-md-0">
         <section aria-labelledby="hm-recent-title" class="dt-card">
             <div class="dt-card-head">
                 <div>
@@ -124,9 +124,11 @@
                 {% if recent_total %}<a class="small fw-semibold text-decoration-none" href="{{ recent_url }}">Ver todos</a>{% endif %}
             </div>
             {% for t in recent %}
-            <a class="hm-done{% if forloop.counter > 3 %} d-none d-md-flex{% endif %}" href="{% url 'treatment-detail' t.id %}">
-                <span class="hm-done-when{% if t.finish_date|relative_days == 'hoy' or t.finish_date|relative_days == 'ayer' %} hm-done-when--new{% endif %}"><i aria-hidden="true" class="fa fa-check"></i>{{ t.finish_date|relative_days|capfirst }}</span>
-                <span class="hm-done-what"><b>{{ t.field.name }}</b> <span>· {{ t.name }}</span></span>
+            <a class="hm-done {% if forloop.counter > 3 %}d-none d-md-flex{% else %}d-flex{% endif %} align-items-baseline gap-2 px-3 py-2 text-body text-decoration-none" href="{% url 'treatment-detail' t.id %}">
+                {% with when=t.finish_date|relative_days %}
+                <span class="hm-done-when flex-shrink-0 small text-nowrap {% if when == 'hoy' or when == 'ayer' %}hm-done-when--new fw-bold{% else %}text-muted fw-semibold{% endif %}"><i aria-hidden="true" class="fa fa-check me-1"></i>{{ when|capfirst }}</span>
+                {% endwith %}
+                <span class="text-truncate"><b>{{ t.field.name }}</b> <span class="text-muted">· {{ t.name }}</span></span>
             </a>
             {% empty %}
             <div class="hm-group-empty">Nada finalizado en los últimos {{ recent_days }} días.</div>

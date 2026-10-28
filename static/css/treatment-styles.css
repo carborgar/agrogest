@@ -449,24 +449,13 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
    INICIO (hm-*): chips de estado, «Qué toca», productos y tiempo.
    La fila de tratamiento es la misma del listado (tl-*); aquí solo lo que es propio de Inicio.
 ═══════════════════════════════════════════════ */
-/* Inicio en columnas: Qué toca | producto y tiempo | Hecho últimamente (el orden del HTML). Con
-   flex-wrap las columnas pasan debajo cuando no caben; en móvil lo hecho sube arriba de Qué toca
-   para que no quede enterrado */
-.hm-cols { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 1rem; }
-.hm-col-todo { flex: 2 1 480px; min-width: 0; }
-.hm-col-side { flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 1rem; }
-.hm-col-done { flex: 1 1 280px; min-width: 0; }
-@media (max-width: 767.98px) {
-    .hm-col-done { order: -1; }
-}
-/* Hecho últimamente: una línea por tratamiento finalizado */
-.hm-done { display: flex; align-items: baseline; gap: .6rem; min-height: 44px; padding: .5rem 1rem; border-bottom: 1px solid var(--tl-line); color: var(--tl-ink); text-decoration: none; }
-.hm-done:hover { background: var(--tl-soft); color: var(--tl-ink); }
-.hm-done-when { flex: none; min-width: 5.2rem; font-size: .8rem; font-weight: 600; white-space: nowrap; color: var(--tl-muted); }
-.hm-done-when i { margin-right: .3rem; font-size: .7rem; }
-.hm-done-when--new { color: var(--tl-3-fg); font-weight: 700; }
-.hm-done-what { min-width: 0; overflow: hidden; font-size: .9rem; text-overflow: ellipsis; white-space: nowrap; }
-.hm-done-what span { color: var(--tl-muted); }
+/* Hecho últimamente: una línea por tratamiento finalizado. El resto (flex, huecos, texto) son utilidades
+   de Bootstrap en la plantilla; aquí solo lo que Bootstrap no tiene: la altura táctil, el filete y el
+   hover con los tonos de la app, el ancho que alinea los nombres y el verde de «hoy/ayer» */
+.hm-done { min-height: 44px; border-bottom: 1px solid var(--tl-line); }
+.hm-done:hover { background: var(--tl-soft); }
+.hm-done-when { min-width: 5.2rem; }
+.hm-done-when--new { color: var(--tl-3-fg); }
 
 .hm-chips { display: flex; gap: .5rem; margin-bottom: 1rem; overflow-x: auto; scrollbar-width: none; }
 .hm-chips::-webkit-scrollbar { display: none; }
