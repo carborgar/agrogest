@@ -1,6 +1,6 @@
 {% load custom_filters %}
 {# Costes por producto. Se separan de la preparación: el coste es del tratamiento entero, no de una cuba. #}
-<section class="dt-card mb-3">
+<section class="card card-flat mb-3">
     <div class="dt-card-head">
         <h2 class="dt-card-title">Costes</h2>
         {% if treatment.is_partial_treatment %}<span class="dt-card-hint">Sobre {{ treatment.applied_area }} ha</span>{% endif %}

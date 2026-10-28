@@ -30,7 +30,7 @@
 
     {# ── Qué toca ── #}
     <div class="col-12 col-xl-6">
-        <section aria-labelledby="hm-todo-title" class="dt-card">
+        <section aria-labelledby="hm-todo-title" class="card card-flat">
             <div class="dt-card-head">
                 <h2 class="dt-card-title" id="hm-todo-title">Qué toca</h2>
                 <a class="small fw-semibold text-decoration-none" href="{% url 'treatment-calendar' %}">Calendario</a>
@@ -68,7 +68,7 @@
     {# ── Producto y tiempo ── #}
     <div class="col-12 col-xl-3 d-flex flex-column gap-3">
 
-        <section aria-labelledby="hm-prod-title" class="dt-card">
+        <section aria-labelledby="hm-prod-title" class="card card-flat">
             <div class="dt-card-head">
                 <div>
                     <h2 class="dt-card-title" id="hm-prod-title">Producto que vas a necesitar</h2>
@@ -94,7 +94,7 @@
 
         {% if show_weather %}
         <div aria-busy="true" class="hm-weather" data-url="{% url 'api-weather-summary' %}" id="hmWeather">
-            <section aria-label="Tiempo para tratar: cargando" class="dt-card">
+            <section aria-label="Tiempo para tratar: cargando" class="card card-flat">
                 <div class="dt-card-head">
                     <div>
                         <h2 class="dt-card-title">Tiempo para tratar</h2>
@@ -115,7 +115,7 @@
 
     {# ── Hecho últimamente: en móvil se ven los 3 últimos (con el total en el título) para que se note que hay más ── #}
     <div class="col-12 col-xl-3 order-first order-md-0">
-        <section aria-labelledby="hm-recent-title" class="dt-card">
+        <section aria-labelledby="hm-recent-title" class="card card-flat">
             <div class="dt-card-head">
                 <div>
                     <h2 class="dt-card-title" id="hm-recent-title">Hecho últimamente</h2>
@@ -189,7 +189,7 @@
 
         // Si falla, se dice en vez de quitar la tarjeta: así no parece que no haya tiempo
         const failCard = (msg) => `
-            <section class="dt-card" aria-label="Tiempo para tratar">
+            <section class="card card-flat" aria-label="Tiempo para tratar">
                 <div class="dt-card-head">
                     <h2 class="dt-card-title">Tiempo para tratar</h2>
                     <a class="small fw-semibold text-decoration-none" href="{% url 'weather-overview' %}">El Tiempo</a>
@@ -200,7 +200,7 @@
         const card = (m) => {
             const days = m.daily.filter(d => LABELS[d.date] && AgroWeather.upcomingHours(d, now).length);
             if (!days.length) return '';
-            return `<section class="dt-card" aria-label="Tiempo para tratar en ${esc(m.name)}">
+            return `<section class="card card-flat" aria-label="Tiempo para tratar en ${esc(m.name)}">
                 <div class="dt-card-head">
                     <div>
                         <h2 class="dt-card-title">Tiempo para tratar</h2>

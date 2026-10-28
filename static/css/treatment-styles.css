@@ -361,7 +361,9 @@ a.filter-active-chip:hover {
 }
 
 /* Tarjetas de sección */
-.dt-card { overflow: hidden; background: #fff; border: 1px solid var(--bs-border-color); border-radius: 12px; }
+/* Variante de .card (styles.css: radio 24 px, sombra, margen inferior) para listados y paneles densos:
+   borde de 1 px, radio de 12 px (= rounded-3 de Bootstrap), sin sombra ni margen. overflow:hidden ya viene de .card */
+.card.card-flat { margin-bottom: 0; border: 1px solid var(--bs-border-color); border-radius: var(--bs-border-radius-lg); box-shadow: none; }
 .dt-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; width: 100%; padding: .85rem 1rem; border: 0; border-bottom: 1px solid var(--bs-border-color); background: #fff; text-align: left; color: var(--tl-ink); }
 .dt-card-title { margin: 0; font-size: 1.05rem; font-weight: 700; }
 .dt-card-hint { margin-left: .5rem; font-size: .8rem; color: var(--tl-muted); white-space: nowrap; }
@@ -473,7 +475,7 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
 .hm-group + .tl-item { border-top: 0; }
 .hm-group-more { font-size: .8rem; font-weight: 600; letter-spacing: 0; text-transform: none; text-decoration: none; }
 .hm-group-empty { padding: .75rem 1rem; font-size: .9rem; color: var(--tl-muted); border-bottom: 1px solid var(--tl-line); }
-.dt-card > :last-child { border-bottom: 0; }
+.card.card-flat > :last-child { border-bottom: 0; }
 
 .hm-empty { display: flex; flex-direction: column; align-items: center; gap: .35rem; padding: 2.5rem 1rem; text-align: center; color: var(--tl-muted); }
 .hm-empty b { font-size: 1rem; color: var(--tl-ink); }
