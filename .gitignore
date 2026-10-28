@@ -146,3 +146,6 @@ node_modules/
 #static files from collecstatic
 staticfiles/
 report.html
+
+# Salidas de Claude (Cowork): capturas y previsualizaciones, no son código
+Claude outputs/
