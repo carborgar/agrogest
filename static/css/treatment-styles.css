@@ -424,7 +424,7 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
     .dt-actions .btn { height: 48px; font-weight: 700; }
     .dt-actions .btn-group { width: 100%; }
     .dt-actions .btn-group > .btn:first-child { flex: 1 1 auto; }
-    .dt-actions .dropdown-toggle-split { flex: 0 0 auto; padding-inline: 1rem; }
+    .dt-actions .btn-group > .btn:last-of-type:not(:first-child) { flex: 0 0 auto; padding-inline: 1rem; }
     .dt-actions > .dropdown { flex: 1; }
     .dt-actions > .dropdown .btn { width: 100%; }
     .page-header-main:has(.dt-actions) { gap: 0; }
