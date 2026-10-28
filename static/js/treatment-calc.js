@@ -234,17 +234,17 @@
         return null;
     }
 
-    /** TreatmentProduct.calculate_dose_from_total (4 decimales, mitad al par). */
+    /** TreatmentProduct.calculate_dose_from_total (3 decimales, mitad al par). */
     function doseFromTotal(total, doseType, area, waterPerHa) {
         if (!isNum(total) || total < 0 || !positive(area)) return null;
         const kind = doseKind(doseType);
         const t = toDec(total);
         const a = toDec(area);
-        if (kind === 'ha') return dToNumber(dDivRound(t, a, 4));
+        if (kind === 'ha') return dToNumber(dDivRound(t, a, 3));
         if (!positive(waterPerHa)) return null;
         const totalWater = dMul(toDec(waterPerHa), a);
-        if (kind === '1000l') return dToNumber(dDivRound({ n: t.n * 1000n, s: t.s }, totalWater, 4));
-        if (kind === 'pct') return dToNumber(dDivRound({ n: t.n * 100n, s: t.s }, totalWater, 4));
+        if (kind === '1000l') return dToNumber(dDivRound({ n: t.n * 1000n, s: t.s }, totalWater, 3));
+        if (kind === 'pct') return dToNumber(dDivRound({ n: t.n * 100n, s: t.s }, totalWater, 3));
         return null;
     }
 

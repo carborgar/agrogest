@@ -23,7 +23,7 @@ test('treatment-calc.js coincide exactamente con el backend en todos los casos a
         const price = Number(c.price);
         let total, dose;
         if (c.total_override) {
-            total = Number(c.total_override);
+            total = calc.roundTo(Number(c.total_override), 2);   // total a mano: 2 decimales
             dose = calc.doseFromTotal(total, c.dose_type, area, water);
         } else {
             dose = Number(c.dose);

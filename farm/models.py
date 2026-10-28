@@ -758,6 +758,8 @@ class TreatmentProduct(OrganizationOwnedModel):
             # El usuario puso el total a mano (también en líneas nuevas): el total manda
             # y la dosis se deriva de él con el mojado vigente (el real si lo hay).
             # Necesario para que get_dose_per_load y la carga parcial sigan funcionando.
+            # El total a mano se guarda a 2 decimales (no se puede medir más fino en el campo).
+            self.total_dose = _round(_d(self.total_dose), 2)
             self.calculate_dose_from_total()
         else:
             # Fuente de verdad: dose → calculamos total (también cuando cambia el mojado)
@@ -815,7 +817,7 @@ class TreatmentProduct(OrganizationOwnedModel):
         else:
             result = Decimal(0)
 
-        self.dose = _round(result, 4)
+        self.dose = _round(result, 3)  # 3 decimales, como la dosis tecleada (clean_dose)
 
 
 class Expense(OrganizationOwnedModel):

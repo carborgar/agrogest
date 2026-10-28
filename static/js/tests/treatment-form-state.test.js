@@ -118,19 +118,19 @@ test('R3 total a mano: marca override y deriva la dosis', () => {
     near(l.dose, 2.381);
     near(l.cost, 18);                                 // 10 kg × 1,8 €
     const v = toFormValues(s, DATA).lines[0];
-    assert.deepEqual([v.total_overridden, v.total_dose, v.dose], ['true', '10.0000', '2.3810']);
+    assert.deepEqual([v.total_overridden, v.total_dose, v.dose], ['true', '10.00', '2.381']);
 });
 
 test('R3 con total a mano, cambiar mojado, área parcial o máquina mantiene el total y rederiva la dosis', () => {
     // L/1000L: la dosis depende del mojado
     let s = run(fresh({ machineId: 1, water: '1000' }), [['toggleField', { id: 1 }], ['addProduct', { productId: 2 }]]);
     s = run(s, [['setTotal', { key: 1, total: '5' }]]);
-    near(derive(s, DATA).lines[0].dose, 1.1905);
+    near(derive(s, DATA).lines[0].dose, 1.19);
 
     s = run(s, [['setWater', { water: '800' }]]);
     let l = derive(s, DATA).lines[0];
     assert.equal(l.total, 5);
-    near(l.dose, 5 * 1000 / (4.2 * 800));
+    near(l.dose, 1.488);
 
     s = run(s, [['setPartial', { partial: true }], ['setAppliedArea', { area: '2' }]]);
     l = derive(s, DATA).lines[0];
@@ -144,7 +144,7 @@ test('R3 con total a mano, cambiar mojado, área parcial o máquina mantiene el 
     s = run(s, [['setDone', { done: true }], ['setRealWater', { water: '1100' }]]);
     l = derive(s, DATA).lines[0];
     assert.equal(l.total, 5);
-    near(l.dose, 5 * 1000 / (2 * 1100));
+    near(l.dose, 2.273);
 });
 
 test('R3 «restablecer dosis» deja la dosis recomendada (ronda 4: antes dejaba la derivada del total)', () => {
@@ -596,22 +596,22 @@ test('A2 editar el total deriva la dosis y marca override; editar la dosis recal
     let l = derive(s, DATA).lines[0];
     assert.equal(l.override, true);
     assert.equal(l.total, 175);
-    near(l.dose, 41.6667);                                                 // 175 / 4,2
+    near(l.dose, 41.667);                                                 // 175 / 4,2
     s = run(s, [['setDose', { key: 1, dose: '42' }]]);                     // lo último que se tocó manda
     l = derive(s, DATA).lines[0];
     assert.equal(l.override, false);
     near(l.total, 176.4);
 });
 
-test('A2 total «redondeado al envase»: 25 se envía exacto (25.0000), marcado a mano y con la dosis derivada', () => {
+test('A2 total «redondeado al envase»: 25 se envía exacto (25.00), marcado a mano y con la dosis derivada', () => {
     const s = run(run(fresh({ type: 'fertigation', date: '2026-10-29' }), [['toggleField', { id: 1 }], ['addProduct', { productId: 5 }], ['setName', { name: 'Ácidos' }]]),
         [['setDose', { key: 1, dose: '5,7' }]]);                           // 5,7 L/ha × 4,2 = 23,94 L
     near(derive(s, DATA).lines[0].total, 23.94);
     const s2 = run(s, [['setTotal', { key: 1, total: '25' }]]);
     const v = toFormValues(s2, DATA).lines[0];
-    assert.equal(v.total_dose, '25.0000');
+    assert.equal(v.total_dose, '25.00');
     assert.equal(v.total_overridden, 'true');
-    assert.equal(v.dose, '5.9524');                                        // 25 / 4,2
+    assert.equal(v.dose, '5.952');                                        // 25 / 4,2
 });
 
 test('A2 vaciar el total vuelve a calcularlo desde la dosis que había (sin override)', () => {
@@ -711,7 +711,7 @@ test('R4 sin data.defaultWater no se inventa ningún mojado', () => {
 test('R4 editar el total sin tocar el mojado: dosis y por máquina salen calculados', () => {
     let s = run(fresh({ machineId: 1 }, WITH_DEFAULT), [['toggleField', { id: 1 }], ['addProduct', { productId: 2 }], ['setTotal', { key: 1, total: '25' }]], WITH_DEFAULT);
     const l = derive(s, WITH_DEFAULT).lines[0];
-    assert.equal(l.dose, 5.9524);                                  // 25 × 1000 / (1000 × 4,2)
+    assert.equal(l.dose, 5.952);                                  // 25 × 1000 / (1000 × 4,2)
     assert.ok(l.perLoad !== null);
     assert.equal(l.needsWater, false);
 });

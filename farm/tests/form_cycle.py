@@ -71,10 +71,10 @@ class _Harness:
 
 # ── Formato como lo ve el usuario (es-ES) ─────────────────────────────────────
 
-def es(value, max_decimals=4):
-    """Número → texto como lo enseña el formulario: coma decimal, sin miles, sin ceros finales (máx. 4 decimales)."""
+def es(value, max_decimals=4, rounding=ROUND_HALF_EVEN):
+    """Número → texto como lo enseña el formulario: coma decimal, sin miles, sin ceros finales (máx. 4 decimales). El total se enseña a 2 decimales con la mitad hacia arriba (Intl/floatformat); el guardado a mano ya viene a 2."""
     d = Decimal(str(value))
-    d = d.quantize(Decimal(1).scaleb(-max_decimals), rounding=ROUND_HALF_EVEN)
+    d = d.quantize(Decimal(1).scaleb(-max_decimals), rounding=rounding)
     text = format(d, 'f')
     if '.' in text:
         text = text.rstrip('0').rstrip('.')
@@ -262,7 +262,7 @@ class FormCycleTestCase(TestCase):
         for n, (tp, shown) in enumerate(zip(lines, view['lines']), start=1):
             tag = f'{context} línea {n} ({shown["name"]})' + (f' tecleado={typed}' if typed is not None else '')
             self.assertEqual(shown['dose'], es(tp.dose), f'{tag}: dosis guardada={tp.dose}, mostrada={shown["dose"]}')
-            self.assertEqual(shown['total'], es(tp.total_dose), f'{tag}: total guardado={tp.total_dose}, mostrado={shown["total"]}')
+            self.assertEqual(shown['total'], es(tp.total_dose, 2, ROUND_HALF_UP), f'{tag}: total guardado={tp.total_dose}, mostrado={shown["total"]}')
             self.assertEqual(shown['cost'], eur(tp.total_price), f'{tag}: coste guardado={tp.total_price}, mostrado={shown["cost"]}')
             self.assertEqual(shown['manual'], tp.total_overridden, f'{tag}: «a mano» guardado={tp.total_overridden}, mostrado={shown["manual"]}')
             if t.type == 'spraying':

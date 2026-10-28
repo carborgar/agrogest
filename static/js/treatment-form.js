@@ -242,7 +242,7 @@
             setText(refs.rec, ' · recomendada ' + nf(l.recommended, 4) + ' ' + l.unit);
 
             setText(refs.capTotal, d.multi ? 'Total (' + d.fieldCount + ' parcelas)' : 'Total parcela');
-            setVal(refs.total, l.override ? own.total : C.numberToText(l.total, 4));
+            setVal(refs.total, l.override ? own.total : C.numberToText(l.total, 2));
             refs.total.disabled = !d.single;
             refs.total.title = d.single ? '' : 'Con varias parcelas el total se calcula por parcela';
             refs.total.setAttribute('aria-label', 'Total de ' + l.name + (d.multi ? ' (suma de las parcelas)' : ''));

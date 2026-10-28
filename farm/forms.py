@@ -1,6 +1,6 @@
 import datetime
 from datetime import date as Datetime
-from decimal import Decimal, ROUND_UP
+from decimal import Decimal, ROUND_HALF_EVEN, ROUND_UP
 
 from django import forms
 from django.core.exceptions import ValidationError
@@ -145,12 +145,10 @@ class TreatmentForm(forms.ModelForm):
 def _normalize_dose(value, decimals=3):
     """Dosis como texto sin ceros finales y con `decimals` decimales como máximo.
 
-    En las líneas de tratamiento se usan 4 (los que guarda la base de datos): con 3, una dosis derivada de un total a mano
-    (25 L → 5,9524) se enseñaba como 5,952 al reabrir y, al quitar el total a mano, el formulario recalculaba desde un
-    valor distinto del guardado."""
+    Dosis a 3 decimales siempre (tecleada o derivada del total a mano), igual que la versión anterior."""
     if value is None:
         return value
-    return f"{value:.4f}".rstrip('0').rstrip('.')
+    return f"{value:.{decimals}f}".rstrip('0').rstrip('.')
 
 
 class TreatmentProductForm(forms.ModelForm):
@@ -180,7 +178,7 @@ class TreatmentProductForm(forms.ModelForm):
         # Normalizar visualización de dosis para no mostrar ceros finales (ej: 0.075 en vez de 0.0750)
         if self.instance and self.instance.pk:
             if self.instance.dose:
-                self.initial['dose'] = _normalize_dose(self.instance.dose, 4)
+                self.initial['dose'] = _normalize_dose(self.instance.dose)
             if self.instance.total_dose is not None:
                 # total_dose se muestra con 2 decimales en el formulario
                 self.initial['total_dose'] = f"{self.instance.total_dose:.2f}"
@@ -208,6 +206,10 @@ class TreatmentProductForm(forms.ModelForm):
         cleaned_data = super().clean()
         if cleaned_data.get('total_overridden'):
             total = cleaned_data.get('total_dose')
+            if total is not None:
+                # Total a mano: 2 decimales (mitad al par, como el modelo y la vista previa)
+                total = total.quantize(Decimal('0.01'), rounding=ROUND_HALF_EVEN)
+                cleaned_data['total_dose'] = total
             if 'total_dose' not in self.errors and (total is None or total <= 0):
                 self.add_error('total_dose', 'El total a mano tiene que ser mayor que 0')
         elif cleaned_data.get('total_dose') is None and 'total_dose' not in self.errors:

@@ -207,6 +207,11 @@ Sustituye `templates/farm/treatments/treatment_form.html` (hoy 1271 líneas con 
 
 ---
 
+### Decisión de Carlos del 28/10 (quinta ronda): decimales «como antes»
+- **Total:** se enseña y se teclea a **2 decimales**. Con total a mano se guarda a 2 (mitad al par); si sale de la dosis se guarda a 4 y se enseña a 2.
+- **Dosis:** siempre **3 decimales**: tecleada, hacia arriba (`clean_dose`); derivada del total, mitad al par.
+- Motivo de Carlos: no se puede medir más fino en el campo. Efecto aceptado (se le explicó): con parcelas grandes, recalcular el total desde una dosis a 3 decimales puede dar 50,01 L en vez de 50 L; por eso con total a mano **manda siempre el total** (`total_overridden`) y no se recalcula desde la dosis.
+
 ## 9. Estado de la implementación
 
 Rama `feature/formulario-tratamiento` (sin push). Fases 0 a 5 (primera ronda) y una segunda ronda con los cambios de Carlos y los arreglos de la revisión independiente.
@@ -300,3 +305,12 @@ Un único commit con el código y las pruebas (los cambios comparten ficheros): 
 - **Pruebas:** estado (+9), controlador (+9), backend (+1) y `Caso16Ronda4Tests` (9 casos de ciclo completo: mojado 1000 sin teclearlo, edición con 800, fertirrigación→pulverización, fertirrigación sin «por máquina», borrar el mojado, envío fallido, restablecer en fertirrigación, nombre).
 - **Pruebas modificadas por cambio de comportamiento:** «Volver a calcularlo» (estado, controlador y Caso 8: ahora deja la recomendada: 25 L → 0,5 L/1000L → 2,1 L); «Falta: …» (el mojado ya no falta al arrancar y el nombre va primero); textos «Total ajustado a mano»; fixtures HTML regenerados.
 - **No verificado en navegador real:** la rejilla de escritorio sin hueco (solo comprobado el CSS generado y la clase), el scroll al nombre con barra fija y el teclado en móvil.
+
+
+### 9.z Quinta ronda: decimales como la versión anterior (28/10)
+
+- **Backend:** `calculate_dose_from_total` redondea a 3 decimales; `TreatmentProduct.save` con total a mano redondea el total a 2 antes de derivar la dosis; `TreatmentProductForm.clean` redondea el total a mano a 2 (mitad al par); `_normalize_dose` vuelve a 3 decimales (se revierte el cambio de la tercera ronda).
+- **JS:** `doseFromTotal` a 3 decimales; el estado redondea el total a mano a 2 (`roundTo(total, 2)`), `toFormValues` envía dosis a 3 y total a 2 (a mano) o a 4; el total en pantalla se pinta a 2 decimales.
+- **Pruebas:** casos I y R del fichero compartido recalculados a mano (dosis 1,19 y 10,526; por cuba 2,38 y 21,052; cuba parcial R 9,9997); aleatorio regenerado (el generador redondea el total a mano a 2); esperados de Python y JS que usaban 5,9524 pasan a 5,952; pantalla = guardado ahora compara el total a 2 decimales; casos 14 nuevos (24,994 → 24,99; 24,995 empate → 25); caso nuevo «parcela de 30 ha, 50 L a mano → se ve 50, guardar otra vez no cambia nada».
+- **Efecto:** los tratamientos guardados con total a 4 decimales se ven a 2 y, si no se toca el total a mano, siguen igual al guardar sin tocar. Los totales calculados desde la dosis se siguen guardando a 4 decimales (24,9984 se ve «25»).
+- **Verificado:** `npm run test:js` (153) y pytest rápido de `farm/tests` (315 pasan; 15 fallan igual que sin estos cambios: critical_bugs, expense, harvest, price/field_calculations, product_application, templates_exist). Barridos lentos: ejecutados dosis, otras áreas y fertirrigación.

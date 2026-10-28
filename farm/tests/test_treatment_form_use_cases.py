@@ -71,29 +71,43 @@ class Caso2EditarTotalTests(UseCaseBase):
         """Caso 2: un envase de 25 L. total_dose = 25,0000 exacto (no 24,99 ni 25,0026), a mano, dosis derivada coherente."""
         t = self.new_spraying(self.pL1000, dose='0,5')
         t, _ = self.type_and_save_edit(t, [S_total(1, '25')])
-        # dosis derivada = 25 × 1000 / (1000 × 4,2) = 5,952380… → 5,9524; coste = 25 × 10 = 250,00; 250 / 4,2 = 59,52 €/ha
-        self.assert_db(t, dose='5.9524', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='edición')
+        # dosis derivada = 25 × 1000 / (1000 × 4,2) = 5,952380… → 5,952; coste = 25 × 10 = 250,00; 250 / 4,2 = 59,52 €/ha
+        self.assert_db(t, dose='5.952', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='edición')
         view = self.reopen_and_check(t, 'total 25')
         line = view['lines'][0]
-        self.assertEqual((line['dose'], line['total'], line['manual']), ('5,9524', '25', True),
+        self.assertEqual((line['dose'], line['total'], line['manual']), ('5,952', '25', True),
                          f'tecleado=25, guardado={self.line(t).total_dose}, mostrado={line["total"]}')
 
     def test_fertirriego_total_30_litros_dosis_derivada(self):
-        """Caso 3: 10 L/ha × 2,8 ha = 28 L; se cambia el total a 30 L → dosis 30 / 2,8 = 10,714285… → 10,7143."""
+        """Caso 3: 10 L/ha × 2,8 ha = 28 L; se cambia el total a 30 L → dosis 30 / 2,8 = 10,714285… → 10,714."""
         t = self.new_fertigation(self.pLHa)
         t, _ = self.type_and_save_edit(t, [S_total(1, '30')])
         # coste = 30 × 5 = 150,00; 150 / 2,8 = 53,5714… → 53,57 €/ha
-        self.assert_db(t, dose='10.7143', total='30', override=True, unit_price='5.00', total_price='150.00', per_ha='53.57', context='edición')
+        self.assert_db(t, dose='10.714', total='30', override=True, unit_price='5.00', total_price='150.00', per_ha='53.57', context='edición')
         view = self.reopen_and_check(t, 'fertirriego total 30')
-        self.assertEqual((view['lines'][0]['dose'], view['lines'][0]['total']), ('10,7143', '30'))
+        self.assertEqual((view['lines'][0]['dose'], view['lines'][0]['total']), ('10,714', '30'))
 
     def test_total_tecleado_en_el_alta(self):
         """Caso 2 (alta): teclear el total directamente al crear, sin guardar antes sin él."""
         t = self.new_spraying(self.pKg1000, total='50')
-        # dosis = 50 × 1000 / 4200 = 11,904761… → 11,9048 kg/1000L; coste = 50 × 9,50 = 475,00; 475 / 4,2 = 113,0952 → 113,10
-        self.assert_db(t, dose='11.9048', total='50', override=True, unit_price='9.50', total_price='475.00', per_ha='113.10', context='alta')
+        # dosis = 50 × 1000 / 4200 = 11,904761… → 11,905 kg/1000L; coste = 50 × 9,50 = 475,00; 475 / 4,2 = 113,0952 → 113,10
+        self.assert_db(t, dose='11.905', total='50', override=True, unit_price='9.50', total_price='475.00', per_ha='113.10', context='alta')
         view = self.reopen_and_check(t, 'total 50 en el alta')
         self.assertEqual(view['lines'][0]['total'], '50', f'tecleado=50, guardado={self.line(t).total_dose}, mostrado={view["lines"][0]["total"]}')
+
+    def test_parcela_grande_50_litros_a_mano_se_ven_50_y_guardar_otra_vez_no_cambia_nada(self):
+        """Parcela de 30 ha, 1000 L/ha: total 50 L a mano → dosis 50 × 1000 / 30000 = 1,6667 → 1,667 (3 decimales).
+        Con esa dosis redondeada el total saldría 50,01: por eso manda el total guardado (50,00 exacto, a 2 decimales) y se ve «50»
+        al reabrir; guardar sin tocar tantas veces como se quiera deja la base de datos idéntica. Coste 50 × 10 = 500,00 €; 500 / 30 = 16,67 €/ha."""
+        grande = type(self.fA).objects.create(name='Grande 30', area=30, crop='Olivo', planting_year=2020, organization=self.org)
+        t = self.new_spraying(self.pL1000, total='50', field=grande, name='Parcela grande')
+        self.assert_db(t, dose='1.667', total='50', override=True, unit_price='10.00', total_price='500.00', per_ha='16.67', context='alta')
+        view = self.reopen_and_check(t, 'parcela grande')
+        line = view['lines'][0]
+        self.assertEqual((line['dose'], line['total'], line['manual']), ('1,667', '50', True))
+        t, _ = self.type_and_save_edit(t, [])
+        self.assert_db(t, dose='1.667', total='50', override=True, unit_price='10.00', total_price='500.00', per_ha='16.67', context='guardar sin tocar')
+        self.reopen_and_check(t, 'parcela grande, segunda vez')
 
 
 class Caso4EditarSinTotalManualTests(UseCaseBase):
@@ -128,23 +142,23 @@ class Caso4EditarSinTotalManualTests(UseCaseBase):
 
 
 class Caso5EditarConTotalManualTests(UseCaseBase):
-    """Tratamiento guardado con total a mano de 25 L (dosis derivada 5,9524 L/1000L sobre 4,2 ha y 1000 L/ha)."""
+    """Tratamiento guardado con total a mano de 25 L (dosis derivada 5,952 L/1000L sobre 4,2 ha y 1000 L/ha)."""
 
     def setUp(self):
         super().setUp()
         self.t = self.new_spraying(self.pL1000, total='25', name='Con manual')
-        self.assert_db(self.t, dose='5.9524', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='alta')
+        self.assert_db(self.t, dose='5.952', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='alta')
 
     def test_cambiar_fecha_y_nombre_mantiene_el_25_exacto(self):
         """Caso 5: fecha y nombre no tocan el total a mano."""
         t, _ = self.type_and_save_edit(self.t, [S_set('name', 'Renombrado'), S_date('2030-06-20')])
-        self.assert_db(t, dose='5.9524', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='fecha+nombre')
+        self.assert_db(t, dose='5.952', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='fecha+nombre')
         self.reopen_and_check(t, 'fecha+nombre con manual')
 
     def test_cambiar_el_agua_mantiene_el_total_y_rederiva_la_dosis(self):
-        """Caso 5 (regla del plan + D1): con 1200 L/ha el caldo es 4,2 × 1200 = 5040 L; dosis = 25 × 1000 / 5040 = 4,9603."""
+        """Caso 5 (regla del plan + D1): con 1200 L/ha el caldo es 4,2 × 1200 = 5040 L; dosis = 25 × 1000 / 5040 = 4,960."""
         t, _ = self.type_and_save_edit(self.t, [S_set('water', 1200)])
-        self.assert_db(t, dose='4.9603', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='agua 1200')
+        self.assert_db(t, dose='4.960', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='agua 1200')
         self.reopen_and_check(t, 'agua 1200 con manual')
 
     def test_tratamiento_parcial_mantiene_el_total_y_rederiva_la_dosis(self):
@@ -155,11 +169,11 @@ class Caso5EditarConTotalManualTests(UseCaseBase):
         self.reopen_and_check(t, 'parcial con manual')
 
     def test_cambiar_de_parcela_quita_el_total_manual_y_recalcula_desde_la_dosis(self):
-        """Caso 5: parcela B (2,8 ha). La dosis que había (5,9524 → 5,953 al redondear hacia arriba a 3 decimales) manda:
-        total = 5,953 × 2800 / 1000 = 16,6684 L; coste 166,684 → 166,68; €/ha = 166,68 / 2,8 = 59,5286 → 59,53."""
+        """Caso 5: parcela B (2,8 ha). La dosis que había (5,952 → ya está a 3 decimales) manda:
+        total = 5,952 × 2800 / 1000 = 16,6656 L; coste 166,656 → 166,66; €/ha = 166,66 / 2,8 = 59,5214 → 59,52."""
         t, _ = self.type_and_save_edit(self.t, [S_fields(self.fB.pk)])
         self.assertEqual(t.field_id, self.fB.pk)
-        self.assert_db(t, dose='5.953', total='16.6684', override=False, unit_price='10.00', total_price='166.68', per_ha='59.53', context='parcela B')
+        self.assert_db(t, dose='5.952', total='16.6656', override=False, unit_price='10.00', total_price='166.66', per_ha='59.52', context='parcela B')
         self.reopen_and_check(t, 'parcela B')
 
     def test_cambiar_de_tipo_quita_el_total_manual(self):
@@ -197,13 +211,13 @@ class Caso6y7CompletadosTests(UseCaseBase):
         self.reopen_and_check(t, 'marcado como hecho')
 
     def test_completado_con_total_manual_y_otra_agua_real_respeta_el_total(self):
-        """Caso 6 (D1): completado con total a mano 25 y agua real 1200 → dosis 25 × 1000 / 5040 = 4,9603. Si luego el agua
-        real pasa a 1000, el total sigue siendo 25 y la dosis se rederiva a 5,9524."""
+        """Caso 6 (D1): completado con total a mano 25 y agua real 1200 → dosis 25 × 1000 / 5040 = 4,960. Si luego el agua
+        real pasa a 1000, el total sigue siendo 25 y la dosis se rederiva a 5,952."""
         t = self.new_spraying(self.pL1000, total='25', extra=self.done_steps())
-        self.assert_db(t, dose='4.9603', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='completado manual')
+        self.assert_db(t, dose='4.960', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='completado manual')
         self.reopen_and_check(t, 'completado con manual')
         t, _ = self.type_and_save_edit(t, [S_set('realWater', 1000)])
-        self.assert_db(t, dose='5.9524', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='agua real 1000')
+        self.assert_db(t, dose='5.952', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='agua real 1000')
         self.reopen_and_check(t, 'completado agua real 1000')
 
 
@@ -217,15 +231,15 @@ class Caso8UltimoToqueGanaTests(UseCaseBase):
     def test_dosis_y_luego_total_en_la_misma_sesion(self):
         """Caso 8: dosis 0,6 y después total 25 → gana el total (override)."""
         t = self.new_spraying(self.pL1000, dose='0,6', total='25')
-        self.assert_db(t, dose='5.9524', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='dosis→total')
+        self.assert_db(t, dose='5.952', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='dosis→total')
         self.reopen_and_check(t, 'dosis→total')
 
     def test_vaciar_el_total_recalcula_desde_la_dosis(self):
-        """Caso 8: con total 25 guardado (dosis 5,9524) se vacía el total → la dosis (5,9524 → 5,953 hacia arriba)
-        manda: 5,953 × 4200 / 1000 = 25,0026 L; coste 250,026 → 250,03; €/ha 250,03 / 4,2 = 59,5310 → 59,53."""
+        """Caso 8: con total 25 guardado (dosis 5,952) se vacía el total → la dosis (5,952 → 5,953 hacia arriba)
+        manda: 5,952 × 4200 / 1000 = 24,9984 L (se enseña 25,00); coste 249,984 → 249,98; €/ha 249,98 / 4,2 = 59,5190 → 59,52."""
         t = self.new_spraying(self.pL1000, total='25')
         t, _ = self.type_and_save_edit(t, [S_total(1, '')])
-        self.assert_db(t, dose='5.953', total='25.0026', override=False, unit_price='10.00', total_price='250.03', per_ha='59.53', context='total vaciado')
+        self.assert_db(t, dose='5.952', total='24.9984', override=False, unit_price='10.00', total_price='249.98', per_ha='59.52', context='total vaciado')
         self.reopen_and_check(t, 'total vaciado')
 
     def test_boton_restablecer_dosis_pone_la_dosis_recomendada(self):
@@ -246,7 +260,7 @@ class Caso9DosProductosTests(UseCaseBase):
         """Caso 9: línea 1 con total 25 (a mano) y línea 2 con dosis 4 kg/1000L (4 × 4200 / 1000 = 16,8 kg; 16,8 × 9,50 = 159,60 €;
         159,60 / 4,2 = 38,00 €/ha). El orden se mantiene al reabrir y al guardar."""
         t = self.two_products()
-        self.assert_db(t, 1, dose='5.9524', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='alta')
+        self.assert_db(t, 1, dose='5.952', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='alta')
         self.assert_db(t, 2, dose='4', total='16.8', override=False, unit_price='9.50', total_price='159.60', per_ha='38.00', context='alta')
         self.assertEqual([tp.product_id for tp in t.treatmentproduct_set.order_by('position')], [self.pL1000.pk, self.pKg1000.pk])
         view = self.reopen_and_check(t, 'dos productos')
@@ -257,7 +271,7 @@ class Caso9DosProductosTests(UseCaseBase):
         """Caso 9: se cambia solo la dosis de la línea 2 a 5 (5 × 4,2 = 21 kg; 199,50 €; 47,50 €/ha); la línea 1 sigue con su 25."""
         t = self.two_products()
         t, _ = self.type_and_save_edit(t, [S_dose(2, '5')])
-        self.assert_db(t, 1, dose='5.9524', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='línea 1')
+        self.assert_db(t, 1, dose='5.952', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='línea 1')
         self.assert_db(t, 2, dose='5', total='21', override=False, unit_price='9.50', total_price='199.50', per_ha='47.50', context='línea 2')
         self.reopen_and_check(t, 'editar línea 2')
 
@@ -275,7 +289,7 @@ class Caso9DosProductosTests(UseCaseBase):
         """Caso 9: se añade Abono foliar kg/ha (3 kg/ha × 4,2 = 12,6 kg; × 1,80 = 22,68 €; 5,40 €/ha) en una edición."""
         t = self.new_spraying(self.pL1000, total='25')
         t, _ = self.type_and_save_edit(t, [S_product(self.pKgHa.pk)])
-        self.assert_db(t, 1, dose='5.9524', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='línea 1')
+        self.assert_db(t, 1, dose='5.952', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='línea 1')
         self.assert_db(t, 2, dose='3', total='12.6', override=False, unit_price='1.80', total_price='22.68', per_ha='5.40', context='línea 2')
         self.reopen_and_check(t, 'añadir en edición')
 
@@ -387,7 +401,7 @@ class Caso13ErrorDelServidorTests(UseCaseBase):
 
     def test_alta_con_error_en_el_agua_conserva_el_total_manual_y_se_corrige(self):
         """Caso 13: total a mano 25 y agua -5 (el servidor la rechaza). La pantalla vuelve con 25 «a mano» y sin crear nada;
-        se corrige el agua a 1000 y se guarda: dosis 5,9524, total 25, 250,00 €."""
+        se corrige el agua a 1000 y se guarda: dosis 5,952, total 25, 250,00 €."""
         steps = [S_type('spraying'), S_set('name', 'Con error'), S_set('water', 1000), S_fields(self.fA.pk),
                  S_machine(self.m2000.pk), S_product(self.pL1000.pk), S_total(1, '25')]
         view, post, prevented = self.play(self.open_create(), steps + [SUBMIT])
@@ -406,23 +420,23 @@ class Caso13ErrorDelServidorTests(UseCaseBase):
         self.assertEqual(back['lines'][0]['total'], '25')
         self.assertEqual(self.client.post(self.create_url, post2).status_code, 302)
         t = Treatment.objects.order_by('-pk').first()
-        self.assert_db(t, dose='5.9524', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='corregido')
+        self.assert_db(t, dose='5.952', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='corregido')
         self.reopen_and_check(t, 'alta corregida')
 
     def test_edicion_con_error_conserva_lo_tecleado_y_se_corrige(self):
         """Caso 13 (edición): se edita el total a 30 y el servidor rechaza el agua (-5). Al volver sigue el 30 «a mano»;
-        se corrige el agua a 1200 y queda: dosis 30 × 1000 / 5040 = 5,9524, total 30, 300,00 €; 300 / 4,2 = 71,43 €/ha."""
+        se corrige el agua a 1200 y queda: dosis 30 × 1000 / 5040 = 5,952, total 30, 300,00 €; 300 / 4,2 = 71,43 €/ha."""
         t = self.new_spraying(self.pL1000, total='25')
         view, post, prevented = self.play(self.open_edit(t), [S_total(1, '30'), SUBMIT])
         self.assertFalse(prevented)
         response = self.client.post(self.edit_url(t), dict(post, **{self.water_key(post): '-5'}))
         self.assertEqual(response.status_code, 200)
-        self.assert_db(t, dose='5.9524', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='sin cambios tras el error')
+        self.assert_db(t, dose='5.952', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='sin cambios tras el error')
         back, post2, prevented = self.play(response.content.decode(), [S_set('water', 1200), SUBMIT])
         self.assertFalse(prevented, back['errors'])
         self.assertEqual((back['lines'][0]['total'], back['lines'][0]['manual']), ('30', True))
         self.assertEqual(self.client.post(self.edit_url(t), post2).status_code, 302)
-        self.assert_db(t, dose='5.9524', total='30', override=True, unit_price='10.00', total_price='300.00', per_ha='71.43', context='corregido')
+        self.assert_db(t, dose='5.952', total='30', override=True, unit_price='10.00', total_price='300.00', per_ha='71.43', context='corregido')
         self.reopen_and_check(t, 'edición corregida')
 
 
@@ -456,18 +470,22 @@ class Caso14TextoTecleadoTests(UseCaseBase):
         El formulario avisa del redondeo y enseña 1,126 al volver."""
         self.check_dose('1,1255', '1.126', '4.7292', '47.29', '11.26', '1,126')
 
-    def test_total_con_muchos_decimales_se_redondea_a_cuatro(self):
-        """Caso 14: 24,999999 → 25,0000 (a 4 decimales, sin ruido): dosis 25 / 4,2 = 5,9524; 250,00 €; 59,52 €/ha. Se enseña «25»."""
-        self.check_total('24,999999', '5.9524', '25', '250.00', '59.52', '25')
+    def test_total_con_muchos_decimales_se_redondea_a_dos(self):
+        """Caso 14: 24,999999 → 25,00 (el total a mano se guarda a 2 decimales): dosis 25 / 4,2 = 5,952; 250,00 €; 59,52 €/ha. Se enseña «25»."""
+        self.check_total('24,999999', '5.952', '25', '250.00', '59.52', '25')
 
-    def test_total_con_cinco_decimales_que_no_llegan_a_redondear_a_entero(self):
-        """Caso 14: 24,99994 → 24,9999; dosis 24,9999 / 4,2 = 5,95235714 → 5,9524; 249,999 → 250,00 €; 59,52 €/ha."""
-        self.check_total('24,99994', '5.9524', '24.9999', '250.00', '59.52', '24,9999')
+    def test_total_con_tres_decimales_se_redondea_a_dos(self):
+        """Caso 14: 24,994 → 24,99; dosis 24,99 × 1000 / 4200 = 5,95; 249,90 €; 249,90 / 4,2 = 59,50 €/ha. Se enseña «24,99»."""
+        self.check_total('24,994', '5.95', '24.99', '249.90', '59.50', '24,99')
+
+    def test_total_en_empate_se_redondea_al_par(self):
+        """Caso 14: 24,995 es empate: mitad al par → 25,00 (igual que el modelo y la vista previa). Dosis 5,952."""
+        self.check_total('24,995', '5.952', '25', '250.00', '59.52', '25')
 
     def test_total_con_punto_decimal_y_con_espacios(self):
-        """Caso 14: «24.5» y « 30 »: 24,5 → dosis 5,8333, 245,00 €, 58,33 €/ha; 30 → dosis 7,1429, 300,00 €, 71,43 €/ha."""
-        self.check_total('24.5', '5.8333', '24.5', '245.00', '58.33', '24,5')
-        self.check_total(' 30 ', '7.1429', '30', '300.00', '71.43', '30')
+        """Caso 14: «24.5» y « 30 »: 24,5 → dosis 5,833, 245,00 €, 58,33 €/ha; 30 → dosis 7,143, 300,00 €, 71,43 €/ha."""
+        self.check_total('24.5', '5.833', '24.5', '245.00', '58.33', '24,5')
+        self.check_total(' 30 ', '7.143', '30', '300.00', '71.43', '30')
 
     def test_punto_de_miles_ambiguo_se_rechaza_con_aviso(self):
         """Caso 14: «1.500» (¿uno y medio o mil quinientos?) no se guarda: el formulario pide usar la coma."""
@@ -490,15 +508,15 @@ class Caso16Ronda4Tests(UseCaseBase):
         return [S_type('spraying'), S_set('name', 'Sin teclear mojado'), S_fields(self.fA.pk), S_machine(self.m2000.pk), S_product(product.pk)] + list(more)
 
     def test_crear_en_pulverizacion_parte_de_1000_y_el_total_deriva_dosis_y_por_maquina(self):
-        """Mojado 1000 al crear sin teclearlo; total 25 → dosis 25 × 1000 / 4200 = 5,9524; por máquina (cuba 2000 L) = 5,9524 × 2 = 11,9048 L."""
+        """Mojado 1000 al crear sin teclearlo; total 25 → dosis 25 × 1000 / 4200 = 5,952; por máquina (cuba 2000 L) = 5,952 × 2 = 11,904 L."""
         view, post, prevented = self.play(self.open_create(), [S_type('spraying')])
         self.assertEqual(view['water'], '1000')
         t, view = self.type_and_save_new(self.create_steps(self.pL1000, S_total(1, '25')))
         self.assertEqual(view['water'], '1000')
-        self.assertEqual(view['lines'][0]['dose'], '5,9524', 'dosis derivada en pantalla sin haber tecleado el mojado')
-        self.assertEqual(view['lines'][0]['perLoad'].replace(' ', '\u00a0'), '11,9048\u00a0L', 'por máquina en pantalla')
+        self.assertEqual(view['lines'][0]['dose'], '5,952', 'dosis derivada en pantalla sin haber tecleado el mojado')
+        self.assertEqual(view['lines'][0]['perLoad'].replace(' ', '\u00a0'), '11,904\u00a0L', 'por máquina en pantalla')
         self.assertEqual(t.water_per_ha, 1000)
-        self.assert_db(t, dose='5.9524', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='alta')
+        self.assert_db(t, dose='5.952', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='alta')
         self.reopen_and_check(t, 'mojado por defecto')
 
     def test_edicion_conserva_el_mojado_guardado(self):
@@ -552,7 +570,7 @@ class Caso16Ronda4Tests(UseCaseBase):
         self.assertEqual(view['lines'][0]['dose'], '')
         self.assertIn('Pon el mojado para calcular la dosis', view['lines'][0]['notes'])
         self.assertIn('mojado', view['missing'])
-        self.assert_db(t, dose='5.9524', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='no se guardó nada')
+        self.assert_db(t, dose='5.952', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='no se guardó nada')
 
     def test_envio_fallido_con_mojado_borrado_no_lo_repone(self):
         """Tras un error del servidor el mojado borrado a propósito no se vuelve a poner en 1000 (se respeta lo que había)."""
@@ -564,9 +582,9 @@ class Caso16Ronda4Tests(UseCaseBase):
         self.assertEqual(back['water'], '')
 
     def test_restablecer_dosis_en_fertirrigacion_y_ciclo(self):
-        """Fertirrigación: total 30 (dosis 10,7143) → Restablecer dosis → dosis recomendada 10 L/ha, total 10 × 2,8 = 28 L, sin «a mano»."""
+        """Fertirrigación: total 30 (dosis 10,714) → Restablecer dosis → dosis recomendada 10 L/ha, total 10 × 2,8 = 28 L, sin «a mano»."""
         t = self.new_fertigation(self.pLHa, total='30')
-        self.assert_db(t, dose='10.7143', total='30', override=True, unit_price='5.00', total_price='150.00', per_ha='53.57', context='con total')
+        self.assert_db(t, dose='10.714', total='30', override=True, unit_price='5.00', total_price='150.00', per_ha='53.57', context='con total')
         t, _ = self.type_and_save_edit(t, [S_clear_total(1)])
         self.assert_db(t, dose='10', total='28', override=False, unit_price='5.00', total_price='140.00', per_ha='50.00', context='restablecida')
         self.reopen_and_check(t, 'restablecer fertirrigación')
@@ -586,6 +604,10 @@ def _q4(x):
     return x.quantize(Decimal('0.0001'), rounding=ROUND_HALF_EVEN)
 
 
+def _q3(x):
+    return x.quantize(Decimal('0.001'), rounding=ROUND_HALF_EVEN)
+
+
 def _q2(x):
     return x.quantize(Decimal('0.01'), rounding=ROUND_HALF_EVEN)
 
@@ -593,10 +615,10 @@ def _q2(x):
 def spec_dose(dose_type, total, water, area):
     """Dosis derivada del total, escrita a mano como en el plan (sección 3): por 1000 L, por hectárea o porcentaje."""
     if dose_type in ('l_per_1000l', 'kg_per_1000l'):
-        return _q4(total * 1000 / (water * area))
+        return _q3(total * 1000 / (water * area))
     if dose_type == 'pct':
-        return _q4(total * 100 / (water * area))
-    return _q4(total / area)            # l_per_ha, kg_per_ha
+        return _q3(total * 100 / (water * area))
+    return _q3(total / area)            # l_per_ha, kg_per_ha
 
 
 ALL_TOTALS = [Decimal(x) / 2 for x in range(2, 41)] + [Decimal(x) for x in range(21, 201)]   # 1; 1,5; … 20 y 21 … 200

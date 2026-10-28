@@ -17,7 +17,7 @@ No necesita base de datos: los objetos no se guardan.
 import json
 import os
 import random
-from decimal import Decimal
+from decimal import ROUND_HALF_EVEN, Decimal
 from pathlib import Path
 
 from farm.models import Field, Machine, Product, Treatment, TreatmentProduct
@@ -71,6 +71,8 @@ def compute(case):
                           dose=Decimal(case['dose']), dose_type=case['dose_type'], unit_price=Decimal(0),
                           total_dose=Decimal(case['total_override'] or 0))
     if case['total_override']:
+        # Como TreatmentProduct.save con total a mano: el total se guarda a 2 decimales y la dosis se deriva de él
+        tp.total_dose = tp.total_dose.quantize(Decimal('0.01'), rounding=ROUND_HALF_EVEN)
         tp.calculate_dose_from_total()
     else:
         tp.calculate_total_dose()

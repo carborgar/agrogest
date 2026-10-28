@@ -40,7 +40,7 @@
 
     const doseOption = (product, type) => (type === 'spraying' ? product.spraying : product.fertigation) || null;
 
-    /** Dosis → texto para el input: coma decimal, sin miles y hasta 4 decimales sin ceros finales (las derivadas del total tienen 4). */
+    /** Dosis → texto para el input: coma decimal, sin miles y hasta 4 decimales sin ceros finales (las guardadas tienen 3). */
     function doseToText(value) {
         if (value === null || value === undefined || !Number.isFinite(value)) return '';
         return calc.numberToText(value, 4);
@@ -335,7 +335,7 @@
 
             if (override) {
                 total = calc.parseNumber(l.total);
-                if (total !== null) total = calc.roundTo(total, 4);
+                if (total !== null) total = calc.roundTo(total, 2); // total a mano: 2 decimales
                 dose = total !== null ? calc.doseFromTotal(total, doseType, areas[0], waterEff) : null;
                 if (total !== null) perField = [{ fieldId: selected[0].id, total: total }];
             } else {
@@ -491,8 +491,8 @@
             return {
                 product: l.productId,
                 // El backend vuelve a redondear la dosis hacia arriba a 3 decimales; con total a mano la deriva del total.
-                dose: l.dose === null ? '' : (overridden ? decimalText(l.dose, 4) : decimalText(l.dose, 3)),
-                total_dose: l.total === null || d.multi ? '' : decimalText(l.total, 4),
+                dose: l.dose === null ? '' : decimalText(l.dose, 3),
+                total_dose: l.total === null || d.multi ? '' : decimalText(l.total, overridden ? 2 : 4),
                 total_overridden: overridden ? 'true' : 'false',
                 position: l.position,
             };

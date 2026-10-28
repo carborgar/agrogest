@@ -188,7 +188,7 @@ test('A2 teclear en el total recalcula la dosis EN EL INPUT DE DOSIS sin tocar e
     p.type(t, '25');
     assert.equal(p.d.activeElement, t);                       // el foco sigue en el total
     assert.equal(t.value, '25');                              // lo tecleado no se reescribe
-    assert.equal(dose(p).value, '5,9524');                    // 25 / 4,2
+    assert.equal(dose(p).value, '5,952');                    // 25 / 4,2
     assert.equal(p.T.state.lines[0].override, true);
     assert.match(p.q('.tf-line-notes').textContent, /Total ajustado a mano/);
     assert.ok(p.q('[data-act="clear-total"]'));
@@ -221,7 +221,7 @@ test('A2 vaciar el total vuelve a calcularlo desde la dosis', () => {
 test('A2 «Restablecer dosis» quita el total a mano y pone la dosis recomendada (ronda 4)', () => {
     const p = fertigation();
     p.type(total(p), '25');
-    assert.equal(dose(p).value, '5,9524');                     // derivada del total
+    assert.equal(dose(p).value, '5,952');                     // derivada del total
     p.q('[data-act="clear-total"]').focus();                   // como al tocar el botón: el total pierde el foco
     p.q('[data-act="clear-total"]').click();
     assert.equal(p.T.state.lines[0].override, false);
@@ -242,14 +242,14 @@ test('A2 con varias parcelas el total es la suma, está deshabilitado y lo expli
     assert.equal(p.q('#tfMultiTotalNote').hidden, true);
 });
 
-test('A2 envío con total a mano: total_overridden=true, total exacto 25.0000 y la dosis derivada', () => {
+test('A2 envío con total a mano: total_overridden=true, total exacto 25.00 y la dosis derivada', () => {
     const p = fertigation();
     p.type(total(p), '25');
     const ev = p.submit();
     assert.equal(ev.defaultPrevented, false);
     assert.equal(p.field(0, 'total_overridden').value, 'true');
-    assert.equal(p.field(0, 'total_dose').value, '25.0000');
-    assert.equal(p.field(0, 'dose').value, '5.9524');
+    assert.equal(p.field(0, 'total_dose').value, '25.00');
+    assert.equal(p.field(0, 'dose').value, '5.952');
     assert.equal(p.q('#id_type').value, 'fertigation');
 });
 
@@ -406,10 +406,10 @@ test('R4 crear en pulverización: el mojado arranca en 1000 y ya no falta', () =
 test('R4 editar el total sin tocar el mojado: la dosis y «por máquina» salen calculados', () => {
     const p = sprayDefault();
     p.type(total(p), '25');
-    assert.equal(dose(p).value, '5,9524');                      // Fungicida kg/1000L: 25 × 1000 / 4200
-    assert.match(p.q('.tf-line-load').textContent, /^\d/);       // 25 kg en 4200 L de caldo; cuba de 2000 L = 11,9048 kg
-    assert.equal(sp(p.q('.tf-line-load').textContent), '11,9048 kg');
-    assert.match(p.q('.tf-line-hint').textContent, /11,9048 kg por máquina/);
+    assert.equal(dose(p).value, '5,952');                      // Fungicida kg/1000L: 25 × 1000 / 4200
+    assert.match(p.q('.tf-line-load').textContent, /^\d/);       // 25 kg en 4200 L de caldo; cuba de 2000 L = 11,904 kg
+    assert.equal(sp(p.q('.tf-line-load').textContent), '11,904 kg');
+    assert.match(p.q('.tf-line-hint').textContent, /11,904 kg por máquina/);
 });
 
 test('R4 borrar el mojado: aviso en cada línea, ni dosis ni por máquina en blanco sin explicación, y no deja guardar', () => {

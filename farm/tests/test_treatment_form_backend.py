@@ -183,7 +183,7 @@ class ManualTotalVsRealWaterTests(BackendBase):
         self.assertEqual(tp.total_dose, Decimal("5.0000"))
         self.assertTrue(tp.total_overridden)
         # La dosis se deriva del total con el mojado real: 5 * 1000 / (4,2 * 1100)
-        self.assertEqual(tp.dose, Decimal("1.0823"))
+        self.assertEqual(tp.dose, Decimal("1.082"))
         self.assertEqual(tp.total_price, Decimal("50.00"))
 
     def test_without_manual_total_real_water_still_recalculates(self):

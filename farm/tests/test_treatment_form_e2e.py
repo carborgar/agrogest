@@ -126,7 +126,7 @@ class FormToDetailTests(TestCase):
         data = {"name": "Ferti 25 L", "type": "fertigation", "date": date.today().isoformat(),
                 "field": str(field.pk), "machine": "", "water_per_ha": "0", "finish_date": ""}
         # Lo que escribe el controlador al teclear 25 en el total: dosis derivada (25 / 4,2) y total exacto
-        data.update(formset_data([{"product": product.pk, "dose": "5.9524", "total_dose": "25.0000",
+        data.update(formset_data([{"product": product.pk, "dose": "5.952", "total_dose": "25.0000",
                                    "total_overridden": "true"}]))
         self.assertEqual(self.client.post(self.create_url, data).status_code, 302)
         t = Treatment.objects.get(name="Ferti 25 L")
