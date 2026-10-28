@@ -428,11 +428,6 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
     .dt-actions > .dropdown { flex: 1; }
     .dt-actions > .dropdown .btn { width: 100%; }
     .page-header-main:has(.dt-actions) { gap: 0; }
-    /* El menú de acciones se abre como hoja inferior (como «Gestionar tipos» en productos): fijo abajo, con fondo oscurecido */
-    .dt-actions .dropdown-menu { position: fixed !important; inset: auto 0 0 0 !important; transform: none !important; margin: 0 !important; width: 100%; border: 0; border-radius: 16px 16px 0 0; padding: .5rem .5rem calc(.5rem + env(safe-area-inset-bottom)); box-shadow: 0 -8px 32px rgba(0, 0, 0, .18); }
-    .dt-actions .dropdown-item { padding: .8rem 1rem; border-radius: 8px; }
-    .dt-actions:has(.dropdown-menu.show) { z-index: 1050; }
-    .dt-actions:has(.dropdown-menu.show)::before { content: ''; position: fixed; inset: 0; z-index: -1; background: rgba(0, 0, 0, .4); }
 }
 .dt-sticky-spacer { height: 72px; }
 
@@ -751,4 +746,18 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
     .cmp-row > .cmp-cell:first-child { padding-right: 0; }
     .cmp-label { display: none; }
     .cmp-r { text-align: right; }
+}
+
+/* ═══════════════════════════════════════════════
+   MENÚS DE ACCIONES COMO HOJA INFERIOR (móvil)
+   Añadir .dropdown-sheet al .dropdown-menu de cualquier menú de acciones (⋮). En móvil se abre fijo abajo,
+   con el fondo oscurecido y por encima de la navegación; en escritorio sigue siendo el desplegable normal.
+   Las filas/contenedores con z-index propio se elevan mientras el menú está abierto.
+═══════════════════════════════════════════════ */
+@media (max-width: 767.98px) {
+    .dropdown-menu.dropdown-sheet { position: fixed !important; inset: auto 0 0 0 !important; transform: none !important; margin: 0 !important; width: 100%; z-index: 1050; border: 0; border-radius: 16px 16px 0 0; padding: .5rem .5rem calc(.5rem + env(safe-area-inset-bottom)); box-shadow: 0 -8px 32px rgba(0, 0, 0, .18); }
+    .dropdown-sheet .dropdown-item { padding: .8rem 1rem; border-radius: 8px; }
+    *:has(> .dropdown-sheet.show)::before { content: ''; position: fixed; inset: 0; z-index: 1049; background: rgba(0, 0, 0, .4); }
+    .dropdown:has(> .dropdown-sheet.show), .dt-actions:has(.dropdown-sheet.show), .tl-item:has(.dropdown-sheet.show), .pl-item:has(.dropdown-sheet.show),
+    .pl-group:has(.dropdown-sheet.show), .pl-field:has(.dropdown-sheet.show) { z-index: 1050 !important; }
 }

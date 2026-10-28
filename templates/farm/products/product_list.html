@@ -161,7 +161,7 @@
                         aria-label="Más acciones de {{ product.name }}" title="Más acciones">
                     <i class="fa fa-ellipsis-vertical"></i>
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end shadow-sm small">
+                <ul class="dropdown-menu dropdown-menu-end dropdown-sheet shadow-sm small">
                     <li><a class="dropdown-item" href="{% url 'product-edit' product.pk %}"><i class="fa fa-pen me-2 text-primary"></i>Editar</a></li>
                     {% if not product.has_treatments %}
                     <li><hr class="dropdown-divider"></li>
