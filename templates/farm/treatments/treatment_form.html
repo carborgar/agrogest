@@ -1,1271 +1,238 @@
 {% extends "base.html" %}
-{% load widget_tweaks %}
-{% load static %}
-{% load django_bootstrap5 %}
+{% load static static_versioned %}
 
-{% block header %}{% if form.instance.pk %}Editar tratamiento{% else %}Nuevo tratamiento{% endif %}{% endblock %}
+{% block title %}{{ form_title }} · AgroGest{% endblock %}
 
-{% block extra_head %}
-<style>
-    .btn-add {
-        width: 100%;
-        border: 2px dashed var(--primary);
-        background: rgba(74, 124, 89, 0.05);
-        color: var(--primary);
-        border-radius: 12px;
-        padding: 1rem;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-    }
+{% block header %}{{ form_title }}{% endblock %}
 
-
-    /* Tarjeta duplicada */
-    .treatment-product-card.product-card--duplicate {
-        outline: 2px solid var(--bs-danger, #dc3545);
-        outline-offset: 2px;
-        border-radius: 0.5rem;
-        background-color: rgba(220, 53, 69, 0.04);
-        transition: outline 0.15s, background-color 0.15s;
-    }
-</style>
+{% block actions %}
+<span class="tf-status" id="tfStatus" hidden></span>
+<a class="btn btn-outline-secondary btn-sm d-lg-none"
+   href="{% if is_edit %}{% url 'treatment-detail' form.instance.pk %}{% else %}{% url 'treatment-list' %}{% endif %}">Cancelar</a>
 {% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col">
-        <div class="card">
-            <div class="card-body">
-                {% bootstrap_form_errors form %}
-                {% bootstrap_formset_errors products_formset %}
+{# Datos para pintar el formulario sin peticiones (en campo hay mala cobertura) #}
+{{ form_data|json_script:"treatment-form-data" }}
+{% if form_errors %}{{ form_errors|json_script:"treatment-form-errors" }}{% endif %}
+<script>document.body.classList.add('tf-page');</script>
 
-                <form data-form-count="{{ products_formset.total_form_count }}" id="treatmentForm" method="post">
-                    {% csrf_token %}
+<noscript><div class="alert alert-warning" role="alert">Este formulario necesita JavaScript para calcular las cantidades. Actívalo en el navegador y recarga la página.</div></noscript>
+<div class="tf" id="tfRoot" data-edit="{% if is_edit %}1{% else %}0{% endif %}">
+    <div class="alert alert-danger tf-banner" id="tfBanner" role="alert" tabindex="-1" hidden></div>
 
-                    <!-- Indicador de progreso -->
-                    <div class="mb-4">
-                        <div class="progress" role="progressbar" style="height: 10px;">
-                            <div class="progress-bar bg-primary" id="progressBar" style="width: 50%"></div>
-                        </div>
-                        <div class="d-flex justify-content-between mt-2 small text-muted">
-                            <span>Paso 1: Información General</span>
-                            <span>Paso 2: Productos</span>
-                        </div>
-                    </div>
+    <form id="treatmentForm" method="post" novalidate autocomplete="off">
+        {% csrf_token %}
 
-                    <!-- Step 1: Información General -->
-                    <div class="step" id="step1">
-                        <div class="card">
-                            <div class="card-header">
-                                <i class="fa-solid fa-circle-info me-2"></i>Información General
-                            </div>
-                            <div class="card-body">
-                                <div class="row g-3">
-                                    <div class="col-md-6 col-lg-4">
-                                        <div class="form-floating mb-3">
-                                            {{ form.name|add_class:"form-control" }}
-                                            <label for="{{ form.name.id_for_label }}">Nombre</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6 col-lg-4">
-                                        <div class="form-floating mb-3">
-                                            {{ form.type|add_class:"form-select" }}
-                                            <label for="{{ form.type.id_for_label }}">Tipo</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6 col-lg-4">
-                                        <div class="form-floating mb-3">
-                                            {{ form.date|add_class:"form-control" }}
-                                            <label for="{{ form.date.id_for_label }}">Fecha</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6 col-lg-4">
-                                        <div class="form-floating mb-3">
-                                            {{ form.field|add_class:"form-select" }}
-                                            <label for="{{ form.field.id_for_label }}">Parcela</label>
-                                        </div>
-                                        <div class="form-text text-primary fw-semibold" id="fieldAreaInfo"></div>
-                                    </div>
-                                    <div class="col-md-6 col-lg-4">
-                                        <div class="form-floating mb-3">
-                                            {{ form.finish_date|add_class:"form-control" }}
-                                            <label for="{{ form.finish_date.id_for_label }}">Fecha de
-                                                finalización</label>
-                                        </div>
-                                        <div class="form-text" id="completedDateInfo">Opcional. Si se establece, el
-                                            tratamiento se marcará como completado.
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Tratamiento parcial (collapse opcional) -->
-                                <div class="mt-2">
-                                    <a class="text-muted small text-decoration-none" data-bs-toggle="collapse"
-                                       href="#partialTreatmentCollapse" role="button"
-                                       aria-expanded="{% if form.applied_area.value or form.zone_notes.value or form.applied_area.errors %}true{% else %}false{% endif %}"
-                                       aria-controls="partialTreatmentCollapse">
-                                        <i class="bi bi-chevron-right me-1" id="partialCollapseIcon"></i>Tratamiento
-                                        parcial <span class="text-muted">(opcional)</span>
-                                    </a>
-                                    <div class="collapse {% if form.applied_area.value or form.zone_notes.value or form.applied_area.errors %}show{% endif %}"
-                                         id="partialTreatmentCollapse">
-                                        <div class="row g-3 mt-1">
-                                            <div class="col-md-6 col-lg-4">
-                                                <div class="form-floating mb-3">
-                                                    {{ form.applied_area|add_class:"form-control" }}
-                                                    <label for="{{ form.applied_area.id_for_label }}">Área tratada
-                                                        (ha)</label>
-                                                </div>
-                                                <div class="form-text" id="appliedAreaInfo">Opcional. Dejar vacío si se
-                                                    trata la parcela completa.
-                                                </div>
-                                                {% if form.applied_area.errors %}
-                                                <div class="text-danger small mt-1">{{ form.applied_area.errors }}</div>
-                                                {% endif %}
-                                            </div>
-                                            <div class="col-md-6 col-lg-4">
-                                                <div class="form-floating mb-3">
-                                                    {{ form.zone_notes|add_class:"form-control" }}
-                                                    <label for="{{ form.zone_notes.id_for_label }}">Zona tratada</label>
-                                                </div>
-                                                <div class="form-text">Opcional. Ej: zona norte, sector 3...</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Campos condicionales (aparecen según el tipo seleccionado) -->
-                                <div class="mt-3 d-none" id="conditionalFields">
-                                    <hr class="text-muted">
-                                    <div class="row g-3">
-                                        <div class="col-md-6 col-lg-4" id="machineFieldGroup">
-                                            <div class="form-floating mb-3" id="machineSelectWrapper">
-                                                {{ form.machine|add_class:"form-select" }}
-                                                <label for="{{ form.machine.id_for_label }}">Maquinaria</label>
-                                            </div>
-                                            <div class="d-none small text-muted" id="singleMachineInfo">
-                                                <i class="fa fa-tractor text-primary"></i>
-                                                <span>Se usará automáticamente:</span>
-                                                <span class="fw-semibold text-dark" id="singleMachineName"></span>
-                                            </div>
-                                            <div class="form-text text-primary fw-semibold"
-                                                 id="machineCapacityInfo"></div>
-                                        </div>
-                                        <div class="col-md-6 col-lg-4" id="waterFieldGroup">
-                                            <div class="form-floating mb-3">
-                                                {{ form.water_per_ha|add_class:"form-control" }}
-                                                <label for="{{ form.water_per_ha.id_for_label }}">Mojado</label>
-                                            </div>
-                                            <div class="form-text">Cantidad de agua a aplicar por hectárea</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card-footer">
-                                <div class="d-flex gap-2">
-                                    <a class="btn btn-outline-secondary"
-                                       href="{% if is_edit %}{% url 'treatment-detail' pk=form.instance.pk %}{% else %}{% url 'treatment-list' %}{% endif %}">
-                                        <i class="bi bi-x-circle me-2"></i>
-                                        Cancelar
-                                    </a>
-                                    <button class="btn btn-primary flex-fill" id="nextToProducts" type="button">
-                                        Continuar a Productos
-                                        <i class="bi bi-arrow-right ms-2"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Step 2: Productos -->
-                    <div class="step d-none" id="step2">
-                        <div class="card">
-                            <div class="card-header">
-                                <i class="fa-solid fa-box me-2"></i>Productos
-                            </div>
-                            <div class="card-body">
-                                {{ products_formset.management_form }}
-
-                                <div class="alert alert-danger d-none align-items-center gap-2 mb-3" id="productsError"
-                                     role="alert">
-                                    <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
-                                    <span id="productsErrorMessage"></span>
-                                </div>
-
-                                <div class="treatment-products-grid" id="productsContainer">
-                                    {% for form in products_formset %}
-                                    <div class="treatment-product-card product-form">
-                                        <div class="product-card-header">
-                                            <div class="product-number">{{ forloop.counter }}</div>
-                                            <button class="btn btn-sm btn-outline-danger rounded-circle remove-row"
-                                                    type="button">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </div>
-
-                                        {{ form.id }}
-                                        {{ form.DELETE|add_class:"d-none delete-input" }}
-
-                                        <div class="row">
-                                            <div class="col-12 col-md-6 col-lg-4">
-                                                <div class="mb-3">
-                                                    <label class="form-label small fw-semibold text-muted">Producto</label>
-                                                    {{ form.product|add_class:"form-select product-select" }}
-                                                </div>
-
-                                                <div class="dose-info d-none">
-                                                    <strong>Dosis recomendada:</strong>
-                                                    <span class="recommended-dose">-</span>
-                                                </div>
-                                            </div>
-                                            <div class="col-12 col-md-6 col-lg-4">
-                                                <div class="mb-3">
-                                                    <label class="form-label small fw-semibold text-muted">Dosis</label>
-                                                    <div class="input-group">
-                                                        {{ form.dose|add_class:"form-control product-dose" }}
-                                                        <span class="input-group-text dose-unit">—</span>
-                                                    </div>
-                                                    <div class="dose-warning d-none"></div>
-                                                </div>
-
-                                                <div class="dose-info machine-dose-line d-none">
-                                                    <strong>Dosis por máquina:</strong>
-                                                    <span class="machine-dose-value">-</span>
-                                                </div>
-                                            </div>
-                                            <div class="col-12 col-md-6 col-lg-4">
-                                                <div class="mb-3">
-                                                    <label class="form-label small fw-semibold text-muted">Total
-                                                        parcela</label>
-                                                    <div class="input-group">
-                                                        {{ form.total_dose|add_class:"form-control total-dose-input" }}
-                                                        <span class="input-group-text total-unit">—</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {% endfor %}
-                                </div>
-                                <button class="btn-add mt-3" id="addProduct" type="button">
-                                    <i class="bi bi-plus-circle"></i>
-                                    Añadir Producto
-                                </button>
-                            </div>
-                            <div class="tf-cost" id="estimatedCostBox" aria-live="polite">
-                                <span>Coste estimado</span>
-                                <span><b id="estimatedCost">—</b> <small id="estimatedCostHa"></small></span>
-                            </div>
-                            <div class="card-footer py-3">
-                                <div class="d-flex gap-2">
-                                    <a class="btn btn-outline-secondary"
-                                       href="{% if is_edit %}{% url 'treatment-detail' pk=form.instance.pk %}{% else %}{% url 'treatment-list' %}{% endif %}">
-                                        <i class="bi bi-x-circle me-2"></i>
-                                        Cancelar
-                                    </a>
-                                    <button class="btn btn-outline-primary" id="backToInfo" type="button">
-                                        <i class="bi bi-arrow-left me-2"></i>
-                                        Atrás
-                                    </button>
-                                    <button class="btn btn-primary flex-fill" id="saveTreatment" type="submit">
-                                        <i class="bi bi-check-circle me-2"></i>
-                                        Guardar
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </form>
+        {# Inputs reales del formulario Django: ocultos; el controlador JS los rellena justo antes de enviar #}
+        <div hidden id="tfReal">
+            {{ form.name }}{{ form.type }}{{ form.date }}{{ form.field }}{{ form.machine }}{{ form.water_per_ha }}
+            {{ form.finish_date }}{{ form.real_water_per_ha }}{{ form.applied_area }}{{ form.zone_notes }}
+            {% if not is_edit %}{{ form.extra_fields }}{% endif %}
+            {{ products_formset.management_form }}
+            <div id="tfRows">
+                {% for f in products_formset %}
+                <div data-row>{{ f.id }}{{ f.product }}{{ f.dose }}{{ f.total_dose }}{{ f.total_overridden }}{{ f.position }}{{ f.DELETE }}</div>
+                {% endfor %}
             </div>
+            <template id="tfRowTpl">
+                {% with f=products_formset.empty_form %}
+                <div data-row>{{ f.id }}{{ f.product }}{{ f.dose }}{{ f.total_dose }}{{ f.total_overridden }}{{ f.position }}{{ f.DELETE }}</div>
+                {% endwith %}
+            </template>
+        </div>
+
+        <div class="tf-layout">
+            <div class="tf-main">
+
+                {# ── Nombre: lo primero de la pantalla (sin enfoque automático: en móvil abriría el teclado) ── #}
+                <section class="tf-card" id="tfSecName" data-sec="name">
+                    <label class="tf-lbl" for="tfName">Nombre del tratamiento</label>
+                    <input class="tf-inp" id="tfName" maxlength="100" placeholder="Ej. Prefloración" autocomplete="off">
+                    <div class="tf-err" data-err="name" aria-live="polite"></div>
+                </section>
+
+                {# ── Tipo y parcela ─────────────────────────────────────────── #}
+                <section class="tf-card" id="tfSecField" data-sec="field">
+                    <div class="tf-grid-2">
+                        <div class="tf-group">
+                            <p class="tf-lbl" id="tfTypeLbl">Tipo</p>
+                            <div class="tf-seg" role="group" aria-labelledby="tfTypeLbl">
+                                <button type="button" class="tf-seg-btn" data-type="spraying" aria-pressed="false">Pulverización</button>
+                                <button type="button" class="tf-seg-btn" data-type="fertigation" aria-pressed="false">Fertirrigación</button>
+                            </div>
+                        </div>
+                        <div class="tf-group">
+                            <p class="tf-lbl" id="tfFieldLbl">Parcela</p>
+                            <button type="button" class="tf-pick" id="tfFieldBtn" aria-haspopup="dialog"
+                                    aria-expanded="false" aria-labelledby="tfFieldLbl tfFieldTitle">
+                                <span class="tf-pick-body">
+                                    <span class="tf-pick-title" id="tfFieldTitle"></span>
+                                    <span class="tf-pick-sub" id="tfFieldSub"></span>
+                                </span>
+                                <i class="bi bi-chevron-right tf-chev" aria-hidden="true"></i>
+                            </button>
+                            {# Escritorio: desplegable con búsqueda #}
+                            <div class="tf-pop" id="tfFieldsPop" hidden>
+                                <input type="search" class="tf-inp" data-search="fields" placeholder="Buscar parcela o cultivo"
+                                       aria-label="Buscar parcela" autocomplete="off">
+                                <div class="tf-opts" data-list="fields" role="listbox" aria-label="Parcelas" aria-multiselectable="true"></div>
+                                <button type="button" class="tf-btn tf-btn--primary" data-done="fields">Listo</button>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="tf-note" id="tfMultiNote" hidden>Se creará un tratamiento por parcela, con las cantidades de cada una.</p>
+                    <button type="button" class="tf-link" id="tfPartialOpen" hidden>Tratar solo una parte de la parcela</button>
+                    <div class="tf-partial" id="tfPartial" hidden>
+                        <label class="tf-label-col" for="tfArea">Superficie (ha)
+                            <input class="tf-inp tf-num" id="tfArea" inputmode="decimal" autocomplete="off">
+                        </label>
+                        <label class="tf-label-col" for="tfZone">Zona
+                            <input class="tf-inp" id="tfZone" maxlength="200" placeholder="Ej. sector norte" autocomplete="off">
+                        </label>
+                        <button type="button" class="tf-link" id="tfPartialClose">Tratar la parcela entera</button>
+                    </div>
+                    <div class="tf-err" data-err="field" aria-live="polite"></div>
+                </section>
+
+                {# ── Productos ──────────────────────────────────────────────── #}
+                <section class="tf-card" id="tfSecProducts" data-sec="products">
+                    <div class="tf-head">
+                        <h2 class="tf-h2">Productos</h2>
+                        <span class="tf-hint" id="tfOrderHint" hidden>En este orden en la cuba</span>
+                    </div>
+                    <div class="tf-lines-head" aria-hidden="true">
+                        <span>#</span><span>Producto</span><span>Dosis</span>
+                        <span class="tf-r" id="tfLoadHead">Por máquina</span>
+                        <span class="tf-r" id="tfTotalHead">Total parcela</span><span class="tf-r">Coste</span><span></span>
+                    </div>
+                    <div class="tf-lines" id="tfLines"></div>
+                    <p class="tf-note" id="tfMultiTotalNote" hidden>Con varias parcelas el total se calcula por parcela.</p>
+                    <button type="button" class="tf-add" id="tfAddBtn" aria-haspopup="dialog" aria-expanded="false">
+                        <i class="bi bi-plus-lg" aria-hidden="true"></i><span id="tfAddLabel">Añadir producto</span>
+                    </button>
+                    <div class="tf-add-inline" id="tfAddInline">
+                        <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                        <input type="text" id="tfAddInput" role="combobox" aria-expanded="false" aria-controls="tfProductsPop"
+                               aria-autocomplete="list" aria-label="Añadir producto" autocomplete="off"
+                               placeholder="Añadir producto: escribe para buscar y pulsa Intro">
+                        <button type="button" class="tf-link" id="tfAddClose" hidden>Cerrar</button>
+                        <div class="tf-pop" id="tfProductsPop" hidden>
+                            <div class="tf-opts" data-list="products" role="listbox" aria-label="Productos" aria-multiselectable="true"></div>
+                        </div>
+                    </div>
+                    <div class="tf-err" data-err="products" aria-live="polite"></div>
+                </section>
+
+                <div class="tf-row-2">
+                    {# ── Máquina y mojado (solo pulverización) ─────────────────── #}
+                    <section class="tf-card" id="tfSecApp" data-sec="application">
+                        <h2 class="tf-h2" id="tfMachineTitle">Máquina y mojado</h2>
+                        <div class="tf-chips" id="tfMachineChips" role="radiogroup" aria-labelledby="tfMachineTitle" hidden></div>
+                        <p class="tf-machine-single" id="tfMachineSingle" hidden>
+                            <i class="bi bi-check2" aria-hidden="true"></i>
+                            <span><b id="tfMachineName"></b> <span class="tf-hint" id="tfMachineCap"></span></span>
+                        </p>
+                        <label class="tf-label-col" for="tfWater">Mojado previsto
+                            <span class="tf-inline">
+                                <input class="tf-inp tf-num" id="tfWater" inputmode="numeric" placeholder="Ej. 1000"
+                                       autocomplete="off" style="max-width: 140px">
+                                <span class="tf-unit">L/ha</span>
+                            </span>
+                        </label>
+                        <div class="tf-loads" id="tfLoads" hidden>
+                            <span class="tf-loads-head" id="tfLoadsHead"></span>
+                            <div id="tfLoadRows"></div>
+                        </div>
+                        <div class="tf-err" data-err="application" aria-live="polite"></div>
+                    </section>
+
+                    {# ── Fecha y «ya está hecho» ────────────────────────────────── #}
+                    <section class="tf-card" id="tfSecDate" data-sec="date">
+                        <h2 class="tf-h2" id="tfDateTitle">Cuándo</h2>
+                        <div class="tf-chips" id="tfDateChips" role="radiogroup" aria-labelledby="tfDateTitle"></div>
+                        <input type="date" class="tf-inp" id="tfCustomDate" aria-label="Fecha programada" hidden>
+                        <span class="tf-hint" id="tfDateLong"></span>
+                        <hr class="tf-sep">
+                        <div class="tf-switch-row">
+                            <div>
+                                <div class="tf-switch-title" id="tfDoneLbl">Ya está hecho</div>
+                                <div class="tf-hint">Para apuntar un tratamiento que ya se ha aplicado</div>
+                            </div>
+                            <button type="button" class="tf-switch" id="tfDone" role="switch" aria-checked="false"
+                                    aria-labelledby="tfDoneLbl"><span class="tf-knob"></span></button>
+                        </div>
+                        <div class="tf-done-fields" id="tfDoneFields" hidden>
+                            <label class="tf-label-col" for="tfFinish">Hecho el
+                                <input type="date" class="tf-inp" id="tfFinish">
+                            </label>
+                            <label class="tf-label-col" for="tfRealWater" id="tfRealWrap">Mojado real (L/ha)
+                                <input class="tf-inp tf-num" id="tfRealWater" inputmode="numeric" autocomplete="off">
+                            </label>
+                        </div>
+                        <div class="tf-err" data-err="date" aria-live="polite"></div>
+                    </section>
+                </div>
+            </div>
+
+            {# ── Resumen: barra fija abajo (móvil) / tarjeta lateral (escritorio) ── #}
+            <aside class="tf-summary" id="tfSummary" aria-label="Resumen del tratamiento">
+                <div class="tf-sum-top">
+                    <span class="tf-lbl tf-sum-label">Resumen</span>
+                    <div class="tf-sum-main-wrap">
+                        <span class="tf-sum-main" id="tfSumMain"></span>
+                        <span class="tf-sum-sub" id="tfSumSub"></span>
+                    </div>
+                    <dl class="tf-kv" id="tfKv"></dl>
+                    <p class="tf-missing" id="tfMissing"></p>
+                </div>
+                <div class="tf-sum-actions">
+                    <button type="submit" class="tf-btn tf-btn--primary" id="tfSave">{% if is_edit %}Guardar{% else %}Crear{% endif %}</button>
+                    <a class="tf-btn tf-btn--sec tf-sum-cancel"
+                       href="{% if is_edit %}{% url 'treatment-detail' form.instance.pk %}{% else %}{% url 'treatment-list' %}{% endif %}">Cancelar</a>
+                </div>
+            </aside>
+        </div>
+    </form>
+
+    {# ── Hojas inferiores (móvil) ─────────────────────────────────────────────── #}
+    <div class="offcanvas offcanvas-bottom tf-sheet" tabindex="-1" id="tfFieldsSheet" aria-labelledby="tfFieldsSheetTitle">
+        <div class="tf-sheet-grab" aria-hidden="true"></div>
+        <div class="offcanvas-header">
+            <h2 class="offcanvas-title" id="tfFieldsSheetTitle">Elige parcelas</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+        </div>
+        <div class="tf-sheet-search">
+            <input type="search" class="tf-inp" data-search="fields" placeholder="Buscar parcela o cultivo"
+                   aria-label="Buscar parcela" autocomplete="off">
+        </div>
+        <div class="offcanvas-body tf-sheet-body"><div class="tf-opts" data-list="fields" role="listbox" aria-label="Parcelas" aria-multiselectable="true"></div></div>
+        <div class="tf-sheet-foot">
+            <button type="button" class="tf-btn tf-btn--primary" data-done="fields" data-bs-dismiss="offcanvas">Listo</button>
+        </div>
+    </div>
+
+    <div class="offcanvas offcanvas-bottom tf-sheet" tabindex="-1" id="tfProductsSheet" aria-labelledby="tfProductsSheetTitle">
+        <div class="tf-sheet-grab" aria-hidden="true"></div>
+        <div class="offcanvas-header">
+            <h2 class="offcanvas-title" id="tfProductsSheetTitle">Añadir productos</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+        </div>
+        <div class="tf-sheet-search">
+            <input type="search" class="tf-inp" data-search="products" placeholder="Buscar producto o tipo"
+                   aria-label="Buscar producto" autocomplete="off">
+            <span class="tf-hint">Toca para añadir o quitar. Se ponen con su dosis recomendada.</span>
+        </div>
+        <div class="offcanvas-body tf-sheet-body"><div class="tf-opts" data-list="products" role="listbox" aria-label="Productos" aria-multiselectable="true"></div></div>
+        <div class="tf-sheet-foot">
+            <button type="button" class="tf-btn tf-btn--primary" data-done="products" data-bs-dismiss="offcanvas">Listo</button>
         </div>
     </div>
 </div>
-
-<template id="productRowTemplate">
-    <div class="treatment-product-card product-form">
-        <div class="product-card-header">
-            <div class="product-number"></div>
-            <button class="btn btn-sm btn-outline-danger rounded-circle remove-row" type="button">
-                <i class="bi bi-trash"></i>
-            </button>
-        </div>
-
-        <input id="id_treatmentproduct_set-INDEX-id" name="treatmentproduct_set-INDEX-id" type="hidden">
-        <input class="d-none delete-input" id="id_treatmentproduct_set-INDEX-DELETE"
-               name="treatmentproduct_set-INDEX-DELETE" type="checkbox">
-
-        <div class="row">
-            <div class="col-12 col-md-6 col-lg-4">
-                <div class="mb-3">
-                    <label class="form-label small fw-semibold text-muted">Producto</label>
-                    <select class="form-select product-select"
-                            id="id_treatmentproduct_set-INDEX-product"
-                            name="treatmentproduct_set-INDEX-product">
-                        <option value="">Buscar producto…</option>
-                    </select>
-                </div>
-
-                <div class="dose-info d-none">
-                    <strong>Dosis recomendada:</strong>
-                    <span class="recommended-dose">-</span>
-                </div>
-            </div>
-            <div class="col-12 col-md-6 col-lg-4">
-                <div class="mb-3">
-                    <label class="form-label small fw-semibold text-muted">Dosis</label>
-                    <div class="input-group">
-                        <input class="form-control product-dose" id="id_treatmentproduct_set-INDEX-dose"
-                               name="treatmentproduct_set-INDEX-dose"
-                               step="0.001"
-                               type="number">
-                        <span class="input-group-text dose-unit">—</span>
-                    </div>
-                    <div class="dose-warning d-none"></div>
-                </div>
-                <div class="dose-info machine-dose-line d-none">
-                    <strong>Dosis por máquina:</strong>
-                    <span class="machine-dose-value">-</span>
-                </div>
-            </div>
-            <div class="col-12 col-md-6 col-lg-4">
-                <div class="mb-3">
-                    <label class="form-label small fw-semibold text-muted">Total parcela</label>
-                    <div class="input-group">
-                        <input class="form-control total-dose-input" id="id_treatmentproduct_set-INDEX-total_dose"
-                               name="treatmentproduct_set-INDEX-total_dose"
-                               step="0.001"
-                               type="number">
-                        <span class="input-group-text total-unit">—</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</template>
 {% endblock %}
 
 {% block extra_js %}
-<script>
-    document.addEventListener('DOMContentLoaded', async () => {
-        // Variables globales
-        let fields = {}, machines = {}, products = new Map();
-        // @formatter:off
-        const isEdit = {{ is_edit|yesno:"true,false" }};
-        // @formatter:on
-        const formContainer = document.getElementById('treatmentForm');
-        let formCount = parseInt(formContainer.dataset.formCount);
-        let lastModifiedField = new Map(); // Para trackear el último campo modificado por fila
-        const maxForms = parseInt('{{ products_formset.max_num }}');
-        const productTemplate = document.getElementById('productRowTemplate');
-
-        // Elementos del formulario
-        const elements = {
-            fieldSelect: document.getElementById('{{ form.field.id_for_label }}'),
-            treatmentTypeSelect: document.getElementById('{{ form.type.id_for_label }}'),
-            machineSelect: document.getElementById('{{ form.machine.id_for_label }}'),
-            machineSelectWrapper: document.getElementById('machineSelectWrapper'),
-            singleMachineInfo: document.getElementById('singleMachineInfo'),
-            waterPerHaInput: document.getElementById('{{ form.water_per_ha.id_for_label }}'),
-            completedDateInput: document.getElementById('{{ form.finish_date.id_for_label }}'),
-            fieldInfo: document.getElementById('fieldAreaInfo'),
-            machineInfo: document.getElementById('machineCapacityInfo'),
-            completedDateInfo: document.getElementById('completedDateInfo'),
-            addProductBtn: document.getElementById('addProduct'),
-            productsContainer: document.getElementById('productsContainer'),
-            totalFormsInput: document.getElementById('id_treatmentproduct_set-TOTAL_FORMS'),
-            conditionalFields: document.getElementById('conditionalFields'),
-            machineFieldGroup: document.getElementById('machineFieldGroup'),
-            waterFieldGroup: document.getElementById('waterFieldGroup'),
-            nameInput: document.getElementById('{{ form.name.id_for_label }}'),
-            dateInput: document.getElementById('{{ form.date.id_for_label }}'),
-            // Step elements
-            step1: document.getElementById('step1'),
-            step2: document.getElementById('step2'),
-            nextToProducts: document.getElementById('nextToProducts'),
-            backToInfo: document.getElementById('backToInfo'),
-            progressBar: document.getElementById('progressBar')
-        };
-
-        // Funciones para cargar datos
-        async function fetchData(url) {
-            const response = await fetch(url);
-            return response.json();
-        }
-
-        async function loadFieldsData() {
-            fields = Object.fromEntries((await fetchData(API_URLS.fields)).map(field => [field.id, field]));
-            updateFieldInfo();
-        }
-
-        async function loadMachinesData() {
-            machines = Object.fromEntries((await fetchData(API_URLS.machines)).map(machine => [machine.id, machine]));
-
-            const machineIds = Object.keys(machines);
-            const hasSingleMachine = machineIds.length === 1;
-
-            if (hasSingleMachine) {
-                const machineId = machineIds[0];
-                elements.machineSelect.value = machineId;
-                elements.machineSelectWrapper?.classList.add('d-none');
-
-                if (elements.singleMachineInfo) {
-                    const machine = machines[machineId];
-
-                    elements.singleMachineInfo.classList.remove('d-none');
-                    elements.singleMachineInfo.textContent = '';
-
-                    const icon = document.createElement('i');
-                    icon.className = 'fa-solid fa-tractor text-primary me-1';
-
-                    const text = document.createTextNode(
-                        `Maquinaria seleccionada automáticamente: ${machine.name}`
-                    );
-
-                    elements.singleMachineInfo.appendChild(icon);
-                    elements.singleMachineInfo.appendChild(text);
-                }
-
-            } else {
-                elements.machineSelectWrapper?.classList.remove('d-none');
-
-                if (elements.singleMachineInfo) {
-                    elements.singleMachineInfo.classList.add('d-none');
-                    elements.singleMachineInfo.textContent = '';
-                }
-            }
-
-            updateMachineInfo();
-        }
-
-        async function loadProductsData(treatmentType = null) {
-            if (!treatmentType) {
-                products = new Map();
-                return;
-            }
-
-            products = new Map((await fetchData(API_URLS.productsByTreatmentType(treatmentType))).map(product => [product.id, product]));
-
-            updateProductsTableOptions();
-        }
-
-        // ── Product select helpers (SearchableSelect) ────────────────
-        // Mapa: selectElement -> instancia SearchableSelect
-        const ssInstances = new Map();
-
-        function initProductSelect(selectElement) {
-            if (ssInstances.has(selectElement)) return;
-            const ss = new SearchableSelect(selectElement, {placeholder: 'Buscar producto…'});
-            ssInstances.set(selectElement, ss);
-        }
-
-        function updateProductSelectOptions(selectElement, restoreValue) {
-            const items = Array.from(products.values()).map(p => ({value: p.id, text: p.name}));
-            const ss = ssInstances.get(selectElement);
-            if (ss) {
-                ss.setOptions(items, restoreValue || null);
-            } else {
-                // fallback sin instancia
-                selectElement.innerHTML = '<option value=""></option>';
-                items.forEach(({value, text}) => {
-                    const opt = document.createElement('option');
-                    opt.value = String(value);
-                    opt.textContent = text;
-                    selectElement.appendChild(opt);
-                });
-                selectElement.value = restoreValue ? String(restoreValue) : '';
-            }
-        }
-
-        // ─────────────────────────────────────────────────────────────
-
-        function updateProductsTableOptions() {
-            document.querySelectorAll('.product-select').forEach(productSelect => {
-                const currentValue = productSelect.value;
-                updateProductSelectOptions(productSelect, currentValue);
-            });
-        }
-
-        function isRowMarkedForDeletion(row) {
-            return row.querySelector('.delete-input')?.checked;
-        }
-
-        function getVisibleRows() {
-            return Array.from(document.querySelectorAll('.product-form')).filter(row => !isRowMarkedForDeletion(row));
-        }
-
-        // ── Mensajes de error inline para productos ────────────────────
-        function showProductsError(message) {
-            const errorDiv = document.getElementById('productsError');
-            document.getElementById('productsErrorMessage').textContent = message;
-            errorDiv.classList.remove('d-none');
-            errorDiv.classList.add('d-flex');
-            errorDiv.scrollIntoView({behavior: 'smooth', block: 'nearest'});
-        }
-
-        function clearProductsError() {
-            const errorDiv = document.getElementById('productsError');
-            errorDiv.classList.add('d-none');
-            errorDiv.classList.remove('d-flex');
-        }
-
-        /**
-         * Detecta duplicados en tiempo real y marca visualmente los cards afectados.
-         * Llamar cada vez que cambia un producto o se elimina una fila.
-         */
-        function checkProductDuplicates() {
-            const visibleRows = getVisibleRows();
-
-            // Contar apariciones de cada product ID
-            const counts = {};
-            visibleRows.forEach(row => {
-                const select = row.querySelector('.product-select');
-                const id = select?.value || '';
-                if (id) counts[id] = (counts[id] || 0) + 1;
-            });
-
-            let hasDuplicates = false;
-
-            visibleRows.forEach(row => {
-                const select = row.querySelector('.product-select');
-                const id = select?.value || '';
-                const isDup = Boolean(id && counts[id] > 1);
-
-                row.classList.toggle('product-card--duplicate', isDup);
-
-                // Añadir o quitar badge "Duplicado" en la cabecera de la tarjeta
-                const header = row.querySelector('.product-card-header');
-                let badge = row.querySelector('.duplicate-badge');
-                if (isDup && header) {
-                    if (!badge) {
-                        badge = document.createElement('span');
-                        badge.className = 'duplicate-badge badge bg-danger ms-auto me-2 align-self-center';
-                        badge.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>Duplicado';
-                        header.insertBefore(badge, header.querySelector('.remove-row'));
-                    }
-                } else {
-                    badge?.remove();
-                }
-
-                if (isDup) hasDuplicates = true;
-            });
-
-            if (hasDuplicates) {
-                showProductsError('Los productos marcados en rojo están duplicados. Cada producto solo puede aparecer una vez.');
-            } else {
-                clearProductsError();
-            }
-        }
-
-        // ───────────────────────────────────────────────────────────────
-
-        // Funciones para actualizar información
-        function updateFieldInfo() {
-            const field = fields[elements.fieldSelect.value];
-            elements.fieldInfo.textContent = field ? `Área: ${field.area} ha - Cultivo: ${field.crop}` : '';
-            const appliedAreaInput = document.getElementById('{{ form.applied_area.id_for_label }}');
-            const appliedAreaInfo = document.getElementById('appliedAreaInfo');
-            if (appliedAreaInput && appliedAreaInfo) {
-                appliedAreaInfo.textContent = field
-                    ? `Opcional. Máximo: ${field.area} ha (área total de la parcela).`
-                    : 'Opcional. Dejar vacío si se trata la parcela completa.';
-            }
-            calculateTotalDoses();
-            checkStep1Completion();
-        }
-
-        function updateMachineInfo() {
-            const machine = machines[elements.machineSelect.value];
-            elements.machineInfo.textContent = machine ? `Capacidad: ${machine.capacity} litros` : '';
-            calculateTotalDoses();
-            checkStep1Completion();
-        }
-
-        function getProduct(productId) {
-            return products.get(Number(productId)) || null;
-        }
-
-        function updateProductInfo(event, options = {}) {
-            const card = event.target.closest('.product-form');
-            const product = getProduct(event.target.value);
-            const preserveExistingValues = options.preserveExistingValues === true;
-            const rowIndex = Array.from(document.querySelectorAll('.product-form')).indexOf(card);
-
-            const doseInput = card.querySelector('.product-dose');
-            const recommendedDoseSpan = card.querySelector('.recommended-dose');
-            const totalInput = card.querySelector('.total-dose-input');
-            const unitSpan = card.querySelector('.total-unit');
-            const doseInfo = card.querySelector('.dose-info');
-
-            if (product) {
-                // En cambios de producto por usuario, la dosis vuelve a la recomendada.
-                // En inicialización, se preservan valores guardados.
-                if (!preserveExistingValues || !doseInput.value) {
-                    doseInput.value = product.dose;
-                }
-                if (!preserveExistingValues && rowIndex >= 0) {
-                    lastModifiedField.set(rowIndex, 'dose');
-                }
-                recommendedDoseSpan.textContent = product.dose + ' ' + product.dose_type_display;
-                doseInfo.classList.remove('d-none');
-                card.querySelector('.dose-unit').textContent = product.dose_type_display;
-                card.querySelector('.total-unit').textContent = product.dose_type.includes('kg') ? 'kg' : 'L';
-            } else {
-                if (!preserveExistingValues) {
-                    doseInput.value = '';
-                    totalInput.value = '';
-                    if (rowIndex >= 0) {
-                        lastModifiedField.set(rowIndex, null);
-                    }
-                }
-                recommendedDoseSpan.textContent = '-';
-                doseInfo.classList.add('d-none');
-                card.querySelector('.dose-unit').textContent = '—';
-                card.querySelector('.total-unit').textContent = '—';
-            }
-
-            calculateTotalDoses();
-        }
-
-        function handleProductChange(event) {
-            updateProductInfo(event, {preserveExistingValues: false});
-            checkProductDuplicates();
-        }
-
-        // Función para validar la fecha de finalización
-        function validateCompletedDate() {
-            const completedDate = elements.completedDateInput.value;
-            if (!completedDate) {
-                elements.completedDateInfo.textContent = 'Opcional. Si se establece, el tratamiento se marcará como completado.';
-                elements.completedDateInfo.classList.remove('text-danger');
-                return true;
-            }
-
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const selected = new Date(completedDate);
-            selected.setHours(0, 0, 0, 0);
-
-            if (selected > today) {
-                elements.completedDateInfo.textContent = 'La fecha de finalización no puede ser en el futuro.';
-                elements.completedDateInfo.classList.add('text-danger');
-                return false;
-            } else {
-                elements.completedDateInfo.textContent = 'El tratamiento se registrará como completado en esta fecha.';
-                elements.completedDateInfo.classList.add('text-success');
-                elements.completedDateInfo.classList.remove('text-danger');
-                return true;
-            }
-        }
-
-        // Función para calcular dosis totales
-        function calculateTotalDoses() {
-            const field = fields[elements.fieldSelect.value];
-            const waterPerHa = parseFloat(elements.waterPerHaInput.value) || 0;
-            if (!field) return;
-            const appliedAreaInput = document.getElementById('{{ form.applied_area.id_for_label }}');
-            const appliedAreaVal = appliedAreaInput ? parseFloat(appliedAreaInput.value) : NaN;
-            const effectiveArea = (!isNaN(appliedAreaVal) && appliedAreaVal > 0 && appliedAreaVal < field.area)
-                ? appliedAreaVal : field.area;
-
-            document.querySelectorAll('.product-form').forEach((card, index) => {
-                if (isRowMarkedForDeletion(card)) {
-                    return;
-                }
-
-                const doseInput = card.querySelector('.product-dose');
-                const totalInput = card.querySelector('.total-dose-input');
-                const unitSpan = card.querySelector('.total-unit');
-                const productSelect = card.querySelector('.product-select');
-
-                const productId = productSelect.value;
-                if (!productId || !getProduct(productId)) {
-                    totalInput.value = '';
-                    return;
-                }
-
-                const dose = parseFloat(doseInput.value) || 0;
-
-                // Si total fue lo último modificado, no recalcular
-                if (lastModifiedField.get(index) === 'total' && totalInput.value) {
-                    return;
-                }
-
-                if (!dose) {
-                    totalInput.value = '';
-                    return;
-                }
-
-                const product = getProduct(productId);
-                const doseType = product.dose_type;
-                const totalWater = effectiveArea * waterPerHa;
-                const unit = doseType.includes('kg') ? 'kg' : 'L';
-                let totalDose = 0;
-
-                if (doseType.includes('_per_ha')) {
-                    totalDose = dose * effectiveArea;
-                } else if (doseType.includes('_per_1000l')) {
-                    totalDose = (dose / 1000) * totalWater;
-                } else if (doseType.includes('_per_2000l')) {
-                    totalDose = (dose / 2000) * totalWater;
-                }
-
-                totalInput.value = totalDose.toFixed(2);
-
-            });
-
-            calculateMachineDoses();
-        }
-
-        // Función para calcular la cantidad de producto por carga de máquina
-        function calculateMachineDoses() {
-            const machine = machines[elements.machineSelect.value];
-            const treatmentType = elements.treatmentTypeSelect.value;
-            const waterPerHa = parseFloat(elements.waterPerHaInput.value) || 0;
-
-            document.querySelectorAll('.product-form').forEach((card) => {
-                if (isRowMarkedForDeletion(card)) return;
-
-                const machineDoseLine = card.querySelector('.machine-dose-line');
-                const machineDoseValue = card.querySelector('.machine-dose-value');
-                if (!machineDoseLine || !machineDoseValue) return;
-
-                // Solo mostrar para tratamientos de pulverización con máquina
-                if (treatmentType !== 'spraying' || !machine || !machine.capacity) {
-                    machineDoseLine.classList.add('d-none');
-                    return;
-                }
-
-                const doseInput = card.querySelector('.product-dose');
-                const productSelect = card.querySelector('.product-select');
-                const productId = productSelect.value;
-
-                if (!productId || !getProduct(productId)) {
-                    machineDoseLine.classList.add('d-none');
-                    return;
-                }
-
-                const dose = parseFloat(doseInput.value) || 0;
-                if (!dose) {
-                    machineDoseLine.classList.add('d-none');
-                    return;
-                }
-
-                const product = getProduct(productId);
-                const doseType = product.dose_type;
-                const capacity = machine.capacity;
-                const unit = doseType.includes('kg') ? 'kg' : 'L';
-                let machineDose = 0;
-
-                if (doseType.includes('_per_1000l')) {
-                    machineDose = (dose / 1000) * capacity;
-                } else if (doseType.includes('_per_2000l')) {
-                    machineDose = (dose / 2000) * capacity;
-                } else if (doseType === 'pct') {
-                    machineDose = (dose / 100) * capacity;
-                } else if (doseType.includes('_per_ha') && waterPerHa > 0) {
-                    // Cada máquina cubre capacity/waterPerHa hectáreas
-                    machineDose = dose * (capacity / waterPerHa);
-                }
-
-                if (machineDose > 0) {
-                    machineDoseValue.textContent = machineDose.toFixed(2) + ' ' + unit;
-                    machineDoseLine.classList.remove('d-none');
-                } else {
-                    machineDoseLine.classList.add('d-none');
-                }
-            });
-            updateDoseSummary();
-        }
-
-        // Aviso si la dosis se aparta ±25% de la recomendada (no bloquea: puede ser una decisión,
-        // pero una diferencia grande suele ser un error de tecleo o de unidad) y coste estimado en vivo.
-        const DOSE_WARNING_RATIO = 0.25;
-        const eur = (v) => v.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' €';
-
-        function updateDoseSummary() {
-            let totalCost = 0;
-            let hasPrice = false;
-            getVisibleRows().forEach((card) => {
-                const product = getProduct(card.querySelector('.product-select').value);
-                const warning = card.querySelector('.dose-warning');
-                const dose = parseFloat(card.querySelector('.product-dose').value) || 0;
-                const recommended = product ? parseFloat(product.dose) : 0;
-                if (warning) {
-                    if (product && dose && recommended && Math.abs(dose - recommended) / recommended >= DOSE_WARNING_RATIO) {
-                        const pct = Math.round((dose - recommended) / recommended * 100);
-                        warning.textContent = `${pct > 0 ? '+' : ''}${pct}% respecto a la recomendada (${product.dose} ${product.dose_type_display})`;
-                        warning.classList.remove('d-none');
-                    } else {
-                        warning.classList.add('d-none');
-                    }
-                }
-                const total = parseFloat(card.querySelector('.total-dose-input').value) || 0;
-                if (product && product.price > 0 && total) {
-                    totalCost += total * product.price;
-                    hasPrice = true;
-                }
-            });
-            const costEl = document.getElementById('estimatedCost');
-            const costHaEl = document.getElementById('estimatedCostHa');
-            if (!costEl) return;
-            const field = fields[elements.fieldSelect.value];
-            const appliedAreaInput = document.getElementById('{{ form.applied_area.id_for_label }}');
-            const appliedAreaVal = appliedAreaInput ? parseFloat(appliedAreaInput.value) : NaN;
-            const area = field ? ((!isNaN(appliedAreaVal) && appliedAreaVal > 0 && appliedAreaVal < field.area) ? appliedAreaVal : field.area) : 0;
-            costEl.textContent = hasPrice ? eur(totalCost) : '—';
-            costHaEl.textContent = hasPrice && area ? `· ${eur(totalCost / area)}/ha` : '';
-        }
-
-        function calculateDoseFromTotal(event) {
-            const row = event.target.closest('.product-form');
-            const rowIndex = Array.from(document.querySelectorAll('.product-form')).indexOf(row);
-
-            // Marcar que el campo "total" fue el último modificado
-            lastModifiedField.set(rowIndex, 'total');
-
-            const doseInput = row.querySelector('.product-dose');
-            const estimatedDoseInput = row.querySelector('.total-dose-input');
-            const productInput = row.querySelector('.product-select');
-            const field = fields[elements.fieldSelect.value];
-            const waterPerHa = parseFloat(elements.waterPerHaInput.value) || 0;
-
-            const productId = productInput.value;
-            if (!productId || !getProduct(productId) || !field) return;
-
-            const totalDose = parseFloat(estimatedDoseInput.value) || 0;
-            if (!totalDose) {
-                doseInput.value = '';
-                return;
-            }
-
-            const appliedAreaInput2 = document.getElementById('{{ form.applied_area.id_for_label }}');
-            const appliedAreaVal2 = appliedAreaInput2 ? parseFloat(appliedAreaInput2.value) : NaN;
-            const effectiveArea2 = (!isNaN(appliedAreaVal2) && appliedAreaVal2 > 0 && appliedAreaVal2 < field.area)
-                ? appliedAreaVal2 : field.area;
-
-            const doseType = getProduct(productId).dose_type;
-            const totalWater = effectiveArea2 * waterPerHa;
-            let dosePerHa = 0;
-
-            if (doseType.includes('_per_ha')) {
-                dosePerHa = totalDose / effectiveArea2;
-            } else if (doseType.includes('_per_1000l')) {
-                dosePerHa = (totalDose * 1000) / totalWater;
-            } else if (doseType.includes('_per_2000l')) {
-                dosePerHa = (totalDose * 2000) / totalWater;
-            }
-
-            doseInput.value = dosePerHa.toFixed(3);
-
-            calculateMachineDoses();
-        }
-
-        function handleDoseChange(event) {
-            const row = event.target.closest('.product-form');
-            const rowIndex = Array.from(document.querySelectorAll('.product-form')).indexOf(row);
-
-            // Marcar que el campo "dosis" fue el último modificado
-            lastModifiedField.set(rowIndex, 'dose');
-
-            calculateTotalDoses();
-        }
-
-        function limitDecimalPlaces(event) {
-            const input = event.target;
-            const value = input.value;
-
-            // Si contiene un punto decimal
-            if (value.includes('.')) {
-                const parts = value.split('.');
-                // Si hay más de tres decimales después del punto
-                if (parts[1] && parts[1].length > 3) {
-                    // Truncar a tres decimales
-                    input.value = `${parts[0]}.${parts[1].substring(0, 3)}`;
-                }
-            }
-        }
-
-        // Aplicar la restricción a los campos de dosis existentes
-        document.querySelectorAll('.product-dose').forEach(input => {
-            input.addEventListener('input', limitDecimalPlaces);
-        });
-
-        function createProductRowFromTemplate(index) {
-            const clone = productTemplate.content.cloneNode(true);
-
-            clone.querySelectorAll('[name*="INDEX"], [id*="INDEX"]').forEach(el => {
-                ['name', 'id', 'for'].forEach(attr => {
-                    if (el.hasAttribute(attr)) {
-                        el.setAttribute(attr, el.getAttribute(attr).replace(/INDEX/g, index));
-                    }
-                });
-            });
-
-            clone.querySelector('.product-number').textContent = index + 1;
-
-            // Options will be populated via Tom Select after DOM insertion
-            return clone.firstElementChild;
-        }
-
-
-        // Función para añadir eventos a una fila
-        function addEventListenersToRow(row) {
-            const productSelect = row.querySelector('.product-select');
-            const doseInput = row.querySelector('.product-dose');
-            const totalInput = row.querySelector('.total-dose-input');
-            const removeBtn = row.querySelector('.remove-row');
-            const deleteInput = row.querySelector('.delete-input');
-
-            productSelect.addEventListener('change', handleProductChange);
-            doseInput.addEventListener('input', handleDoseChange);
-            doseInput.addEventListener('input', limitDecimalPlaces);
-            totalInput.addEventListener('input', (e) => {
-                const rowIndex = Array.from(document.querySelectorAll('.product-form')).indexOf(row);
-                lastModifiedField.set(rowIndex, 'total');
-                calculateDoseFromTotal(e);
-            });
-            totalInput.addEventListener('input', limitDecimalPlaces);
-            removeBtn.addEventListener('click', () => {
-                if (deleteInput) {
-                    deleteInput.checked = true;
-                    row.classList.add('d-none');
-                    row.classList.remove('product-card--duplicate');
-                    row.querySelector('.duplicate-badge')?.remove();
-                    updateProductsIndexes();
-                } else {
-                    row.remove();
-                    updateProductsIndexes();
-                }
-                checkProductDuplicates();
-            });
-        }
-
-        // Manejo de productos
-        function addProductRow() {
-            if (formCount >= maxForms) return alert('No se pueden añadir más productos');
-
-            const newRow = createProductRowFromTemplate(formCount);
-            const container = document.createElement('div');
-            container.appendChild(newRow);
-            const rowElement = container.firstChild;
-
-            elements.productsContainer.appendChild(rowElement);
-
-            // Init product select after the row is in the DOM, then populate options
-            const productSelect = rowElement.querySelector('.product-select');
-            initProductSelect(productSelect);
-            updateProductSelectOptions(productSelect, '');
-
-            addEventListenersToRow(rowElement);
-
-            elements.totalFormsInput.value = ++formCount;
-            updateProductsIndexes();
-        }
-
-        function updateProductsIndexes() {
-            getVisibleRows().forEach((row, index) => {
-                const el = row.querySelector('.product-number');
-                el.textContent = index + 1;
-            });
-            updateDoseSummary();
-        }
-
-        function initializeFirstRow() {
-            // Limpiar el contenedor
-            elements.productsContainer.innerHTML = '';
-
-            // Añadir primera fila
-            const firstRow = createProductRowFromTemplate(0);
-            const container = document.createElement('div');
-            container.appendChild(firstRow);
-            const rowElement = container.firstChild;
-
-            elements.productsContainer.appendChild(rowElement);
-
-            // Init product select after insertion, then populate options
-            const productSelect = rowElement.querySelector('.product-select');
-            initProductSelect(productSelect);
-            updateProductSelectOptions(productSelect, '');
-
-            addEventListenersToRow(rowElement);
-
-            formCount = 1;
-            elements.totalFormsInput.value = formCount;
-        }
-
-        // Funcionalidad Step Form
-        function showStep(stepNumber) {
-            if (stepNumber === 1) {
-                elements.step1.classList.remove('d-none');
-                elements.step2.classList.add('d-none');
-                elements.progressBar.style.width = '50%';
-            } else {
-                elements.step1.classList.add('d-none');
-                elements.step2.classList.remove('d-none');
-                elements.progressBar.style.width = '100%';
-            }
-        }
-
-        function checkStep1Completion() {
-            const treatmentType = elements.treatmentTypeSelect.value;
-            const fieldSelected = elements.fieldSelect.value;
-            const machineSelected = elements.machineSelect.value;
-            const waterPerHaValue = elements.waterPerHaInput.value;
-            const completedDateValid = validateCompletedDate();
-            const nameValue = elements.nameInput.value;
-            const dateValue = elements.dateInput.value;
-
-            const requiredFieldsFilled =
-                fieldSelected !== '' &&
-                treatmentType !== '' &&
-                nameValue !== '' &&
-                dateValue !== '';
-
-            let conditionalFieldsValid = true;
-
-            if (treatmentType === 'spraying') {
-                conditionalFieldsValid = machineSelected !== '' && waterPerHaValue !== '';
-            }
-
-            elements.nextToProducts.disabled = !(requiredFieldsFilled && conditionalFieldsValid && completedDateValid);
-        }
-
-        // Manejo de cambio en tipo de tratamiento
-        function handleTreatmentTypeChange() {
-            const selectedType = elements.treatmentTypeSelect.value;
-
-            // Mostrar/ocultar los campos condicionales
-            if (!selectedType) {
-                elements.conditionalFields.classList.add('d-none');
-                elements.machineSelect.disabled = true;
-                elements.waterPerHaInput.disabled = true;
-                return;
-            } else if (selectedType === 'spraying') {
-                elements.conditionalFields.classList.remove('d-none');
-            } else {
-                elements.conditionalFields.classList.add('d-none');
-            }
-
-            if (selectedType === 'spraying') {
-                // Para pulverización: habilitar máquina y mojado
-                elements.machineFieldGroup.classList.remove('d-none');
-                elements.waterFieldGroup.classList.remove('d-none');
-                elements.machineSelect.disabled = false;
-                elements.machineSelect.required = true;
-                elements.waterPerHaInput.disabled = false;
-                elements.waterPerHaInput.required = true;
-
-                // Establecer valor por defecto de mojado a 1000 cuando se selecciona una máquina
-                if (!elements.waterPerHaInput.value || elements.waterPerHaInput.value === '0') {
-                    elements.waterPerHaInput.value = '1000';
-                }
-
-            } else if (selectedType === 'fertigation') {
-                // Para fertirrigación: ocultar máquina y mojado
-                elements.machineFieldGroup.classList.add('d-none');
-                elements.waterFieldGroup.classList.add('d-none');
-                elements.machineSelect.disabled = true;
-                elements.machineSelect.required = false;
-                elements.machineSelect.value = '';
-                elements.waterPerHaInput.value = '0';
-                elements.waterPerHaInput.required = false;
-            }
-
-            checkStep1Completion();
-        }
-
-        // Validación de formulario
-        function validateForm(event) {
-            const selectedType = elements.treatmentTypeSelect.value;
-            const nameValue = elements.nameInput.value;
-            const dateValue = elements.dateInput.value;
-
-            // Check name field
-            if (!nameValue) {
-                event.preventDefault();
-                alert('Debe ingresar un nombre para el tratamiento');
-                showStep(1);
-                return false;
-            }
-
-            // Check date field
-            if (!dateValue) {
-                event.preventDefault();
-                alert('Debe seleccionar una fecha para el tratamiento');
-                showStep(1);
-                return false;
-            }
-
-            if (!selectedType) {
-                event.preventDefault();
-                alert('Debe seleccionar un tipo de tratamiento');
-                showStep(1);
-                return false;
-            }
-
-            if (selectedType === 'spraying') {
-                // Validar máquina seleccionada
-                if (!elements.machineSelect.value) {
-                    event.preventDefault();
-                    alert('Para tratamientos de pulverización, debe seleccionar una máquina');
-                    showStep(1);
-                    return false;
-                }
-
-                // Validar mojado
-                if (!elements.waterPerHaInput.value) {
-                    event.preventDefault();
-                    alert('Para tratamientos de pulverización, debe indicar el volumen de caldo (L/ha)');
-                    showStep(1);
-                    return false;
-                }
-            }
-
-            // Validar área parcial
-            const appliedAreaVal = parseFloat(document.getElementById('{{ form.applied_area.id_for_label }}').value);
-            const selectedField = fields[elements.fieldSelect.value];
-            if (!isNaN(appliedAreaVal) && appliedAreaVal > 0 && selectedField && appliedAreaVal > selectedField.area) {
-                event.preventDefault();
-                alert(`El área tratada (${appliedAreaVal} ha) no puede superar el área de la parcela (${selectedField.area} ha).`);
-                showStep(1);
-                return false;
-            }
-
-            // Validar que al menos hay un producto
-            const validProducts = getVisibleRows().filter(row => {
-                const productSelect = row.querySelector('.product-select');
-                const dose = row.querySelector('.product-dose');
-                return productSelect.value && dose.value;
-            });
-
-            if (validProducts.length === 0) {
-                event.preventDefault();
-                showStep(2);
-                showProductsError('Debe agregar al menos un producto al tratamiento.');
-                return false;
-            }
-
-            // Validar que no hay productos duplicados (checkProductDuplicates actualiza el estado visual)
-            checkProductDuplicates();
-            if (getVisibleRows().some(row => row.classList.contains('product-card--duplicate'))) {
-                event.preventDefault();
-                showStep(2);
-                return false;
-            }
-
-            // Validar fecha de finalización
-            if (elements.completedDateInput.value) {
-                if (!validateCompletedDate()) {
-                    event.preventDefault();
-                    alert('La fecha de finalización no puede ser en el futuro');
-                    showStep(1);
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        // Rotar icono del collapse de tratamiento parcial
-        document.getElementById('partialTreatmentCollapse').addEventListener('show.bs.collapse', () => {
-            document.getElementById('partialCollapseIcon').classList.replace('bi-chevron-right', 'bi-chevron-down');
-        });
-        document.getElementById('partialTreatmentCollapse').addEventListener('hide.bs.collapse', () => {
-            document.getElementById('partialCollapseIcon').classList.replace('bi-chevron-down', 'bi-chevron-right');
-        });
-
-        // Recalcular dosis cuando cambia el área parcial
-        const appliedAreaEl = document.getElementById('{{ form.applied_area.id_for_label }}');
-        if (appliedAreaEl) appliedAreaEl.addEventListener('input', calculateTotalDoses);
-
-        // Añadir event listeners
-        elements.fieldSelect.addEventListener('change', updateFieldInfo);
-        elements.treatmentTypeSelect.addEventListener('change', handleTreatmentTypeChange);
-        elements.machineSelect.addEventListener('change', updateMachineInfo);
-        elements.waterPerHaInput.addEventListener('input', calculateTotalDoses);
-        elements.waterPerHaInput.addEventListener('input', checkStep1Completion);
-        elements.machineSelect.addEventListener('change', checkStep1Completion);
-        elements.fieldSelect.addEventListener('change', checkStep1Completion);
-        elements.treatmentTypeSelect.addEventListener('change', checkStep1Completion);
-        elements.completedDateInput.addEventListener('change', validateCompletedDate);
-        elements.completedDateInput.addEventListener('change', checkStep1Completion);
-        elements.addProductBtn.addEventListener('click', addProductRow);
-        elements.nameInput.addEventListener('input', checkStep1Completion);
-        elements.dateInput.addEventListener('change', checkStep1Completion);
-
-        // Event listeners para cambio de paso
-        elements.nextToProducts.addEventListener('click', async () => {
-            const selectedType = elements.treatmentTypeSelect.value;
-
-            // Cargar los productos específicos para este tipo antes de mostrar el paso 2
-            await loadProductsData(selectedType);
-
-            if (!isEdit && document.querySelectorAll('.product-form').length === 0) {
-                initializeFirstRow();
-            }
-
-            // Avanzar al paso 2
-            showStep(2);
-        });
-
-        elements.backToInfo.addEventListener('click', () => showStep(1));
-
-        // Validación en envío del formulario
-        document.getElementById('treatmentForm').addEventListener('submit', validateForm);
-
-        function bindExistingRows() {
-            document.querySelectorAll('.product-form').forEach((row, index) => {
-                addEventListenersToRow(row);
-                lastModifiedField.set(index, null);
-
-                // Ocultar filas marcadas para borrar (ocurre al re-renderizar tras un error)
-                if (isRowMarkedForDeletion(row)) {
-                    row.classList.add('d-none');
-                    return; // No inicializar select en filas eliminadas
-                }
-
-                const productSelect = row.querySelector('.product-select');
-                const currentValue = productSelect.value;
-
-                // Init product select and populate with treatment-type-filtered options
-                initProductSelect(productSelect);
-                updateProductSelectOptions(productSelect, currentValue);
-
-                // Show recommended dose info without overwriting saved values
-                if (currentValue) {
-                    updateProductInfo({target: productSelect}, {preserveExistingValues: true});
-                }
-            });
-            formCount = document.querySelectorAll('.product-form').length;
-            updateProductsIndexes();
-            // Recalcular totales por si hay valores ya cargados
-            calculateTotalDoses();
-        }
-
-        // Inicialización
-        await loadFieldsData();
-        await loadMachinesData();
-        await loadProductsData(elements.treatmentTypeSelect.value);
-        handleTreatmentTypeChange();
-
-        if (isEdit) {
-            bindExistingRows();
-        } else {
-            initializeFirstRow();
-        }
-
-        checkStep1Completion();
-
-        // Si hay errores en el formset de productos (tras un envío fallido), ir al paso 2
-        // @formatter:off
-        const hasFormsetErrors = {{ has_formset_errors|yesno:"true,false" }};
-        // @formatter:on
-        if (hasFormsetErrors) {
-            showStep(2);
-        }
-
-    });
-</script>
+<script src="{% static_v 'js/treatment-calc.js' %}"></script>
+<script src="{% static_v 'js/treatment-form-state.js' %}"></script>
+<script src="{% static_v 'js/treatment-form.js' %}"></script>
 {% endblock %}

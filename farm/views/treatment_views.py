@@ -19,7 +19,9 @@ from django.views.generic.edit import UpdateView
 from farm.forms import TreatmentForm, TreatmentProductFormSet
 from farm.mixins import BaseSecureViewMixin
 from farm.models import Field, Product, ProductType, Treatment, TreatmentProduct
-from farm.services import save_treatment_with_products, clone_treatment
+from farm.services import (
+    build_treatment_form_data, clone_treatment, create_treatments_for_fields, save_treatment_with_products,
+)
 from farm.templatetags.custom_filters import treatment_tone
 
 logger = logging.getLogger(__name__)
@@ -261,7 +263,7 @@ class TreatmentDetailView(BaseSecureViewMixin, DetailView):
         total_cost = sum(product.total_price for product in products)
         cost_per_ha = 0
         if self.object.effective_area and self.object.effective_area > 0:
-            cost_per_ha = total_cost / Decimal(self.object.effective_area)
+            cost_per_ha = total_cost / Decimal(str(self.object.effective_area))
 
         context['total_cost'] = total_cost
         context['cost_per_ha'] = cost_per_ha
@@ -284,6 +286,27 @@ class TreatmentDetailView(BaseSecureViewMixin, DetailView):
         return context
 
 
+def collect_form_errors(form, formset):
+    """
+    Errores del formulario y del formset en un dict serializable, para que la plantilla
+    los pinte en su sección o línea (sin alert()).
+    {form: {campo: [msg]}, non_field: [msg], formset: {non_form: [msg], lines: {"índice": {campo: [msg]}}}}
+    """
+    field_errors = {name: [str(e) for e in errs] for name, errs in form.errors.items() if name != '__all__'}
+    lines = {}
+    for index, errs in enumerate(formset.errors):
+        if errs:
+            lines[str(index)] = {name: [str(e) for e in msgs] for name, msgs in errs.items()}
+    return {
+        'form': field_errors,
+        'non_field': [str(e) for e in form.non_field_errors()],
+        'formset': {
+            'non_form': [str(e) for e in formset.non_form_errors()],
+            'lines': lines,
+        },
+    }
+
+
 class TreatmentFormView(BaseSecureViewMixin, SuccessMessageMixin, UpdateView):
     model = Treatment
     form_class = TreatmentForm
@@ -294,21 +317,45 @@ class TreatmentFormView(BaseSecureViewMixin, SuccessMessageMixin, UpdateView):
             return None
         return super().get_object(queryset)
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        # El formulario filtra parcelas y máquinas por la organización del usuario
+        kwargs['user'] = self.request.user
+        return kwargs
+
     def get_initial(self):
         initial = super().get_initial()
+        if 'pk' in self.kwargs:
+            return initial
         # ?date=YYYY-MM-DD (p. ej. desde el calendario) preselecciona la fecha al crear
         preset = self.request.GET.get('date')
-        if preset and 'pk' not in self.kwargs:
+        if preset:
             try:
                 initial['date'] = date.fromisoformat(preset).isoformat()
             except ValueError:
                 pass
+        # ?field=<id> (p. ej. desde el detalle de parcela): solo si es de la organización
+        field_id = self.request.GET.get('field', '')
+        if field_id.isdigit():
+            allowed = Field.ownership_objects.get_queryset_for_user(self.request.user)
+            if allowed.filter(pk=int(field_id)).exists():
+                initial['field'] = int(field_id)
         return initial
 
+    def _products_formset_for(self, data=None):
+        return TreatmentProductFormSet(
+            data, instance=self.object, form_kwargs={'user': self.request.user},
+        )
+
     def get_success_url(self):
+        if len(getattr(self, '_created_treatments', [])) > 1:
+            return reverse('treatment-list')
         return reverse('treatment-detail', kwargs={'pk': self.object.id})
 
     def get_success_message(self, cleaned_data):
+        created = getattr(self, '_created_treatments', [])
+        if len(created) > 1:
+            return f"{len(created)} tratamientos creados"
         return f"Tratamiento '{cleaned_data['name']}' guardado exitosamente"
 
     def get_context_data(self, **kwargs):
@@ -320,9 +367,9 @@ class TreatmentFormView(BaseSecureViewMixin, SuccessMessageMixin, UpdateView):
         if hasattr(self, '_products_formset'):
             context['products_formset'] = self._products_formset
         elif self.request.POST:
-            context['products_formset'] = TreatmentProductFormSet(self.request.POST, instance=self.object)
+            context['products_formset'] = self._products_formset_for(self.request.POST)
         else:
-            context['products_formset'] = TreatmentProductFormSet(instance=self.object)
+            context['products_formset'] = self._products_formset_for()
 
         # Indicar al template si hay errores en el formset para navegar al paso 2
         fs = context['products_formset']
@@ -330,17 +377,47 @@ class TreatmentFormView(BaseSecureViewMixin, SuccessMessageMixin, UpdateView):
             any(fs.errors) or fs.non_form_errors()
         ) if hasattr(self, '_products_formset') else False
 
+        # Datos para pintar el formulario sin peticiones (json_script en la plantilla)
+        context['form_data'] = build_treatment_form_data(self.request.user, self.object)
+        context['form_data']['bound'] = context['form'].is_bound
+        context['form_errors'] = (
+            collect_form_errors(context['form'], fs) if context['form'].is_bound else None
+        )
+
         return context
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         form = self.get_form()
         # Guardar referencia al formset validado para reutilizarlo en get_context_data
-        self._products_formset = TreatmentProductFormSet(request.POST, instance=self.object)
-        if form.is_valid() and self._products_formset.is_valid():
-            self.object = save_treatment_with_products(form, self._products_formset)
+        self._products_formset = self._products_formset_for(request.POST)
+        form_ok = form.is_valid()
+        if form_ok:
+            # Parcelas extra ya validadas (sin la principal): el formset decide con ellas si es multi-parcela
+            self._products_formset.extra_field_ids = [str(f.pk) for f in form.cleaned_data.get('extra_fields') or []]
+        if form_ok and self._products_formset.is_valid():
+            extra_fields = form.cleaned_data.get('extra_fields') or []
+            if self.object is None and extra_fields:
+                # Varias parcelas: un tratamiento por parcela, todo o nada, una notificación
+                created = create_treatments_for_fields(form, self._products_formset, extra_fields)
+                self._created_treatments = created
+                self.object = created[0]
+                self._audit_created(created[1:])
+            else:
+                self.object = save_treatment_with_products(form, self._products_formset)
             return self.form_valid(form)
         return self.form_invalid(form)
+
+    def _audit_created(self, treatments):
+        """Registro de auditoría de los tratamientos extra (el principal lo registra AuditableMixin)."""
+        from accounts.models import AuditLog
+        forwarded = self.request.META.get('HTTP_X_FORWARDED_FOR')
+        ip = forwarded.split(',')[0] if forwarded else self.request.META.get('REMOTE_ADDR')
+        for t in treatments:
+            AuditLog.objects.create(
+                user=self.request.user, action='create', model_name=t._meta.model_name,
+                object_id=t.pk, object_repr=str(t), ip_address=ip,
+            )
 
 
 class TreatmentCalendarView(BaseSecureViewMixin, TemplateView):

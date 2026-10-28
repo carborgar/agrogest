@@ -15,7 +15,8 @@ from django.db.models.functions import Coalesce
 from django.urls import reverse
 from django.utils.timezone import now
 
-from .models import Product, ProductPriceHistory, TreatmentProduct
+from .timeutils import local_today
+from .models import Field, Machine, Product, ProductPriceHistory, Treatment, TreatmentProduct
 
 
 # ── Utilidades de email ────────────────────────────────────────────────────────
@@ -251,8 +252,45 @@ def recalculate_treatment_costs(
     )
 
 
+def _notify_treatment_created(treatment, extra_treatments=()):
+    """
+    Notifica (inbox/email) la creación de un tratamiento. Con `extra_treatments`
+    (varias parcelas) se envía UNA sola notificación para todos.
+    """
+    from accounts.models import Notification
+    from accounts.notification_service import notify_org_users
+    products = list(treatment.treatmentproduct_set.select_related('product').order_by('position'))
+    product_names = ', '.join(tp.product.name for tp in products) if products else 'Sin productos'
+    products_text = f' Productos: {product_names}.' if products else ''
+
+    if not extra_treatments:
+        notify_org_users(
+            event_type=Notification.EVENT_TREATMENT_CREATED,
+            title=f'Nuevo tratamiento: {treatment.name}',
+            body=(
+                f'Se ha creado el tratamiento "{treatment.name}" en la parcela {treatment.field.name}.'
+                + products_text
+            ),
+            link=reverse('treatment-detail', kwargs={'pk': treatment.pk}),
+            organization=treatment.organization,
+            html_body=build_treatment_email_html(treatment),
+        )
+        return
+
+    count = 1 + len(extra_treatments)
+    field_names = ', '.join([treatment.field.name] + [t.field.name for t in extra_treatments])
+    notify_org_users(
+        event_type=Notification.EVENT_TREATMENT_CREATED,
+        title=f'Nuevo tratamiento en {count} parcelas: {treatment.name}',
+        body=f'Se ha creado el tratamiento "{treatment.name}" en {count} parcelas: {field_names}.' + products_text,
+        link=reverse('treatment-list'),
+        organization=treatment.organization,
+        html_body=build_treatment_email_html(treatment),
+    )
+
+
 @transaction.atomic
-def save_treatment_with_products(treatment_form, products_formset):
+def save_treatment_with_products(treatment_form, products_formset, notify=True):
     """
     Guarda (crea o actualiza) un tratamiento junto con su formset de
     productos en una transacción atómica. Funciona tanto para nuevos
@@ -263,6 +301,7 @@ def save_treatment_with_products(treatment_form, products_formset):
     ----------
     treatment_form    : TreatmentForm ya validado (is_valid() == True)
     products_formset  : TreatmentProductFormSet ya validado
+    notify            : False para no notificar la creación (lo hace el llamador)
 
     Devuelve
     --------
@@ -273,24 +312,148 @@ def save_treatment_with_products(treatment_form, products_formset):
     products_formset.instance = treatment
     products_formset.save()
 
-    if is_new:
-        from accounts.models import Notification
-        from accounts.notification_service import notify_org_users
-        products = list(treatment.treatmentproduct_set.select_related('product').order_by('position'))
-        product_names = ', '.join(tp.product.name for tp in products) if products else 'Sin productos'
-        notify_org_users(
-            event_type=Notification.EVENT_TREATMENT_CREATED,
-            title=f'Nuevo tratamiento: {treatment.name}',
-            body=(
-                f'Se ha creado el tratamiento "{treatment.name}" en la parcela {treatment.field.name}.'
-                + (f' Productos: {product_names}.' if products else '')
-            ),
-            link=reverse('treatment-detail', kwargs={'pk': treatment.pk}),
-            organization=treatment.organization,
-            html_body=build_treatment_email_html(treatment),
-        )
+    if is_new and notify:
+        _notify_treatment_created(treatment)
 
     return treatment
+
+
+@transaction.atomic
+def create_treatments_for_fields(treatment_form, products_formset, extra_fields):
+    """
+    Crea el tratamiento de la parcela principal y una copia por cada parcela de
+    `extra_fields`, todo en una sola transacción (todo o nada) y con UNA sola
+    notificación.
+
+    Cada copia lleva los mismos datos (nombre, tipo, fecha, máquina, mojado,
+    fecha de realización y mojado real) y las mismas líneas (producto, dosis,
+    posición, sin total a mano); los totales y precios salen de
+    TreatmentProduct.save() según el área de cada parcela.
+
+    Devuelve la lista [principal, *copias].
+    """
+    main = save_treatment_with_products(treatment_form, products_formset, notify=False)
+    lines = list(main.treatmentproduct_set.order_by('position'))
+
+    extra_treatments = []
+    for field in extra_fields:
+        copy = Treatment.objects.create(
+            organization=field.organization,
+            field=field,
+            name=main.name,
+            type=main.type,
+            date=main.date,
+            finish_date=main.finish_date,
+            machine=main.machine,
+            water_per_ha=main.water_per_ha,
+            real_water_per_ha=main.real_water_per_ha,
+        )
+        for line in lines:
+            TreatmentProduct.objects.create(
+                organization=field.organization,
+                treatment=copy,
+                product=line.product,
+                dose=line.dose,
+                total_dose=Decimal('0'),  # el save() lo calcula con el área de esta parcela
+                total_overridden=False,
+                position=line.position,
+            )
+        extra_treatments.append(copy)
+
+    _notify_treatment_created(main, extra_treatments)
+    return [main] + extra_treatments
+
+
+def _dose_option(product, application_type):
+    """{dose, dose_type, label} de un producto para un tipo de aplicación, o None si no la admite."""
+    if not product.supports_application_type(application_type):
+        return None
+    return {
+        'dose': float(product.get_dose(application_type)),
+        'dose_type': product.get_dose_type(application_type),
+        'label': product.get_dose_type_name(application_type),
+    }
+
+
+def build_treatment_form_data(user, treatment=None, recent_days=90):
+    """
+    Datos que el formulario de tratamiento necesita en el cliente, para pintarlo
+    sin peticiones (en campo hay mala cobertura). Se pasan a la plantilla con
+    json_script.
+
+    - fields: id, name, crop, area, last_treatment_date (última fecha de tratamiento <= hoy).
+    - machines: id, name, capacity.
+    - products: activos (más los ya usados en `treatment`, aunque estén archivados), con las dosis
+      de pulverización y fertirrigación (None si no admite), precio y `recent`
+      (usado en algún tratamiento de la organización en los últimos `recent_days` días).
+    - lines (solo al editar): product_id, dose, total_dose, total_overridden, unit_price, position.
+    """
+    from datetime import timedelta
+    from django.db.models import Max
+
+    today = local_today()
+
+    fields = (
+        Field.ownership_objects.get_queryset_for_user(user)
+        .annotate(last_treatment=Max('treatment__date', filter=Q(treatment__date__lte=today)))
+        .order_by('name')
+    )
+    machines = Machine.ownership_objects.get_queryset_for_user(user)
+
+    lines = []
+    if treatment is not None and treatment.pk:
+        lines = [
+            {
+                'product_id': tp.product_id,
+                'dose': float(tp.dose),
+                'total_dose': float(tp.total_dose),
+                'total_overridden': tp.total_overridden,
+                'unit_price': float(tp.unit_price),
+                'position': tp.position,
+            }
+            for tp in treatment.treatmentproduct_set.order_by('position')
+        ]
+
+    products_qs = (
+        Product.ownership_objects.get_queryset_for_user(user)
+        .filter(Q(is_active=True) | Q(pk__in=[l['product_id'] for l in lines]))
+        .select_related('product_type')
+        .order_by('name')
+    )
+    recent_ids = set(
+        TreatmentProduct.ownership_objects.get_queryset_for_user(user)
+        .filter(treatment__date__gte=today - timedelta(days=recent_days))
+        .values_list('product_id', flat=True)
+    )
+
+    data = {
+        'today': today.isoformat(),
+        # Mojado de partida en pulverización (fuente única: la constante del producto, no se duplica en el JS)
+        'defaultWater': Product.REFERENCE_WATER_PER_HA,
+        'fields': [
+            {
+                'id': f.pk, 'name': f.name, 'crop': f.crop, 'area': f.area,
+                'last_treatment_date': f.last_treatment.isoformat() if f.last_treatment else None,
+            }
+            for f in fields
+        ],
+        'machines': [{'id': m.pk, 'name': m.name, 'capacity': m.capacity} for m in machines],
+        'products': [
+            {
+                'id': p.pk,
+                'name': p.name,
+                'type_name': p.product_type.name,
+                'spraying': _dose_option(p, 'spraying'),
+                'fertigation': _dose_option(p, 'fertigation'),
+                'price': float(p.price),
+                'recent': p.pk in recent_ids,
+            }
+            for p in products_qs
+        ],
+    }
+    if treatment is not None and treatment.pk:
+        data['lines'] = lines
+    return data
 
 
 def get_shopping_list(user, field_ids=None, treatment_ids=None):
