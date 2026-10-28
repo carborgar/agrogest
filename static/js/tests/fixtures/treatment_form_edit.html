@@ -34,60 +34,6 @@
 
 
 
-<nav class="mobile-navbar d-md-none">
-    <div class="container-fluid d-flex align-items-center justify-content-between px-3">
-        <div class="d-flex align-items-center gap-2">
-            <svg fill="none" height="26" viewBox="0 0 34 34" width="26" xmlns="http://www.w3.org/2000/svg">
-                <path d="M17 4 C17 4 9 9.5 9 16.5 C9 20.9 12.6 24.5 17 24.5 C21.4 24.5 25 20.9 25 16.5 C25 9.5 17 4 17 4Z"
-                      fill="url(#bmt)"/>
-                <path d="M17 4.5 L17 24" stroke="rgba(255,255,255,0.22)" stroke-linecap="round" stroke-width="0.8"/>
-                <path d="M17 25.5 C14.8 27.8 13.5 29.2 13.5 30.3 C13.5 31.8 15.1 33 17 33 C18.9 33 20.5 31.8 20.5 30.3 C20.5 29.2 19.2 27.8 17 25.5Z"
-                      fill="#D4A017"/>
-                <defs>
-                    <linearGradient gradientUnits="userSpaceOnUse" id="bmt" x1="17" x2="17" y1="4" y2="24.5">
-                        <stop stop-color="#52B788"/>
-                        <stop offset="1" stop-color="#2D6A4F"/>
-                    </linearGradient>
-                </defs>
-            </svg>
-            <span class="navbar-brand mb-0 ms-1">AgroGest</span>
-        </div>
-        <div class="dropdown">
-            <button aria-label="Perfil de usuario" class="btn-ghost-nav position-relative" data-bs-toggle="dropdown"
-                    type="button">
-                <i class="fas fa-user-circle" style="font-size:1.35rem;"></i>
-                
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-                <li><h6 class="dropdown-header">fix</h6></li>
-                <li>
-                    <a class="dropdown-item d-flex align-items-center justify-content-between"
-                       href="/usuarios/notificaciones/">
-                        <span><i class="fas fa-bell me-2"></i>Notificaciones</span>
-                        
-                    </a>
-                </li>
-                <li>
-                    <a class="dropdown-item" href="/usuarios/preferencias/notificaciones/">
-                        <i class="fas fa-sliders me-2"></i>Preferencias
-                    </a>
-                </li>
-                <li><hr class="dropdown-divider"></li>
-                <li>
-                    <form action="/usuarios/logout/" method="post">
-                        <input type="hidden" name="csrfmiddlewaretoken" value="TOKEN">
-                        <button class="dropdown-item text-danger" type="submit">
-                            <i class="fas fa-sign-out-alt me-2"></i>Cerrar sesión
-                        </button>
-                    </form>
-                </li>
-            </ul>
-        </div>
-    </div>
-</nav>
-
-
-
 <div class="sidebar-desktop d-none d-md-block" id="sidebarDesktop">
     <div class="sidebar-content">
 
@@ -246,19 +192,6 @@
 
 
 <div class="nav-section">
-    <div class="nav-title"><span class="nav-link-text">Utilidades</span></div>
-    <ul class="nav flex-column">
-        <li class="nav-item">
-            <a class="nav-link "
-               href="/administracion/recalculo-costes-tratamientos/" data-label="Recalculo">
-                <i class="fa fa-calculator"></i>
-                <span class="nav-link-text">Recalculo de costes</span>
-            </a>
-        </li>
-    </ul>
-</div>
-
-<div class="nav-section">
     <div class="nav-title"><span class="nav-link-text">Configuración</span></div>
     <ul class="nav flex-column">
         <li class="nav-item">
@@ -277,6 +210,13 @@
                href="/gastos/tipos/" data-label="Tipos de gasto">
                 <i class="fa fa-tags"></i>
                 <span class="nav-link-text">Tipos de gasto</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link "
+               href="/administracion/recalculo-costes-tratamientos/" data-label="Recálculo de costes">
+                <i class="fa fa-calculator"></i>
+                <span class="nav-link-text">Recálculo de costes</span>
             </a>
         </li>
     </ul>
@@ -337,222 +277,96 @@
 
 
 
-<div class="offcanvas offcanvas-start" id="sidebarOffcanvas" tabindex="-1">
-    <div class="offcanvas-header">
-        <div class="d-flex align-items-center">
-            <div class="brand-icon me-2">
-                <svg fill="none" height="34" viewBox="0 0 34 34" width="34" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M17 4 C17 4 9 9.5 9 16.5 C9 20.9 12.6 24.5 17 24.5 C21.4 24.5 25 20.9 25 16.5 C25 9.5 17 4 17 4Z"
-                          fill="url(#bmm)"/>
-                    <path d="M17 4.5 L17 24" stroke="rgba(255,255,255,0.22)" stroke-linecap="round" stroke-width="0.8"/>
-                    <path d="M17 25.5 C14.8 27.8 13.5 29.2 13.5 30.3 C13.5 31.8 15.1 33 17 33 C18.9 33 20.5 31.8 20.5 30.3 C20.5 29.2 19.2 27.8 17 25.5Z"
-                          fill="#D4A017"/>
-                    <defs>
-                        <linearGradient gradientUnits="userSpaceOnUse" id="bmm" x1="17" x2="17" y1="4" y2="24.5">
-                            <stop stop-color="#52B788"/>
-                            <stop offset="1" stop-color="#2D6A4F"/>
-                        </linearGradient>
-                    </defs>
-                </svg>
-            </div>
-            <h5 class="offcanvas-title mb-0">AgroGest</h5>
-        </div>
-        <button aria-label="Cerrar" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"
-                type="button"></button>
+
+
+<div aria-labelledby="moreSheetTitle" class="offcanvas offcanvas-bottom more-sheet d-md-none h-auto rounded-top-4 bg-white"
+     id="moreSheet" tabindex="-1">
+    <div class="offcanvas-header pb-2">
+        <h5 class="offcanvas-title fw-semibold" id="moreSheetTitle">Más</h5>
+        <button aria-label="Cerrar" class="btn-close" data-bs-dismiss="offcanvas" type="button"></button>
     </div>
-    <div class="offcanvas-body">
-        <div class="sidebar-content">
-            <div class="nav-container">
-                
+    <div class="offcanvas-body pt-0">
 
-
-
-
-<div class="nav-section">
-    <ul class="nav flex-column">
-
-        <li class="nav-item">
-            <a class="nav-link "
-               href="/parcelas/vistazo/" data-label="Inicio">
-                <i class="fas fa-house"></i>
-                <span class="nav-link-text">Inicio</span>
-            </a>
-        </li>
-
-        <li class="nav-item">
-            <a class="nav-link "
-               href="/tratamientos/" data-label="Tratamientos">
-                <i class="fas fa-droplet"></i>
-                <span class="nav-link-text">Tratamientos</span>
-            </a>
-        </li>
-
-        <li class="nav-item">
-            <a class="nav-link "
-               href="/tratamientos/calendario/" data-label="Calendario">
-                <i class="fas fa-calendar-days"></i>
-                <span class="nav-link-text">Calendario</span>
-            </a>
-        </li>
-
-        
-        <li class="nav-item">
-            <a class="nav-link"
-               aria-expanded="false"
-               data-bs-toggle="collapse"
-               data-bs-target="#gastosMenumobile"
-               href="#"
-               data-label="Gastos">
-                <i class="fa fa-coins"></i>
-                <span class="nav-link-text">Gastos</span>
-                <i class="fas fa-chevron-down chevron"></i>
-            </a>
-            <div class="collapse nav-submenu "
-                 id="gastosMenumobile">
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link "
-                           href="/parcelas/gastos/">
-                            <i class="fa fa-chart-bar"></i>
-                            <span class="nav-link-text">Informe</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link "
-                           href="/gastos/gestionar/">
-                            <i class="fa fa-receipt"></i>
-                            <span class="nav-link-text">Gestionar gastos</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </li>
-
-        <li class="nav-item">
-            <a class="nav-link "
-               href="/tratamientos/preparar/" data-label="Preparar productos">
-                <i class="fa fa-boxes-packing"></i>
-                <span class="nav-link-text">Preparar productos</span>
-            </a>
-        </li>
-
-        <li class="nav-item">
-            <a class="nav-link "
-               href="/cosechas/resumen/" data-label="Cosechas">
-                <i class="fa fa-apple-whole"></i>
-                <span class="nav-link-text">Cosechas</span>
-            </a>
-        </li>
-
-        <li class="nav-item">
-            <a class="nav-link "
-               href="/estadisticas/" data-label="Estadísticas">
-                <i class="fa fa-chart-line"></i>
-                <span class="nav-link-text">Estadísticas</span>
-            </a>
-        </li>
-
-        
-        <li class="nav-item">
-            <a class="nav-link "
-               href="/parcelas/"
-               data-label="Parcelas">
-                <i class="fas fa-map-location-dot"></i>
-                <span class="nav-link-text">Parcelas</span>
-            </a>
-        </li>
-
-        
-
-        
-        <li class="nav-item">
-            <a class="nav-link "
-               href="/productos/" data-label="Productos">
-                <i class="fa fa-box"></i>
-                <span class="nav-link-text">Productos</span>
-            </a>
-        </li>
-
-    </ul>
-</div>
-
-
-<div class="nav-section">
-    <div class="nav-title"><span class="nav-link-text">Herramientas</span></div>
-    <ul class="nav flex-column">
-        <li class="nav-item">
-            <a class="nav-link "
-               href="/asistente/" data-label="Asistente IA">
-                <span class="nav-icon-wrap nav-icon-wrap--beta">
-                    <i class="fa fa-robot"></i>
-                    <span class="nav-beta-collapsed">BETA</span>
-                </span>
-                <span class="nav-link-text">Asistente IA</span>
-                <span class="badge bg-warning text-dark ms-auto nav-beta-expanded" style="font-size:0.6rem;">BETA</span>
-            </a>
-        </li>
-    </ul>
-</div>
-
-
-<div class="nav-section">
-    <div class="nav-title"><span class="nav-link-text">Utilidades</span></div>
-    <ul class="nav flex-column">
-        <li class="nav-item">
-            <a class="nav-link "
-               href="/administracion/recalculo-costes-tratamientos/" data-label="Recalculo">
-                <i class="fa fa-calculator"></i>
-                <span class="nav-link-text">Recalculo de costes</span>
-            </a>
-        </li>
-    </ul>
-</div>
-
-<div class="nav-section">
-    <div class="nav-title"><span class="nav-link-text">Configuración</span></div>
-    <ul class="nav flex-column">
-        <li class="nav-item">
-            <a class="nav-link" href="/usuarios/notificaciones/"
-               data-label="Notificaciones">
-                <span class="nav-icon-wrap">
-                    <i class="fas fa-bell"></i>
-                    
-                </span>
-                <span class="nav-link-text">Notificaciones</span>
-                
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link "
-               href="/gastos/tipos/" data-label="Tipos de gasto">
-                <i class="fa fa-tags"></i>
-                <span class="nav-link-text">Tipos de gasto</span>
-            </a>
-        </li>
-    </ul>
-</div>
-
-
-            </div>
-
+        <div class="row row-cols-3 g-2">
             
-            <div class="offcanvas-user-footer">
-                <div class="user-avatar-sm">
-                    <i class="fa fa-user"></i>
-                </div>
-                <div style="flex:1; min-width:0;">
-                    <div class="offcanvas-username">fix</div>
-                    <a class="offcanvas-prefs-link" href="/usuarios/preferencias/notificaciones/">
-                        Preferencias
-                    </a>
-                </div>
-                <form action="/usuarios/logout/" class="ms-auto" method="post">
-                    <input type="hidden" name="csrfmiddlewaretoken" value="TOKEN">
-                    <button class="btn-logout-offcanvas" title="Cerrar sesión" type="submit">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </button>
-                </form>
+            <div class="col">
+                <a class="btn border-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center gap-1 py-3 small lh-sm bg-body-tertiary"
+                   href="/tratamientos/preparar/" >
+                    <i class="fa fa-boxes-packing fs-5"></i>Preparar productos
+                </a>
             </div>
+            <div class="col">
+                <a class="btn border-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center gap-1 py-3 small lh-sm bg-body-tertiary"
+                   href="/gastos/gestionar/" >
+                    <i class="fa fa-receipt fs-5"></i>Gastos
+                </a>
+            </div>
+            <div class="col">
+                <a class="btn border-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center gap-1 py-3 small lh-sm bg-body-tertiary"
+                   href="/parcelas/gastos/" >
+                    <i class="fa fa-chart-bar fs-5"></i>Informe de gastos
+                </a>
+            </div>
+            <div class="col">
+                <a class="btn border-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center gap-1 py-3 small lh-sm bg-body-tertiary"
+                   href="/cosechas/resumen/" >
+                    <i class="fa fa-apple-whole fs-5"></i>Cosechas
+                </a>
+            </div>
+            <div class="col">
+                <a class="btn border-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center gap-1 py-3 small lh-sm bg-body-tertiary"
+                   href="/estadisticas/" >
+                    <i class="fa fa-chart-line fs-5"></i>Estadísticas
+                </a>
+            </div>
+            <div class="col">
+                <a class="btn border-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center gap-1 py-3 small lh-sm bg-body-tertiary"
+                   href="/parcelas/" >
+                    <i class="fas fa-map-location-dot fs-5"></i>Parcelas
+                </a>
+            </div>
+            
+            
+            <div class="col">
+                <a class="btn border-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center gap-1 py-3 small lh-sm position-relative bg-body-tertiary"
+                   href="/asistente/" >
+                    <i class="fa fa-robot fs-5"></i>Asistente IA
+                    <span class="badge bg-warning text-dark position-absolute top-0 end-0 m-1" style="font-size:.55rem;">BETA</span>
+                </a>
+            </div>
+            
+            
+        </div>
+
+        <div class="list-group list-group-flush mt-3">
+            <a class="list-group-item list-group-item-action d-flex align-items-center py-3"
+               href="/usuarios/notificaciones/">
+                <i class="fas fa-bell fa-fw me-3 text-body-secondary"></i>Notificaciones
+                
+            </a>
+            <a class="list-group-item list-group-item-action d-flex align-items-center py-3"
+               href="/usuarios/preferencias/notificaciones/">
+                <i class="fas fa-sliders fa-fw me-3 text-body-secondary"></i>Preferencias
+            </a>
+            <a class="list-group-item list-group-item-action d-flex align-items-center py-3 "
+               href="/gastos/tipos/" >
+                <i class="fa fa-tags fa-fw me-3 text-body-secondary"></i>Tipos de gasto
+            </a>
+            <a class="list-group-item list-group-item-action d-flex align-items-center py-3 "
+               href="/administracion/recalculo-costes-tratamientos/" >
+                <i class="fa fa-calculator fa-fw me-3 text-body-secondary"></i>Recálculo de costes
+            </a>
+        </div>
+
+        <div class="d-flex align-items-center gap-2 border-top mt-2 pt-3">
+            <i class="fas fa-user-circle fs-4 text-body-secondary"></i>
+            <span class="fw-semibold text-truncate">fix</span>
+            <form action="/usuarios/logout/" class="ms-auto" method="post">
+                <input type="hidden" name="csrfmiddlewaretoken" value="TOKEN">
+                <button class="btn btn-outline-danger btn-sm" type="submit">
+                    <i class="fas fa-sign-out-alt me-1"></i>Cerrar sesión
+                </button>
+            </form>
         </div>
     </div>
 </div>
@@ -560,28 +374,32 @@
 
 
 <nav aria-label="Navegación principal" class="bottom-tab-bar d-md-none">
-    <a class="tab-item " href="/parcelas/vistazo/">
+    <a class="tab-item " href="/parcelas/vistazo/" >
         <i class="fas fa-house"></i>
         <span>Inicio</span>
     </a>
-    <a class="tab-item " href="/tratamientos/">
+    <a class="tab-item " href="/tratamientos/" >
         <i class="fas fa-droplet"></i>
         <span>Tratamientos</span>
     </a>
-    <a class="tab-item " href="/tratamientos/calendario/">
+    <a class="tab-item " href="/tratamientos/calendario/" >
         <i class="fas fa-calendar-days"></i>
         <span>Calendario</span>
     </a>
-    <a class="tab-item " href="/productos/">
+    <a class="tab-item " href="/productos/" >
         <i class="fa fa-box"></i>
         <span>Productos</span>
     </a>
-    <button aria-label="Más opciones"
+    <button aria-controls="moreSheet"
+            aria-label="Más opciones"
             class="tab-item active"
-            data-bs-target="#sidebarOffcanvas"
+            data-bs-target="#moreSheet"
             data-bs-toggle="offcanvas"
             type="button">
-        <i class="fas fa-bars"></i>
+        <span class="tab-icon">
+            <i class="fas fa-bars"></i>
+            
+        </span>
         <span>Más</span>
     </button>
 </nav>

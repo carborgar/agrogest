@@ -1,64 +1,3 @@
-{# ─── Mobile Top Navbar ─────────────────────────────────────────────────── #}
-<nav class="mobile-navbar d-md-none">
-    <div class="container-fluid d-flex align-items-center justify-content-between px-3">
-        <div class="d-flex align-items-center gap-2">
-            <svg fill="none" height="26" viewBox="0 0 34 34" width="26" xmlns="http://www.w3.org/2000/svg">
-                <path d="M17 4 C17 4 9 9.5 9 16.5 C9 20.9 12.6 24.5 17 24.5 C21.4 24.5 25 20.9 25 16.5 C25 9.5 17 4 17 4Z"
-                      fill="url(#bmt)"/>
-                <path d="M17 4.5 L17 24" stroke="rgba(255,255,255,0.22)" stroke-linecap="round" stroke-width="0.8"/>
-                <path d="M17 25.5 C14.8 27.8 13.5 29.2 13.5 30.3 C13.5 31.8 15.1 33 17 33 C18.9 33 20.5 31.8 20.5 30.3 C20.5 29.2 19.2 27.8 17 25.5Z"
-                      fill="#D4A017"/>
-                <defs>
-                    <linearGradient gradientUnits="userSpaceOnUse" id="bmt" x1="17" x2="17" y1="4" y2="24.5">
-                        <stop stop-color="#52B788"/>
-                        <stop offset="1" stop-color="#2D6A4F"/>
-                    </linearGradient>
-                </defs>
-            </svg>
-            <span class="navbar-brand mb-0 ms-1">AgroGest</span>
-        </div>
-        <div class="dropdown">
-            <button aria-label="Perfil de usuario" class="btn-ghost-nav position-relative" data-bs-toggle="dropdown"
-                    type="button">
-                <i class="fas fa-user-circle" style="font-size:1.35rem;"></i>
-                {% if unread_notifications_count %}
-                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary"
-                      style="font-size:.55rem; min-width:16px; height:16px; display:flex; align-items:center; justify-content:center; padding:0 4px;">
-                    {{ unread_notifications_count }}
-                </span>
-                {% endif %}
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-                <li><h6 class="dropdown-header">{{ user.first_name|default:user.username }}</h6></li>
-                <li>
-                    <a class="dropdown-item d-flex align-items-center justify-content-between"
-                       href="{% url 'accounts:notification-inbox' %}">
-                        <span><i class="fas fa-bell me-2"></i>Notificaciones</span>
-                        {% if unread_notifications_count %}
-                        <span class="badge rounded-pill bg-primary ms-2">{{ unread_notifications_count }}</span>
-                        {% endif %}
-                    </a>
-                </li>
-                <li>
-                    <a class="dropdown-item" href="{% url 'accounts:notification-preferences' %}">
-                        <i class="fas fa-sliders me-2"></i>Preferencias
-                    </a>
-                </li>
-                <li><hr class="dropdown-divider"></li>
-                <li>
-                    <form action="{% url 'accounts:logout' %}" method="post">
-                        {% csrf_token %}
-                        <button class="dropdown-item text-danger" type="submit">
-                            <i class="fas fa-sign-out-alt me-2"></i>Cerrar sesión
-                        </button>
-                    </form>
-                </li>
-            </ul>
-        </div>
-    </div>
-</nav>
-
-
 {# ─── Desktop Sidebar ─────────────────────────────────────────────────────── #}
 <div class="sidebar-desktop d-none d-md-block" id="sidebarDesktop">
     <div class="sidebar-content">
@@ -143,54 +82,106 @@
 </div>
 
 
-{# ─── Mobile Offcanvas ────────────────────────────────────────────────────── #}
-<div class="offcanvas offcanvas-start" id="sidebarOffcanvas" tabindex="-1">
-    <div class="offcanvas-header">
-        <div class="d-flex align-items-center">
-            <div class="brand-icon me-2">
-                <svg fill="none" height="34" viewBox="0 0 34 34" width="34" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M17 4 C17 4 9 9.5 9 16.5 C9 20.9 12.6 24.5 17 24.5 C21.4 24.5 25 20.9 25 16.5 C25 9.5 17 4 17 4Z"
-                          fill="url(#bmm)"/>
-                    <path d="M17 4.5 L17 24" stroke="rgba(255,255,255,0.22)" stroke-linecap="round" stroke-width="0.8"/>
-                    <path d="M17 25.5 C14.8 27.8 13.5 29.2 13.5 30.3 C13.5 31.8 15.1 33 17 33 C18.9 33 20.5 31.8 20.5 30.3 C20.5 29.2 19.2 27.8 17 25.5Z"
-                          fill="#D4A017"/>
-                    <defs>
-                        <linearGradient gradientUnits="userSpaceOnUse" id="bmm" x1="17" x2="17" y1="4" y2="24.5">
-                            <stop stop-color="#52B788"/>
-                            <stop offset="1" stop-color="#2D6A4F"/>
-                        </linearGradient>
-                    </defs>
-                </svg>
-            </div>
-            <h5 class="offcanvas-title mb-0">AgroGest</h5>
-        </div>
-        <button aria-label="Cerrar" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"
-                type="button"></button>
+{# ─── Mobile: hoja «Más» ──────────────────────────────────────────────────── #}
+{# Hoja inferior (offcanvas-bottom): se abre y se cierra donde está el pulgar.  #}
+{# Solo lo que NO está en la barra inferior + cuenta y configuración.           #}
+<div aria-labelledby="moreSheetTitle" class="offcanvas offcanvas-bottom more-sheet d-md-none h-auto rounded-top-4 bg-white"
+     id="moreSheet" tabindex="-1">
+    <div class="offcanvas-header pb-2">
+        <h5 class="offcanvas-title fw-semibold" id="moreSheetTitle">Más</h5>
+        <button aria-label="Cerrar" class="btn-close" data-bs-dismiss="offcanvas" type="button"></button>
     </div>
-    <div class="offcanvas-body">
-        <div class="sidebar-content">
-            <div class="nav-container">
-                {% include "_nav_items.html" with suffix="mobile" %}
-            </div>
+    <div class="offcanvas-body pt-0">
 
-            {# Footer de usuario en el offcanvas #}
-            <div class="offcanvas-user-footer">
-                <div class="user-avatar-sm">
-                    <i class="fa fa-user"></i>
-                </div>
-                <div style="flex:1; min-width:0;">
-                    <div class="offcanvas-username">{{ user.first_name|default:user.username }}</div>
-                    <a class="offcanvas-prefs-link" href="{% url 'accounts:notification-preferences' %}">
-                        Preferencias
-                    </a>
-                </div>
-                <form action="{% url 'accounts:logout' %}" class="ms-auto" method="post">
-                    {% csrf_token %}
-                    <button class="btn-logout-offcanvas" title="Cerrar sesión" type="submit">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </button>
-                </form>
+        <div class="row row-cols-3 g-2">
+            {% with tile="btn border-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center gap-1 py-3 small lh-sm" off="bg-body-tertiary" on="bg-primary-subtle text-primary-emphasis fw-semibold" %}
+            <div class="col">
+                <a class="{{ tile }} {% if nav_shopping %}{{ on }}{% else %}{{ off }}{% endif %}"
+                   href="{% url 'treatment-shopping-list' %}" {% if nav_shopping %}aria-current="page"{% endif %}>
+                    <i class="fa fa-boxes-packing fs-5"></i>Preparar productos
+                </a>
             </div>
+            <div class="col">
+                <a class="{{ tile }} {% if nav_expenses %}{{ on }}{% else %}{{ off }}{% endif %}"
+                   href="{% url 'expense-list' %}" {% if nav_expenses %}aria-current="page"{% endif %}>
+                    <i class="fa fa-receipt fs-5"></i>Gastos
+                </a>
+            </div>
+            <div class="col">
+                <a class="{{ tile }} {% if nav_costs %}{{ on }}{% else %}{{ off }}{% endif %}"
+                   href="{% url 'field-costs' %}" {% if nav_costs %}aria-current="page"{% endif %}>
+                    <i class="fa fa-chart-bar fs-5"></i>Informe de gastos
+                </a>
+            </div>
+            <div class="col">
+                <a class="{{ tile }} {% if nav_harvests %}{{ on }}{% else %}{{ off }}{% endif %}"
+                   href="{% url 'harvest-summary' %}" {% if nav_harvests %}aria-current="page"{% endif %}>
+                    <i class="fa fa-apple-whole fs-5"></i>Cosechas
+                </a>
+            </div>
+            <div class="col">
+                <a class="{{ tile }} {% if nav_stats %}{{ on }}{% else %}{{ off }}{% endif %}"
+                   href="{% url 'yearly-stats' %}" {% if nav_stats %}aria-current="page"{% endif %}>
+                    <i class="fa fa-chart-line fs-5"></i>Estadísticas
+                </a>
+            </div>
+            <div class="col">
+                <a class="{{ tile }} {% if nav_fields %}{{ on }}{% else %}{{ off }}{% endif %}"
+                   href="{% url 'field-list' %}" {% if nav_fields %}aria-current="page"{% endif %}>
+                    <i class="fas fa-map-location-dot fs-5"></i>Parcelas
+                </a>
+            </div>
+            {% if feature_weather %}
+            <div class="col">
+                <a class="{{ tile }} {% if nav_weather %}{{ on }}{% else %}{{ off }}{% endif %}"
+                   href="{% url 'weather-overview' %}" {% if nav_weather %}aria-current="page"{% endif %}>
+                    <i class="fa fa-cloud-sun fs-5"></i>El Tiempo
+                </a>
+            </div>
+            {% endif %}
+            {% if gemini_configured %}
+            <div class="col">
+                <a class="{{ tile }} position-relative {% if nav_chat %}{{ on }}{% else %}{{ off }}{% endif %}"
+                   href="{% url 'chat' %}" {% if nav_chat %}aria-current="page"{% endif %}>
+                    <i class="fa fa-robot fs-5"></i>Asistente IA
+                    <span class="badge bg-warning text-dark position-absolute top-0 end-0 m-1" style="font-size:.55rem;">BETA</span>
+                </a>
+            </div>
+            {% endif %}
+            {% endwith %}
+        </div>
+
+        <div class="list-group list-group-flush mt-3">
+            <a class="list-group-item list-group-item-action d-flex align-items-center py-3"
+               href="{% url 'accounts:notification-inbox' %}">
+                <i class="fas fa-bell fa-fw me-3 text-body-secondary"></i>Notificaciones
+                {% if unread_notifications_count %}
+                <span class="badge rounded-pill bg-primary ms-auto">{{ unread_notifications_count }}</span>
+                {% endif %}
+            </a>
+            <a class="list-group-item list-group-item-action d-flex align-items-center py-3"
+               href="{% url 'accounts:notification-preferences' %}">
+                <i class="fas fa-sliders fa-fw me-3 text-body-secondary"></i>Preferencias
+            </a>
+            <a class="list-group-item list-group-item-action d-flex align-items-center py-3 {% if nav_expense_types %}active{% endif %}"
+               href="{% url 'expense-type-list' %}" {% if nav_expense_types %}aria-current="page"{% endif %}>
+                <i class="fa fa-tags fa-fw me-3 {% if not nav_expense_types %}text-body-secondary{% endif %}"></i>Tipos de gasto
+            </a>
+            <a class="list-group-item list-group-item-action d-flex align-items-center py-3 {% if nav_treatment_cost_admin %}active{% endif %}"
+               href="{% url 'treatment-cost-admin' %}" {% if nav_treatment_cost_admin %}aria-current="page"{% endif %}>
+                <i class="fa fa-calculator fa-fw me-3 {% if not nav_treatment_cost_admin %}text-body-secondary{% endif %}"></i>Recálculo de costes
+            </a>
+        </div>
+
+        <div class="d-flex align-items-center gap-2 border-top mt-2 pt-3">
+            <i class="fas fa-user-circle fs-4 text-body-secondary"></i>
+            <span class="fw-semibold text-truncate">{{ user.first_name|default:user.username }}</span>
+            <form action="{% url 'accounts:logout' %}" class="ms-auto" method="post">
+                {% csrf_token %}
+                <button class="btn btn-outline-danger btn-sm" type="submit">
+                    <i class="fas fa-sign-out-alt me-1"></i>Cerrar sesión
+                </button>
+            </form>
         </div>
     </div>
 </div>
@@ -198,28 +189,34 @@
 
 {# ─── Mobile Bottom Tab Bar ───────────────────────────────────────────────── #}
 <nav aria-label="Navegación principal" class="bottom-tab-bar d-md-none">
-    <a class="tab-item {% if nav_home %}active{% endif %}" href="{% url 'field_list' %}">
+    <a class="tab-item {% if nav_home %}active{% endif %}" href="{% url 'field_list' %}" {% if nav_home %}aria-current="page"{% endif %}>
         <i class="fas fa-house"></i>
         <span>Inicio</span>
     </a>
-    <a class="tab-item {% if nav_treatments %}active{% endif %}" href="{% url 'treatment-list' %}">
+    <a class="tab-item {% if nav_treatments %}active{% endif %}" href="{% url 'treatment-list' %}" {% if nav_treatments %}aria-current="page"{% endif %}>
         <i class="fas fa-droplet"></i>
         <span>Tratamientos</span>
     </a>
-    <a class="tab-item {% if nav_calendar %}active{% endif %}" href="{% url 'treatment-calendar' %}">
+    <a class="tab-item {% if nav_calendar %}active{% endif %}" href="{% url 'treatment-calendar' %}" {% if nav_calendar %}aria-current="page"{% endif %}>
         <i class="fas fa-calendar-days"></i>
         <span>Calendario</span>
     </a>
-    <a class="tab-item {% if nav_products %}active{% endif %}" href="{% url 'product-list' %}">
+    <a class="tab-item {% if nav_products %}active{% endif %}" href="{% url 'product-list' %}" {% if nav_products %}aria-current="page"{% endif %}>
         <i class="fa fa-box"></i>
         <span>Productos</span>
     </a>
-    <button aria-label="Más opciones"
+    <button aria-controls="moreSheet"
+            aria-label="Más opciones{% if unread_notifications_count %} ({{ unread_notifications_count }} notificaciones sin leer){% endif %}"
             class="tab-item {% if not nav_home and not nav_treatments and not nav_calendar and not nav_products %}active{% endif %}"
-            data-bs-target="#sidebarOffcanvas"
+            data-bs-target="#moreSheet"
             data-bs-toggle="offcanvas"
             type="button">
-        <i class="fas fa-bars"></i>
+        <span class="tab-icon">
+            <i class="fas fa-bars"></i>
+            {% if unread_notifications_count %}
+            <span class="tab-badge badge rounded-pill bg-danger">{{ unread_notifications_count }}</span>
+            {% endif %}
+        </span>
         <span>Más</span>
     </button>
 </nav>

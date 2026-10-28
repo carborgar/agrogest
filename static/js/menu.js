@@ -79,45 +79,4 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // ── 2. Cerrar offcanvas al navegar (mobile) ────────────────────────────
-
-    document.querySelectorAll('#sidebarOffcanvas .nav-link').forEach(function (link) {
-        link.addEventListener('click', function () {
-            if (!this.hasAttribute('data-bs-toggle')) {
-                const offcanvasEl = document.getElementById('sidebarOffcanvas');
-                const offcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl);
-                if (offcanvas) offcanvas.hide();
-            }
-        });
-    });
-
-    // ── 3. Swipe desde el borde izquierdo para abrir el offcanvas ──────────
-
-    const SWIPE_EDGE    = 30;   // px desde el borde izquierdo para iniciar
-    const SWIPE_MIN_X   = 60;   // distancia horizontal mínima
-    let touchStartX = null;
-    let touchStartY = null;
-
-    document.addEventListener('touchstart', function (e) {
-        if (e.touches.length !== 1) return;
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
-    }, { passive: true });
-
-    document.addEventListener('touchend', function (e) {
-        if (touchStartX === null) return;
-        const dx = e.changedTouches[0].clientX - touchStartX;
-        const dy = Math.abs(e.changedTouches[0].clientY - touchStartY);
-
-        // Solo swipe horizontal desde el borde izquierdo
-        if (touchStartX <= SWIPE_EDGE && dx >= SWIPE_MIN_X && dy < dx * 1.2) {
-            const offcanvasEl = document.getElementById('sidebarOffcanvas');
-            if (offcanvasEl) {
-                bootstrap.Offcanvas.getOrCreateInstance(offcanvasEl).show();
-            }
-        }
-        touchStartX = null;
-        touchStartY = null;
-    }, { passive: true });
-
 });

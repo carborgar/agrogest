@@ -1,7 +1,7 @@
-{# ─── Partial: ítems de navegación compartidos ───────────────────────────── #}
-{# Uso: {% include "_nav_items.html" with suffix="desktop|mobile" %}          #}
+{# ─── Partial: ítems de navegación del sidebar de escritorio ─────────────── #}
+{# Uso: {% include "_nav_items.html" with suffix="desktop" %}                 #}
 {# Todas las variables de contexto (nav_home, nav_treatments…) se heredan.    #}
-{# "suffix" diferencia los IDs de submenús en desktop vs. offcanvas.          #}
+{# En móvil la navegación es la barra inferior + la hoja «Más» (menu.html).   #}
 
 <div class="nav-section">
     <ul class="nav flex-column">
@@ -139,19 +139,6 @@
 {% endif %}
 
 <div class="nav-section">
-    <div class="nav-title"><span class="nav-link-text">Utilidades</span></div>
-    <ul class="nav flex-column">
-        <li class="nav-item">
-            <a class="nav-link {% if nav_treatment_cost_admin %}active{% endif %}"
-               href="{% url 'treatment-cost-admin' %}" data-label="Recalculo">
-                <i class="fa fa-calculator"></i>
-                <span class="nav-link-text">Recalculo de costes</span>
-            </a>
-        </li>
-    </ul>
-</div>
-
-<div class="nav-section">
     <div class="nav-title"><span class="nav-link-text">Configuración</span></div>
     <ul class="nav flex-column">
         <li class="nav-item">
@@ -174,6 +161,13 @@
                href="{% url 'expense-type-list' %}" data-label="Tipos de gasto">
                 <i class="fa fa-tags"></i>
                 <span class="nav-link-text">Tipos de gasto</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if nav_treatment_cost_admin %}active{% endif %}"
+               href="{% url 'treatment-cost-admin' %}" data-label="Recálculo de costes">
+                <i class="fa fa-calculator"></i>
+                <span class="nav-link-text">Recálculo de costes</span>
             </a>
         </li>
     </ul>

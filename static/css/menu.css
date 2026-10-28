@@ -84,65 +84,11 @@ body {
     }
 }
 
-/* ── Offcanvas ────────────────────────────────────────────────────────────── */
-
-.offcanvas-start {
-    --bs-nav-link-hover-color: var(--text-bright);
-    --bs-nav-link-color: var(--text-light);
-    width: var(--sidebar-width) !important;
-    background-color: var(--sidebar-bg);
-    color: var(--text-light);
-}
-.offcanvas-header {
-    border-bottom: 1px solid var(--border-subtle);
-    padding: 1.25rem;
-}
-.offcanvas-body { padding: 0; }
-
-/* Footer de usuario en el offcanvas */
-.offcanvas-user-footer {
-    display: flex;
-    align-items: center;
-    gap: .75rem;
-    padding: .9rem 1.25rem calc(.9rem + env(safe-area-inset-bottom));
-    border-top: 1px solid var(--border-subtle);
-    flex-shrink: 0;
-}
-.user-avatar-sm {
-    width: 30px; height: 30px;
-    border-radius: 50%;
-    background: var(--accent);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 13px;
-    color: white;
-    flex-shrink: 0;
-}
-.offcanvas-username {
-    font-size: .82rem;
-    font-weight: 600;
-    color: var(--text-bright);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.offcanvas-prefs-link {
-    font-size: .72rem;
-    color: var(--accent);
-    text-decoration: none;
-    opacity: .85;
-}
-.offcanvas-prefs-link:hover { opacity: 1; color: var(--accent); }
-.btn-logout-offcanvas {
-    background: none;
-    border: none;
-    color: rgba(255,255,255,.35);
-    font-size: 1rem;
-    padding: .3rem;
-    cursor: pointer;
-    transition: color .15s;
-    line-height: 1;
-}
-.btn-logout-offcanvas:hover { color: #dc3545; }
+/* ── Hoja «Más» (móvil) ─────────────────────────────────────────────────────
+   Bootstrap offcanvas-bottom; aquí solo lo que Bootstrap no da: tope de altura
+   y margen para la zona segura del iPhone. */
+.more-sheet { max-height: 90vh; }
+.more-sheet .offcanvas-body { padding-bottom: calc(1rem + env(safe-area-inset-bottom)); }
 
 /* ── Brand ────────────────────────────────────────────────────────────────── */
 
@@ -221,9 +167,7 @@ body {
 
 .nav-link:hover,
 .sidebar-desktop .nav-link:hover,
-.offcanvas .nav-link:hover,
-.sidebar-desktop .nav-link:focus,
-.offcanvas .nav-link:focus {
+.sidebar-desktop .nav-link:focus {
     background-color: var(--sidebar-bg-hover);
     color: #f0f4f8 !important;
 }
@@ -500,46 +444,6 @@ html.sidebar-collapsed .sidebar-desktop .nav-beta-expanded {
     flex-shrink: 0;
 }
 
-/* ── Mobile Navbar (liquid glass) ────────────────────────────────────────── */
-
-.mobile-navbar {
-    background: rgba(248, 250, 252, 0.85);
-    backdrop-filter: saturate(200%) blur(24px);
-    -webkit-backdrop-filter: saturate(200%) blur(24px);
-    border-bottom: 0.5px solid rgba(0,0,0,0.08);
-    position: sticky;
-    top: 0;
-    z-index: 999;
-    min-height: 52px;
-    padding: 0;
-    width: 100%;
-}
-
-.mobile-navbar .container-fluid {
-    min-height: 52px;
-    padding-left: 12px;
-    padding-right: 12px;
-}
-
-.mobile-navbar .navbar-brand {
-    font-weight: 700;
-    color: var(--sidebar-bg);
-    font-size: .95rem;
-    margin: 0;
-}
-
-.btn-ghost-nav {
-    background: none;
-    border: none;
-    color: var(--sidebar-bg);
-    padding: 6px 8px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background .15s;
-    line-height: 1;
-}
-.btn-ghost-nav:hover { background: rgba(0,0,0,.06); }
-
 /* ── Bottom Tab Bar (liquid glass) ───────────────────────────────────────── */
 
 .bottom-tab-bar {
@@ -571,7 +475,7 @@ html.sidebar-collapsed .sidebar-desktop .nav-beta-expanded {
     padding: 7px 4px 8px;
     color: #7a9a8b;
     text-decoration: none;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 500;
     background: none;
     border: none;
@@ -595,6 +499,18 @@ html.sidebar-collapsed .sidebar-desktop .nav-beta-expanded {
     position: relative;
     z-index: 1;
     transition: color .15s;
+}
+
+/* Contador de notificaciones sobre el icono de «Más» */
+.tab-item .tab-icon { position: relative; line-height: 1; }
+.tab-item .tab-badge {
+    position: absolute;
+    top: -6px;
+    left: 100%;
+    transform: translateX(-40%);
+    font-size: .55rem;
+    min-width: 16px;
+    padding: 2px 4px;
 }
 
 /* Pill indicator detrás del icono */
