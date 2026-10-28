@@ -422,8 +422,11 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
 @media (max-width: 767.98px) {
     .dt-actions { position: fixed; left: 0; right: 0; bottom: calc(58px + env(safe-area-inset-bottom)); z-index: 1029; padding: .6rem 1rem; background: rgba(255, 255, 255, .96); border-top: 1px solid var(--bs-border-color); box-shadow: 0 -4px 16px rgba(0, 0, 0, .06); }
     .dt-actions .btn { height: 48px; font-weight: 700; }
-    .dt-actions > .dropdown:only-child { flex: 1; }
-    .dt-actions > .dropdown:only-child .btn { width: 100%; }
+    .dt-actions .btn-group { width: 100%; }
+    .dt-actions .btn-group > .btn:first-child { flex: 1 1 auto; }
+    .dt-actions .dropdown-toggle-split { flex: 0 0 auto; padding-inline: 1rem; }
+    .dt-actions > .dropdown { flex: 1; }
+    .dt-actions > .dropdown .btn { width: 100%; }
     .page-header-main:has(.dt-actions) { gap: 0; }
 }
 .dt-sticky-spacer { height: 72px; }

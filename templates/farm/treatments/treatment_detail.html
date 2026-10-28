@@ -20,14 +20,18 @@
 
 {% block actions %}
 {# Una sola botonera: en móvil .dt-actions pasa a la barra fija inferior (junto a la barra de navegación); en escritorio queda en la cabecera #}
-<div class="dt-actions d-flex gap-2">
+<div class="dt-actions d-flex">
     {% if not treatment.finish_date %}
-    <button type="button" class="btn btn-primary flex-grow-1 flex-md-grow-0 d-inline-flex align-items-center justify-content-center gap-2"
-            onclick="finishTreatment_{{ treatment.id }}()">
-        <i class="fa fa-check"></i>Marcar como hecho
-    </button>
-    {% endif %}
+    <div class="btn-group">
+        <button type="button" class="btn btn-primary d-inline-flex align-items-center justify-content-center gap-2"
+                onclick="finishTreatment_{{ treatment.id }}()">
+            <i class="fa fa-check"></i>Marcar como hecho
+        </button>
+        {% include 'farm/treatments/_treatment_actions_dropdown.html' with treatment=treatment hide_primary=True split=True btn_class="btn-primary" %}
+    </div>
+    {% else %}
     {% include 'farm/treatments/_treatment_actions_dropdown.html' with treatment=treatment hide_primary=True btn_class="btn-outline-secondary" %}
+    {% endif %}
 </div>
 {% endblock %}
 

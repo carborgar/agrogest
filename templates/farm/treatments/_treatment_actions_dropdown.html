@@ -1,5 +1,10 @@
 {% with btn_class=btn_class|default:"btn-primary" %}
-{% if not hide_primary %}
+{% if split %}
+{# Variante «split»: solo el botón desplegable y el menú, para colgarlos de un .btn-group con la acción principal #}
+<button aria-expanded="false" class="btn {{ btn_class }} dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" type="button">
+    <span class="visually-hidden">Más acciones</span>
+</button>
+{% elif not hide_primary %}
 <div class="mt-3">
     <div class="btn-group w-100" role="group">
         <a class="btn {{ btn_class }} action-btn flex-grow-1 rounded-start"
@@ -59,7 +64,8 @@
                 </li>
             </ul>
 
-            {% if not hide_primary %}
+            {% if split %}
+            {% elif not hide_primary %}
         </div>
     </div>
     {% else %}
