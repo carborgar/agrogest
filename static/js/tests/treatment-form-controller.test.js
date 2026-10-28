@@ -59,7 +59,7 @@ function fill(p) {
 test('arranca vacío, con el nombre sin rellenar, y dice qué falta', () => {
     const p = create();
     assert.equal(p.q('#tfName').value, '');
-    assert.match(p.q('#tfMissing').textContent, /^Falta: parcela, un producto, máquina, mojado, nombre/);
+    assert.match(p.q('#tfMissing').textContent, /^Falta: nombre, parcela, un producto, máquina/);
     assert.equal(p.q('#tfSumMain').textContent, '— €');
     assert.equal(sp(p.q('#tfSave').textContent), 'Crear tratamiento');
 });
@@ -190,7 +190,7 @@ test('A2 teclear en el total recalcula la dosis EN EL INPUT DE DOSIS sin tocar e
     assert.equal(t.value, '25');                              // lo tecleado no se reescribe
     assert.equal(dose(p).value, '5,9524');                    // 25 / 4,2
     assert.equal(p.T.state.lines[0].override, true);
-    assert.match(p.q('.tf-line-notes').textContent, /Total puesto a mano/);
+    assert.match(p.q('.tf-line-notes').textContent, /Total ajustado a mano/);
     assert.ok(p.q('[data-act="clear-total"]'));
 });
 
@@ -218,14 +218,15 @@ test('A2 vaciar el total vuelve a calcularlo desde la dosis', () => {
     assert.equal(total(p).value, '42');
 });
 
-test('A2 «Volver a calcularlo» quita el total a mano y deja la dosis derivada', () => {
+test('A2 «Restablecer dosis» quita el total a mano y pone la dosis recomendada (ronda 4)', () => {
     const p = fertigation();
     p.type(total(p), '25');
+    assert.equal(dose(p).value, '5,9524');                     // derivada del total
     p.q('[data-act="clear-total"]').focus();                   // como al tocar el botón: el total pierde el foco
     p.q('[data-act="clear-total"]').click();
     assert.equal(p.T.state.lines[0].override, false);
-    assert.equal(dose(p).value, '5,9524');
-    assert.equal(total(p).value, '25,0026');                   // sin total a mano la dosis se redondea hacia arriba a 3 decimales (5,953), como hace el servidor: 5,953 × 4,2
+    assert.equal(dose(p).value, '10');                         // recomendada del Abono en fertirrigación (antes: 5,9524 → total 25,0026)
+    assert.equal(total(p).value, '42');                        // 10 × 4,2
 });
 
 test('A2 con varias parcelas el total es la suma, está deshabilitado y lo explica', () => {
@@ -379,4 +380,116 @@ test('Un producto ya añadido pero no válido para el tipo actual se puede quita
     assert.equal(opt.disabled, false);
     opt.click();
     assert.equal(p.T.state.lines.length, 0);
+});
+
+// ── Ronda 4 (28/10) ───────────────────────────────────────────────────────────────────────────────
+
+/** Pulverización mínima: parcela A + Fungicida + primera máquina (el mojado es el de partida) + nombre. */
+function sprayDefault() {
+    const p = create();
+    p.q('#tfFieldBtn').click();
+    p.q('#tfFieldsPop [data-field="1"]').click();
+    p.q('#tfFieldBtn').click();
+    p.type(p.q('#tfAddInput'), 'fung');
+    p.key(p.q('#tfAddInput'), 'Enter');
+    p.q('#tfAddClose').click();
+    p.q('#tfMachineChips [data-machine="1"]').click();
+    return p;
+}
+
+test('R4 crear en pulverización: el mojado arranca en 1000 y ya no falta', () => {
+    const p = create();
+    assert.equal(p.q('#tfWater').value, '1000');
+    assert.doesNotMatch(p.q('#tfMissing').textContent, /mojado/);
+});
+
+test('R4 editar el total sin tocar el mojado: la dosis y «por máquina» salen calculados', () => {
+    const p = sprayDefault();
+    p.type(total(p), '25');
+    assert.equal(dose(p).value, '5,9524');                      // Fungicida kg/1000L: 25 × 1000 / 4200
+    assert.match(p.q('.tf-line-load').textContent, /^\d/);       // 25 kg en 4200 L de caldo; cuba de 2000 L = 11,9048 kg
+    assert.equal(sp(p.q('.tf-line-load').textContent), '11,9048 kg');
+    assert.match(p.q('.tf-line-hint').textContent, /11,9048 kg por máquina/);
+});
+
+test('R4 borrar el mojado: aviso en cada línea, ni dosis ni por máquina en blanco sin explicación, y no deja guardar', () => {
+    const p = sprayDefault();
+    p.type(p.q('#tfName'), 'X');
+    p.type(total(p), '25');
+    p.type(p.q('#tfWater'), '');
+    assert.equal(dose(p).value, '');
+    assert.match(p.q('.tf-line-notes').textContent, /Pon el mojado para calcular la dosis/);
+    assert.match(p.q('#tfMissing').textContent, /mojado/);
+    assert.equal(p.submit().defaultPrevented, true);
+    p.type(p.q('#tfWater'), '1000');
+    assert.doesNotMatch(p.q('.tf-line-notes').textContent, /Pon el mojado/);
+});
+
+test('R4 fertirrigación: ni celda, ni título «por máquina», ni «No aplica», ni el texto del hint', () => {
+    const p = fertigation();
+    assert.equal(p.q('.tf-line-load').hidden, true);
+    assert.equal(p.q('#tfLoadHead').hidden, true);
+    assert.equal(p.q('#tfLoadHead').textContent, '');
+    assert.ok(p.q('#tfRoot').classList.contains('tf--ferti'));   // la rejilla de escritorio quita la columna (sin hueco)
+    const all = p.q('#tfLines').textContent + p.q('.tf-lines-head').textContent;
+    assert.doesNotMatch(all, /No aplica|máquina|cuba/i);
+    p.q('.tf-seg-btn[data-type="spraying"]').click();           // y al volver a pulverización reaparece
+    assert.equal(p.q('#tfRoot').classList.contains('tf--ferti'), false);
+});
+
+test('R4 pulverización con máquina: «Por máquina» en la cabecera y en el hint móvil', () => {
+    const p = sprayDefault();
+    assert.equal(p.q('#tfLoadHead').textContent, 'Por máquina');
+    assert.equal(p.q('#tfLoadHead').hidden, false);
+    assert.equal(p.q('.tf-line-load').hidden, false);
+    assert.match(p.q('.tf-line-hint').textContent, /6 kg por máquina/);   // 3 kg/1000L × 2000 L
+    assert.doesNotMatch(p.q('#tfSecProducts').textContent, /cuba llena/);
+    assert.match(p.q('#tfLoadsHead').textContent, /Cuba 2000/);          // el resumen de cubas no se toca
+});
+
+test('R4 «Total ajustado a mano» + «Restablecer dosis»: pone la dosis recomendada y el total desde ella', () => {
+    const p = sprayDefault();
+    p.type(dose(p), '4');
+    p.type(total(p), '25');
+    assert.match(p.q('.tf-line-notes').textContent, /Total ajustado a mano/);
+    assert.doesNotMatch(p.q('.tf-line-notes').textContent, /Volver a calcularlo|la dosis se calcula a partir/);
+    const btn = p.q('[data-act="clear-total"]');
+    assert.equal(btn.textContent, 'Restablecer dosis');
+    btn.focus();
+    btn.click();
+    assert.equal(p.T.state.lines[0].override, false);
+    assert.equal(dose(p).value, '3');                             // recomendada del Fungicida
+    assert.equal(total(p).value, '12,6');                         // 3 × 4,2
+    assert.equal(p.q('[data-act="clear-total"]'), null);
+});
+
+test('R4 la unidad va siempre junto a la dosis y el total, y la dosis es la del producto', () => {
+    const p = sprayDefault();
+    assert.equal(p.q('.tf-line-dose .tf-unit').textContent, 'kg/1000L');
+    assert.equal(p.q('.tf-total-unit').textContent, 'kg');
+    assert.match(p.q('.tf-line-hint').textContent, /Recomendada 3 kg\/1000L/);
+    assert.doesNotMatch(p.q('#tfSecProducts').textContent, /dosis de la parcela|dosis por parcela/i);
+});
+
+test('R4 el nombre es lo primero de la pantalla, sin enfoque automático, y su error lleva el foco', () => {
+    const p = create();
+    const main = p.q('.tf-main');
+    assert.equal(main.firstElementChild.id, 'tfSecName');
+    const pos = (sel) => p.q(sel).compareDocumentPosition(p.q('#tfSecField')) & p.w.Node.DOCUMENT_POSITION_FOLLOWING;
+    assert.ok(pos('#tfSecName'), 'el nombre va antes que Tipo/Parcela en el DOM (tabulación y lector de pantalla)');
+    assert.notEqual(p.d.activeElement, p.q('#tfName'));
+    assert.equal(p.qa('#tfSecName').length, 1);                   // y no queda otra sección Nombre al final
+    assert.equal(p.q('#tfName').getAttribute('aria-describedby') || '', '');
+    const f = fill(create());
+    f.type(f.q('#tfName'), '');
+    assert.equal(f.submit().defaultPrevented, true);
+    assert.equal(f.d.activeElement, f.q('#tfName'));              // el primer error es el nombre: se enfoca (y se sube a él)
+    assert.match(f.q('[data-err="name"]').textContent, /nombre/);
+    assert.match(f.q('#tfMissing').textContent, /^Falta: nombre/);
+});
+
+test('R4 en edición el nombre guardado se mantiene', () => {
+    const p = load('treatment_form_edit.html');
+    assert.ok(p.q('#tfName').value.length > 0);
+    assert.equal(p.q('#tfName').value, p.q('#id_name').value);
 });

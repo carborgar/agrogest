@@ -150,7 +150,7 @@ Tests: el JSON de la fase 0 más casos límite (sin mojado, área 0, `"0,5"`, `"
    - El mojado real > 0 sustituye al previsto en los cálculos (= `actual_water_per_ha`).
    - Al desactivarlo se borran la fecha de realización y el mojado real.
    - La fecha de realización no puede ser futura.
-8. **Pulverización sin mojado:** las líneas `*_per_1000l` y `pct` muestran total «—» y coste «Falta el mojado»; las `*_per_ha` sí se calculan.
+8. **Pulverización sin mojado** (solo si se borra a propósito, D3; la línea avisa «Pon el mojado para calcular la dosis»): las líneas `*_per_1000l` y `pct` muestran total «—» y coste «Falta el mojado»; las `*_per_ha` sí se calculan.
 9. **Con una sola máquina** queda seleccionada siempre y no se muestran chips. Con ninguna, aviso con enlace para crear una (bloquea en pulverización).
 10. ~~**Nombre automático:** se rellena hasta que el usuario lo toca (ver D2).~~ **Anulada (27/10):** el nombre se escribe a mano, vacío al crear y obligatorio.
 11. **Área parcial:** entre 0 y el área de la parcela; si no, error en la sección.
@@ -197,6 +197,13 @@ Sustituye `templates/farm/treatments/treatment_form.html` (hoy 1271 líneas con 
 
 - **D1 — Respetar el total a mano** en tratamientos hechos con mojado real distinto. En `TreatmentProduct.save()`, el bloque `if not is_new and self.treatment.water_per_ha_changed(): calculate_total_dose()` no se aplica si `total_overridden=True` (en ese caso se deriva la dosis del total). Test que lo demuestre (falla antes, pasa después). Sustituye el «test que documente lo que hace hoy» de la fase 1.
 - **D2 — ANULADA por Carlos el 27/10** (con muchos productos el nombre automático no tiene sentido; el nombre se escribe a mano, campo vacío con placeholder «Ej. Cobre + Mojante», obligatorio). Texto original: **Nombre automático con nombres completos**: hasta 3 productos válidos unidos con « + »; si pasa de 100 caracteres, cortar a 99 y añadir «…». Se rellena mientras el usuario no toque el nombre; en edición se considera tocado.
+
+### Decisiones de Carlos del 28/10 (cuarta ronda)
+
+- **D3 — Mojado por defecto = 1000 L/ha en pulverización** (como el formulario antiguo). Motivo: sin mojado la dosis por 1000 L/% no se deriva del total y editar el total dejaba dosis y «por máquina» en blanco. Al CREAR parte de 1000; al pasar de fertirrigación a pulverización con el mojado vacío se pone 1000; en EDICIÓN se respeta lo guardado (nunca se pisa) y tras un envío fallido se respeta lo que había. Fuente única: `Product.REFERENCE_WATER_PER_HA`, que llega al JS como `data.defaultWater` en el `json_script` de datos del formulario. Si se borra a propósito, cada línea avisa «Pon el mojado para calcular la dosis» y el guardado sigue bloqueado (regla 8). Fertirrigación sigue enviando mojado 0.
+- **D4 — «Restablecer dosis»** (antes «Volver a calcularlo»): quita el total a mano y pone la dosis RECOMENDADA del producto para el tipo actual, con el total recalculado desde ella. Aviso corto «Total ajustado a mano». Vaciar el input del total NO cambia (conserva la dosis que hubiera).
+- **D5 — «Por máquina»** sustituye a «Por cuba llena» (cabecera de escritorio y hint móvil, «6 kg por máquina»). En fertirrigación no hay celda, título ni texto «por máquina»/«No aplica» y la rejilla de escritorio quita la columna sin hueco (clase `tf--ferti`). El resumen de cubas y el detalle no se tocan. La «Dosis» de la línea es la del PRODUCTO en su unidad (kg/1000L, L/1000L, %, kg/ha…), siempre con su unidad al lado; «Total parcela» es la cantidad total.
+- **D6 — Nombre arriba:** es el primer campo de la pantalla (encima de Tipo, también en escritorio, arriba de la columna izquierda), sin enfoque automático, obligatorio con su error en su sitio; «Falta: nombre» va primero en el resumen (orden de pantalla) y, si es el primer error, se enfoca y se sube a él.
 
 ---
 
@@ -245,7 +252,7 @@ Arreglos de la revisión:
 2. **Campo oculto `position`** en cada línea (no estaba en el plan): el orden de la cuba lo decide el POST y se renumera 0..n-1 al guardar.
 3. **Números como `type="text" inputmode="decimal"`** (coma decimal española); el controlador escribe valores normalizados en los inputs reales de Django justo antes de enviar.
 4. **`dispatch` llama directo a `S.actions[tipo]`**, no a `S.reduce` (el payload de `setType` usa la clave `type` y chocaba con la del reduce).
-5. **Dosis de un total a mano**: al pulsar «Volver a calcularlo» o vaciar el total, la dosis se redondea hacia arriba a 3 decimales como hace el servidor (p. ej. 25 L en 4,2 ha vuelve a 25,0026 L), porque sin total a mano la dosis es la fuente de verdad.
+5. **Dosis de un total a mano**: al vaciar el total, la dosis se redondea hacia arriba a 3 decimales como hace el servidor (p. ej. 25 L en 4,2 ha vuelve a 25,0026 L), porque sin total a mano la dosis es la fuente de verdad. «Restablecer dosis» (D4) en cambio pone la recomendada del producto.
 
 ### Pendiente o no verificado
 
@@ -267,7 +274,7 @@ Arreglos de la revisión:
 5. Editar con total a mano de 25 L: fecha/nombre, agua, parcial (mantienen el total y rederivan la dosis), parcela y tipo (quitan el «a mano»).
 6. Completado con agua real: se ve el agua real, guardar sin tocar no cambia nada, D1 (total a mano respetado con otra agua real).
 7. Marcar como hecho al editar (fecha fin + agua real): totales con el agua real.
-8. Total y luego dosis (y al revés): gana el último; vaciar el total y «Volver a calcularlo».
+8. Total y luego dosis (y al revés): gana el último; vaciar el total y «Restablecer dosis» (dosis recomendada, ronda 4).
 9. Dos productos: un total y una dosis, posiciones estables, quitar y volver a poner, añadir en edición.
 10. Varias parcelas al crear: totales exactos por parcela, suma en pantalla = suma en base de datos, total no editable, abrir cada uno.
 11. Superficie parcial (L/1000L, kg/ha, cambio de área en edición).
@@ -281,3 +288,15 @@ Arreglos de la revisión:
 - El barrido de totales no encontró ninguna otra discrepancia (50 sale 50 en todas las áreas y tipos). Se comprobó que el test detecta el fallo inyectando un 24,9999 en lugar de 25.
 
 **No cubierto.** Navegador real (solo jsdom; sin layout ni foco real); formularios con la pantalla abierta mientras otro usuario cambia el precio (la pantalla enseña el precio de la carga); sweeps completos de todas las áreas (se usa una muestra por tiempo).
+
+
+### 9.y Cuarta ronda: ajustes de Carlos tras probar el formulario (28/10)
+
+Un único commit con el código y las pruebas (los cambios comparten ficheros): decisiones D3 a D6 de la sección 8.
+- **Mojado por defecto:** `build_treatment_form_data` pasa `defaultWater` (= `Product.REFERENCE_WATER_PER_HA`); `initialState`/`setType` lo usan solo al crear y de fertirrigación a pulverización con el mojado vacío. `derive` añade `needsWater` por línea y el controlador pinta el aviso.
+- **Fertirrigación sin «por máquina»:** celda, cabecera y texto ocultos; `.tf--ferti` en `#tfRoot` cambia las columnas de escritorio (`$tf-cols-ferti`, CSS recompilado con `npm run build:css`).
+- **Restablecer dosis:** `clearOverride` usa `opt.dose` del tipo actual.
+- **Nombre arriba:** sección movida al principio de `.tf-main` (orden del DOM = orden visual); `SECTIONS` y el orden de `derive().missing` empiezan por el nombre. El texto de ayuda «Puesto a partir de los productos…» no existe ya en el código de esta rama (no hubo nada que quitar).
+- **Pruebas:** estado (+9), controlador (+9), backend (+1) y `Caso16Ronda4Tests` (9 casos de ciclo completo: mojado 1000 sin teclearlo, edición con 800, fertirrigación→pulverización, fertirrigación sin «por máquina», borrar el mojado, envío fallido, restablecer en fertirrigación, nombre).
+- **Pruebas modificadas por cambio de comportamiento:** «Volver a calcularlo» (estado, controlador y Caso 8: ahora deja la recomendada: 25 L → 0,5 L/1000L → 2,1 L); «Falta: …» (el mojado ya no falta al arrancar y el nombre va primero); textos «Total ajustado a mano»; fixtures HTML regenerados.
+- **No verificado en navegador real:** la rejilla de escritorio sin hueco (solo comprobado el CSS generado y la clase), el scroll al nombre con barra fija y el teclado en móvil.

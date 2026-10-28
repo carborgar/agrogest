@@ -61,6 +61,15 @@
      *   appliedArea, zone, name, lines: [{productId, dose, total, override, unitPrice}]}.
      * Los textos numéricos van tal cual los tendría el usuario (coma o punto).
      */
+    /**
+     * Mojado de partida en pulverización: el de referencia (data.defaultWater = Product.REFERENCE_WATER_PER_HA, 1000 L/ha).
+     * Solo al CREAR: en edición se respeta lo guardado y tras un envío fallido (bound) lo que el usuario dejó, aunque lo
+     * borrara a propósito.
+     */
+    function initialWater(data, isEdit) {
+        return !isEdit && !data.bound && data.defaultWater > 0 ? String(data.defaultWater) : '';
+    }
+
     function initialState(data, initial) {
         initial = initial || {};
         const isEdit = !!initial.isEdit;
@@ -85,7 +94,7 @@
             lines: lines.map((l) => (l.override && fieldIds.length !== 1 ? Object.assign({}, l, { override: false, total: '' }) : l)),
             nextKey: lines.length + 1,
             machineId: isSpray && initial.machineId ? Number(initial.machineId) : null,
-            water: isSpray && initial.water ? String(initial.water) : '',
+            water: isSpray ? (initial.water ? String(initial.water) : initialWater(data, isEdit)) : '',
             date: initial.date || data.today,
             done: !!initial.finishDate,
             finishDate: initial.finishDate || '',
@@ -113,6 +122,9 @@
             if (type === 'fertigation') {
                 // En fertirrigación no hay máquina ni mojado (el backend guarda máquina = null y mojado = 0)
                 Object.assign(next, { machineId: null, water: '', realWater: '' });
+            } else if (String(state.water).trim() === '' && data.defaultWater > 0) {
+                // Sin mojado la dosis no se puede derivar del total: se parte del de referencia (1000 L/ha)
+                next.water = String(data.defaultWater);
             }
             return next;
         },
@@ -138,15 +150,18 @@
             });
         },
 
-        /** «Volver a calcularlo»: deja la dosis derivada del total como dosis y quita el total a mano. */
+        /**
+         * «Restablecer dosis» (Carlos, 28/10): quita el total a mano y pone la dosis RECOMENDADA del producto para el tipo
+         * actual; el total se recalcula desde ella. (Vaciar el input del total, en cambio, conserva la dosis que hubiera.)
+         */
         clearOverride(state, payload, data) {
-            const d = derive(state, data);
-            const line = d.lines.find((l) => l.key === payload.key);
-            if (!line || !state.lines.find((l) => l.key === payload.key).override) return state;
-            const fallback = line.recommended;
-            const dose = line.dose !== null && line.dose > 0 ? line.dose : fallback;
+            const line = state.lines.find((l) => l.key === payload.key);
+            if (!line || !line.override) return state;
+            const product = byId(data.products)[line.productId];
+            const opt = product ? doseOption(product, state.type) : null;
+            const dose = opt ? doseToText(opt.dose) : line.dose;
             return Object.assign({}, state, {
-                lines: plain(state.lines, { [payload.key]: { override: false, total: '', dose: doseToText(dose) } }),
+                lines: plain(state.lines, { [payload.key]: { override: false, total: '', dose: dose } }),
             });
         },
 
@@ -361,6 +376,7 @@
                 unitPrice: unitPrice,
                 cost: cost,
                 costState: costState,
+                needsWater: isSpray && !(waterEff > 0),
                 perLoad: isSpray && machine && waterEff > 0 && valid
                     ? calc.dosePerFullLoad(dose, doseType, machine.capacity, waterEff) : null,
                 warn: valid && calc.isFarFromRecommended(dose, opt.dose),
@@ -400,11 +416,12 @@
 
         // Qué falta + errores por sección (regla 12)
         const missing = [];
-        const errors = { field: [], products: [], application: [], date: [], name: [] };
+        const errors = { name: [], field: [], products: [], application: [], date: [] };
         const add = (section, key, label, message) => {
             missing.push({ section: section, key: key, label: label });
             errors[section].push(message);
         };
+        if (!String(name).trim()) add('name', 'name', 'nombre', 'Pon un nombre al tratamiento.');
         if (!selected.length) add('field', 'field', 'parcela', 'Elige al menos una parcela.');
         if (areaError) add('field', 'area', 'superficie', areaError);
         if (!lines.length) add('products', 'products', 'un producto', 'Añade al menos un producto.');
@@ -419,7 +436,6 @@
         if (state.done && !state.finishDate) add('date', 'finishDate', 'fecha de realización', 'Indica cuándo se hizo.');
         if (finishFuture) add('date', 'finishFuture', 'fecha de realización', 'La fecha de realización no puede ser futura.');
         if (realWaterError) add('date', 'realWater', 'mojado real', 'El mojado real tiene que ser mayor que 0.');
-        if (!String(name).trim()) add('name', 'name', 'nombre', 'Pon un nombre al tratamiento.');
 
         return {
             isSpray: isSpray,

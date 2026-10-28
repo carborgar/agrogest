@@ -447,6 +447,14 @@ class FormDataTests(BackendBase):
         self.assertEqual({m["id"] for m in data["machines"]}, {self.machine.pk})
         self.assertNotIn("lines", data)
 
+    def test_default_water_comes_from_the_single_product_constant(self):
+        """Ronda 4: el mojado por defecto del formulario es Product.REFERENCE_WATER_PER_HA (1000), pasado al JS en el json_script."""
+        data = self.client.get(self.create_url).context["form_data"]
+        self.assertEqual(data["defaultWater"], Product.REFERENCE_WATER_PER_HA)
+        self.assertEqual(data["defaultWater"], 1000)
+        with mock.patch.object(Product, "REFERENCE_WATER_PER_HA", 1200):
+            self.assertEqual(self.client.get(self.create_url).context["form_data"]["defaultWater"], 1200)
+
     def test_fields_carry_area_crop_and_last_treatment_date(self):
         last = date.today() - timedelta(days=12)
         Treatment.objects.create(organization=self.org, field=self.field, machine=self.machine, name="Antiguo",

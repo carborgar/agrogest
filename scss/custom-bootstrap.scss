@@ -546,6 +546,8 @@ $tf-error-bg: #FDECEA;
 
   // Líneas: filas de rejilla
   $tf-cols: 28px minmax(0, 2.2fr) minmax(0, 1.7fr) minmax(0, 1.1fr) minmax(0, 1.7fr) minmax(0, 1fr) 36px;
+  // Fertirrigación: sin la columna «Por máquina» (el controlador pone .tf--ferti) y sin hueco vacío
+  $tf-cols-ferti: 28px minmax(0, 2.2fr) minmax(0, 1.7fr) minmax(0, 1.7fr) minmax(0, 1fr) 36px;
   .tf-lines { gap: 0; }
   .tf-lines-head {
     display: grid; grid-template-columns: $tf-cols; gap: 12px;
@@ -560,6 +562,11 @@ $tf-error-bg: #FDECEA;
     padding: 10px 4px;
     border: 0; border-bottom: 1px solid #EEF0EA; border-radius: 0;
     background: transparent;
+  }
+  .tf--ferti .tf-lines-head { grid-template-columns: $tf-cols-ferti; }
+  .tf--ferti .tf-line {
+    grid-template-columns: $tf-cols-ferti;
+    grid-template-areas: "num prod dose tot cost remove" ". notes notes notes notes .";
   }
   .tf-line--bad { background: $tf-warn-bg; }
   .tf-line-num { width: 24px; height: 24px; margin: 0; font-size: 0.75rem; }

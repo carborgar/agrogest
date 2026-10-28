@@ -80,7 +80,7 @@
         name: $('tfName'),
         summary: $('tfSummary'), sumMain: $('tfSumMain'), sumSub: $('tfSumSub'), kv: $('tfKv'), missing: $('tfMissing'), save: $('tfSave'),
     };
-    const SECTIONS = ['field', 'products', 'application', 'date', 'name'];
+    const SECTIONS = ['name', 'field', 'products', 'application', 'date'];    // orden de la pantalla
     const sectionEl = { field: $('tfSecField'), products: $('tfSecProducts'), application: $('tfSecApp'), date: $('tfSecDate'), name: $('tfSecName') };
     const errEl = {};
     SECTIONS.forEach((s) => { errEl[s] = sectionEl[s].querySelector('[data-err="' + s + '"]'); });
@@ -221,12 +221,12 @@
         setText(refs.type, l.typeName);
         refs.remove.setAttribute('aria-label', 'Quitar ' + l.name);
 
-        // Avisos de la línea: solo se reconstruyen si cambian (para no perder el clic en «Volver a calcularlo»)
+        // Avisos de la línea: solo se reconstruyen si cambian (para no perder el clic en «Restablecer dosis»)
         const notes = [];
         const supported = l.supported;
         refs.dose.closest('.tf-line-dose').hidden = !supported;
         refs.total.closest('.tf-line-tot').hidden = !supported;
-        refs.load.hidden = !supported;
+        refs.load.hidden = !supported || !d.isSpray;          // «por máquina»: solo pulverización
         if (!supported) {
             setText(refs.rec, '');
             setText(refs.hint, '');
@@ -249,14 +249,15 @@
             refs.total.setAttribute('aria-invalid', String(!!(tried && l.override && !l.valid)));
             setText(refs.totalUnit, l.totalUnit);
             setText(refs.cost, costText(l));
-            setText(refs.load, d.isSpray ? (l.perLoad !== null ? nf(l.perLoad, 4) + ' ' + l.totalUnit : '—') : 'No aplica');
+            setText(refs.load, d.isSpray ? (l.perLoad !== null ? nf(l.perLoad, 4) + ' ' + l.totalUnit : '—') : '');
             let hint = 'Recomendada ' + nf(l.recommended, 4) + ' ' + l.unit;
-            if (l.perLoad !== null) hint += ' · ' + nf(l.perLoad, 4) + ' ' + l.totalUnit + ' por cuba llena';
+            if (l.perLoad !== null) hint += ' · ' + nf(l.perLoad, 4) + ' ' + l.totalUnit + ' por máquina';
             setText(refs.hint, hint);
 
             if (l.warn) notes.push(['tf-note-warn', 'Se aparta bastante de la recomendada. Revísala.']);
             if (l.doseRoundedUp && !l.override) notes.push(['', 'Se redondea hacia arriba a ' + nf(l.dose, 3) + ' ' + l.unit + '.']);
-            if (l.override) notes.push(['tf-note-manual', 'Total puesto a mano; la dosis se calcula a partir de él.', true]);
+            if (l.needsWater) notes.push(['tf-note-warn', 'Pon el mojado para calcular la dosis.']);
+            if (l.override) notes.push(['tf-note-manual', 'Total ajustado a mano.', true]);
         }
         (serverMsgs || []).forEach((m) => notes.push(['tf-note-err', m]));
 
@@ -266,7 +267,7 @@
             refs.notes.textContent = '';
             notes.forEach((n) => {
                 const p = el('p', { 'class': n[0] }, n[1] + (n[2] ? ' ' : ''));
-                if (n[2]) p.appendChild(el('button', { type: 'button', 'class': 'tf-link', 'data-act': 'clear-total' }, 'Volver a calcularlo'));
+                if (n[2]) p.appendChild(el('button', { type: 'button', 'class': 'tf-link', 'data-act': 'clear-total' }, 'Restablecer dosis'));
                 refs.notes.appendChild(p);
             });
         }
@@ -287,7 +288,9 @@
         setHidden(ui_.orderHint, d.lines.length < 2 || !d.isSpray);
         setHidden(ui_.multiTotalNote, !(d.multi && d.lines.length));
         setText(ui_.totalHead, d.multi ? 'Total (' + d.fieldCount + ' parcelas)' : 'Total parcela');
-        setText(ui_.loadHead, d.isSpray ? 'Por cuba llena' : '');
+        setText(ui_.loadHead, d.isSpray ? 'Por máquina' : '');
+        setHidden(ui_.loadHead, !d.isSpray);
+        root.classList.toggle('tf--ferti', !d.isSpray);      // la rejilla de escritorio quita la columna sin dejar hueco
         setText(ui_.addLabel, d.lines.length ? 'Añadir otro producto' : 'Añadir producto');
     }
 
@@ -793,7 +796,8 @@
         if (!t) return;
         if (!t.matches('input, button, a')) t.setAttribute('tabindex', '-1');
         t.focus({ preventScroll: true });
-        t.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        const isName = t === ui_.name;
+        (isName ? sectionEl.name : t).scrollIntoView({ block: isName ? 'start' : 'center', behavior: 'smooth' });   // el nombre está arriba del todo
     }
 
     form.addEventListener('submit', (e) => {

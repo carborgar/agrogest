@@ -227,12 +227,14 @@ class Caso8UltimoToqueGanaTests(UseCaseBase):
         self.assert_db(t, dose='5.953', total='25.0026', override=False, unit_price='10.00', total_price='250.03', per_ha='59.53', context='total vaciado')
         self.reopen_and_check(t, 'total vaciado')
 
-    def test_boton_volver_a_calcular_quita_el_manual(self):
-        """Caso 8: «Volver a calcularlo» equivale a vaciar el total y deja la dosis derivada (5,953 tras redondear hacia arriba)."""
+    def test_boton_restablecer_dosis_pone_la_dosis_recomendada(self):
+        """Caso 8 (ronda 4): «Restablecer dosis» NO deja la dosis derivada del total: pone la recomendada del producto (0,5 L/1000L)
+        y quita el «a mano». Total = 0,5 × 4200 / 1000 = 2,1 L; 21,00 €; 21 / 4,2 = 5,00 €/ha."""
         t = self.new_spraying(self.pL1000, total='25')
-        t, _ = self.type_and_save_edit(t, [S_clear_total(1)])
-        self.assert_db(t, dose='5.953', total='25.0026', override=False, unit_price='10.00', total_price='250.03', per_ha='59.53', context='volver a calcular')
-        self.reopen_and_check(t, 'volver a calcular')
+        t, view = self.type_and_save_edit(t, [S_clear_total(1)])
+        self.assert_db(t, dose='0.5', total='2.1', override=False, unit_price='10.00', total_price='21.00', per_ha='5.00', context='restablecer dosis')
+        self.assertEqual((view['lines'][0]['dose'], view['lines'][0]['total'], view['lines'][0]['manual']), ('0,5', '2,1', False))
+        self.reopen_and_check(t, 'restablecer dosis')
 
 
 class Caso9DosProductosTests(UseCaseBase):
@@ -476,6 +478,105 @@ class Caso14TextoTecleadoTests(UseCaseBase):
                 self.assertTrue(prevented, f'tecleado=1.500 en {kind}: no debería dejar guardar')
                 texts = ' '.join([view['missing'] or '', view['save'] or '', view['lines'][0]['notes']] + [m or '' for _, m in view['errors']])
                 self.assertIn('Usa coma', texts, f'sin aviso de usar coma: missing={view["missing"]!r}, errores={view["errors"]}')
+
+
+class Caso16Ronda4Tests(UseCaseBase):
+    """Ajustes de Carlos (28/10): mojado por defecto 1000, «por máquina» solo en pulverización, restablecer = dosis recomendada,
+    nombre arriba. Ciclo completo igual que el resto."""
+
+    def create_steps(self, product, *more):
+        """Alta en pulverización SIN teclear el mojado: el de partida (1000) es el que vale."""
+        return [S_type('spraying'), S_set('name', 'Sin teclear mojado'), S_fields(self.fA.pk), S_machine(self.m2000.pk), S_product(product.pk)] + list(more)
+
+    def test_crear_en_pulverizacion_parte_de_1000_y_el_total_deriva_dosis_y_por_maquina(self):
+        """Mojado 1000 al crear sin teclearlo; total 25 → dosis 25 × 1000 / 4200 = 5,9524; por máquina (cuba 2000 L) = 5,9524 × 2 = 11,9048 L."""
+        view, post, prevented = self.play(self.open_create(), [S_type('spraying')])
+        self.assertEqual(view['water'], '1000')
+        t, view = self.type_and_save_new(self.create_steps(self.pL1000, S_total(1, '25')))
+        self.assertEqual(view['water'], '1000')
+        self.assertEqual(view['lines'][0]['dose'], '5,9524', 'dosis derivada en pantalla sin haber tecleado el mojado')
+        self.assertEqual(view['lines'][0]['perLoad'].replace(' ', '\u00a0'), '11,9048\u00a0L', 'por máquina en pantalla')
+        self.assertEqual(t.water_per_ha, 1000)
+        self.assert_db(t, dose='5.9524', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='alta')
+        self.reopen_and_check(t, 'mojado por defecto')
+
+    def test_edicion_conserva_el_mojado_guardado(self):
+        """Un tratamiento con mojado 800 se abre con 800 (no se pisa con 1000) y guardar sin tocar no lo cambia:
+        total 0,5 × 4,2 × 800 / 1000 = 1,68 L; 16,80 €; 4,00 €/ha."""
+        t = self.new_spraying(self.pL1000, dose='0,5', water=800)
+        self.assert_db(t, dose='0.5', total='1.68', override=False, unit_price='10.00', total_price='16.80', per_ha='4.00', context='alta 800')
+        view = self.reopen_and_check(t, 'mojado 800')
+        self.assertEqual(view['water'], '800')
+        self.assertEqual(Treatment.objects.get(pk=t.pk).water_per_ha, 800)
+
+    def test_de_fertirrigacion_a_pulverizacion_pone_1000_y_se_guarda(self):
+        """Fertirrigación guardada (mojado 0) → pasar a pulverización en la edición pone 1000. Con 'Foliar L/ha' (2 L/ha en pulverización)
+        y cuba de 2000: total = 2 × 2,8 = 5,6 L; 28,00 €; 10,00 €/ha."""
+        t = self.new_fertigation(self.pLHa)
+        self.assertEqual(Treatment.objects.get(pk=t.pk).water_per_ha, 0)
+        t, view = self.type_and_save_edit(t, [S_type('spraying'), S_machine(self.m2000.pk)])
+        self.assertEqual(view['water'], '1000')
+        self.assertEqual((t.type, t.water_per_ha), ('spraying', 1000))
+        self.assert_db(t, dose='2', total='5.6', override=False, unit_price='5.00', total_price='28.00', per_ha='10.00', context='a pulverización')
+        self.reopen_and_check(t, 'fertirrigación → pulverización')
+
+    def test_fertirrigacion_envia_mojado_0_y_no_enseña_nada_por_maquina(self):
+        """Fertirrigación: mojado 0 y máquina vacía en la base de datos; ni celda ni título ni texto «por máquina» en pantalla."""
+        t = self.new_fertigation(self.pLHa)
+        t = Treatment.objects.get(pk=t.pk)
+        self.assertEqual((t.water_per_ha, t.machine_id), (0, None))
+        view = self.play(self.open_edit(t), [])[0]
+        line = view['lines'][0]
+        self.assertTrue(line['loadHidden'], 'la celda «por máquina» no se enseña')
+        self.assertTrue(view['loadHeadHidden'])
+        self.assertTrue(view['fertiClass'])
+        self.assertNotIn('máquina', line['hint'] + line['notes'] + line['perLoad'] + (view['loadHead'] or ''))
+        self.assertNotIn('No aplica', line['perLoad'])
+        self.assertEqual(line['unit'], 'L/ha')
+        self.reopen_and_check(t, 'fertirrigación sin por máquina')
+
+    def test_pulverizacion_con_maquina_enseña_por_maquina(self):
+        """Pulverización: cabecera «Por máquina», celda visible y hint «… por máquina» (0,5 L/1000L × 2000 L = 1 L)."""
+        t = self.new_spraying(self.pL1000, dose='0,5')
+        view = self.play(self.open_edit(t), [])[0]
+        line = view['lines'][0]
+        self.assertEqual((view['loadHead'], view['loadHeadHidden'], line['loadHidden'], view['fertiClass']), ('Por máquina', False, False, False))
+        self.assertIn('1 L por máquina', line['hint'])
+
+    def test_borrar_el_mojado_avisa_en_la_linea_y_no_deja_guardar(self):
+        """Mojado vacío a propósito: la línea avisa «Pon el mojado para calcular la dosis», dosis en blanco, y el envío se bloquea (regla 8)."""
+        t = self.new_spraying(self.pL1000, total='25')
+        view, post, prevented = self.play(self.open_edit(t), [S_set('water', ''), SUBMIT, {'op': 'snap'}])
+        self.assertTrue(prevented)
+        self.assertEqual(view['lines'][0]['dose'], '')
+        self.assertIn('Pon el mojado para calcular la dosis', view['lines'][0]['notes'])
+        self.assertIn('mojado', view['missing'])
+        self.assert_db(t, dose='5.9524', total='25', override=True, unit_price='10.00', total_price='250.00', per_ha='59.52', context='no se guardó nada')
+
+    def test_envio_fallido_con_mojado_borrado_no_lo_repone(self):
+        """Tras un error del servidor el mojado borrado a propósito no se vuelve a poner en 1000 (se respeta lo que había)."""
+        t = self.new_spraying(self.pL1000, dose='0,5')
+        view, post, prevented = self.play(self.open_edit(t), [S_dose(1, '0,6'), SUBMIT])
+        response = self.client.post(self.edit_url(t), dict(post, **{next(k for k in post if 'water' in k and 'real' not in k): '-5'}))
+        self.assertEqual(response.status_code, 200)
+        back = self.play(response.content.decode(), [])[0]
+        self.assertEqual(back['water'], '')
+
+    def test_restablecer_dosis_en_fertirrigacion_y_ciclo(self):
+        """Fertirrigación: total 30 (dosis 10,7143) → Restablecer dosis → dosis recomendada 10 L/ha, total 10 × 2,8 = 28 L, sin «a mano»."""
+        t = self.new_fertigation(self.pLHa, total='30')
+        self.assert_db(t, dose='10.7143', total='30', override=True, unit_price='5.00', total_price='150.00', per_ha='53.57', context='con total')
+        t, _ = self.type_and_save_edit(t, [S_clear_total(1)])
+        self.assert_db(t, dose='10', total='28', override=False, unit_price='5.00', total_price='140.00', per_ha='50.00', context='restablecida')
+        self.reopen_and_check(t, 'restablecer fertirrigación')
+
+    def test_nombre_arriba_se_guarda_y_se_mantiene_en_edicion(self):
+        """El nombre se teclea en el primer campo de la pantalla; en edición se abre con el valor guardado y no pierde nada."""
+        t = self.new_spraying(self.pL1000, dose='0,5', name='Cobre de primavera')
+        view = self.play(self.open_edit(t), [])[0]
+        self.assertEqual(view['name'], 'Cobre de primavera')
+        self.assertEqual(view['firstSection'], 'tfSecName')
+        self.reopen_and_check(t, 'nombre')
 
 
 # ── Caso 15: barrido sistemático de totales ───────────────────────────────────

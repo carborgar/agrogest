@@ -615,7 +615,7 @@
 
         
 
-<script id="treatment-form-data" type="application/json">{"today": "2030-06-15", "fields": [{"id": 1, "name": "Parcela A", "crop": "Olivo", "area": 4.2, "last_treatment_date": "2030-06-15"}, {"id": 2, "name": "Parcela B", "crop": "Vid", "area": 2.0, "last_treatment_date": null}], "machines": [{"id": 2, "name": "Cuba 1000", "capacity": 1000}, {"id": 1, "name": "Cuba 2000", "capacity": 2000}], "products": [{"id": 3, "name": "Abono", "type_name": "Fitosanitario", "spraying": null, "fertigation": {"dose": 10.0, "dose_type": "l_per_ha", "label": "L/ha"}, "price": 10.0, "recent": false}, {"id": 1, "name": "Fungicida", "type_name": "Fitosanitario", "spraying": {"dose": 3.0, "dose_type": "kg_per_1000l", "label": "kg/1000L"}, "fertigation": null, "price": 9.5, "recent": true}, {"id": 2, "name": "Insecticida", "type_name": "Fitosanitario", "spraying": {"dose": 0.5, "dose_type": "l_per_1000l", "label": "L/1000L"}, "fertigation": null, "price": 10.0, "recent": true}, {"id": 4, "name": "Mojante", "type_name": "Fitosanitario", "spraying": {"dose": 1.5, "dose_type": "l_per_ha", "label": "L/ha"}, "fertigation": null, "price": 6.0, "recent": true}], "lines": [{"product_id": 1, "dose": 3.0, "total_dose": 12.6, "total_overridden": false, "unit_price": 9.5, "position": 0}, {"product_id": 2, "dose": 0.5, "total_dose": 2.1, "total_overridden": true, "unit_price": 10.0, "position": 1}, {"product_id": 4, "dose": 1.5, "total_dose": 6.3, "total_overridden": false, "unit_price": 6.0, "position": 2}], "bound": false}</script>
+<script id="treatment-form-data" type="application/json">{"today": "2030-06-15", "defaultWater": 1000, "fields": [{"id": 1, "name": "Parcela A", "crop": "Olivo", "area": 4.2, "last_treatment_date": "2030-06-15"}, {"id": 2, "name": "Parcela B", "crop": "Vid", "area": 2.0, "last_treatment_date": null}], "machines": [{"id": 2, "name": "Cuba 1000", "capacity": 1000}, {"id": 1, "name": "Cuba 2000", "capacity": 2000}], "products": [{"id": 3, "name": "Abono", "type_name": "Fitosanitario", "spraying": null, "fertigation": {"dose": 10.0, "dose_type": "l_per_ha", "label": "L/ha"}, "price": 10.0, "recent": false}, {"id": 1, "name": "Fungicida", "type_name": "Fitosanitario", "spraying": {"dose": 3.0, "dose_type": "kg_per_1000l", "label": "kg/1000L"}, "fertigation": null, "price": 9.5, "recent": true}, {"id": 2, "name": "Insecticida", "type_name": "Fitosanitario", "spraying": {"dose": 0.5, "dose_type": "l_per_1000l", "label": "L/1000L"}, "fertigation": null, "price": 10.0, "recent": true}, {"id": 4, "name": "Mojante", "type_name": "Fitosanitario", "spraying": {"dose": 1.5, "dose_type": "l_per_ha", "label": "L/ha"}, "fertigation": null, "price": 6.0, "recent": true}], "lines": [{"product_id": 1, "dose": 3.0, "total_dose": 12.6, "total_overridden": false, "unit_price": 9.5, "position": 0}, {"product_id": 2, "dose": 0.5, "total_dose": 2.1, "total_overridden": true, "unit_price": 10.0, "position": 1}, {"product_id": 4, "dose": 1.5, "total_dose": 6.3, "total_overridden": false, "unit_price": 6.0, "position": 2}], "bound": false}</script>
 
 <script>document.body.classList.add('tf-page');</script>
 
@@ -717,6 +717,13 @@
             <div class="tf-main">
 
                 
+                <section class="tf-card" id="tfSecName" data-sec="name">
+                    <label class="tf-lbl" for="tfName">Nombre del tratamiento</label>
+                    <input class="tf-inp" id="tfName" maxlength="100" placeholder="Ej. Cobre + Mojante" autocomplete="off">
+                    <div class="tf-err" data-err="name" aria-live="polite"></div>
+                </section>
+
+                
                 <section class="tf-card" id="tfSecField" data-sec="field">
                     <div class="tf-grid-2">
                         <div class="tf-group">
@@ -767,7 +774,7 @@
                     </div>
                     <div class="tf-lines-head" aria-hidden="true">
                         <span>#</span><span>Producto</span><span>Dosis</span>
-                        <span class="tf-r" id="tfLoadHead">Por cuba llena</span>
+                        <span class="tf-r" id="tfLoadHead">Por máquina</span>
                         <span class="tf-r" id="tfTotalHead">Total parcela</span><span class="tf-r">Coste</span><span></span>
                     </div>
                     <div class="tf-lines" id="tfLines"></div>
@@ -837,13 +844,6 @@
                         <div class="tf-err" data-err="date" aria-live="polite"></div>
                     </section>
                 </div>
-
-                
-                <section class="tf-card" id="tfSecName" data-sec="name">
-                    <label class="tf-lbl" for="tfName">Nombre del tratamiento</label>
-                    <input class="tf-inp" id="tfName" maxlength="100" placeholder="Ej. Cobre + Mojante" autocomplete="off">
-                    <div class="tf-err" data-err="name" aria-live="polite"></div>
-                </section>
             </div>
 
             

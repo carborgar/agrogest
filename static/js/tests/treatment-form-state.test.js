@@ -147,11 +147,11 @@ test('R3 con total a mano, cambiar mojado, área parcial o máquina mantiene el 
     near(l.dose, 5 * 1000 / (2 * 1100));
 });
 
-test('R3 «volver a calcularlo» deja la dosis derivada como dosis', () => {
+test('R3 «restablecer dosis» deja la dosis recomendada (ronda 4: antes dejaba la derivada del total)', () => {
     let s = run(fresh({ machineId: 1, water: '1000' }), [['toggleField', { id: 1 }], ['addProduct', { productId: 4 }]]);
     s = run(s, [['setTotal', { key: 1, total: '10' }], ['clearOverride', { key: 1 }]]);
     assert.equal(s.lines[0].override, false);
-    assert.equal(s.lines[0].dose, '2,381');
+    assert.equal(s.lines[0].dose, '3');                // NPK: recomendada 3 kg/ha en pulverización (no los 2,381 derivados del total)
 });
 
 test('R3 el total no se puede editar con más de una parcela', () => {
@@ -464,9 +464,9 @@ test('R11 valores del formulario con tratamiento parcial', () => {
 test('R12 formulario vacío: lista «Falta» en orden y errores por sección', () => {
     const d = derive(fresh({}), DATA);
     assert.equal(d.canSave, false);
-    assert.deepEqual(d.missing.map((m) => m.key), ['field', 'products', 'machine', 'water', 'name']);
-    assert.equal(d.missingText, 'Falta: parcela, un producto, máquina, mojado, nombre');
-    assert.deepEqual(Object.keys(d.errors), ['field', 'products', 'application', 'date', 'name']);
+    assert.deepEqual(d.missing.map((m) => m.key), ['name', 'field', 'products', 'machine', 'water']);   // en el orden de la pantalla: el nombre va primero
+    assert.equal(d.missingText, 'Falta: nombre, parcela, un producto, máquina, mojado');
+    assert.deepEqual(Object.keys(d.errors), ['name', 'field', 'products', 'application', 'date']);
     assert.equal(d.errors.field[0], 'Elige al menos una parcela.');
     assert.equal(d.errors.name[0], 'Pon un nombre al tratamiento.');
     assert.equal(derive(base({ machineId: null }), DATA).missingText, 'Falta: máquina');
@@ -665,4 +665,77 @@ test('B9 doseToText: hasta 4 decimales sin ceros sobrantes, coma decimal y sin m
     assert.equal(S.doseToText(0.0754), '0,0754');
     assert.equal(S.doseToText(1500), '1500');
     assert.equal(S.doseToText(null), '');
+});
+
+// ── Ronda 4 (28/10): mojado por defecto, «restablecer dosis», sin «por máquina» en fertirrigación ──
+
+const WITH_DEFAULT = Object.assign({}, DATA, { defaultWater: 1000 });
+
+test('R4 crear en pulverización: el mojado arranca en el de referencia (data.defaultWater)', () => {
+    const s = fresh({}, WITH_DEFAULT);
+    assert.equal(s.water, '1000');
+    assert.ok(!derive(s, WITH_DEFAULT).missing.some((m) => m.key === 'water'));
+});
+
+test('R4 crear en fertirrigación: sin mojado (se guarda 0)', () => {
+    const s = run(fresh({ type: 'fertigation' }, WITH_DEFAULT), [['toggleField', { id: 1 }], ['addProduct', { productId: 4 }]], WITH_DEFAULT);
+    assert.equal(s.water, '');
+    assert.equal(toFormValues(Object.assign({}, s, { name: 'X' }), WITH_DEFAULT).water_per_ha, '0');
+});
+
+test('R4 en edición se respeta el mojado guardado y nunca se pisa (800 sigue siendo 800, y vacío sigue vacío)', () => {
+    assert.equal(fresh({ isEdit: true, type: 'spraying', fieldIds: [1], water: '800' }, WITH_DEFAULT).water, '800');
+    assert.equal(fresh({ isEdit: true, type: 'spraying', fieldIds: [1], water: '' }, WITH_DEFAULT).water, '');
+});
+
+test('R4 un envío fallido (bound) con el mojado borrado a propósito no vuelve a ponerlo', () => {
+    const bound = Object.assign({}, WITH_DEFAULT, { bound: true });
+    assert.equal(fresh({ type: 'spraying', water: '' }, bound).water, '');
+});
+
+test('R4 de fertirrigación a pulverización con el mojado vacío se pone el de referencia; con valor no se toca', () => {
+    let s = run(fresh({ type: 'fertigation', isEdit: true, fieldIds: [1] }, WITH_DEFAULT), [['setType', { type: 'spraying' }]], WITH_DEFAULT);
+    assert.equal(s.water, '1000');
+    s = run(s, [['setWater', { water: '800' }], ['setType', { type: 'spraying' }]], WITH_DEFAULT);   // mismo tipo: nada cambia
+    assert.equal(s.water, '800');
+    s = run(s, [['setType', { type: 'fertigation' }]], WITH_DEFAULT);
+    assert.equal(s.water, '');                                     // fertirrigación lo vacía
+    s = run(s, [['setType', { type: 'spraying' }]], WITH_DEFAULT);
+    assert.equal(s.water, '1000');
+});
+
+test('R4 sin data.defaultWater no se inventa ningún mojado', () => {
+    assert.equal(run(fresh({ type: 'fertigation' }), [['setType', { type: 'spraying' }]]).water, '');
+});
+
+test('R4 editar el total sin tocar el mojado: dosis y por máquina salen calculados', () => {
+    let s = run(fresh({ machineId: 1 }, WITH_DEFAULT), [['toggleField', { id: 1 }], ['addProduct', { productId: 2 }], ['setTotal', { key: 1, total: '25' }]], WITH_DEFAULT);
+    const l = derive(s, WITH_DEFAULT).lines[0];
+    assert.equal(l.dose, 5.9524);                                  // 25 × 1000 / (1000 × 4,2)
+    assert.ok(l.perLoad !== null);
+    assert.equal(l.needsWater, false);
+});
+
+test('R4 sin mojado la línea avisa de que falta (no se queda en blanco sin explicación)', () => {
+    let s = run(fresh({ machineId: 1 }, WITH_DEFAULT), [['toggleField', { id: 1 }], ['addProduct', { productId: 2 }], ['setTotal', { key: 1, total: '25' }], ['setWater', { water: '' }]], WITH_DEFAULT);
+    const d = derive(s, WITH_DEFAULT);
+    assert.equal(d.lines[0].dose, null);
+    assert.equal(d.lines[0].needsWater, true);
+    assert.ok(d.missing.some((m) => m.key === 'water'));           // regla 8: sigue bloqueando el guardado
+    assert.equal(d.canSave, false);
+    const f = derive(run(fresh({ type: 'fertigation' }, WITH_DEFAULT), [['toggleField', { id: 1 }], ['addProduct', { productId: 4 }]], WITH_DEFAULT), WITH_DEFAULT);
+    assert.equal(f.lines[0].needsWater, false);                    // en fertirrigación no hace falta
+});
+
+test('R4 «restablecer dosis» pone la dosis recomendada del producto para el tipo actual y quita el total a mano', () => {
+    let s = run(fresh({ machineId: 1, water: '1000' }), [['toggleField', { id: 1 }], ['addProduct', { productId: 2 }], ['setDose', { key: 1, dose: '0,8' }], ['setTotal', { key: 1, total: '25' }]]);
+    assert.equal(s.lines[0].override, true);
+    s = run(s, [['clearOverride', { key: 1 }]]);
+    assert.equal(s.lines[0].override, false);
+    assert.equal(s.lines[0].dose, '0,5');                          // recomendada: 0,5 L/1000L
+    assert.equal(derive(s, DATA).lines[0].total, 2.1);             // 0,5 × 4200 / 1000
+    // en fertirrigación, la recomendada de fertirrigación
+    let f = run(fresh({ type: 'fertigation' }), [['toggleField', { id: 1 }], ['addProduct', { productId: 4 }], ['setTotal', { key: 1, total: '30' }], ['clearOverride', { key: 1 }]]);
+    assert.equal(f.lines[0].dose, '25');
+    assert.equal(derive(f, DATA).lines[0].total, 105);             // 25 kg/ha × 4,2
 });

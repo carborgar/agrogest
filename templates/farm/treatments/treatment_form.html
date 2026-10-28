@@ -45,6 +45,13 @@
         <div class="tf-layout">
             <div class="tf-main">
 
+                {# ── Nombre: lo primero de la pantalla (sin enfoque automático: en móvil abriría el teclado) ── #}
+                <section class="tf-card" id="tfSecName" data-sec="name">
+                    <label class="tf-lbl" for="tfName">Nombre del tratamiento</label>
+                    <input class="tf-inp" id="tfName" maxlength="100" placeholder="Ej. Cobre + Mojante" autocomplete="off">
+                    <div class="tf-err" data-err="name" aria-live="polite"></div>
+                </section>
+
                 {# ── Tipo y parcela ─────────────────────────────────────────── #}
                 <section class="tf-card" id="tfSecField" data-sec="field">
                     <div class="tf-grid-2">
@@ -96,7 +103,7 @@
                     </div>
                     <div class="tf-lines-head" aria-hidden="true">
                         <span>#</span><span>Producto</span><span>Dosis</span>
-                        <span class="tf-r" id="tfLoadHead">Por cuba llena</span>
+                        <span class="tf-r" id="tfLoadHead">Por máquina</span>
                         <span class="tf-r" id="tfTotalHead">Total parcela</span><span class="tf-r">Coste</span><span></span>
                     </div>
                     <div class="tf-lines" id="tfLines"></div>
@@ -166,13 +173,6 @@
                         <div class="tf-err" data-err="date" aria-live="polite"></div>
                     </section>
                 </div>
-
-                {# ── Nombre ─────────────────────────────────────────────────── #}
-                <section class="tf-card" id="tfSecName" data-sec="name">
-                    <label class="tf-lbl" for="tfName">Nombre del tratamiento</label>
-                    <input class="tf-inp" id="tfName" maxlength="100" placeholder="Ej. Cobre + Mojante" autocomplete="off">
-                    <div class="tf-err" data-err="name" aria-live="polite"></div>
-                </section>
             </div>
 
             {# ── Resumen: barra fija abajo (móvil) / tarjeta lateral (escritorio) ── #}

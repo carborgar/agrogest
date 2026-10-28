@@ -428,6 +428,8 @@ def build_treatment_form_data(user, treatment=None, recent_days=90):
 
     data = {
         'today': today.isoformat(),
+        # Mojado de partida en pulverización (fuente única: la constante del producto, no se duplica en el JS)
+        'defaultWater': Product.REFERENCE_WATER_PER_HA,
         'fields': [
             {
                 'id': f.pk, 'name': f.name, 'crop': f.crop, 'area': f.area,
