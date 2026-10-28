@@ -19,9 +19,10 @@
 {% endblock %}
 
 {% block actions %}
-<div class="d-flex gap-2">
+{# Una sola botonera: en móvil .dt-actions pasa a la barra fija inferior (junto a la barra de navegación); en escritorio queda en la cabecera #}
+<div class="dt-actions d-flex gap-2">
     {% if not treatment.finish_date %}
-    <button type="button" class="btn btn-primary d-none d-md-inline-flex align-items-center gap-2"
+    <button type="button" class="btn btn-primary flex-grow-1 flex-md-grow-0 d-inline-flex align-items-center justify-content-center gap-2"
             onclick="finishTreatment_{{ treatment.id }}()">
         <i class="fa fa-check"></i>Marcar como hecho
     </button>
@@ -122,15 +123,8 @@
     {% include 'farm/treatments/_detail_costs.html' %}
 {% endif %}
 
-{# Móvil: acción principal fija sobre la barra de navegación #}
-{% if not treatment.finish_date %}
-<div class="dt-sticky d-md-none">
-    <button type="button" class="btn btn-primary w-100" onclick="finishTreatment_{{ treatment.id }}()">
-        <i class="fa fa-check me-2"></i>Marcar como hecho
-    </button>
-</div>
+{# Móvil: la barra fija inferior (.dt-actions) tapa el final de la página #}
 <div class="dt-sticky-spacer d-md-none"></div>
-{% endif %}
 
 <form action="{% url 'treatment-delete' treatment.id %}" id="deleteForm" method="POST" class="d-none">
     {% csrf_token %}
