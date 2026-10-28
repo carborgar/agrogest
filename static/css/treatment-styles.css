@@ -352,8 +352,6 @@ a.filter-active-chip:hover {
 .dt-label { font-size: .7rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--tl-muted); }
 .dt-value { margin-top: .15rem; font-size: 1rem; font-weight: 700; color: var(--tl-ink); }
 .dt-sub { font-size: .78rem; font-weight: 600; color: var(--tl-muted); }
-/* Retraso / adelanto / «Hoy»: pastilla de color para que salte a la vista */
-.dt-badge { display: inline-block; margin-top: .3rem; padding: .15rem .55rem; border-radius: 999px; font-size: .75rem; font-weight: 700; white-space: nowrap; }
 @media (min-width: 768px) {
     .dt-summary { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
     .dt-value { font-size: 1.15rem; }
@@ -642,7 +640,6 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
 .pl-main { grid-area: main; min-width: 0; }
 .pl-name { display: inline; font-size: .95rem; font-weight: 700; color: var(--tl-ink); text-decoration: none; overflow-wrap: anywhere; }
 .pl-name:hover { color: var(--bs-primary); }
-.pl-badge { display: inline-block; margin-left: .35rem; padding: .05rem .45rem; border-radius: 999px; background: #E7EAE4; color: #475048; font-size: .68rem; font-weight: 700; vertical-align: middle; }
 .pl-type { display: block; overflow: hidden; font-size: .8rem; color: var(--tl-muted); white-space: nowrap; text-overflow: ellipsis; }
 .pl-doses { grid-area: doses; display: flex; flex-wrap: wrap; gap: .1rem .65rem; font-size: .82rem; color: var(--tl-muted); }
 .pl-nodose { font-weight: 600; color: var(--tl-0-fg); }
@@ -654,8 +651,6 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
 .pl-trend { display: block; font-size: .72rem; font-weight: 700; }
 .pl-trend--up { color: var(--tl-0-fg); }
 .pl-trend--down { color: var(--tl-3-fg); }
-.pl-noprice { display: inline-block; padding: .2rem .65rem; border-radius: 999px; background: var(--tl-1-bg); color: var(--tl-1-fg); font-size: .75rem; font-weight: 700; text-decoration: none; }
-.pl-noprice:hover { color: var(--tl-1-fg); filter: brightness(.96); }
 .pl-cost { grid-area: cost; display: flex; flex-direction: column; align-items: flex-end; font-size: .8rem; color: var(--tl-muted); line-height: 1.25; }
 .pl-cost b { font-size: .88rem; color: var(--tl-ink); }
 /* Etiquetas solo móvil (en escritorio ya las dan las cabeceras de columna) */

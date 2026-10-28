@@ -113,6 +113,6 @@ class TestTreatmentDetailView:
 
         _, html = _html(client, t)
 
-        assert 'dt-badge dt-tone-0">3 días de retraso' in html
+        assert 'dt-tone-0">3 días de retraso' in html
         assert 'Cuba de 2000 L' in html
         assert 'Atomizador viejo' not in html

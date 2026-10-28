@@ -120,7 +120,7 @@
 
             <div class="pl-main">
                 <a class="pl-name" href="{% url 'product-edit' product.pk %}">{{ product.name }}</a>
-                {% if not product.is_active %}<span class="pl-badge">Archivado</span>{% endif %}
+                {% if not product.is_active %}<span class="badge rounded-pill px-2 lh-sm dt-tone-2 ms-1">Archivado</span>{% endif %}
                 <span class="pl-type">{{ product.product_type.name }}{% if product.comments %} · <i class="fa fa-comment fa-xs" aria-hidden="true"></i> <span title="{{ product.comments }}">{{ product.comments|truncatechars:60 }}</span>{% endif %}</span>
             </div>
 
@@ -140,7 +140,7 @@
                 {% endif %}
                 {% endwith %}
                 {% else %}
-                <a class="pl-noprice" href="{% url 'product-edit' product.pk %}">Añadir precio</a>
+                <a class="badge rounded-pill px-2 lh-sm dt-tone-1 text-decoration-none" href="{% url 'product-edit' product.pk %}">Añadir precio</a>
                 {% endif %}
             </div>
 

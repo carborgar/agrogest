@@ -52,13 +52,13 @@
         <div class="dt-value">{{ treatment.finish_date|date:"d/m/Y" }}</div>
         {% with delay=treatment.execution_delay_days %}
         {% if delay is None %}
-        <span class="dt-badge dt-tone-3"><i class="fa fa-check me-1"></i>En plazo</span>
+        <span class="badge rounded-pill px-2 lh-sm mt-1 dt-tone-3"><i class="fa fa-check me-1"></i>En plazo</span>
         {% else %}
         <div class="dt-sub">prev. {{ treatment.date|date:"d/m/Y" }}</div>
         {% if delay > 0 %}
-        <span class="dt-badge dt-tone-0">+{{ delay }} día{{ delay|pluralize }} de retraso</span>
+        <span class="badge rounded-pill px-2 lh-sm mt-1 dt-tone-0">+{{ delay }} día{{ delay|pluralize }} de retraso</span>
         {% else %}
-        <span class="dt-badge dt-tone-3">{{ delay|cut:"-" }} día{{ delay|cut:"-"|pluralize }} antes</span>
+        <span class="badge rounded-pill px-2 lh-sm mt-1 dt-tone-3">{{ delay|cut:"-" }} día{{ delay|cut:"-"|pluralize }} antes</span>
         {% endif %}
         {% endif %}
         {% endwith %}
@@ -67,11 +67,11 @@
         <div class="dt-value">{{ treatment.date|date:"d/m/Y" }}</div>
         {% with days=treatment.date|days_from_today %}
         {% if days < 0 %}
-        <span class="dt-badge dt-tone-0">{{ days|cut:"-" }} día{{ days|cut:"-"|pluralize }} de retraso</span>
+        <span class="badge rounded-pill px-2 lh-sm mt-1 dt-tone-0">{{ days|cut:"-" }} día{{ days|cut:"-"|pluralize }} de retraso</span>
         {% elif days == 0 %}
-        <span class="dt-badge dt-tone-1">Hoy</span>
+        <span class="badge rounded-pill px-2 lh-sm mt-1 dt-tone-1">Hoy</span>
         {% elif days <= 15 %}
-        <span class="dt-badge dt-tone-1">{% if days == 1 %}Mañana{% else %}En {{ days }} días{% endif %}</span>
+        <span class="badge rounded-pill px-2 lh-sm mt-1 dt-tone-1">{% if days == 1 %}Mañana{% else %}En {{ days }} días{% endif %}</span>
         {% else %}
         <div class="dt-sub">En {{ days }} días</div>
         {% endif %}
@@ -132,7 +132,7 @@
 <div class="dt-sticky-spacer d-md-none"></div>
 {% endif %}
 
-<form action="{% url 'treatment-delete' treatment.id %}" id="deleteForm" method="POST" style="display:none;">
+<form action="{% url 'treatment-delete' treatment.id %}" id="deleteForm" method="POST" class="d-none">
     {% csrf_token %}
 </form>
 
