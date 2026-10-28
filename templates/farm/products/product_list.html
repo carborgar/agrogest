@@ -73,7 +73,7 @@
 </div>
 
 {% if not products %}
-<div class="pl-list">
+<div class="card card-flat overflow-visible">
     {% if has_filters %}
     <p class="pl-empty">No hay productos con estos filtros.<br>
         <a class="btn btn-outline-secondary mt-3" href="{% url 'product-list' %}"><i class="fa fa-times me-1"></i>Quitar filtros</a></p>
@@ -94,7 +94,7 @@
        <b>Previsto:</b> tratamientos pendientes o atrasados.</p>
 </details>
 
-<div class="pl-list" id="plList">
+<div class="card card-flat overflow-visible" id="plList">
     <div class="pl-head">
         <span></span><span>Producto</span><span>Dosis</span>
         <span class="pl-r">Precio</span>

@@ -205,7 +205,6 @@ a.filter-active-chip:hover {
 }
 
 /* ── Lista ── */
-.tl-list { background: #fff; border: 1px solid var(--bs-border-color); border-radius: 12px; }
 .tl-head { grid-template-columns: var(--tl-cols); gap: 1rem; padding: .55rem 1rem; border-bottom: 1px solid var(--tl-head-line); font-size: .72rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--tl-muted); background: var(--tl-head-bg); border-radius: 12px 12px 0 0; }
 
 .tl-group-header { padding: .85rem 1rem .35rem; font-size: .75rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
@@ -346,7 +345,7 @@ a.filter-active-chip:hover {
 
 /* Resumen */
 /* Líneas entre celdas con box-shadow: el overflow recorta las de los bordes, así funciona con cualquier número de celdas visibles */
-.dt-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: hidden; background: #fff; border: 1px solid var(--bs-border-color); border-radius: 12px; }
+.dt-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .dt-cell { padding: .6rem .8rem; box-shadow: 1px 0 0 var(--tl-line), 0 1px 0 var(--tl-line); }
 /* En móvil, con el tratamiento pendiente, el coste se consulta en su bloque: el resumen deja sitio a la preparación */
 @media (max-width: 767.98px) { .dt-cell--desk { display: none; } }
@@ -623,7 +622,6 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
 
 /* Lista */
 .pl-count { margin: 0 0 .4rem .25rem; font-size: .85rem; color: var(--tl-muted); }
-.pl-list { background: #fff; border: 1px solid var(--bs-border-color); border-radius: 12px; }
 .pl-head { display: none; grid-template-columns: var(--pl-cols); gap: 1rem; padding: .55rem 1rem .55rem .5rem; border-bottom: 1px solid var(--tl-head-line); border-radius: 12px 12px 0 0; background: var(--tl-head-bg); font-size: .72rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--tl-muted); }
 .pl-head .pl-r { text-align: right; }
 .pl-item { border-top: 1px solid var(--tl-line); }
@@ -705,11 +703,10 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
    COMPARATIVA (cmp-*)
 ═══════════════════════════════════════════════ */
 :root { --cmp-cols: minmax(0, 2fr) 11rem 6.5rem 7.5rem 7.5rem 8.5rem 2.75rem; }
-.cmp-params { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 1rem; padding: 1rem; margin-bottom: 1rem; background: #fff; border: 1px solid var(--bs-border-color); border-radius: 12px; }
+.cmp-params { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 1rem; padding: 1rem; }
 .cmp-params label { font-size: .8rem; font-weight: 600; color: var(--tl-muted); }
 .cmp-params .form-control { width: 9rem; }
 .cmp-params p { flex: 1 1 260px; margin: 0; font-size: .82rem; color: var(--tl-muted); }
-.cmp-list { background: #fff; border: 1px solid var(--bs-border-color); border-radius: 12px; }
 .cmp-head { display: none; grid-template-columns: var(--cmp-cols); gap: 1rem; padding: .55rem 1rem; border-bottom: 1px solid var(--tl-head-line); border-radius: 12px 12px 0 0; font-size: .72rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--tl-muted); }
 .cmp-head .cmp-r { text-align: right; }
 .cmp-row { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem 1rem; align-items: center; padding: .85rem 1rem; border-top: 1px solid var(--tl-line); }
