@@ -5,6 +5,7 @@ Cada test: teclear en el formulario real (JS real en jsdom) → POST real → ba
 → reabrir la edición y comparar el TEXTO mostrado → guardar sin tocar nada 3 veces y exigir base de datos idéntica.
 Escenario base: parcela A de 4,2 ha, cuba de 2000 L, 1000 L de agua/ha → 4200 L de caldo; B = 2,8 ha; C = 6,5 ha.
 """
+import pytest
 from decimal import ROUND_HALF_EVEN, Decimal
 
 from farm.models import Treatment
@@ -601,6 +602,7 @@ def spec_dose(dose_type, total, water, area):
 ALL_TOTALS = [Decimal(x) / 2 for x in range(2, 41)] + [Decimal(x) for x in range(21, 201)]   # 1; 1,5; … 20 y 21 … 200
 
 
+@pytest.mark.slow
 class Caso15BarridoTests(UseCaseBase):
     """Tecleado → guardado → mostrado EXACTAMENTE igual (con el total a mano activo, «50» tiene que verse «50»).
     Cualquier diferencia es un error real: se reúnen todas y se informan juntas («tecleado=…, guardado=…, mostrado=…»)."""
