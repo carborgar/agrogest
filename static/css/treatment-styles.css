@@ -286,6 +286,8 @@ a.filter-active-chip:hover {
 
 @media (min-width: 768px) {
     .tl-row { display: grid; grid-template-columns: var(--tl-cols); gap: 1rem; min-height: 60px; padding: .55rem 1rem; }
+    /* Variante de Inicio: sin columnas de productos ni cubas */
+    .tl-row--compact { grid-template-columns: 3rem minmax(0, 1fr) 10.75rem; }
     .tl-meta { flex-wrap: wrap; white-space: normal; }
     .tl-finish { width: auto; height: 34px; padding: 0 .75rem; border-width: 1px; border-radius: 8px; font-size: .85rem; font-weight: 700; }
     .tl-detail { padding: 0 1rem 1rem 5rem; }
@@ -447,6 +449,14 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
    INICIO (hm-*): chips de estado, «Qué toca», productos y tiempo.
    La fila de tratamiento es la misma del listado (tl-*); aquí solo lo que es propio de Inicio.
 ═══════════════════════════════════════════════ */
+/* Hecho últimamente: una línea por tratamiento finalizado. El resto (flex, huecos, texto) son utilidades
+   de Bootstrap en la plantilla; aquí solo lo que Bootstrap no tiene: la altura táctil, el filete y el
+   hover con los tonos de la app, el ancho que alinea los nombres y el verde de «hoy/ayer» */
+.hm-done { min-height: 44px; border-bottom: 1px solid var(--tl-line); }
+.hm-done:hover { background: var(--tl-soft); }
+.hm-done-when { min-width: 5.2rem; }
+.hm-done-when--new { color: var(--tl-3-fg); }
+
 .hm-chips { display: flex; gap: .5rem; margin-bottom: 1rem; overflow-x: auto; scrollbar-width: none; }
 .hm-chips::-webkit-scrollbar { display: none; }
 .hm-chip { flex: none; display: inline-flex; align-items: center; gap: .55rem; min-height: 44px; padding: .25rem .85rem .25rem .4rem; background: #fff; border: 1px solid var(--bs-border-color); border-radius: 22px; color: var(--tl-ink); font-size: .9rem; font-weight: 600; text-decoration: none; white-space: nowrap; }

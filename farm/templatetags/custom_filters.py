@@ -95,12 +95,14 @@ def treatment_total_cost(treatment):
 
 @register.filter
 def relative_days(value):
-    """Texto relativo a hoy: 'hoy', 'mañana', 'en N d' o 'hace N d'."""
+    """Texto relativo a hoy: 'hoy', 'ayer', 'mañana', 'en N d' o 'hace N d'."""
     if not value:
         return ''
     delta = (value - date.today()).days
     if delta == 0:
         return 'hoy'
+    if delta == -1:
+        return 'ayer'
     if delta == 1:
         return 'mañana'
     if delta > 0:

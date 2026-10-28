@@ -53,7 +53,9 @@ class TestDashboardGroups:
 
         assert (delayed['total'], soon['total'], later['total']) == (12, 2, 3)
         assert len(delayed['treatments']) == 10  # vista previa
-        assert [c['count'] for c in response.context['chips']] == [12, 2, 5]
+        # Cada chip cuenta lo mismo que su grupo: el de días 8–15 no suma los 7 primeros
+        assert [c['count'] for c in response.context['chips']] == [12, 2, 3]
+        assert [c['url'] for c in response.context['chips']] == [delayed['url'], soon['url'], later['url']]
         # Los dos grupos de próximos son ámbar (urgency_group 1), igual que en el listado
         assert {t.urgency_group for t in soon['treatments'] + later['treatments']} == {1}
         assert {t.urgency_group for t in delayed['treatments']} == {0}
@@ -96,6 +98,97 @@ class TestDashboardGroups:
         response = _get(client)
 
         assert response.context['groups'][0]['total'] == 0
+
+
+@pytest.mark.django_db
+class TestDashboardRows:
+
+    def test_rows_are_compact_without_chips_or_machine_loads(self, setup):
+        client, org, field, machine = setup
+        t = _spray(org, field, machine, date=_days(1))
+        for _ in range(2):
+            TreatmentProductFactory(treatment=t, organization=org)
+
+        html = _get(client).content.decode()
+        todo = html.split('id="hm-todo-title"')[1].split('id="hm-recent-title"')[0]
+
+        # Sin columnas de productos ni cubas: el número de productos va en la línea de datos
+        assert 'tl-row--compact' in todo
+        assert 'tl-load' not in todo and 'tl-chips' not in todo
+        assert '· 2 productos' in todo
+
+
+@pytest.mark.django_db
+class TestDashboardRecentlyDone:
+
+    def _done(self, setup, days_ago, **kwargs):
+        _, org, field, machine = setup
+        return _spray(org, field, machine, date=_days(-days_ago - 2), finish_date=_days(-days_ago), **kwargs)
+
+    def test_lists_last_7_days_most_recent_first(self, setup):
+        client = setup[0]
+        three = self._done(setup, 3, name='TRES')
+        today = self._done(setup, 0, name='HOY')
+        seven = self._done(setup, 7, name='SIETE')
+        self._done(setup, 8, name='OCHO')  # fuera de los 7 días
+        _, org, field, machine = setup
+        _spray(org, field, machine, date=_days(-1))  # pendiente: no es «hecho»
+
+        response = _get(client)
+
+        assert response.context['recent'] == [today, three, seven]
+        assert response.context['recent_total'] == 3
+
+    def test_filters_by_finish_date_not_planned_date(self, setup):
+        client, org, field, machine = setup
+        # Prevista hace 30 días, hecha ayer: cuenta como hecha ayer
+        done = _spray(org, field, machine, date=_days(-30), finish_date=_days(-1))
+
+        assert _get(client).context['recent'] == [done]
+
+    def test_preview_is_capped_and_counts_the_rest(self, setup):
+        client = setup[0]
+        for i in range(7):
+            self._done(setup, i % 7)
+
+        response = _get(client)
+
+        assert len(response.context['recent']) == 5
+        assert response.context['recent_total'] == 7
+        # En móvil solo se ven 3 filas; el resto, desde md
+        html = response.content.decode()
+        assert html.count('hm-done d-none d-md-flex') == 2
+
+    def test_yesterday_and_today_are_written_as_words(self, setup):
+        client = setup[0]
+        self._done(setup, 1)
+        self._done(setup, 0)
+
+        html = _get(client).content.decode()
+
+        assert 'Ayer' in html and 'Hoy' in html
+
+    def test_view_all_link_opens_completed_without_date_range(self, setup):
+        client = setup[0]
+        self._done(setup, 1)
+
+        response = _get(client)
+
+        url = response.context['recent_url']
+        assert url == reverse('treatment-list') + '?status=completed&sort=date_desc&date_from=&date_to='
+        assert url.replace('&', '&amp;') in response.content.decode()  # el HTML lo escapa
+
+    def test_empty_state_and_other_organization(self, setup):
+        client = setup[0]
+        other_org = OrganizationFactory(name='Otra organización')
+        SprayingTreatmentFactory(organization=other_org, field=FieldFactory(organization=other_org),
+                                 machine=MachineFactory(organization=other_org),
+                                 date=_days(-2), finish_date=_days(-1))
+
+        response = _get(client)
+
+        assert response.context['recent'] == [] and response.context['recent_total'] == 0
+        assert 'Nada finalizado en los últimos 7 días' in response.content.decode()
 
 
 @pytest.mark.django_db
