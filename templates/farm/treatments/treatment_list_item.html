@@ -3,7 +3,9 @@
 Fila del listado de tratamientos. Una sola plantilla para desktop y móvil:
 - Desktop (≥ md): rejilla Fecha | Tratamiento | Productos | Máquina/Coste | acciones.
 - Móvil: fecha + nombre + ✓. Al tocar la fila se despliegan los productos con la dosis por cuba.
-- También se usa en Inicio, sin cabeceras de grupo (`show_groups` vacío) y con `hide_menu=True`.
+- También se usa en Inicio, sin cabeceras de grupo (`show_groups` vacío), con `hide_menu=True` y `compact=True`:
+  en desktop sin columnas de productos ni cubas (el número de productos va en la línea de datos; los
+  productos y la dosis por cuba están al desplegar la fila).
 La fecha va en una pastilla con el color del grupo de urgencia (tl-date--0…3).
 {% endcomment %}
 {% for treatment in treatment_list %}
@@ -19,7 +21,7 @@ La fecha va en una pastilla con el color del grupo de urgencia (tl-date--0…3).
 {% endif %}
 
 <div class="tl-item">
-    <div class="tl-row">
+    <div class="tl-row{% if compact %} tl-row--compact{% endif %}">
         {# Móvil: toda la fila despliega los productos #}
         <button class="tl-hit d-md-none" type="button"
                 data-bs-toggle="collapse" data-bs-target="#tlC{{ treatment.id }}"
@@ -42,12 +44,14 @@ La fecha va en una pastilla con el color del grupo de urgencia (tl-date--0…3).
                 <span class="tl-field">{{ treatment.field.name }}</span>
                 <span>{{ treatment.effective_area }} ha</span>
                 <span class="tl-rel tl-rel--{{ g }}">· {{ done|default:treatment.date|relative_days }}</span>
+                {% if compact and products %}<span class="d-none d-md-inline">· {{ products|length }} producto{{ products|length|pluralize }}</span>{% endif %}
                 {% if done and treatment.execution_delay_days is not None %}
                 <span class="d-none d-md-inline">· prev. {{ treatment.date|date:"d/m" }} ({{ treatment.execution_delay_days|stringformat:"+d" }} d)</span>
                 {% endif %}
             </div>
         </div>
 
+        {% if not compact %}
         {# Productos (desktop): hasta 3 + «+N» #}
         <div class="tl-chips d-none d-md-flex">
             {% for tp in products|slice:":3" %}
@@ -61,7 +65,9 @@ La fecha va en una pastilla con el color del grupo de urgencia (tl-date--0…3).
                     title="Ver todos">+{{ products|length|add:"-3" }}</button>
             {% endif %}
         </div>
+        {% endif %}
 
+        {% if not compact %}
         {# Máquina (pendientes) o coste (completados) #}
         <div class="tl-load d-none d-md-block">
             {% if done %}
@@ -80,6 +86,7 @@ La fecha va en una pastilla con el color del grupo de urgencia (tl-date--0…3).
             <span class="text-muted">—</span>
             {% endif %}
         </div>
+        {% endif %}
 
         <div class="tl-actions">
             {% if done %}

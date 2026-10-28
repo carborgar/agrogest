@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static custom_filters %}
 
 {% block title %}Inicio{% endblock %}
 
@@ -19,16 +19,17 @@
     {% for chip in chips %}
     <a class="hm-chip" href="{{ chip.url }}">
         <span class="hm-chip-count hm-chip-count--{% if chip.count %}{{ chip.tone }}{% else %}none{% endif %}">{{ chip.count }}</span>
-        {% if chip.tone == 0 %}{{ chip.label }}{% else %}Próximos {{ chip.label }}{% endif %}
+        {{ chip.label }}
         <i aria-hidden="true" class="fa fa-chevron-right"></i>
     </a>
     {% endfor %}
 </nav>
 
-<div class="row g-3 align-items-start">
+{# Desktop: Qué toca | producto y tiempo | Hecho últimamente. Móvil: apilado, con lo hecho arriba para que no quede enterrado #}
+<div class="hm-cols">
 
     {# ── Qué toca ── #}
-    <div class="col-12 col-xl-8 order-1">
+    <div class="hm-col-todo">
         <section aria-labelledby="hm-todo-title" class="dt-card">
             <div class="dt-card-head">
                 <h2 class="dt-card-title" id="hm-todo-title">Qué toca</h2>
@@ -53,7 +54,7 @@
                 {% endif %}
             </div>
             {% if group.treatments %}
-            {% include 'farm/treatments/treatment_list_item.html' with treatment_list=group.treatments hide_menu=True %}
+            {% include 'farm/treatments/treatment_list_item.html' with treatment_list=group.treatments hide_menu=True compact=True %}
             {% else %}
             <div class="hm-group-empty">
                 {% if group.index == 0 %}Nada atrasado.{% elif group.index == 1 %}Nada en los próximos 7 días.{% else %}Nada programado hasta el {{ group.range_end|date:"j b" }}.{% endif %}
@@ -64,8 +65,8 @@
         </section>
     </div>
 
-    {# ── Columna secundaria: debajo en móvil ── #}
-    <div class="col-12 col-xl-4 order-2 d-flex flex-column gap-3">
+    {# ── Producto y tiempo ── #}
+    <div class="hm-col-side">
 
         <section aria-labelledby="hm-prod-title" class="dt-card">
             <div class="dt-card-head">
@@ -110,6 +111,27 @@
             </section>
         </div>
         {% endif %}
+    </div>
+
+    {# ── Hecho últimamente: en móvil se ven los 3 últimos (con el total en el título) para que se note que hay más ── #}
+    <div class="hm-col-done">
+        <section aria-labelledby="hm-recent-title" class="dt-card">
+            <div class="dt-card-head">
+                <div>
+                    <h2 class="dt-card-title" id="hm-recent-title">Hecho últimamente</h2>
+                    <div class="dt-muted">Últimos {{ recent_days }} días · {{ recent_total }} tratamiento{{ recent_total|pluralize }}</div>
+                </div>
+                {% if recent_total %}<a class="small fw-semibold text-decoration-none" href="{{ recent_url }}">Ver todos</a>{% endif %}
+            </div>
+            {% for t in recent %}
+            <a class="hm-done{% if forloop.counter > 3 %} d-none d-md-flex{% endif %}" href="{% url 'treatment-detail' t.id %}">
+                <span class="hm-done-when{% if t.finish_date|relative_days == 'hoy' or t.finish_date|relative_days == 'ayer' %} hm-done-when--new{% endif %}"><i aria-hidden="true" class="fa fa-check"></i>{{ t.finish_date|relative_days|capfirst }}</span>
+                <span class="hm-done-what"><b>{{ t.field.name }}</b> <span>· {{ t.name }}</span></span>
+            </a>
+            {% empty %}
+            <div class="hm-group-empty">Nada finalizado en los últimos {{ recent_days }} días.</div>
+            {% endfor %}
+        </section>
     </div>
 </div>
 

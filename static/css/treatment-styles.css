@@ -286,6 +286,8 @@ a.filter-active-chip:hover {
 
 @media (min-width: 768px) {
     .tl-row { display: grid; grid-template-columns: var(--tl-cols); gap: 1rem; min-height: 60px; padding: .55rem 1rem; }
+    /* Variante de Inicio: sin columnas de productos ni cubas */
+    .tl-row--compact { grid-template-columns: 3rem minmax(0, 1fr) 10.75rem; }
     .tl-meta { flex-wrap: wrap; white-space: normal; }
     .tl-finish { width: auto; height: 34px; padding: 0 .75rem; border-width: 1px; border-radius: 8px; font-size: .85rem; font-weight: 700; }
     .tl-detail { padding: 0 1rem 1rem 5rem; }
@@ -447,6 +449,25 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
    INICIO (hm-*): chips de estado, «Qué toca», productos y tiempo.
    La fila de tratamiento es la misma del listado (tl-*); aquí solo lo que es propio de Inicio.
 ═══════════════════════════════════════════════ */
+/* Inicio en columnas: Qué toca | producto y tiempo | Hecho últimamente (el orden del HTML). Con
+   flex-wrap las columnas pasan debajo cuando no caben; en móvil lo hecho sube arriba de Qué toca
+   para que no quede enterrado */
+.hm-cols { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 1rem; }
+.hm-col-todo { flex: 2 1 480px; min-width: 0; }
+.hm-col-side { flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 1rem; }
+.hm-col-done { flex: 1 1 280px; min-width: 0; }
+@media (max-width: 767.98px) {
+    .hm-col-done { order: -1; }
+}
+/* Hecho últimamente: una línea por tratamiento finalizado */
+.hm-done { display: flex; align-items: baseline; gap: .6rem; min-height: 44px; padding: .5rem 1rem; border-bottom: 1px solid var(--tl-line); color: var(--tl-ink); text-decoration: none; }
+.hm-done:hover { background: var(--tl-soft); color: var(--tl-ink); }
+.hm-done-when { flex: none; min-width: 5.2rem; font-size: .8rem; font-weight: 600; white-space: nowrap; color: var(--tl-muted); }
+.hm-done-when i { margin-right: .3rem; font-size: .7rem; }
+.hm-done-when--new { color: var(--tl-3-fg); font-weight: 700; }
+.hm-done-what { min-width: 0; overflow: hidden; font-size: .9rem; text-overflow: ellipsis; white-space: nowrap; }
+.hm-done-what span { color: var(--tl-muted); }
+
 .hm-chips { display: flex; gap: .5rem; margin-bottom: 1rem; overflow-x: auto; scrollbar-width: none; }
 .hm-chips::-webkit-scrollbar { display: none; }
 .hm-chip { flex: none; display: inline-flex; align-items: center; gap: .55rem; min-height: 44px; padding: .25rem .85rem .25rem .4rem; background: #fff; border: 1px solid var(--bs-border-color); border-radius: 22px; color: var(--tl-ink); font-size: .9rem; font-weight: 600; text-decoration: none; white-space: nowrap; }

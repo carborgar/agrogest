@@ -24,6 +24,10 @@ class FieldDashboardView(BaseSecureViewMixin, ListView):
     soon_days = 7
     # Productos que se muestran en «Producto que vas a necesitar»; el resto, en Preparar productos
     products_preview = 6
+    # «Hecho últimamente»: finalizados en los últimos 7 días (la última vuelta de una pasada de
+    # tratamientos), hasta 5 filas. «Ver todos» abre el listado de completados, lo más reciente primero
+    recent_days = 7
+    recent_preview = 5
 
     def get_queryset(self):
         return Field.ownership_objects.get_queryset_for_user(self.request.user)
@@ -83,16 +87,36 @@ class FieldDashboardView(BaseSecureViewMixin, ListView):
                         f'&date_to={upcoming_limit.isoformat()}')
         context['groups'] = groups
         context['has_work'] = any(g['total'] for g in groups)
-        # Chips: cada uno enlaza al listado con el mismo filtro, así el número y la lista coinciden
+        # Chips: uno por grupo de «Qué toca», con su mismo total y su mismo enlace. El tercero no
+        # acumula los 7 primeros días: si lo hiciera, sin nada entre el día 8 y el 15 los dos
+        # chips de próximos mostraban el mismo número. «En 8–15 días» y no «Del día 8 al 15»,
+        # que se lee como días del mes.
         context['chips'] = [
-            {'label': 'Atrasados', 'count': delayed['total'], 'tone': 0,
-             'url': f'{list_url}?status=delayed'},
-            {'label': f'{self.soon_days} días', 'count': soon['total'], 'tone': 1,
-             'url': f'{list_url}?status=pending&date_to={soon_limit.isoformat()}'},
-            {'label': f'{Treatment.UPCOMING_DAYS} días', 'count': soon['total'] + later['total'], 'tone': 1,
-             'url': f'{list_url}?status=pending&date_to={upcoming_limit.isoformat()}'},
+            {'label': 'Atrasados', 'count': delayed['total'], 'tone': 0, 'url': delayed['url']},
+            {'label': f'Próximos {self.soon_days} días', 'count': soon['total'], 'tone': 1, 'url': soon['url']},
+            {'label': f'En {self.soon_days + 1}–{Treatment.UPCOMING_DAYS} días', 'count': later['total'],
+             'tone': 1, 'url': later['url']},
         ]
         context['upcoming_days'] = Treatment.UPCOMING_DAYS
+
+        # ── Hecho últimamente ──
+        # Se filtra por `finish_date`, no por `date` (la prevista): lo que cuenta es cuándo se hizo.
+        recent_qs = (
+            Treatment.objects.filter(
+                field__in=fields,
+                finish_date__gte=today - timedelta(days=self.recent_days),
+                finish_date__lte=today,
+            )
+            .select_related('field')
+            .order_by('-finish_date', '-update_timestamp', 'name')
+        )
+        context['recent'] = list(recent_qs[:self.recent_preview])
+        context['recent_total'] = recent_qs.count()
+        context['recent_days'] = self.recent_days
+        # El listado filtra por la fecha prevista, no por la de fin; sin rango (parámetros vacíos) y
+        # ordenado por fecha efectiva (la de fin en los completados) arriba salen los últimos hechos
+        context['recent_url'] = (f'{list_url}?status={Treatment.STATUS_COMPLETED}'
+                                 f'&sort=date_desc&date_from=&date_to=')
 
         # ── Producto que vas a necesitar: atrasados + próximos 7 días ──
         urgent_ids = list(
