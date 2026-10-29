@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'core',
     'accounts',
     'farm',
+    'weather',
     'django_filters',
     'django_bootstrap5',
     'widget_tweaks',
@@ -209,6 +210,18 @@ SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000')
 #   Por defecto 50 (bien por debajo de los límites gratuitos de Gemini). Ponlo a 0 para sin límite.
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-flash-lite-latest")
+
+# Caché en BD: en Vercel cada instancia tiene su propia memoria, así que una caché en memoria
+# no se comparte ni sobrevive a los arranques en frío. La tabla la crea la migración
+# core/0002_cache_table (createcachetable), así existe en cualquier entorno tras `migrate`.
+# Solo se cachean datos externos (AEMET), feature flags y la cuota del asistente.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "django_cache",
+        "OPTIONS": {"MAX_ENTRIES": 2000},
+    }
+}
 
 AEMET_API_KEY = os.environ.get("AEMET_API_KEY", "")
 GEMINI_DAILY_LIMIT = int(os.environ.get("GEMINI_DAILY_LIMIT", "50"))

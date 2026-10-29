@@ -16,6 +16,7 @@ django-watchman
 google-genai
 resend
 openpyxl
+certifi
 
 # Dependencies for testing
 pytest

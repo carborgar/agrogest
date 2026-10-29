@@ -1,12 +1,13 @@
 from datetime import date, datetime, timedelta
 from decimal import Decimal
-from functools import wraps
 
 from django.db.models import Sum
 from django.db.models.functions import Coalesce
 from django.http import JsonResponse
 from django.utils.dateparse import parse_date
 from django.views.decorators.http import require_POST
+
+from core.decorators import api_login_required
 
 from .models import Field, Machine, Product, Treatment, TreatmentProduct
 
@@ -16,16 +17,6 @@ def _fmt_dose(value):
     if value is None:
         return None
     return f"{value:.4f}".rstrip('0').rstrip('.')
-
-
-def api_login_required(view):
-    """Como login_required, pero responde 401 en JSON en vez de redirigir al login."""
-    @wraps(view)
-    def wrapper(request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return JsonResponse({'error': 'No autenticado'}, status=401)
-        return view(request, *args, **kwargs)
-    return wrapper
 
 
 def _effective_status(treatment):
@@ -410,21 +401,3 @@ def get_no_price_products(user, fields, start_date, end_date):
     ]
     result.sort(key=lambda x: x['name'])
     return result
-
-
-@api_login_required
-def get_weather_summary(request):
-    """
-    Previsión por municipio de las parcelas del usuario (una sola llamada para Inicio y El Tiempo).
-    GET /api/weather/summary/ → {"municipalities": [{name, fields, daily}], "errors": [{reason, fields}]}
-    """
-    from django.conf import settings
-    from core.models import is_enabled
-    from .weather_service import get_weather_summary as build_summary
-
-    if not is_enabled('WEATHER'):
-        return JsonResponse({"error": "Módulo desactivado"}, status=404)
-    if not getattr(settings, 'AEMET_API_KEY', ''):
-        return JsonResponse({"error": "Falta la clave de AEMET en la configuración."}, status=503)
-    fields = Field.ownership_objects.get_queryset_for_user(request.user).exclude(geometry='').order_by('name')
-    return JsonResponse(build_summary(fields))

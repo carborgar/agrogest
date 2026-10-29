@@ -1,5 +1,5 @@
 // Previsión del tiempo: carga y utilidades comunes a Inicio y El Tiempo.
-// Los umbrales viven en el servidor (farm/weather_service.py): cada día y cada hora traen
+// Los umbrales viven en el servidor (weather/treatment_rules.py): cada día y cada hora traen
 // ya su `level` ('ok' | 'warn' | 'bad') y su `wind_level` (0-3). Aquí no se repiten.
 window.AgroWeather = (function () {
     const pad = (n) => String(n).padStart(2, '0');
@@ -10,7 +10,7 @@ window.AgroWeather = (function () {
     }
 
     function hourOf(h) {
-        return parseInt(h.hour, 10);
+        return Number.parseInt(h.hour, 10);
     }
 
     // Horas que aún sirven: las de hoy a partir de la actual; las de otros días, todas
@@ -41,11 +41,25 @@ window.AgroWeather = (function () {
     // GET al resumen por municipio. Si falla, lanza {status, msg} para que cada pantalla lo explique.
     async function load(url) {
         const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
-        let data = {};
-        try { data = await res.json(); } catch (e) { /* respuesta sin JSON */ }
+        const data = await res.json().catch(() => ({}));   // respuesta sin JSON: sin mensaje
         if (!res.ok) throw { status: res.status, msg: data.error };
         return data;
     }
 
-    return { localDate, hourOf, upcomingHours, okWindows, load };
+    // De cuándo es la previsión: «Actualizado a las 10:42» (hoy) o «Actualizado el 28 oct, 18:05».
+    // Si AEMET ha fallado, el servidor manda la última buena con `stale: true` y se avisa.
+    // Meses fijos: toLocaleString da «sep», «sept» u «oct.» según el navegador
+    const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept', 'oct', 'nov', 'dic'];
+
+    function updatedNote(muni, now = new Date()) {
+        const d = new Date(muni.updated_at || Number.NaN);
+        if (Number.isNaN(d.getTime())) return '';
+        const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        const when = localDate(d) === localDate(now)
+            ? `a las ${time}`
+            : `el ${d.getDate()} ${MONTHS[d.getMonth()]}, ${time}`;
+        return muni.stale ? `Sin datos nuevos de AEMET · actualizado ${when}` : `Actualizado ${when}`;
+    }
+
+    return { localDate, hourOf, upcomingHours, okWindows, load, updatedNote };
 })();

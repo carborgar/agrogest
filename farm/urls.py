@@ -25,7 +25,6 @@ from .views.storage_point_views import (
     StoragePointDetailView,
     StoragePointDeleteView,
 )
-from .views.weather_views import WeatherOverviewView
 
 urlpatterns = [
     path("", LandingView.as_view(), name="home"),
@@ -91,12 +90,8 @@ urlpatterns = [
     path('productos/precios/<int:pk>/eliminar/', ProductPriceHistoryDeleteView.as_view(), name='product-price-delete'),
     path('productos/comparativa/', ProductComparisonView.as_view(), name='product-comparison'),
 
-    # Weather Overview
-    path('tiempo/', WeatherOverviewView.as_view(), name='weather-overview'),
-
     # API Endpoints
     path('api/fields/', api_views.get_fields, name='api-fields'),
-    path('api/weather/summary/', api_views.get_weather_summary, name='api-weather-summary'),
     path('api/machines/', api_views.get_machines, name='api-machines'),
     path('api/products/<str:application_type>/', api_views.get_products, name='api-products'),
     path('api/treatments/', api_views.get_calendar_treatments, name='api-calendar-treatments'),
