@@ -496,6 +496,16 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
 .hm-card-link { display: flex; align-items: center; justify-content: center; gap: .4rem; min-height: 44px; font-size: .9rem; font-weight: 600; text-decoration: none; }
 
 /* Tiempo para tratar: tira de horas por día; el color es el nivel de la hora y las cifras lo repiten */
+.hm-layout { display: grid; gap: 1rem; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 1200px) {
+    /* Qué toca ocupa la mitad; a la derecha, producto y hecho arriba y el tiempo debajo a todo el ancho */
+    .hm-layout { grid-template-columns: 2fr 1fr 1fr; grid-template-rows: auto 1fr;
+        grid-template-areas: "todo prod done" "todo wx wx"; }
+    .hm-a-todo { grid-area: todo; }
+    .hm-a-prod { grid-area: prod; }
+    .hm-a-done { grid-area: done; }
+    .hm-a-wx { grid-area: wx; }
+}
 .hm-weather { display: flex; flex-direction: column; gap: 1rem; }
 /* Esqueleto mientras llega la previsión: la altura de las 4 filas de la tira */
 .hm-skel-strip { display: block; width: 100%; height: 6.4rem; border-radius: 6px; }

@@ -25,11 +25,11 @@
     {% endfor %}
 </nav>
 
-{# Desktop (xl): Qué toca | producto y tiempo | Hecho últimamente. Debajo de xl se apilan; en móvil lo hecho va arriba (order-first) para que no quede enterrado #}
-<div class="row g-3 align-items-start">
+{# Desktop (xl): Qué toca a la izquierda; a la derecha producto y hecho últimamente, y debajo el tiempo a todo el ancho (así caben más horas). Debajo de xl se apilan; en móvil lo hecho va arriba (order-first) para que no quede enterrado #}
+<div class="hm-layout">
 
     {# ── Qué toca ── #}
-    <div class="col-12 col-xl-6">
+    <div class="hm-a-todo">
         <section aria-labelledby="hm-todo-title" class="card card-flat">
             <div class="dt-card-head">
                 <h2 class="dt-card-title" id="hm-todo-title">Qué toca</h2>
@@ -65,8 +65,8 @@
         </section>
     </div>
 
-    {# ── Producto y tiempo ── #}
-    <div class="col-12 col-xl-3 d-flex flex-column gap-3">
+    {# ── Producto ── #}
+    <div class="hm-a-prod">
 
         <section aria-labelledby="hm-prod-title" class="card card-flat">
             <div class="dt-card-head">
@@ -91,8 +91,11 @@
                 <i aria-hidden="true" class="fa fa-arrow-right"></i>
             </a>
         </section>
+    </div>
 
-        {% if show_weather %}
+    {% if show_weather %}
+    {# ── Tiempo: a todo el ancho de la columna derecha ── #}
+    <div class="hm-a-wx">
         <div aria-busy="true" class="hm-weather" data-url="{% url 'api-weather-summary' %}" id="hmWeather">
             <section aria-label="Tiempo para tratar: cargando" class="card card-flat">
                 <div class="dt-card-head">
@@ -110,11 +113,11 @@
                 {% endfor %}
             </section>
         </div>
-        {% endif %}
     </div>
+    {% endif %}
 
     {# ── Hecho últimamente: en móvil se ven los 3 últimos (con el total en el título) para que se note que hay más ── #}
-    <div class="col-12 col-xl-3 order-first order-md-0">
+    <div class="hm-a-done order-first order-md-0">
         <section aria-labelledby="hm-recent-title" class="card card-flat">
             <div class="dt-card-head">
                 <div>
