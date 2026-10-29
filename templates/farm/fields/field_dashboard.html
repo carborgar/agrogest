@@ -26,7 +26,7 @@
 </nav>
 
 {# Desktop (xl): Qué toca a la izquierda; a la derecha producto y hecho últimamente, y debajo el tiempo a todo el ancho (así caben más horas). Debajo de xl se apilan; en móvil lo hecho va arriba (order-first) para que no quede enterrado #}
-<div class="hm-layout">
+<div class="hm-layout{% if not show_weather %} hm-layout--no-wx{% endif %}">
 
     {# ── Qué toca ── #}
     <div class="hm-a-todo">
@@ -190,15 +190,18 @@
             </div>`;
         };
 
-        // Si falla, se dice en vez de quitar la tarjeta: así no parece que no haya tiempo
+        // Si falla, se dice en vez de quitar la tarjeta: así no parece que no haya tiempo (y la tarjeta mantiene su altura)
         const failCard = (msg) => `
             <section class="card card-flat" aria-label="Tiempo para tratar">
                 <div class="dt-card-head">
                     <h2 class="dt-card-title">Tiempo para tratar</h2>
                     <a class="small fw-semibold text-decoration-none" href="{% url 'weather-overview' %}">El Tiempo</a>
                 </div>
-                <p class="hm-group-empty mb-0">${esc(msg)}</p>
-            </section>`;
+                <div class="hm-empty">
+                    <span class="hm-empty-icon hm-empty-icon--warn"><i aria-hidden="true" class="fa fa-cloud-sun"></i></span>
+                    <b>Sin previsión por ahora</b>
+                    <span>${esc(msg)}</span>
+                </div>            </section>`;
 
         const card = (m) => {
             const days = m.daily.filter(d => LABELS[d.date] && AgroWeather.upcomingHours(d, now).length);
