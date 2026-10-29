@@ -29,3 +29,16 @@ test('si AEMET falla se avisa', () => {
 test('sin fecha no se pinta nada', () => {
     assert.equal(updatedNote({}, NOW), '');
 });
+
+test('meses fijos, sin depender del navegador', () => {
+    assert.equal(updatedNote({ updated_at: new Date(2026, 8, 3, 7, 0).toISOString() }, NOW), 'Actualizado el 3 sept, 07:00');
+});
+
+test('fecha no válida: no se pinta nada', () => {
+    assert.equal(updatedNote({ updated_at: 'basura' }, NOW), '');
+});
+
+test('fecha del servidor (UTC con microsegundos) en hora de España', () => {
+    if (Intl.DateTimeFormat().resolvedOptions().timeZone !== 'Europe/Madrid') return;   // solo con TZ=Europe/Madrid
+    assert.equal(updatedNote({ updated_at: '2026-10-29T08:05:00.123456+00:00' }, NOW), 'Actualizado a las 09:05');
+});

@@ -583,6 +583,7 @@
             </div>
         </div>`;
         const hourlyBodyHtml = firstDayData ? renderHourlyTable(firstDayData) : '';
+        const updated = AgroWeather.updatedNote(muni);
 
         return `
         <div class="muni-card" data-card-id="${cardId}">
@@ -590,7 +591,9 @@
                 <div class="muni-hero-bg-icon"><i class="fa ${today ? today.icon : 'fa-cloud'}"></i></div>
                 <div class="muni-name"><i class="fa fa-location-dot me-1" style="opacity:.7"></i>${muni.name}</div>
                 <div class="muni-fields-label">${muni.fields.length} parcela${muni.fields.length !== 1 ? 's' : ''}</div>
-                ${muni.updated_at ? `<div class="muni-fields-label${muni.stale ? ' fw-semibold' : ''}">${muni.stale ? '<i class="fa fa-triangle-exclamation me-1"></i>' : ''}${AgroWeather.updatedNote(muni)}</div>` : ''}
+                ${updated ? `<div class="muni-fields-label">${muni.stale
+                    ? `<span class="badge text-bg-warning text-wrap text-start"><i class="fa fa-triangle-exclamation me-1"></i>${updated}</span>`
+                    : updated}</div>` : ''}
                 <div class="muni-temp-row">
                     <span class="muni-temp-max">${maxT}</span>
                     ${minT ? `<span class="muni-temp-min">${minT}</span>` : ''}

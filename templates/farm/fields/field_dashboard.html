@@ -200,12 +200,13 @@
         const card = (m) => {
             const days = m.daily.filter(d => LABELS[d.date] && AgroWeather.upcomingHours(d, now).length);
             if (!days.length) return '';
+            const updated = AgroWeather.updatedNote(m);
             return `<section class="card card-flat" aria-label="Tiempo para tratar en ${esc(m.name)}">
                 <div class="dt-card-head">
                     <div>
                         <h2 class="dt-card-title">Tiempo para tratar</h2>
                         <div class="dt-muted">${esc(m.name)} · ${m.fields.length} parcela${m.fields.length === 1 ? '' : 's'}</div>
-                        ${m.updated_at ? `<div class="small ${m.stale ? 'text-warning-emphasis' : 'dt-muted'}">${m.stale ? '<i class="fa fa-triangle-exclamation me-1"></i>' : ''}${esc(AgroWeather.updatedNote(m))}</div>` : ''}
+                        ${updated ? `<div class="small ${m.stale ? 'text-warning-emphasis' : 'dt-muted'}">${m.stale ? '<i class="fa fa-triangle-exclamation me-1"></i>' : ''}${esc(updated)}</div>` : ''}
                     </div>
                     <a class="small fw-semibold text-decoration-none" href="{% url 'weather-overview' %}">El Tiempo</a>
                 </div>

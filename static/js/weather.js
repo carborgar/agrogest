@@ -49,13 +49,16 @@ window.AgroWeather = (function () {
 
     // De cuándo es la previsión: «Actualizado a las 10:42» (hoy) o «Actualizado el 28 oct, 18:05».
     // Si AEMET ha fallado, el servidor manda la última buena con `stale: true` y se avisa.
+    // Meses fijos: toLocaleString da «sep», «sept» u «oct.» según el navegador
+    const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept', 'oct', 'nov', 'dic'];
+
     function updatedNote(muni, now = new Date()) {
-        if (!muni.updated_at) return '';
-        const d = new Date(muni.updated_at);
+        const d = new Date(muni.updated_at || NaN);
+        if (isNaN(d)) return '';
         const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
         const when = localDate(d) === localDate(now)
             ? `a las ${time}`
-            : `el ${d.getDate()} ${d.toLocaleString('es-ES', { month: 'short' }).replace('.', '')}, ${time}`;
+            : `el ${d.getDate()} ${MONTHS[d.getMonth()]}, ${time}`;
         return muni.stale ? `Sin datos nuevos de AEMET · actualizado ${when}` : `Actualizado ${when}`;
     }
 
