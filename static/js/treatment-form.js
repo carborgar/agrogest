@@ -424,9 +424,14 @@
 
         const n = d.fieldCount;
         ui_.save.textContent = '';
-        if (isEdit) ui_.save.append('Guardar', el('span', { 'class': 'd-none d-lg-inline' }, ' cambios'));
-        else if (n > 1) ui_.save.append('Crear ' + n, el('span', { 'class': 'd-none d-lg-inline' }, ' tratamientos'));
-        else ui_.save.append('Crear', el('span', { 'class': 'd-none d-lg-inline' }, ' tratamiento'));
+        // Un único hijo: .tf-btn es inline-flex con gap, y si el texto y el span
+        // fueran hijos distintos el gap se sumaría al espacio de la frase.
+        const label = el('span');
+        const long = (t) => el('span', { 'class': 'd-none d-lg-inline' }, t);
+        if (isEdit) label.append('Guardar', long(' cambios'));
+        else if (n > 1) label.append('Crear ' + n, long(' tratamientos'));
+        else label.append('Crear', long(' tratamiento'));
+        ui_.save.appendChild(label);
     }
 
     function paintStatus(d) {
