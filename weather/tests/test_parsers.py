@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from weather.aemet.parsers import _periodo_range, build_days, parse_diaria, parse_horaria
+from weather.aemet.parsers import _dominant_code, _periodo_range, build_days, parse_diaria, parse_horaria
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -45,3 +45,8 @@ def test_empty_or_unexpected_answers_give_no_days(raw):
 ])
 def test_periodo_range(periodo, expected):
     assert _periodo_range(periodo) == expected
+
+
+def test_dominant_sky_on_a_tie_is_the_first_one():
+    hours = [{"hour": f"{h:02d}:00", "weather_code": code} for h, code in ((8, "14"), (9, "12"), (10, "12"), (11, "14"))]
+    assert _dominant_code(hours) == "14"

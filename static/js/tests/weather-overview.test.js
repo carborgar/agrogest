@@ -30,7 +30,7 @@ const DAILY = [
         max_precipitation_probability: 80, total_precipitation: 4.5 }),
 ];
 
-async function setup(load) {
+async function setup(load, before = () => {}) {
     const dom = new JSDOM(`<!DOCTYPE html><body>
         <span id="wov-subtitle"></span>
         <div id="wov-grid" data-url="/api/weather/summary/"></div>
@@ -38,6 +38,7 @@ async function setup(load) {
         <script type="application/json" id="wov-fields">${JSON.stringify(FIELDS)}</script>
     </body>`, { runScripts: 'outside-only' });
     const { window } = dom;
+    before(window);
     window.eval(WEATHER);
     window.AgroWeather.load = load;
     window.eval(OVERVIEW);
@@ -125,4 +126,39 @@ test('sin horas después del atardecer, se añade al final', async () => {
     const d = DAILY[0];
     const html = w.AgroWeatherOverview.hourCards(d, d.hours.slice(0, 2));
     assert.ok(html.trim().endsWith('<span class="hr-sun-lbl">18:40</span></div>'));
+});
+
+test('nombres y textos del servidor se escapan', async () => {
+    const evil = day('2099-01-01', 'Jue <i>1</i>', { label_weather: '<img src=x onerror=alert(1)>' });
+    const w = await setup(ok({ municipalities: [{ name: '<script>x</script>', fields: [], daily: [evil] }], errors: [] }));
+    const doc = w.document;
+    assert.equal(doc.querySelector('script:not([type])'), null);
+    assert.equal(doc.querySelector('img'), null);
+    assert.equal(doc.querySelector('.muni-name').textContent.trim(), '<script>x</script>');
+});
+
+test('si falla al pintar se avisa y se quita la carga', async () => {
+    const errors = [];
+    const w = await setup(() => Promise.resolve({ municipalities: [{ name: 'Roto' }] }), (win) => { win.console.error = (e) => errors.push(e); });
+    assert.ok(w.document.querySelector('.alert-danger'));
+    assert.ok(w.document.getElementById('wov-skeletons').classList.contains('d-none'));
+    assert.equal(errors.length, 1);
+});
+
+test('hoy se enseñan solo las horas que quedan', async () => {
+    const now = new Date();
+    const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const hours = [...Array(24).keys()].map(h => hour(date, h));
+    const today = day(date, 'Hoy', { hours, sunrise: null, sunset: null });
+    const w = await setup(ok({ municipalities: [{ name: 'Sevilla', fields: [], daily: [today] }], errors: [] }));
+    const times = [...w.document.querySelectorAll('.hr-card-time')].map(e => Number.parseInt(e.textContent, 10));
+    assert.equal(times[0], now.getHours());
+    assert.equal(times.length, 24 - now.getHours());
+});
+
+test('sin mensaje del servidor: sesión caducada (401) o mensaje general', async () => {
+    let w = await setup(() => Promise.reject({ status: 401 }));
+    assert.match(w.document.querySelector('.alert-warning li').textContent, /sesión ha caducado/);
+    w = await setup(() => Promise.reject({ status: 500 }));
+    assert.match(w.document.querySelector('.alert-warning li').textContent, /No se ha podido cargar la previsión/);
 });

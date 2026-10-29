@@ -280,7 +280,7 @@
     function selectDay(card, dayEl) {
         card.querySelectorAll('.muni-week-day').forEach(d => d.classList.toggle('active', d === dayEl));
         const muni = cards[card.dataset.cardId];
-        const day = muni && muni.daily[Number.parseInt(dayEl.dataset.dayIdx, 10)];
+        const day = muni?.daily[Number.parseInt(dayEl.dataset.dayIdx, 10)];
         if (!day) return;
         card.querySelector('.muni-hero').outerHTML = heroHtml(muni, day);
         card.querySelector('.muni-hourly-panel').innerHTML = hourlyPanelHtml(day);
@@ -339,6 +339,12 @@
         </div>
     </div>`;
 
+    const RENDER_ERROR_HTML = `<div class="col-12">
+        <div class="alert alert-danger mb-0">
+            <i class="fa fa-bug me-2"></i>No se ha podido mostrar la previsión. Recarga la página y, si sigue, avisa al administrador.
+        </div>
+    </div>`;
+
     function render(grid, munis, errors) {
         document.getElementById('wov-skeletons').classList.add('d-none');
         if (!munis.length && !errors.length) {
@@ -373,7 +379,7 @@
     function start() {
         const grid = document.getElementById('wov-grid');
         const fieldsEl = document.getElementById('wov-fields');
-        if (!grid || !fieldsEl) return;
+        if (!grid || !fieldsEl) return Promise.resolve();
         const fields = JSON.parse(fieldsEl.textContent);
         grid.addEventListener('click', onGridClick);
         document.addEventListener('click', e => { if (e.target.closest('.wov-retry')) globalThis.location.reload(); });
@@ -383,6 +389,11 @@
             e => {
                 const reason = friendlyError(e.status, e.msg);
                 render(grid, [], fields.map(f => ({ name: f.name, reason })));
+            })
+            .catch(err => {   // fallo nuestro al pintar: se ve en consola y el usuario no se queda con la carga
+                console.error(err);
+                document.getElementById('wov-skeletons').classList.add('d-none');
+                grid.innerHTML = RENDER_ERROR_HTML;
             });
     }
 
