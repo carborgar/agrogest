@@ -99,6 +99,8 @@ test('varias parcelas: botón «Crear N tratamientos», nota y extra_fields', ()
     p.q('#tfFieldBtn').click();
     p.q('#tfFieldsPop [data-field="2"]').click();
     assert.equal(sp(p.q('#tfSave').textContent), 'Crear 2 tratamientos');
+    // .tf-btn es inline-flex con gap: un solo hijo evita un espacio doble en escritorio
+    assert.equal(p.q('#tfSave').children.length, 1);
     assert.equal(p.q('#tfMultiNote').hidden, false);
     p.submit();
     assert.deepEqual(Array.from(p.q('#id_extra_fields').selectedOptions).map((o) => o.value), ['2']);
