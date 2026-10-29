@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'core',
     'accounts',
     'farm',
+    'weather',
     'django_filters',
     'django_bootstrap5',
     'widget_tweaks',

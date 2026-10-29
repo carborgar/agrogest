@@ -1,31 +1,6 @@
-"""
-Servicio meteorológico usando AEMET OpenData (https://opendata.aemet.es/).
-Requiere API key configurada en AEMET_API_KEY (settings).
-Flujo:
-  1. Calcula el centroide de la parcela (lat/lon).
-  2. Descarga el catálogo de municipios de AEMET y lo cachea en memoria.
-  3. Encuentra el municipio más cercano a las coordenadas.
-  4. Obtiene predicción horaria (48 h) y diaria (7 días) para ese municipio.
-  5. Construye un dict unificado con datos diarios y horarios.
-"""
-import json
-import logging
-import re
-import ssl
-import time
-import urllib.error
-import urllib.parse
-import urllib.request
-from datetime import date
-from django.conf import settings
-from django.core.cache import cache
+"""Parseo de las predicciones municipales de AEMET (horaria y diaria) al formato de la app."""
+from weather.treatment_rules import treatment_level, treatment_ok, wind_level
 
-logger = logging.getLogger(__name__)
-AEMET_BASE = "https://opendata.aemet.es/opendata"
-# Caché en memoria del catálogo de municipios
-_municipios_cache: list | None = None
-_municipios_ts: float = 0
-_MUNICIPIOS_TTL = 86400 * 7  # refresca cada semana
 # ── Iconos/labels por código AEMET estadoCielo ────────────────────────
 _AEMET_SKY_ICONS = {
     "11": ("fa-sun", "Despejado"),
@@ -77,140 +52,12 @@ _DEFAULT_ICON = ("fa-cloud", "Sin datos")
 DAY_NAMES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
 
 
-def _sky_info(code: str) -> dict:
+def sky_info(code: str) -> dict:
     """Convierte código AEMET estadoCielo a icon/label/adverse."""
     clean = (code or "").rstrip("n").lstrip("0")
     icon, label = _AEMET_SKY_ICONS.get(clean, _DEFAULT_ICON)
     adverse = clean in _ADVERSE_CODES
     return {"icon": icon, "label": label, "adverse": adverse}
-
-
-# ── HTTP helpers ──────────────────────────────────────────────────────
-def _ssl_contexts():
-    ctxs = []
-    try:
-        ctxs.append(ssl.create_default_context())
-    except Exception:
-        pass
-    ctxs.append(ssl._create_unverified_context())  # noqa: S501
-    return ctxs
-
-
-def _http_get(url: str, timeout: int = 10):
-    api_key = getattr(settings, "AEMET_API_KEY", "")
-    # Las URLs de datos (/opendata/sh/...) son pre-autorizadas: NO añadir api_key
-    is_api_endpoint = "opendata.aemet.es" in url and "/opendata/api/" in url
-    if is_api_endpoint and api_key:
-        sep = "&" if "?" in url else "?"
-        url = f"{url}{sep}api_key={urllib.parse.quote(api_key)}"
-    for ctx in _ssl_contexts():
-        try:
-            req = urllib.request.Request(url, headers={"Accept": "application/json"})
-            with urllib.request.urlopen(req, timeout=timeout, context=ctx) as r:
-                raw_bytes = r.read()
-                # AEMET puede devolver ISO-8859-1 en vez de UTF-8
-                charset = "utf-8"
-                ct = r.headers.get("Content-Type", "")
-                if "charset=" in ct.lower():
-                    charset = ct.lower().split("charset=")[-1].strip().split(";")[0].strip()
-                try:
-                    text = raw_bytes.decode(charset)
-                except (UnicodeDecodeError, LookupError):
-                    text = raw_bytes.decode("iso-8859-1")
-                return json.loads(text)
-        except (urllib.error.URLError, OSError) as exc:
-            logger.debug("HTTP GET failed (%s): %s", url[:80], exc)
-    return None
-
-
-def _aemet_fetch(path: str):
-    """Doble petición AEMET: meta → datos URL → datos reales."""
-    meta = _http_get(f"{AEMET_BASE}{path}")
-    if not meta:
-        return None
-    if meta.get("estado", 0) != 200:
-        logger.warning("AEMET estado=%s para %s", meta.get("estado"), path)
-        return None
-    datos_url = meta.get("datos")
-    if not datos_url:
-        return None
-    return _http_get(datos_url)
-
-
-# ── Umbrales para tratar (únicos para toda la app) ────────────────────
-# «ok»: se puede pulverizar; «bad»: lluvia probable o viento fuerte; «warn»: en medio.
-OK_RAIN_PROB = 20
-OK_WIND_KMH = 20
-BAD_RAIN_PROB = 50
-BAD_WIND_KMH = 25
-
-
-def wind_level(kmh: float) -> int:
-    """0-3 para colorear el viento: ≤10, ≤15, <20, ≥20 km/h."""
-    return 0 if kmh <= 10 else 1 if kmh <= 15 else 2 if kmh < 20 else 3
-
-
-def treatment_ok(rain_prob: float, wind_kmh: float) -> bool:
-    return rain_prob < OK_RAIN_PROB and wind_kmh <= OK_WIND_KMH
-
-
-def treatment_level(rain_prob: float, wind_kmh: float) -> str:
-    if treatment_ok(rain_prob, wind_kmh):
-        return "ok"
-    if rain_prob >= BAD_RAIN_PROB or wind_kmh > BAD_WIND_KMH:
-        return "bad"
-    return "warn"
-
-
-# ── Municipios ────────────────────────────────────────────────────────
-def _parse_coord(raw) -> float | None:
-    if raw is None:
-        return None
-    s = str(raw).strip()
-    try:
-        return float(s)
-    except ValueError:
-        pass
-    m = re.match(r"(\d+)\s+(\d+)'\s*([\d.]+)?''?\s*([NSEWnsew]?)", s)
-    if m:
-        deg, mn, sec, hemi = m.groups()
-        val = float(deg) + float(mn) / 60 + float(sec or 0) / 3600
-        if hemi.upper() in ("S", "W"):
-            val = -val
-        return val
-    return None
-
-
-def _get_municipios() -> list:
-    global _municipios_cache, _municipios_ts
-    now = time.time()
-    if _municipios_cache is not None and (now - _municipios_ts) < _MUNICIPIOS_TTL:
-        return _municipios_cache
-    raw = _aemet_fetch("/api/maestro/municipios")
-    if not raw or not isinstance(raw, list):
-        logger.warning("AEMET: no se pudo obtener lista de municipios")
-        return _municipios_cache or []
-    parsed = []
-    for m in raw:
-        mid = m.get("id", "")
-        cod = mid.replace("id", "")
-        lat = _parse_coord(m.get("latitud_dec") or m.get("latitud"))
-        lon = _parse_coord(m.get("longitud_dec") or m.get("longitud"))
-        if lat is None or lon is None:
-            continue
-        parsed.append({"cod": cod, "nombre": m.get("nombre", ""), "lat": lat, "lon": lon})
-    if parsed:
-        _municipios_cache = parsed
-        _municipios_ts = now
-        logger.info("AEMET: %d municipios cargados", len(parsed))
-    return _municipios_cache or []
-
-
-def _nearest_municipio(lat: float, lon: float) -> dict | None:
-    municipios = _get_municipios()
-    if not municipios:
-        return None
-    return min(municipios, key=lambda m: (m["lat"] - lat) ** 2 + (m["lon"] - lon) ** 2)
 
 
 # ── Parseo predicción horaria ─────────────────────────────────────────
@@ -279,7 +126,7 @@ def _interpolate_map(known: dict, h_start: int, h_end: int) -> dict:
     return result
 
 
-def _parse_horaria(raw_list) -> list:
+def parse_horaria(raw_list) -> list:
     if not raw_list or not isinstance(raw_list, list):
         return []
     pred_root = raw_list[0]
@@ -397,7 +244,7 @@ def _parse_horaria(raw_list) -> list:
                     if hr - delta >= 0 and sky_map.get(hr - delta):
                         sky_code = sky_map[hr - delta]
                         break
-            sky = _sky_info(sky_code)
+            sky = sky_info(sky_code)
             p_mm = precip_map.get(hr, 0.0)
             p_prob = prob_map.get(hr, 0)
             w_kmh = wind_map.get(hr, 0.0)
@@ -435,7 +282,7 @@ def _parse_horaria(raw_list) -> list:
 
 
 # ── Parseo predicción diaria ──────────────────────────────────────────
-def _parse_diaria(raw_list) -> list:
+def parse_diaria(raw_list) -> list:
     if not raw_list or not isinstance(raw_list, list):
         return []
     pred_root = raw_list[0]
@@ -503,7 +350,7 @@ def _parse_diaria(raw_list) -> list:
                 if v:
                     sky_code = v
                     break
-        sky = _sky_info(sky_code)
+        sky = sky_info(sky_code)
         # Amanecer / Atardecer
         sunrise = dia.get("orto") or None
         sunset = dia.get("ocaso") or None
@@ -529,13 +376,13 @@ def _parse_diaria(raw_list) -> list:
     return daily
 
 
-def _synthesize_hours(d_str: str, ds: dict) -> list:
+def synthesize_hours(d_str: str, ds: dict) -> list:
     """Genera horas sintéticas (cada hora) para días sin predicción horaria."""
     p_prob = ds.get("max_precipitation_probability", 0)
     w_kmh = ds.get("max_wind_speed", 0.0)
     g_kmh = ds.get("max_wind_gusts", w_kmh)
     sky_code = ds.get("dominant_code", "")
-    sky = _sky_info(sky_code)
+    sky = sky_info(sky_code)
     min_t = ds.get("min_temp")
     max_t = ds.get("max_temp")
     w_level = wind_level(w_kmh)
@@ -569,7 +416,7 @@ def _synthesize_hours(d_str: str, ds: dict) -> list:
     return hours
 
 
-def _interpolate_temps(hours: list, min_t, max_t) -> list:
+def interpolate_temps(hours: list, min_t, max_t) -> list:
     """Rellena temperaturas nulas usando una curva diurna simple (mín a las 6h, máx a las 15h)."""
     if min_t is None or max_t is None:
         return hours
@@ -581,7 +428,7 @@ def _interpolate_temps(hours: list, min_t, max_t) -> list:
     return hours
 
 
-def _fix_snow_icon(entry: dict) -> dict:
+def fix_snow_icon(entry: dict) -> dict:
     """Si la temperatura máxima es > 6 °C, reemplaza iconos de nieve por lluvia."""
     max_t = entry.get("max_temp")
     if max_t is None or max_t <= 6:
@@ -595,184 +442,3 @@ def _fix_snow_icon(entry: dict) -> dict:
             h["icon"] = "fa-cloud-rain"
             h["label"] = h.get("label", "").replace("nieve", "lluvia").replace("Nieve", "Lluvia")
     return entry
-
-
-# ── Geometría ─────────────────────────────────────────────────────────
-def _get_centroid(geometry_json: str):
-    try:
-        geojson = json.loads(geometry_json)
-    except (json.JSONDecodeError, TypeError):
-        return None
-    geo_type = geojson.get("type")
-    coords = geojson.get("coordinates")
-    if not coords:
-        return None
-    if geo_type == "Point":
-        return coords[1], coords[0]
-    if geo_type == "Polygon":
-        ring = coords[0]
-    elif geo_type == "MultiPolygon":
-        ring = coords[0][0]
-    elif geo_type == "Feature":
-        return _get_centroid(json.dumps(geojson.get("geometry", {})))
-    else:
-        return None
-    if not ring:
-        return None
-    lons = [p[0] for p in ring]
-    lats = [p[1] for p in ring]
-    return sum(lats) / len(lats), sum(lons) / len(lons)
-
-
-# ── Previsión de un municipio ─────────────────────────────────────────
-def _build_forecast(cod: str) -> list | None:
-    """Previsión de 7 días de un municipio AEMET: lista de días, cada uno con sus horas.
-
-    Combina la predicción horaria (48 h) con la diaria. Devuelve None si AEMET no da datos.
-    """
-    # ── Datos ──
-    horaria_raw = _aemet_fetch(f"/api/prediccion/especifica/municipio/horaria/{cod}")
-    hourly_list = _parse_horaria(horaria_raw) if horaria_raw else []
-    diaria_raw = _aemet_fetch(f"/api/prediccion/especifica/municipio/diaria/{cod}")
-    daily_summary = _parse_diaria(diaria_raw) if diaria_raw else []
-    if not hourly_list and not daily_summary:
-        logger.warning("AEMET: sin datos para municipio %s", cod)
-        return None
-    # ── Construir daily list ──
-    days_map: dict[str, list] = {}
-    for h in hourly_list:
-        days_map.setdefault(h["date"], []).append(h)
-    daily_from_hourly: dict[str, dict] = {}
-    for d_str, hours in days_map.items():
-        year, month, day_num = map(int, d_str.split("-"))
-        d_obj = date(year, month, day_num)
-        label = f"{DAY_NAMES[d_obj.weekday()]} {day_num}"
-        max_precip = max(h["precipitation"] for h in hours)
-        total_precip = round(sum(h["precipitation"] for h in hours), 1)
-        max_prob = max(h["precipitation_probability"] for h in hours)
-        max_wind = max(h["wind_speed"] for h in hours)
-        max_gusts = max(h["wind_gusts"] for h in hours)
-        temps = [h["temperature"] for h in hours if h["temperature"] is not None]
-        min_temp = round(min(temps), 1) if temps else None
-        max_temp = round(max(temps), 1) if temps else None
-        daytime = [h["weather_code"] for h in hours if 6 <= int(h["hour"][:2]) <= 20]
-        dom_code = max(set(daytime), key=daytime.count) if daytime else (hours[0]["weather_code"] if hours else "")
-        sky = _sky_info(dom_code)
-        daily_from_hourly[d_str] = {
-            "date": d_str,
-            "label": label,
-            "total_precipitation": total_precip,
-            "max_precipitation": round(max_precip, 1),
-            "max_precipitation_probability": max_prob,
-            "max_wind_speed": round(max_wind, 1),
-            "max_wind_gusts": round(max_gusts, 1),
-            "min_temp": min_temp,
-            "max_temp": max_temp,
-            "dominant_code": dom_code,
-            "icon": sky["icon"],
-            "label_weather": sky["label"],
-            "adverse": sky["adverse"],
-            "treatment_ok": treatment_ok(max_prob, max_wind),
-            "level": treatment_level(max_prob, max_wind),
-            "wind_level": wind_level(max_wind),
-            "sunrise": None,
-            "sunset": None,
-            "hours": hours,
-        }
-    daily_summary_map = {d["date"]: d for d in daily_summary}
-    all_dates = sorted(set(list(daily_from_hourly.keys()) + list(daily_summary_map.keys())))[:7]
-    combined_daily = []
-    for d_str in all_dates:
-        if d_str in daily_from_hourly:
-            entry = daily_from_hourly[d_str]
-            # Complementar desde diaria si falta en horaria
-            if d_str in daily_summary_map:
-                ds = daily_summary_map[d_str]
-                if entry["min_temp"] is None:
-                    entry["min_temp"] = ds.get("min_temp")
-                if entry["max_temp"] is None:
-                    entry["max_temp"] = ds.get("max_temp")
-                if not entry.get("sunrise"):
-                    entry["sunrise"] = ds.get("sunrise")
-                if not entry.get("sunset"):
-                    entry["sunset"] = ds.get("sunset")
-                # Usar precipitación de la diaria si la horaria no la tiene
-                if entry.get("total_precipitation", 0.0) == 0.0 and ds.get("total_precipitation", 0.0) > 0:
-                    entry["total_precipitation"] = ds["total_precipitation"]
-                    entry["max_precipitation"] = ds.get("max_precipitation", 0.0)
-            # Interpolar temps horarias nulas usando min/max diario
-            entry["hours"] = _interpolate_temps(entry["hours"], entry["min_temp"], entry["max_temp"])
-            entry = _fix_snow_icon(entry)
-            combined_daily.append(entry)
-        elif d_str in daily_summary_map:
-            ds = daily_summary_map[d_str]
-            year, month, day_num = map(int, d_str.split("-"))
-            d_obj = date(year, month, day_num)
-            entry = dict(ds)
-            entry["label"] = f"{DAY_NAMES[d_obj.weekday()]} {day_num}"
-            entry["hours"] = _synthesize_hours(d_str, ds)
-            entry.setdefault("sunrise", ds.get("sunrise"))
-            entry.setdefault("sunset", ds.get("sunset"))
-            entry = _fix_snow_icon(entry)
-            combined_daily.append(entry)
-    if not combined_daily:
-        return None
-
-    return combined_daily
-
-
-# ── Previsión por municipio de las parcelas (Inicio y El Tiempo) ───────
-_FORECAST_TTL = 1800       # AEMET actualiza varias veces al día; 30 min sobra
-_FORECAST_FAIL_TTL = 300   # si falla, no se reintenta en cada carga (límite de consultas de AEMET)
-
-
-def municipality_for_field(field) -> dict | None:
-    """Municipio AEMET ({'cod', 'nombre', ...}) más cercano al centro de la parcela, o None."""
-    if not getattr(field, "geometry", None):
-        return None
-    coords = _get_centroid(field.geometry)
-    if coords is None:
-        return None
-    return _nearest_municipio(*coords)
-
-
-def get_forecast(cod: str) -> list | None:
-    """Previsión de un municipio con caché. None si AEMET no responde."""
-    key = f"aemet:forecast:{cod}"
-    cached = cache.get(key)
-    if cached is not None:
-        return cached or None   # [] = fallo reciente guardado
-    daily = _build_forecast(cod)
-    cache.set(key, daily or [], _FORECAST_TTL if daily else _FORECAST_FAIL_TTL)
-    return daily
-
-
-def get_weather_summary(fields) -> dict:
-    """Previsión de los municipios de las parcelas, una entrada por municipio.
-
-    AEMET es municipal: las parcelas de un mismo municipio comparten previsión, así que se
-    agrupan y se pide una sola vez. `errors` lista las parcelas sin previsión y el motivo.
-    """
-    groups: dict = {}
-    errors: dict = {}
-    for field in fields:
-        municipio = municipality_for_field(field)
-        if not municipio:
-            errors.setdefault("No se pudo ubicar la parcela: revisa su contorno en el mapa.", []).append(field.name)
-            continue
-        group = groups.setdefault(municipio["cod"], {"name": municipio["nombre"], "fields": []})
-        group["fields"].append({"id": field.id, "name": field.name})
-
-    municipalities = []
-    for cod, group in groups.items():
-        daily = get_forecast(cod)
-        if not daily:
-            errors.setdefault("AEMET no ha dado la previsión. Inténtalo en unos minutos.", []).extend(
-                f["name"] for f in group["fields"])
-            continue
-        municipalities.append({**group, "daily": daily})
-    municipalities.sort(key=lambda m: (-len(m["fields"]), m["name"]))
-    return {
-        "municipalities": municipalities,
-        "errors": [{"reason": reason, "fields": names} for reason, names in errors.items()],
-    }

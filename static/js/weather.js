@@ -1,5 +1,5 @@
 // Previsión del tiempo: carga y utilidades comunes a Inicio y El Tiempo.
-// Los umbrales viven en el servidor (farm/weather_service.py): cada día y cada hora traen
+// Los umbrales viven en el servidor (weather/treatment_rules.py): cada día y cada hora traen
 // ya su `level` ('ok' | 'warn' | 'bad') y su `wind_level` (0-3). Aquí no se repiten.
 window.AgroWeather = (function () {
     const pad = (n) => String(n).padStart(2, '0');

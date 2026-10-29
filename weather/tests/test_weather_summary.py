@@ -6,7 +6,9 @@ from django.test import override_settings
 from django.urls import reverse
 
 from accounts.models import User
-from farm import weather_service as ws
+from weather import services as ws
+from weather import treatment_rules as rules
+from weather.aemet.parsers import synthesize_hours
 from farm.tests.factories import *
 
 GEOMETRY = '{"type": "Polygon", "coordinates": [[[-0.4, 39.4], [-0.39, 39.4], [-0.39, 39.41], [-0.4, 39.4]]]}'
@@ -25,15 +27,15 @@ class TestThresholds:
         (50, 5, 'bad'),
     ])
     def test_treatment_level(self, rain, wind, expected):
-        assert ws.treatment_level(rain, wind) == expected
-        assert ws.treatment_ok(rain, wind) == (expected == 'ok')
+        assert rules.treatment_level(rain, wind) == expected
+        assert rules.treatment_ok(rain, wind) == (expected == 'ok')
 
     @pytest.mark.parametrize('wind,expected', [(10, 0), (15, 1), (19.9, 2), (20, 3)])
     def test_wind_level(self, wind, expected):
-        assert ws.wind_level(wind) == expected
+        assert rules.wind_level(wind) == expected
 
     def test_synthesized_hours_carry_level(self):
-        hours = ws._synthesize_hours('2026-11-01', {
+        hours = synthesize_hours('2026-11-01', {
             'max_precipitation_probability': 60, 'max_wind_speed': 8.0, 'min_temp': 10, 'max_temp': 20})
         assert {h['level'] for h in hours} == {'bad'}
         assert {h['wind_level'] for h in hours} == {0}
@@ -130,7 +132,7 @@ class TestWeatherApiAndPage:
         payload = {'municipalities': [], 'errors': []}
 
         with patch('core.models.is_enabled', return_value=True), \
-                patch('farm.weather_service.get_weather_summary', return_value=payload) as build:
+                patch('weather.services.get_weather_summary', return_value=payload) as build:
             response = client.get(reverse('api-weather-summary'))
 
         assert response.json() == payload
