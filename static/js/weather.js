@@ -47,13 +47,17 @@ window.AgroWeather = (function () {
         return data;
     }
 
-    // Si AEMET ha fallado, el servidor manda la última previsión buena con `stale: true`
-    function staleNote(muni) {
-        if (!muni.stale || !muni.updated_at) return '';
+    // De cuándo es la previsión: «Actualizado a las 10:42» (hoy) o «Actualizado el 28 oct, 18:05».
+    // Si AEMET ha fallado, el servidor manda la última buena con `stale: true` y se avisa.
+    function updatedNote(muni, now = new Date()) {
+        if (!muni.updated_at) return '';
         const d = new Date(muni.updated_at);
-        const when = d.toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-        return `Sin datos nuevos de AEMET: previsión del ${when}`;
+        const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        const when = localDate(d) === localDate(now)
+            ? `a las ${time}`
+            : `el ${d.getDate()} ${d.toLocaleString('es-ES', { month: 'short' }).replace('.', '')}, ${time}`;
+        return muni.stale ? `Sin datos nuevos de AEMET · actualizado ${when}` : `Actualizado ${when}`;
     }
 
-    return { localDate, hourOf, upcomingHours, okWindows, load, staleNote };
+    return { localDate, hourOf, upcomingHours, okWindows, load, updatedNote };
 })();
