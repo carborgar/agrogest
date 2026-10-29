@@ -590,6 +590,7 @@
                 <div class="muni-hero-bg-icon"><i class="fa ${today ? today.icon : 'fa-cloud'}"></i></div>
                 <div class="muni-name"><i class="fa fa-location-dot me-1" style="opacity:.7"></i>${muni.name}</div>
                 <div class="muni-fields-label">${muni.fields.length} parcela${muni.fields.length !== 1 ? 's' : ''}</div>
+                ${muni.stale ? `<div class="muni-fields-label fw-semibold"><i class="fa fa-triangle-exclamation me-1"></i>${AgroWeather.staleNote(muni)}</div>` : ''}
                 <div class="muni-temp-row">
                     <span class="muni-temp-max">${maxT}</span>
                     ${minT ? `<span class="muni-temp-min">${minT}</span>` : ''}
@@ -705,6 +706,8 @@
                         fields: m.fields.map(f => fieldById[f.id] || f),
                         today: m.daily.find(d => d.date >= today) || m.daily[0] || null,
                         daily: m.daily,
+                        stale: m.stale,
+                        updated_at: m.updated_at,
                     };
                 });
                 (data.errors || []).forEach(e => e.fields.forEach(name => errFields.push({ field: { name }, reason: e.reason })));

@@ -205,6 +205,7 @@
                     <div>
                         <h2 class="dt-card-title">Tiempo para tratar</h2>
                         <div class="dt-muted">${esc(m.name)} · ${m.fields.length} parcela${m.fields.length === 1 ? '' : 's'}</div>
+                        ${m.stale ? `<div class="small text-warning-emphasis"><i class="fa fa-triangle-exclamation me-1"></i>${esc(AgroWeather.staleNote(m))}</div>` : ''}
                     </div>
                     <a class="small fw-semibold text-decoration-none" href="{% url 'weather-overview' %}">El Tiempo</a>
                 </div>

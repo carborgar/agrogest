@@ -2,30 +2,71 @@
 Previsión meteorológica de las parcelas usando AEMET OpenData.
 Flujo:
   1. Calcula el centroide de la parcela (lat/lon).
-  2. Descarga el catálogo de municipios de AEMET y lo cachea en memoria.
-  3. Encuentra el municipio más cercano a las coordenadas.
-  4. Obtiene predicción horaria (48 h) y diaria (7 días) para ese municipio.
-  5. Construye un dict unificado con datos diarios y horarios.
+  2. Busca el municipio AEMET más cercano (catálogo de municipios de AEMET).
+  3. Obtiene predicción horaria (48 h) y diaria (7 días) para ese municipio.
+  4. Construye un dict unificado con datos diarios y horarios.
+
+Caché: todo va a la caché de Django (en BD), compartida por todas las instancias de Vercel.
+Solo se guardan datos de AEMET; nada de lo que crea el usuario (parcelas, tratamientos…).
+  - Catálogo de municipios: 7 días (casi no cambia).
+  - Municipio de unas coordenadas: 90 días. Si la parcela cambia de contorno, su centroide
+    cambia y con él la clave, así que se busca de nuevo sin invalidar nada.
+  - Previsión de un municipio: se considera fresca 30 min, pero se guarda 2 días para
+    enseñar la última buena (marcada como `stale`) si AEMET falla.
 """
 import json
 import logging
 import re
-import time
-from datetime import date
+from datetime import date, timedelta
 
 from django.core.cache import cache
+from django.utils import timezone
 
-from weather.aemet.client import aemet_fetch
+from weather.aemet.client import (
+    AemetAuthError, AemetBadResponseError, AemetError, AemetNoDataError, AemetRateLimitError, aemet_fetch,
+)
 from weather.aemet.parsers import (
     DAY_NAMES, fix_snow_icon, interpolate_temps, parse_diaria, parse_horaria, sky_info, synthesize_hours,
 )
 from weather.treatment_rules import treatment_level, treatment_ok, wind_level
 
 logger = logging.getLogger(__name__)
-# Caché en memoria del catálogo de municipios
-_municipios_cache: list | None = None
-_municipios_ts: float = 0
-_MUNICIPIOS_TTL = 86400 * 7  # refresca cada semana
+
+_MUNICIPIOS_KEY = "aemet:municipios"
+_MUNICIPIOS_TTL = 86400 * 7
+_NEAREST_TTL = 86400 * 90
+_FORECAST_FRESH = timedelta(minutes=30)   # AEMET actualiza varias veces al día; 30 min sobra
+_FORECAST_KEEP = 86400 * 2                # cuánto se guarda la última previsión buena
+_FORECAST_RETRY_WAIT = 300                # tras un fallo, no se reintenta en cada carga
+
+# Mensajes para el usuario según la causa (el detalle técnico va al log)
+REASON_LOCATION = "No se pudo ubicar la parcela: revisa su contorno en el mapa."
+REASON_AUTH = "AEMET rechaza la clave configurada: hay que revisar AEMET_API_KEY."
+REASON_RATE_LIMIT = "AEMET está limitando las consultas. Inténtalo en un minuto."
+REASON_NO_DATA = "AEMET no tiene previsión para este municipio ahora mismo."
+REASON_UNAVAILABLE = "AEMET no responde. Inténtalo en unos minutos."
+
+
+def _user_reason(exc: AemetError) -> str:
+    if isinstance(exc, AemetAuthError):
+        return REASON_AUTH
+    if isinstance(exc, AemetRateLimitError):
+        return REASON_RATE_LIMIT
+    if isinstance(exc, AemetNoDataError):
+        return REASON_NO_DATA
+    return REASON_UNAVAILABLE
+
+
+def _log_aemet_error(exc: AemetError, what: str) -> None:
+    """Un solo registro por fallo, con lo que se intentaba hacer y la causa real.
+
+    ERROR (llega a Sentry) cuando hay que actuar: clave rechazada o formato que ya no entendemos.
+    WARNING cuando es pasajero: límite de consultas, caída de AEMET, sin datos.
+    """
+    if isinstance(exc, (AemetAuthError, AemetBadResponseError)):
+        logger.error("AEMET: %s: %s", what, exc, exc_info=isinstance(exc, AemetBadResponseError))
+    else:
+        logger.warning("AEMET: %s: %s", what, exc)
 
 
 # ── Municipios ────────────────────────────────────────────────────────
@@ -48,35 +89,37 @@ def _parse_coord(raw) -> float | None:
 
 
 def _get_municipios() -> list:
-    global _municipios_cache, _municipios_ts
-    now = time.time()
-    if _municipios_cache is not None and (now - _municipios_ts) < _MUNICIPIOS_TTL:
-        return _municipios_cache
+    """Catálogo de municipios AEMET con coordenadas. Lanza `AemetError` si no se puede obtener."""
+    municipios = cache.get(_MUNICIPIOS_KEY)
+    if municipios:
+        return municipios
     raw = aemet_fetch("/api/maestro/municipios")
-    if not raw or not isinstance(raw, list):
-        logger.warning("AEMET: no se pudo obtener lista de municipios")
-        return _municipios_cache or []
-    parsed = []
+    if not isinstance(raw, list):
+        raise AemetBadResponseError("/api/maestro/municipios", f"se esperaba una lista: {str(raw)[:200]}")
+    municipios = []
     for m in raw:
-        mid = m.get("id", "")
-        cod = mid.replace("id", "")
         lat = _parse_coord(m.get("latitud_dec") or m.get("latitud"))
         lon = _parse_coord(m.get("longitud_dec") or m.get("longitud"))
         if lat is None or lon is None:
             continue
-        parsed.append({"cod": cod, "nombre": m.get("nombre", ""), "lat": lat, "lon": lon})
-    if parsed:
-        _municipios_cache = parsed
-        _municipios_ts = now
-        logger.info("AEMET: %d municipios cargados", len(parsed))
-    return _municipios_cache or []
-
-
-def _nearest_municipio(lat: float, lon: float) -> dict | None:
-    municipios = _get_municipios()
+        municipios.append({"cod": m.get("id", "").replace("id", ""), "nombre": m.get("nombre", ""),
+                           "lat": lat, "lon": lon})
     if not municipios:
-        return None
-    return min(municipios, key=lambda m: (m["lat"] - lat) ** 2 + (m["lon"] - lon) ** 2)
+        raise AemetBadResponseError("/api/maestro/municipios", f"{len(raw)} municipios y ninguno con coordenadas")
+    cache.set(_MUNICIPIOS_KEY, municipios, _MUNICIPIOS_TTL)
+    logger.info("AEMET: catálogo de %d municipios cargado", len(municipios))
+    return municipios
+
+
+def _nearest_municipio(lat: float, lon: float) -> dict:
+    """Municipio más cercano a unas coordenadas, recordado por coordenadas."""
+    key = f"aemet:municipio:{lat:.5f},{lon:.5f}"
+    municipio = cache.get(key)
+    if municipio is None:
+        municipio = min(_get_municipios(), key=lambda m: (m["lat"] - lat) ** 2 + (m["lon"] - lon) ** 2)
+        municipio = {"cod": municipio["cod"], "nombre": municipio["nombre"]}
+        cache.set(key, municipio, _NEAREST_TTL)
+    return municipio
 
 
 # ── Geometría ─────────────────────────────────────────────────────────
@@ -107,19 +150,42 @@ def _get_centroid(geometry_json: str):
 
 
 # ── Previsión de un municipio ─────────────────────────────────────────
-def _build_forecast(cod: str) -> list | None:
+def _fetch_part(cod: str, kind: str, parse):
+    """Descarga y parsea una predicción ('horaria' o 'diaria'). Lanza `AemetError`."""
+    path = f"/api/prediccion/especifica/municipio/{kind}/{cod}"
+    raw = aemet_fetch(path)
+    try:
+        return parse(raw)
+    except Exception as exc:  # formato de AEMET que no esperábamos
+        raise AemetBadResponseError(path, f"no se pudo interpretar: {exc!r}") from exc
+
+
+def _build_forecast(cod: str) -> list:
     """Previsión de 7 días de un municipio AEMET: lista de días, cada uno con sus horas.
 
-    Combina la predicción horaria (48 h) con la diaria. Devuelve None si AEMET no da datos.
+    Combina la predicción horaria (48 h) con la diaria. Si solo falla una de las dos se usa
+    la otra (y se registra el fallo). Si fallan las dos, o no dan días, lanza `AemetError`.
     """
-    # ── Datos ──
-    horaria_raw = aemet_fetch(f"/api/prediccion/especifica/municipio/horaria/{cod}")
-    hourly_list = parse_horaria(horaria_raw) if horaria_raw else []
-    diaria_raw = aemet_fetch(f"/api/prediccion/especifica/municipio/diaria/{cod}")
-    daily_summary = parse_diaria(diaria_raw) if diaria_raw else []
-    if not hourly_list and not daily_summary:
-        logger.warning("AEMET: sin datos para municipio %s", cod)
-        return None
+    parts, failures = {}, []
+    for kind, parse in (("horaria", parse_horaria), ("diaria", parse_diaria)):
+        try:
+            parts[kind] = _fetch_part(cod, kind, parse)
+        except AemetError as exc:
+            failures.append(exc)
+            parts[kind] = []
+    if failures and (parts["horaria"] or parts["diaria"]):
+        for exc in failures:
+            _log_aemet_error(exc, f"predicción incompleta del municipio {cod}, se sigue con la otra")
+    elif failures:
+        raise failures[0]
+    daily = _combine(parts["horaria"], parts["diaria"])
+    if not daily:
+        raise AemetNoDataError(f"/api/prediccion/especifica/municipio/*/{cod}", "las predicciones no traen días")
+    return daily
+
+
+def _combine(hourly_list: list, daily_summary: list) -> list:
+    """Une las horas (horaria) con el resumen de cada día (diaria) en una lista de días."""
     # ── Construir daily list ──
     days_map: dict[str, list] = {}
     for h in hourly_list:
@@ -197,19 +263,16 @@ def _build_forecast(cod: str) -> list | None:
             entry.setdefault("sunset", ds.get("sunset"))
             entry = fix_snow_icon(entry)
             combined_daily.append(entry)
-    if not combined_daily:
-        return None
-
     return combined_daily
 
 
 # ── Previsión por municipio de las parcelas (Inicio y El Tiempo) ───────
-_FORECAST_TTL = 1800       # AEMET actualiza varias veces al día; 30 min sobra
-_FORECAST_FAIL_TTL = 300   # si falla, no se reintenta en cada carga (límite de consultas de AEMET)
-
-
 def municipality_for_field(field) -> dict | None:
-    """Municipio AEMET ({'cod', 'nombre', ...}) más cercano al centro de la parcela, o None."""
+    """Municipio AEMET ({'cod', 'nombre'}) más cercano al centro de la parcela.
+
+    None si la parcela no tiene un contorno válido. Lanza `AemetError` si hace falta el
+    catálogo de municipios y AEMET no lo da.
+    """
     if not getattr(field, "geometry", None):
         return None
     coords = _get_centroid(field.geometry)
@@ -218,15 +281,33 @@ def municipality_for_field(field) -> dict | None:
     return _nearest_municipio(*coords)
 
 
-def get_forecast(cod: str) -> list | None:
-    """Previsión de un municipio con caché. None si AEMET no responde."""
-    key = f"aemet:forecast:{cod}"
-    cached = cache.get(key)
-    if cached is not None:
-        return cached or None   # [] = fallo reciente guardado
-    daily = _build_forecast(cod)
-    cache.set(key, daily or [], _FORECAST_TTL if daily else _FORECAST_FAIL_TTL)
-    return daily
+def get_forecast(cod: str) -> dict:
+    """Previsión de un municipio con caché.
+
+    Devuelve {"daily", "updated_at", "stale"}: `stale` indica que es la última buena porque
+    AEMET ha fallado. Lanza `AemetError` si falla y no hay ninguna guardada.
+    """
+    key, retry_key = f"aemet:forecast:{cod}", f"aemet:forecast-retry:{cod}"
+    saved = cache.get(key)   # {"daily": [...], "updated_at": datetime}
+    now = timezone.now()
+    if saved and now - saved["updated_at"] < _FORECAST_FRESH:
+        return {**saved, "stale": False}
+
+    failed = cache.get(retry_key)   # fallo reciente: no se insiste hasta que pase la espera
+    if failed is None:
+        try:
+            saved = {"daily": _build_forecast(cod), "updated_at": now}
+            cache.set(key, saved, _FORECAST_KEEP)
+            cache.delete(retry_key)
+            return {**saved, "stale": False}
+        except AemetError as exc:
+            when = f"se enseña la de {timezone.localtime(saved['updated_at']):%d/%m %H:%M}" if saved else "sin previsión guardada"
+            _log_aemet_error(exc, f"previsión del municipio {cod} ({when})")
+            failed = exc
+            cache.set(retry_key, exc, _FORECAST_RETRY_WAIT)
+    if saved:
+        return {**saved, "stale": True}
+    raise failed
 
 
 def get_weather_summary(fields) -> dict:
@@ -238,21 +319,31 @@ def get_weather_summary(fields) -> dict:
     groups: dict = {}
     errors: dict = {}
     for field in fields:
-        municipio = municipality_for_field(field)
+        try:
+            municipio = municipality_for_field(field)
+        except AemetError as exc:
+            _log_aemet_error(exc, f"catálogo de municipios (parcela {field.id})")
+            errors.setdefault(_user_reason(exc), []).append(field.name)
+            continue
         if not municipio:
-            errors.setdefault("No se pudo ubicar la parcela: revisa su contorno en el mapa.", []).append(field.name)
+            errors.setdefault(REASON_LOCATION, []).append(field.name)
             continue
         group = groups.setdefault(municipio["cod"], {"name": municipio["nombre"], "fields": []})
         group["fields"].append({"id": field.id, "name": field.name})
 
     municipalities = []
     for cod, group in groups.items():
-        daily = get_forecast(cod)
-        if not daily:
-            errors.setdefault("AEMET no ha dado la previsión. Inténtalo en unos minutos.", []).extend(
-                f["name"] for f in group["fields"])
+        try:
+            forecast = get_forecast(cod)
+        except AemetError as exc:
+            errors.setdefault(_user_reason(exc), []).extend(f["name"] for f in group["fields"])
             continue
-        municipalities.append({**group, "daily": daily})
+        municipalities.append({
+            **group,
+            "daily": forecast["daily"],
+            "updated_at": forecast["updated_at"].isoformat(),
+            "stale": forecast["stale"],
+        })
     municipalities.sort(key=lambda m: (-len(m["fields"]), m["name"]))
     return {
         "municipalities": municipalities,
