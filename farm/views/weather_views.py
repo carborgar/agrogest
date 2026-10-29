@@ -1,7 +1,7 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import TemplateView
 
-from farm.mixins import FeatureFlagMixin
+from core.mixins import FeatureFlagMixin
 from farm.models import Field
 
 

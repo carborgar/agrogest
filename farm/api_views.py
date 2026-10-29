@@ -1,12 +1,13 @@
 from datetime import date, datetime, timedelta
 from decimal import Decimal
-from functools import wraps
 
 from django.db.models import Sum
 from django.db.models.functions import Coalesce
 from django.http import JsonResponse
 from django.utils.dateparse import parse_date
 from django.views.decorators.http import require_POST
+
+from core.decorators import api_login_required
 
 from .models import Field, Machine, Product, Treatment, TreatmentProduct
 
@@ -16,16 +17,6 @@ def _fmt_dose(value):
     if value is None:
         return None
     return f"{value:.4f}".rstrip('0').rstrip('.')
-
-
-def api_login_required(view):
-    """Como login_required, pero responde 401 en JSON en vez de redirigir al login."""
-    @wraps(view)
-    def wrapper(request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return JsonResponse({'error': 'No autenticado'}, status=401)
-        return view(request, *args, **kwargs)
-    return wrapper
 
 
 def _effective_status(treatment):
