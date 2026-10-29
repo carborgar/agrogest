@@ -10,7 +10,7 @@ window.AgroWeather = (function () {
     }
 
     function hourOf(h) {
-        return parseInt(h.hour, 10);
+        return Number.parseInt(h.hour, 10);
     }
 
     // Horas que aún sirven: las de hoy a partir de la actual; las de otros días, todas
@@ -41,8 +41,7 @@ window.AgroWeather = (function () {
     // GET al resumen por municipio. Si falla, lanza {status, msg} para que cada pantalla lo explique.
     async function load(url) {
         const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
-        let data = {};
-        try { data = await res.json(); } catch (e) { /* respuesta sin JSON */ }
+        const data = await res.json().catch(() => ({}));   // respuesta sin JSON: sin mensaje
         if (!res.ok) throw { status: res.status, msg: data.error };
         return data;
     }
@@ -53,8 +52,8 @@ window.AgroWeather = (function () {
     const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept', 'oct', 'nov', 'dic'];
 
     function updatedNote(muni, now = new Date()) {
-        const d = new Date(muni.updated_at || NaN);
-        if (isNaN(d)) return '';
+        const d = new Date(muni.updated_at || Number.NaN);
+        if (Number.isNaN(d.getTime())) return '';
         const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
         const when = localDate(d) === localDate(now)
             ? `a las ${time}`
