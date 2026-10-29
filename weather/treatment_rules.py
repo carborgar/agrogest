@@ -8,7 +8,13 @@ BAD_WIND_KMH = 25
 
 def wind_level(kmh: float) -> int:
     """0-3 para colorear el viento: ≤10, ≤15, <20, ≥20 km/h."""
-    return 0 if kmh <= 10 else 1 if kmh <= 15 else 2 if kmh < 20 else 3
+    if kmh <= 10:
+        return 0
+    if kmh <= 15:
+        return 1
+    if kmh < 20:
+        return 2
+    return 3
 
 
 def treatment_ok(rain_prob: float, wind_kmh: float) -> bool:

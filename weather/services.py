@@ -20,7 +20,7 @@ import json
 import logging
 import re
 import time
-from datetime import date, timedelta
+from datetime import timedelta
 
 from django.core.cache import cache
 from django.utils import timezone
@@ -30,10 +30,7 @@ from weather.aemet.client import (
     AemetAuthError, AemetBadResponseError, AemetCoolingDownError, AemetError, AemetNoDataError,
     AemetRateLimitError, AemetUnavailableError, aemet_fetch,
 )
-from weather.aemet.parsers import (
-    DAY_NAMES, fix_snow_icon, interpolate_temps, parse_diaria, parse_horaria, sky_info, synthesize_hours,
-)
-from weather.treatment_rules import treatment_level, treatment_ok, wind_level
+from weather.aemet.parsers import build_days, parse_diaria, parse_horaria
 
 logger = logging.getLogger(__name__)
 
@@ -234,95 +231,13 @@ def _build_forecast(cod: str) -> tuple[list, bool]:
     for exc in failures:
         _log_aemet_error(exc, f"previsión incompleta del municipio {cod}, se sigue con la otra")
     try:
-        daily = _combine(parts["horaria"], parts["diaria"])
+        daily = build_days(parts["horaria"], parts["diaria"])
     except Exception as exc:  # datos con una forma que no esperábamos
         raise AemetBadResponseError(f"/api/prediccion/especifica/municipio/*/{cod}",
                                     f"no se pudo combinar: {exc!r}") from exc
     if not daily:
         raise AemetNoDataError(f"/api/prediccion/especifica/municipio/*/{cod}", "las predicciones no traen días")
     return daily, bool(failures)
-
-
-def _combine(hourly_list: list, daily_summary: list) -> list:
-    """Une las horas (horaria) con el resumen de cada día (diaria) en una lista de días."""
-    # ── Construir daily list ──
-    days_map: dict[str, list] = {}
-    for h in hourly_list:
-        days_map.setdefault(h["date"], []).append(h)
-    daily_from_hourly: dict[str, dict] = {}
-    for d_str, hours in days_map.items():
-        year, month, day_num = map(int, d_str.split("-"))
-        d_obj = date(year, month, day_num)
-        label = f"{DAY_NAMES[d_obj.weekday()]} {day_num}"
-        max_precip = max(h["precipitation"] for h in hours)
-        total_precip = round(sum(h["precipitation"] for h in hours), 1)
-        max_prob = max(h["precipitation_probability"] for h in hours)
-        max_wind = max(h["wind_speed"] for h in hours)
-        max_gusts = max(h["wind_gusts"] for h in hours)
-        temps = [h["temperature"] for h in hours if h["temperature"] is not None]
-        min_temp = round(min(temps), 1) if temps else None
-        max_temp = round(max(temps), 1) if temps else None
-        daytime = [h["weather_code"] for h in hours if 6 <= int(h["hour"][:2]) <= 20]
-        dom_code = max(set(daytime), key=daytime.count) if daytime else (hours[0]["weather_code"] if hours else "")
-        sky = sky_info(dom_code)
-        daily_from_hourly[d_str] = {
-            "date": d_str,
-            "label": label,
-            "total_precipitation": total_precip,
-            "max_precipitation": round(max_precip, 1),
-            "max_precipitation_probability": max_prob,
-            "max_wind_speed": round(max_wind, 1),
-            "max_wind_gusts": round(max_gusts, 1),
-            "min_temp": min_temp,
-            "max_temp": max_temp,
-            "dominant_code": dom_code,
-            "icon": sky["icon"],
-            "label_weather": sky["label"],
-            "adverse": sky["adverse"],
-            "treatment_ok": treatment_ok(max_prob, max_wind),
-            "level": treatment_level(max_prob, max_wind),
-            "wind_level": wind_level(max_wind),
-            "sunrise": None,
-            "sunset": None,
-            "hours": hours,
-        }
-    daily_summary_map = {d["date"]: d for d in daily_summary}
-    all_dates = sorted(set(list(daily_from_hourly.keys()) + list(daily_summary_map.keys())))[:7]
-    combined_daily = []
-    for d_str in all_dates:
-        if d_str in daily_from_hourly:
-            entry = daily_from_hourly[d_str]
-            # Complementar desde diaria si falta en horaria
-            if d_str in daily_summary_map:
-                ds = daily_summary_map[d_str]
-                if entry["min_temp"] is None:
-                    entry["min_temp"] = ds.get("min_temp")
-                if entry["max_temp"] is None:
-                    entry["max_temp"] = ds.get("max_temp")
-                if not entry.get("sunrise"):
-                    entry["sunrise"] = ds.get("sunrise")
-                if not entry.get("sunset"):
-                    entry["sunset"] = ds.get("sunset")
-                # Usar precipitación de la diaria si la horaria no la tiene
-                if entry.get("total_precipitation", 0.0) == 0.0 and ds.get("total_precipitation", 0.0) > 0:
-                    entry["total_precipitation"] = ds["total_precipitation"]
-                    entry["max_precipitation"] = ds.get("max_precipitation", 0.0)
-            # Interpolar temps horarias nulas usando min/max diario
-            entry["hours"] = interpolate_temps(entry["hours"], entry["min_temp"], entry["max_temp"])
-            entry = fix_snow_icon(entry)
-            combined_daily.append(entry)
-        elif d_str in daily_summary_map:
-            ds = daily_summary_map[d_str]
-            year, month, day_num = map(int, d_str.split("-"))
-            d_obj = date(year, month, day_num)
-            entry = dict(ds)
-            entry["label"] = f"{DAY_NAMES[d_obj.weekday()]} {day_num}"
-            entry["hours"] = synthesize_hours(d_str, ds)
-            entry.setdefault("sunrise", ds.get("sunrise"))
-            entry.setdefault("sunset", ds.get("sunset"))
-            entry = fix_snow_icon(entry)
-            combined_daily.append(entry)
-    return combined_daily
 
 
 # ── Previsión por municipio de las parcelas (Inicio y El Tiempo) ───────

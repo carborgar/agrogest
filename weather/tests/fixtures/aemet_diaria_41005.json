@@ -1,0 +1,338 @@
+[
+ {
+  "nombre": "Alcalá del Río",
+  "provincia": "Sevilla",
+  "prediccion": {
+   "dia": [
+    {
+     "fecha": "2026-10-29T00:00:00",
+     "probPrecipitacion": [
+      {
+       "value": 10,
+       "periodo": "00-24"
+      },
+      {
+       "value": 5,
+       "periodo": "00-12"
+      },
+      {
+       "value": 55,
+       "periodo": "12-24"
+      }
+     ],
+     "estadoCielo": [
+      {
+       "value": "",
+       "periodo": "00-24",
+       "descripcion": ""
+      },
+      {
+       "value": "13",
+       "periodo": "00-12",
+       "descripcion": ""
+      },
+      {
+       "value": "14n",
+       "periodo": "12-24",
+       "descripcion": ""
+      }
+     ],
+     "viento": [
+      {
+       "direccion": "O",
+       "velocidad": 10,
+       "periodo": "00-24"
+      },
+      {
+       "direccion": "O",
+       "velocidad": 20,
+       "periodo": "00-24"
+      }
+     ],
+     "rachaMax": [
+      {
+       "value": "",
+       "periodo": "00-24"
+      },
+      {
+       "value": "35",
+       "periodo": "00-24"
+      }
+     ],
+     "temperatura": {
+      "maxima": 23,
+      "minima": 12,
+      "dato": []
+     }
+    },
+    {
+     "fecha": "2026-10-30T00:00:00",
+     "probPrecipitacion": [
+      {
+       "value": 90,
+       "periodo": "00-24"
+      },
+      {
+       "value": 80,
+       "periodo": "00-12"
+      },
+      {
+       "value": 95,
+       "periodo": "12-24"
+      }
+     ],
+     "estadoCielo": [
+      {
+       "value": "36",
+       "periodo": "00-24",
+       "descripcion": ""
+      },
+      {
+       "value": "46",
+       "periodo": "00-12",
+       "descripcion": ""
+      },
+      {
+       "value": "36n",
+       "periodo": "12-24",
+       "descripcion": ""
+      }
+     ],
+     "viento": [
+      {
+       "direccion": "O",
+       "velocidad": 25,
+       "periodo": "00-24"
+      },
+      {
+       "direccion": "O",
+       "velocidad": 30,
+       "periodo": "00-24"
+      }
+     ],
+     "rachaMax": [
+      {
+       "value": "50",
+       "periodo": "00-24"
+      },
+      {
+       "value": "60",
+       "periodo": "00-24"
+      }
+     ],
+     "temperatura": {
+      "maxima": 19,
+      "minima": 11,
+      "dato": []
+     }
+    },
+    {
+     "fecha": "2026-10-31T00:00:00",
+     "probPrecipitacion": [
+      {
+       "value": 40,
+       "periodo": "00-24"
+      },
+      {
+       "value": 20,
+       "periodo": "00-12"
+      },
+      {
+       "value": 40,
+       "periodo": "12-24"
+      }
+     ],
+     "estadoCielo": [
+      {
+       "value": "14",
+       "periodo": "00-24",
+       "descripcion": ""
+      },
+      {
+       "value": "14",
+       "periodo": "00-12",
+       "descripcion": ""
+      },
+      {
+       "value": "14n",
+       "periodo": "12-24",
+       "descripcion": ""
+      }
+     ],
+     "viento": [
+      {
+       "direccion": "O",
+       "velocidad": 15,
+       "periodo": "00-24"
+      }
+     ],
+     "rachaMax": [
+      {
+       "value": "30",
+       "periodo": "00-24"
+      }
+     ],
+     "temperatura": {
+      "maxima": 18,
+      "minima": 9,
+      "dato": []
+     }
+    },
+    {
+     "fecha": "2026-11-01T00:00:00",
+     "probPrecipitacion": [
+      {
+       "value": 70,
+       "periodo": "00-24"
+      },
+      {
+       "value": 70,
+       "periodo": "00-12"
+      },
+      {
+       "value": 60,
+       "periodo": "12-24"
+      }
+     ],
+     "estadoCielo": [
+      {
+       "value": "46",
+       "periodo": "00-24",
+       "descripcion": ""
+      },
+      {
+       "value": "46",
+       "periodo": "00-12",
+       "descripcion": ""
+      },
+      {
+       "value": "46n",
+       "periodo": "12-24",
+       "descripcion": ""
+      }
+     ],
+     "viento": [
+      {
+       "direccion": "O",
+       "velocidad": 10,
+       "periodo": "00-24"
+      }
+     ],
+     "rachaMax": [
+      {
+       "value": "",
+       "periodo": "00-24"
+      }
+     ],
+     "temperatura": {
+      "maxima": 5,
+      "minima": -2,
+      "dato": []
+     }
+    },
+    {
+     "fecha": "2026-11-02T00:00:00",
+     "probPrecipitacion": [
+      {
+       "value": 0,
+       "periodo": "00-24"
+      }
+     ],
+     "estadoCielo": [
+      {
+       "value": "11",
+       "periodo": "00-24",
+       "descripcion": ""
+      }
+     ],
+     "viento": [
+      {
+       "direccion": "O",
+       "velocidad": 5,
+       "periodo": "00-24"
+      }
+     ],
+     "rachaMax": [
+      {
+       "value": "",
+       "periodo": "00-24"
+      }
+     ],
+     "temperatura": {
+      "maxima": 21,
+      "minima": 8,
+      "dato": []
+     }
+    },
+    {
+     "fecha": "2026-11-03T00:00:00",
+     "probPrecipitacion": [
+      {
+       "value": 0,
+       "periodo": "00-24"
+      }
+     ],
+     "estadoCielo": [
+      {
+       "value": "12",
+       "periodo": "00-24",
+       "descripcion": ""
+      }
+     ],
+     "viento": [
+      {
+       "direccion": "O",
+       "velocidad": 10,
+       "periodo": "00-24"
+      }
+     ],
+     "rachaMax": [
+      {
+       "value": "",
+       "periodo": "00-24"
+      }
+     ],
+     "temperatura": {
+      "maxima": 22,
+      "minima": 9,
+      "dato": []
+     }
+    },
+    {
+     "fecha": "2026-11-04T00:00:00",
+     "probPrecipitacion": [
+      {
+       "value": 30,
+       "periodo": "00-24"
+      }
+     ],
+     "estadoCielo": [
+      {
+       "value": "81",
+       "periodo": "00-24",
+       "descripcion": ""
+      }
+     ],
+     "viento": [
+      {
+       "direccion": "O",
+       "velocidad": 22,
+       "periodo": "00-24"
+      }
+     ],
+     "rachaMax": [
+      {
+       "value": "45",
+       "periodo": "00-24"
+      }
+     ],
+     "temperatura": {
+      "maxima": 20,
+      "minima": 10,
+      "dato": []
+     }
+    }
+   ]
+  }
+ }
+]
