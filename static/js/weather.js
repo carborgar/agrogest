@@ -52,7 +52,7 @@ window.AgroWeather = (function () {
         if (!muni.stale || !muni.updated_at) return '';
         const d = new Date(muni.updated_at);
         const when = d.toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-        return `AEMET no responde: previsión del ${when}`;
+        return `Sin datos nuevos de AEMET: previsión del ${when}`;
     }
 
     return { localDate, hourOf, upcomingHours, okWindows, load, staleNote };

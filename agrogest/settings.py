@@ -212,8 +212,8 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-flash-lite-latest")
 
 # Caché en BD: en Vercel cada instancia tiene su propia memoria, así que una caché en memoria
-# no se comparte ni sobrevive a los arranques en frío. La tabla se crea con
-# `python manage.py createcachetable` (lo hace el workflow de migraciones).
+# no se comparte ni sobrevive a los arranques en frío. La tabla la crea la migración
+# core/0002_cache_table (createcachetable), así existe en cualquier entorno tras `migrate`.
 # Solo se cachean datos externos (AEMET), feature flags y la cuota del asistente.
 CACHES = {
     "default": {

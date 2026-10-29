@@ -1,3 +1,4 @@
+import http.client
 import io
 import json
 import pickle
@@ -11,7 +12,7 @@ from django.test import override_settings
 
 from weather.aemet import client
 from weather.aemet.client import (
-    AemetAuthError, AemetBadResponseError, AemetNoDataError, AemetRateLimitError, AemetUnavailableError,
+    AemetAuthError, AemetBadResponseError, AemetCoolingDownError, AemetNoDataError, AemetRateLimitError, AemetUnavailableError,
 )
 
 PATH = '/api/prediccion/especifica/municipio/diaria/41005'
@@ -52,8 +53,9 @@ class TestAemetFetch:
         with patch.object(client.urllib.request, 'urlopen',
                           side_effect=[FakeResponse(META_OK), FakeResponse([{'ok': 1}])]) as urlopen:
             assert client.aemet_fetch(PATH) == [{'ok': 1}]
-        api_url, data_url = (c.args[0].full_url for c in urlopen.call_args_list)
-        assert f'api_key={KEY}' in api_url and KEY not in data_url
+        api_req, data_req = (c.args[0] for c in urlopen.call_args_list)
+        assert api_req.get_header('Api_key') == KEY and KEY not in api_req.full_url
+        assert data_req.get_header('Api_key') is None
 
     def test_latin1_answer_is_decoded(self):
         body = json.dumps([{'nombre': 'Almería'}], ensure_ascii=False).encode('iso-8859-1')
@@ -82,13 +84,36 @@ class TestAemetFetch:
         with patch.object(client.urllib.request, 'urlopen', side_effect=error):
             with pytest.raises(AemetUnavailableError) as exc:
                 client.aemet_fetch(PATH)
-        assert KEY not in str(exc.value)
+        assert KEY not in str(exc.value) and exc.value.__cause__ is None and exc.value.__suppress_context__
 
     @pytest.mark.parametrize('error', [urllib.error.URLError('Name or service not known'), socket.timeout('timed out')])
     def test_network_problems_are_unavailable(self, error):
         with patch.object(client.urllib.request, 'urlopen', side_effect=error):
             with pytest.raises(AemetUnavailableError):
                 client.aemet_fetch(PATH)
+
+    def test_429_inside_a_200_answer_starts_the_wait(self):
+        with patch.object(client.urllib.request, 'urlopen',
+                          return_value=FakeResponse({'estado': 429, 'descripcion': 'Límite'})) as urlopen:
+            with pytest.raises(AemetRateLimitError):
+                client.aemet_fetch(PATH)
+            with pytest.raises(AemetCoolingDownError):
+                client.aemet_fetch(PATH)
+        assert urlopen.call_count == 1
+
+    def test_error_inside_the_data_answer(self):
+        with patch.object(client.urllib.request, 'urlopen',
+                          side_effect=[FakeResponse(META_OK), FakeResponse({'estado': 404, 'descripcion': 'datos caducados'})]):
+            with pytest.raises(AemetNoDataError, match='datos caducados'):
+                client.aemet_fetch(PATH)
+
+    def test_incomplete_read_is_unavailable(self):
+        with patch.object(client.urllib.request, 'urlopen', side_effect=http.client.IncompleteRead(b'')):
+            with pytest.raises(AemetUnavailableError, match='IncompleteRead'):
+                client.aemet_fetch(PATH)
+
+    def test_quoted_charset(self):
+        assert client._decode('Almería'.encode(), 'application/json; charset="utf-8"') == 'Almería'
 
     def test_failing_data_url_is_identified(self):
         with patch.object(client.urllib.request, 'urlopen',
@@ -106,7 +131,7 @@ class TestAemetFetch:
         with patch.object(client.urllib.request, 'urlopen', side_effect=http_error(429, {'descripcion': 'Límite'})) as urlopen:
             with pytest.raises(AemetRateLimitError):
                 client.aemet_fetch(PATH)
-            with pytest.raises(AemetRateLimitError, match='en espera'):
+            with pytest.raises(AemetCoolingDownError):
                 client.aemet_fetch(PATH)
         assert urlopen.call_count == 1
 
@@ -118,6 +143,6 @@ class TestAemetFetch:
 
 
 @pytest.mark.django_db
-def test_errors_survive_the_cache():
+def test_errors_can_be_pickled():
     error = pickle.loads(pickle.dumps(AemetRateLimitError(PATH, 'Límite', 429)))
     assert isinstance(error, AemetRateLimitError) and error.status == 429 and error.detail == 'Límite'

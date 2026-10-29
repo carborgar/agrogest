@@ -11,7 +11,10 @@ from django.utils import timezone
 from accounts.models import User
 from weather import services as ws
 from weather import treatment_rules as rules
-from weather.aemet.client import AemetAuthError, AemetRateLimitError, AemetUnavailableError
+from weather.aemet import client
+from weather.aemet.client import (
+    AemetAuthError, AemetCoolingDownError, AemetRateLimitError, AemetUnavailableError,
+)
 from weather.aemet.parsers import synthesize_hours
 from farm.tests.factories import *
 
@@ -87,7 +90,7 @@ class TestWeatherSummary:
         broken = FieldFactory(organization=org, geometry='{"type": "LineString"}')
         municipios = iter([{'cod': '1', 'nombre': 'Uno'}, {'cod': '2', 'nombre': 'Dos'}])
 
-        def fake_forecast(cod):
+        def fake_forecast(cod, can_fetch=True):
             if cod == '1':
                 return FORECAST
             raise AemetUnavailableError('/x', 'timeout')
@@ -110,11 +113,22 @@ class TestWeatherSummary:
             [muni] = ws.get_weather_summary([field])['municipalities']
         assert muni['stale'] is True and muni['updated_at'] == UPDATED.isoformat()
 
-    def test_catalogue_failure_is_reported_with_its_reason(self):
-        [field] = self._fields(OrganizationFactory(), 1)
-        with patch.object(ws, '_get_municipios', side_effect=AemetAuthError('/api/maestro/municipios', 'API key invalido', 401)):
-            summary = ws.get_weather_summary([field])
-        assert summary['errors'] == [{'reason': ws.REASON_AUTH, 'fields': [field.name]}]
+    def test_catalogue_failure_is_asked_once_and_reported_with_its_reason(self):
+        fields = self._fields(OrganizationFactory(), 3)
+        error = AemetAuthError('/api/maestro/municipios', 'API key invalido', 401)
+        with patch.object(ws, '_get_municipios', side_effect=error) as catalogue:
+            summary = ws.get_weather_summary(fields)
+        assert catalogue.call_count == 1
+        assert summary['errors'] == [{'reason': ws.REASON_AUTH, 'fields': [f.name for f in fields]}]
+
+    def test_after_the_time_budget_aemet_is_not_called(self):
+        a, b = self._fields(OrganizationFactory(), 2)
+        municipios = iter([{'cod': '1', 'nombre': 'Uno'}, {'cod': '2', 'nombre': 'Dos'}])
+        with patch.object(ws, '_nearest_municipio', side_effect=lambda *_: next(municipios)), \
+                patch.object(ws, 'SUMMARY_BUDGET', -1), \
+                patch.object(ws, 'get_forecast', side_effect=AemetUnavailableError('/p', 'sin tiempo')) as forecast:
+            ws.get_weather_summary([a, b])
+        assert [c.kwargs['can_fetch'] for c in forecast.call_args_list] == [False, False]
 
 
 @pytest.mark.django_db
@@ -124,22 +138,33 @@ class TestForecastCache:
     def _clean(self):
         cache.clear()
 
+    @staticmethod
+    def _save(cod, daily, updated_at, fresh_until):
+        cache.set(f'aemet:v1:forecast:{cod}', {'daily': daily, 'updated_at': updated_at, 'fresh_until': fresh_until})
+
     def test_fresh_forecast_is_reused(self):
-        with patch.object(ws, '_build_forecast', return_value=DAILY) as build:
+        with patch.object(ws, '_build_forecast', return_value=(DAILY, False)) as build:
             first = ws.get_forecast('8')
             second = ws.get_forecast('8')
         assert build.call_count == 1
         assert first['daily'] == second['daily'] == DAILY and not second['stale']
 
+    def test_partial_forecast_is_fresh_for_less_time(self):
+        with patch.object(ws, '_build_forecast', return_value=(DAILY, True)):
+            ws.get_forecast('8')
+        saved = cache.get('aemet:v1:forecast:8')
+        assert saved['fresh_until'] - saved['updated_at'] == ws._FORECAST_PARTIAL_FRESH
+
     def test_expired_forecast_is_refreshed(self):
-        cache.set('aemet:forecast:8', {'daily': [], 'updated_at': timezone.now() - timedelta(hours=1)})
-        with patch.object(ws, '_build_forecast', return_value=DAILY) as build:
+        now = timezone.now()
+        self._save('8', [], now - timedelta(hours=1), now - timedelta(minutes=30))
+        with patch.object(ws, '_build_forecast', return_value=(DAILY, False)) as build:
             assert ws.get_forecast('8')['daily'] == DAILY
         assert build.call_count == 1
 
     def test_last_good_forecast_is_served_when_aemet_fails(self, caplog):
         old = timezone.now() - timedelta(hours=3)
-        cache.set('aemet:forecast:8', {'daily': DAILY, 'updated_at': old})
+        self._save('8', DAILY, old, old)
         with patch.object(ws, '_build_forecast', side_effect=AemetUnavailableError('/p', 'timeout')), \
                 caplog.at_level(logging.WARNING, logger='weather.services'):
             result = ws.get_forecast('8')
@@ -148,16 +173,41 @@ class TestForecastCache:
         assert record.levelno == logging.WARNING
         assert 'municipio 8' in record.getMessage() and 'timeout' in record.getMessage()
 
+    def test_during_the_retry_wait_the_saved_one_is_served_silently(self, caplog):
+        old = timezone.now() - timedelta(hours=3)
+        self._save('8', DAILY, old, old)
+        with patch.object(ws, '_build_forecast', side_effect=AemetUnavailableError('/p', 'timeout')) as build:
+            ws.get_forecast('8')
+            caplog.clear()
+            with caplog.at_level(logging.WARNING, logger='weather.services'):
+                assert ws.get_forecast('8')['stale'] is True
+        assert build.call_count == 1 and caplog.records == []
+
     def test_failure_without_saved_forecast_raises_and_waits_before_retrying(self, caplog):
-        error = AemetRateLimitError('/p', 'Límite de peticiones', 429)
+        error = AemetUnavailableError('/p', 'HTTP 500', 500)
         with patch.object(ws, '_build_forecast', side_effect=error) as build, \
                 caplog.at_level(logging.WARNING, logger='weather.services'):
-            with pytest.raises(AemetRateLimitError):
+            with pytest.raises(AemetUnavailableError):
                 ws.get_forecast('9')
-            with pytest.raises(AemetRateLimitError):   # dentro de la espera: ni llama ni repite el log
+            with pytest.raises(AemetUnavailableError, match='HTTP 500'):   # dentro de la espera: ni llama ni repite el log
                 ws.get_forecast('9')
         assert build.call_count == 1
         assert len(caplog.records) == 1
+
+    def test_rate_limit_waits_one_minute_not_five(self):
+        with patch.object(ws, '_build_forecast', side_effect=AemetRateLimitError('/p', 'Límite', 429)), \
+                patch.object(ws.cache, 'set', wraps=ws.cache.set) as cache_set:
+            with pytest.raises(AemetRateLimitError):
+                ws.get_forecast('9')
+        [retry_call] = [c for c in cache_set.call_args_list if 'forecast-retry' in c.args[0]]
+        assert retry_call.args[2] == client.RATE_LIMIT_COOLDOWN
+
+    def test_cooling_down_is_not_logged_nor_remembered(self, caplog):
+        with patch.object(ws, '_build_forecast', side_effect=AemetCoolingDownError('/p')), \
+                caplog.at_level(logging.DEBUG, logger='weather.services'):
+            with pytest.raises(AemetRateLimitError):
+                ws.get_forecast('9')
+        assert caplog.records == [] and cache.get('aemet:v1:forecast-retry:9') is None
 
     def test_auth_errors_are_logged_as_error(self, caplog):
         with patch.object(ws, '_build_forecast', side_effect=AemetAuthError('/p', 'API key invalido', 401)), \
@@ -167,6 +217,14 @@ class TestForecastCache:
         [record] = caplog.records
         assert record.levelno == logging.ERROR and 'API key invalido' in record.getMessage()
 
+    def test_out_of_time_does_not_call_aemet(self, caplog):
+        with patch.object(ws, '_build_forecast') as build, \
+                caplog.at_level(logging.WARNING, logger='weather.services'):
+            with pytest.raises(AemetUnavailableError, match='se agotó el tiempo'):
+                ws.get_forecast('7', can_fetch=False)
+        build.assert_not_called()
+        assert 'municipio 7' in caplog.text
+
 
 @pytest.mark.django_db
 class TestBuildForecast:
@@ -175,27 +233,46 @@ class TestBuildForecast:
     def _clean(self):
         cache.clear()
 
-    def test_uses_the_other_part_when_one_fails_and_logs_it(self, caplog):
-        day = {'date': '2026-11-01', 'max_precipitation_probability': 0, 'max_wind_speed': 5.0,
-               'min_temp': 10, 'max_temp': 20, 'dominant_code': '11'}
+    DAY = {'date': '2026-11-01', 'max_precipitation_probability': 0, 'max_wind_speed': 5.0,
+           'min_temp': 10, 'max_temp': 20, 'dominant_code': '11'}
 
+    def test_uses_the_other_part_when_one_fails_and_logs_it(self, caplog):
         def fetch(path):
             if '/horaria/' in path:
                 raise AemetUnavailableError(path, 'HTTP 500')
             return 'diaria'
 
         with patch.object(ws, 'aemet_fetch', side_effect=fetch), \
-                patch.object(ws, 'parse_diaria', return_value=[day]), \
+                patch.object(ws, 'parse_diaria', return_value=[self.DAY]), \
                 caplog.at_level(logging.WARNING, logger='weather.services'):
-            daily = ws._build_forecast('5')
-        assert [d['date'] for d in daily] == ['2026-11-01']
+            daily, partial = ws._build_forecast('5')
+        assert [d['date'] for d in daily] == ['2026-11-01'] and partial
         assert 'horaria' in caplog.text and 'HTTP 500' in caplog.text
+
+    def test_both_fail_raises_the_most_serious_and_logs_the_other(self, caplog):
+        def fetch(path):
+            if '/horaria/' in path:
+                raise AemetUnavailableError(path, 'timeout')
+            raise AemetAuthError(path, 'API key invalido', 401)
+
+        with patch.object(ws, 'aemet_fetch', side_effect=fetch), \
+                caplog.at_level(logging.WARNING, logger='weather.services'):
+            with pytest.raises(AemetAuthError):
+                ws._build_forecast('5')
+        assert 'timeout' in caplog.text
 
     def test_unparseable_answer_is_a_bad_response(self):
         with patch.object(ws, 'aemet_fetch', return_value={'inesperado': True}), \
                 patch.object(ws, 'parse_horaria', side_effect=KeyError('prediccion')), \
                 patch.object(ws, 'parse_diaria', side_effect=KeyError('prediccion')):
             with pytest.raises(ws.AemetBadResponseError, match='no se pudo interpretar'):
+                ws._build_forecast('5')
+
+    def test_data_that_cannot_be_combined_is_a_bad_response(self):
+        with patch.object(ws, 'aemet_fetch', return_value='x'), \
+                patch.object(ws, 'parse_horaria', return_value=[{'date': 'mal', 'hour': 'xx'}]), \
+                patch.object(ws, 'parse_diaria', return_value=[]):
+            with pytest.raises(ws.AemetBadResponseError, match='no se pudo combinar'):
                 ws._build_forecast('5')
 
 
@@ -206,23 +283,35 @@ class TestMunicipality:
     def _clean(self):
         cache.clear()
 
-    CATALOGUE = [{'cod': '46250', 'nombre': 'Valencia', 'lat': 39.47, 'lon': -0.38},
-                 {'cod': '41091', 'nombre': 'Sevilla', 'lat': 37.39, 'lon': -5.99}]
+    CATALOGUE = [('46250', 'Valencia', 39.47, -0.38), ('41091', 'Sevilla', 37.39, -5.99)]
 
     def test_nearest_is_remembered_and_follows_new_coordinates(self):
         with patch.object(ws, '_get_municipios', return_value=self.CATALOGUE) as catalogue:
+            assert ws._nearest_municipio(39.4, -0.4) == {'cod': '46250', 'nombre': 'Valencia'}
             assert ws._nearest_municipio(39.4, -0.4)['nombre'] == 'Valencia'
-            assert ws._nearest_municipio(39.4, -0.4)['nombre'] == 'Valencia'
-            assert catalogue.call_count == 1                       # mismas coordenadas: no se busca otra vez
+            assert catalogue.call_count == 1                                   # mismas coordenadas: no se busca otra vez
             assert ws._nearest_municipio(37.4, -6.0)['nombre'] == 'Sevilla'   # parcela movida
             assert catalogue.call_count == 2
 
-    def test_catalogue_is_cached(self):
-        raw = [{'id': 'id46250', 'nombre': 'Valencia', 'latitud_dec': '39.47', 'longitud_dec': '-0.38'}]
+    def test_catalogue_is_cached_compact(self):
+        raw = [{'id': 'id46250', 'nombre': 'Valencia', 'latitud_dec': '39.470001', 'longitud_dec': '-0.38'}]
         with patch.object(ws, 'aemet_fetch', return_value=raw) as fetch:
             assert ws._get_municipios() == [self.CATALOGUE[0]]
             assert ws._get_municipios() == [self.CATALOGUE[0]]
         assert fetch.call_count == 1
+
+    def test_catalogue_failure_is_logged_once_and_waits(self, caplog):
+        with patch.object(ws, 'aemet_fetch', side_effect=AemetUnavailableError('/api/maestro/municipios', 'timeout')) as fetch, \
+                caplog.at_level(logging.WARNING, logger='weather.services'):
+            for _ in range(2):
+                with pytest.raises(AemetUnavailableError):
+                    ws._get_municipios()
+        assert fetch.call_count == 1 and len(caplog.records) == 1
+
+    def test_malformed_catalogue_is_a_bad_response(self):
+        with patch.object(ws, 'aemet_fetch', return_value=['no soy un dict']):
+            with pytest.raises(ws.AemetBadResponseError, match='no se pudo interpretar'):
+                ws._get_municipios()
 
 
 @pytest.mark.django_db

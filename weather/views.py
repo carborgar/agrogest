@@ -30,7 +30,9 @@ class WeatherOverviewView(FeatureFlagMixin, LoginRequiredMixin, TemplateView):
 def weather_summary(request):
     """
     Previsión por municipio de las parcelas del usuario (una sola llamada para Inicio y El Tiempo).
-    GET /api/weather/summary/ → {"municipalities": [{name, fields, daily}], "errors": [{reason, fields}]}
+    GET /api/weather/summary/ →
+        {"municipalities": [{name, fields, daily, updated_at, stale}], "errors": [{reason, fields}]}
+    `stale`: AEMET ha fallado y se manda la última previsión buena (de `updated_at`).
     """
     from core.models import is_enabled
 
