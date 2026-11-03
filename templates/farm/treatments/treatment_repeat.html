@@ -1,117 +1,90 @@
 {% extends "base.html" %}
 {% load custom_filters %}
 
-{% block title %}Repetir — {{ treatment.name }}{% endblock %}
+{% block title %}Repetir tratamiento · AgroGest{% endblock %}
 {% block header %}Repetir tratamiento{% endblock %}
 
+{% block actions %}
+<a class="btn btn-outline-secondary btn-sm d-lg-none" href="{% url 'treatment-detail' treatment.id %}">Cancelar</a>
+{% endblock %}
+
 {% block content %}
-{% with state_class=treatment|treatment_state_class %}
-<div class="row justify-content-center">
-    <div class="col-lg-9">
+{# Como en el formulario de tratamiento: la barra de acción sustituye a la barra de navegación inferior #}
+<script>document.body.classList.add('tf-page');</script>
+<div class="tf">
+    <form id="repeatForm" method="post" novalidate>
+        {% csrf_token %}
+        <div id="hiddenDatesContainer"></div>
 
-        <!-- Resumen del tratamiento original -->
-        <div class="card mb-4">
-            <div class="card-body d-flex align-items-center gap-3">
-                <div class="treatment-icon bg-{{ state_class }} bg-opacity-10">
-                    <i class="fa fa-{{ treatment|treatment_type_icon }} text-{{ state_class }}"></i>
-                </div>
-                <div class="flex-grow-1">
-                    <div class="fw-bold fs-5">{{ treatment.name }}</div>
-                    <div class="text-muted small">
-                        {{ treatment.get_type_display }} &middot;
-                        <strong>{{ treatment.field.name }}</strong>
-                        {% for tp in treatment.treatmentproduct_set.all %}
-                        &middot; {{ tp.product.name }}
-                        {% endfor %}
-                    </div>
-                </div>
-                <a class="btn btn-sm btn-outline-secondary" href="{% url 'treatment-detail' treatment.id %}">
-                    <i class="fa fa-arrow-left me-1"></i>Volver
-                </a>
-            </div>
-        </div>
+        <div class="tf-layout">
+            <div class="tf-main">
+                {% include "farm/treatments/_secondary_origin.html" %}
 
-        <form id="repeatForm" method="POST">
-            {% csrf_token %}
-            <div id="hiddenDatesContainer"></div>
-
-            <div class="row g-4">
-
-                <!-- ── Calendario ── -->
-                <div class="col-md-7">
-                    <div class="card">
-                        <div class="card-header d-flex align-items-center justify-content-between">
-                            <button class="btn btn-sm btn-outline-secondary" id="btnPrevMonth" type="button">
-                                <i class="fa fa-chevron-left"></i>
-                            </button>
-                            <span id="calMonthLabel"></span>
-                            <button class="btn btn-sm btn-outline-secondary" id="btnNextMonth" type="button">
-                                <i class="fa fa-chevron-right"></i>
-                            </button>
-                        </div>
-                        <div class="card-body">
-                            <table class="table table-borderless text-center mb-0">
-                                <thead>
-                                <tr>
-                                    <th class="text-muted small fw-normal py-1">L</th>
-                                    <th class="text-muted small fw-normal py-1">M</th>
-                                    <th class="text-muted small fw-normal py-1">X</th>
-                                    <th class="text-muted small fw-normal py-1">J</th>
-                                    <th class="text-muted small fw-normal py-1">V</th>
-                                    <th class="text-muted small fw-normal py-1">S</th>
-                                    <th class="text-muted small fw-normal py-1">D</th>
-                                </tr>
-                                </thead>
-                                <tbody id="calBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ── Resumen ── -->
-                <div class="col-md-5">
-                    <div class="card h-100">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <span>Fechas seleccionadas</span>
-                            <span class="badge bg-primary" id="dateCount">0</span>
-                        </div>
-                        <div class="card-body p-0">
-                            <div id="dateList" style="max-height: 320px; overflow-y: auto;">
-                                <div class="text-muted text-center py-5 fst-italic small" id="emptyMsg">
-                                    <i class="fa fa-calendar-xmark fa-2x mb-2 d-block opacity-25"></i>
-                                    Ninguna fecha seleccionada
-                                </div>
+                <div class="tf-row-2">
+                    {# ── Calendario ── #}
+                    <section class="tf-card" aria-labelledby="calMonthLabel">
+                        <div class="tf-head align-items-center">
+                            <h2 class="tf-h2" id="calMonthLabel" aria-live="polite"></h2>
+                            <div class="d-flex">
+                                <button class="tf-icon-btn" id="btnPrevMonth" type="button" aria-label="Mes anterior"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+                                <button class="tf-icon-btn" id="btnNextMonth" type="button" aria-label="Mes siguiente"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
                             </div>
                         </div>
-                        <div class="card-footer py-2">
-                            <button class="btn btn-link btn-sm text-danger p-0 small" id="btnClear" type="button">
-                                <i class="fa fa-trash me-1"></i>Limpiar todo
-                            </button>
+                        <div>
+                            <div class="rp-grid" aria-hidden="true">
+                                <span class="rp-wd">L</span><span class="rp-wd">M</span><span class="rp-wd">X</span><span class="rp-wd">J</span>
+                                <span class="rp-wd">V</span><span class="rp-wd">S</span><span class="rp-wd">D</span>
+                            </div>
+                            <div class="rp-grid" id="calBody" role="group" aria-labelledby="calMonthLabel"></div>
                         </div>
-                    </div>
+                        <p class="tf-hint mb-0">Toca los días en que quieras repetirlo. Se crea un tratamiento por fecha.</p>
+                    </section>
+
+                    {# ── Fechas elegidas ── #}
+                    <section class="tf-card" aria-labelledby="datesTitle">
+                        <div class="tf-head align-items-center">
+                            <h2 class="tf-h2" id="datesTitle">Fechas elegidas <span class="tf-hint" id="dateCount">0</span></h2>
+                            <button class="tf-link d-none" id="btnClear" type="button">Limpiar todo</button>
+                        </div>
+                        <ul class="rp-dates" id="dateList"></ul>
+                        <div class="hm-empty" id="emptyMsg">
+                            <span class="hm-empty-icon"><i class="bi bi-calendar-check" aria-hidden="true"></i></span>
+                            <b>Ninguna fecha elegida</b>
+                            <span>Las fechas que marques aparecerán aquí.</span>
+                        </div>
+                    </section>
                 </div>
-
             </div>
 
-            <div class="d-flex gap-2 justify-content-end mt-4">
-                <a class="btn btn-secondary" href="{% url 'treatment-detail' treatment.id %}">Cancelar</a>
-                <button class="btn btn-primary" disabled id="submitBtn" type="submit">
-                    <i class="fa fa-rotate me-1"></i>
-                    Crear <span id="submitCount">0</span> tratamiento<span id="submitPlural">s</span>
-                </button>
-            </div>
-        </form>
-
-    </div>
+            {# ── Resumen: barra fija abajo (móvil) / tarjeta lateral (escritorio) ── #}
+            <aside class="tf-summary" aria-label="Resumen de la repetición">
+                <div class="tf-sum-top">
+                    <span class="tf-lbl tf-sum-label">Se crearán</span>
+                    <div class="tf-sum-main-wrap">
+                        <span class="tf-sum-main" id="sumMain" aria-live="polite">0 tratamientos</span>
+                        <span class="tf-sum-sub" id="sumSub">Elige al menos una fecha</span>
+                    </div>
+                    <dl class="tf-kv">
+                        <div><dt>Parcela</dt><dd>{{ treatment.field.name }}</dd></div>
+                        <div><dt>Productos</dt><dd>{{ treatment.treatmentproduct_set.all|length }}</dd></div>
+                    </dl>
+                </div>
+                <div class="tf-sum-actions">
+                    <button class="tf-btn tf-btn--primary" disabled id="submitBtn" type="submit">Repetir</button>
+                    <a class="tf-btn tf-btn--sec tf-sum-cancel" href="{% url 'treatment-detail' treatment.id %}">Cancelar</a>
+                </div>
+            </aside>
+        </div>
+    </form>
 </div>
-{% endwith %}
 {% endblock %}
 
 {% block extra_js %}
 <script>
     (function () {
-        const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+            'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+        const MONTHS_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
         const DAY_NAMES = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
         const selected = new Set(); // ISO "YYYY-MM-DD"
@@ -122,83 +95,87 @@
         let viewYear = now.getFullYear();
         let viewMonth = now.getMonth(); // 0-based
 
+        const $ = id => document.getElementById(id);
+        const grid = $('calBody');
+        const list = $('dateList');
+        const prevBtn = $('btnPrevMonth');
+        const nextBtn = $('btnNextMonth');
+
         function toISO(y, m, d) {
             return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         }
 
-        function formatDisplay(iso) {
+        function parseISO(iso) {
             const [y, m, d] = iso.split('-').map(Number);
-            const dt = new Date(y, m - 1, d);
-            const wd = DAY_NAMES[(dt.getDay() + 6) % 7];
-            return `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y} — ${wd.charAt(0).toUpperCase() + wd.slice(1)}`;
+            return new Date(y, m - 1, d);
         }
 
-        // ── Render calendar ──────────────────────────────────────
+        function weekday(date) {
+            return DAY_NAMES[(date.getDay() + 6) % 7];
+        }
+
+        // «7 nov» (con el año si no es el actual)
+        function shortDate(iso) {
+            const dt = parseISO(iso);
+            const y = dt.getFullYear() === now.getFullYear() ? '' : ` ${dt.getFullYear()}`;
+            return `${dt.getDate()} ${MONTHS_SHORT[dt.getMonth()]}${y}`;
+        }
+
+        function relative(iso) {
+            const days = Math.round((parseISO(iso) - parseISO(todayISO)) / 86400000);
+            if (days === 0) return 'hoy';
+            if (days === 1) return 'mañana';
+            return `en ${days} días`;
+        }
+
+        // ── Calendario: se pinta al cambiar de mes; al elegir un día solo cambia aria-pressed ──
         function renderCal() {
-            document.getElementById('calMonthLabel').textContent =
-                `${MONTHS[viewMonth]} ${viewYear}`;
+            $('calMonthLabel').textContent = `${MONTHS[viewMonth].charAt(0).toUpperCase()}${MONTHS[viewMonth].slice(1)} ${viewYear}`;
+            prevBtn.disabled = viewYear === now.getFullYear() && viewMonth === now.getMonth();
 
-            const body = document.getElementById('calBody');
-            body.innerHTML = '';
-
+            const frag = document.createDocumentFragment();
             const firstDay = new Date(viewYear, viewMonth, 1);
-            const lastDay = new Date(viewYear, viewMonth + 1, 0);
-            const startWd = (firstDay.getDay() + 6) % 7; // 0=Mon
+            const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+            const startWd = (firstDay.getDay() + 6) % 7; // 0 = lunes
+            for (let i = 0; i < startWd; i++) frag.appendChild(document.createElement('span'));
 
-            let row = document.createElement('tr');
-            for (let i = 0; i < startWd; i++) row.appendChild(document.createElement('td'));
-
-            for (let day = 1; day <= lastDay.getDate(); day++) {
+            for (let day = 1; day <= daysInMonth; day++) {
                 const iso = toISO(viewYear, viewMonth, day);
-                const isPast = iso < todayISO;
                 const isOrigin = iso === originISO;
-                const disabled = isPast || isOrigin;
-
-                const td = document.createElement('td');
-                td.className = 'p-0';
-
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.textContent = day;
-                btn.className = 'btn btn-sm rounded-circle cal-day';
+                btn.className = 'rp-day' + (iso === todayISO ? ' rp-day--today' : '') + (isOrigin ? ' rp-day--origin' : '');
                 btn.dataset.iso = iso;
-
-                if (disabled) {
-                    btn.classList.add('btn-link', 'text-muted', 'opacity-25');
-                    btn.disabled = true;
-                } else if (selected.has(iso)) {
-                    btn.classList.add('btn-primary');
-                } else {
-                    btn.classList.add('btn-link', 'text-body');
-                    if (iso === todayISO) btn.classList.add('fw-bold', 'text-primary');
-                }
-
-                if (!disabled) btn.addEventListener('click', () => toggleDate(iso));
-                td.appendChild(btn);
-                row.appendChild(td);
-
-                if ((new Date(viewYear, viewMonth, day).getDay() + 6) % 7 === 6) {
-                    body.appendChild(row);
-                    row = document.createElement('tr');
-                }
+                btn.setAttribute('aria-label',
+                    `${weekday(new Date(viewYear, viewMonth, day))} ${day} de ${MONTHS[viewMonth]}${isOrigin ? ', fecha del tratamiento original' : ''}`);
+                if (isOrigin) btn.title = 'Fecha del tratamiento original';
+                btn.disabled = iso < todayISO || isOrigin;
+                btn.setAttribute('aria-pressed', selected.has(iso) ? 'true' : 'false');
+                if (!btn.disabled) btn.addEventListener('click', () => toggleDate(iso));
+                frag.appendChild(btn);
             }
-            if (row.children.length) body.appendChild(row);
+            grid.replaceChildren(frag);
         }
 
-        // ── Toggle ───────────────────────────────────────────────
+        function markDays() {
+            grid.querySelectorAll('.rp-day').forEach(btn => {
+                btn.setAttribute('aria-pressed', selected.has(btn.dataset.iso) ? 'true' : 'false');
+            });
+        }
+
         function toggleDate(iso) {
             selected.has(iso) ? selected.delete(iso) : selected.add(iso);
-            renderCal();
+            markDays();
             renderSummary();
         }
 
-        // ── Render summary ───────────────────────────────────────
+        // ── Resumen y lista ──────────────────────────────────────
         function renderSummary() {
             const sorted = Array.from(selected).sort();
             const count = sorted.length;
 
-            // Hidden inputs
-            const hidden = document.getElementById('hiddenDatesContainer');
+            const hidden = $('hiddenDatesContainer');
             hidden.innerHTML = '';
             sorted.forEach(iso => {
                 const inp = document.createElement('input');
@@ -208,50 +185,62 @@
                 hidden.appendChild(inp);
             });
 
-            // List
-            const list = document.getElementById('dateList');
-            list.querySelectorAll('.date-item').forEach(el => el.remove());
-            document.getElementById('emptyMsg').classList.toggle('d-none', count > 0);
+            list.replaceChildren(...sorted.map(iso => {
+                const dt = parseISO(iso);
+                const li = document.createElement('li');
+                li.className = 'rp-date';
+                const main = document.createElement('div');
+                main.className = 'rp-date-main';
+                main.textContent = `${weekday(dt).charAt(0).toUpperCase()}${weekday(dt).slice(1)} ${shortDate(iso)}`;
+                const rel = document.createElement('span');
+                rel.textContent = `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()} · ${relative(iso)}`;
+                main.appendChild(rel);
+                const rm = document.createElement('button');
+                rm.type = 'button';
+                rm.className = 'tf-icon-btn';
+                rm.setAttribute('aria-label', `Quitar el ${shortDate(iso)}`);
+                rm.innerHTML = '<i class="bi bi-x-lg" aria-hidden="true"></i>';
+                rm.addEventListener('click', () => {
+                    const idx = sorted.indexOf(iso);
+                    toggleDate(iso);
+                    // El foco pasa a la fila siguiente (o a la anterior) para seguir con el teclado
+                    const btns = list.querySelectorAll('button');
+                    (btns[idx] || btns[idx - 1] || grid.querySelector('.rp-day:not(:disabled)'))?.focus();
+                });
+                li.append(main, rm);
+                return li;
+            }));
 
-            sorted.forEach(iso => {
-                const div = document.createElement('div');
-                div.className = 'date-item d-flex justify-content-between align-items-center px-3 py-2 border-bottom';
-                div.innerHTML = `
-                <span class="small">
-                    <i class="fa fa-calendar-day me-2 text-primary opacity-50"></i>${formatDisplay(iso)}
-                </span>
-                <button type="button" class="btn btn-link btn-sm text-danger p-0 lh-1" title="Quitar">
-                    <i class="fa fa-xmark"></i>
-                </button>`;
-                div.querySelector('button').addEventListener('click', () => toggleDate(iso));
-                list.appendChild(div);
-            });
-
-            document.getElementById('dateCount').textContent = count;
-            document.getElementById('submitCount').textContent = count;
-            document.getElementById('submitPlural').textContent = count === 1 ? '' : 's';
-            document.getElementById('submitBtn').disabled = count === 0;
+            $('emptyMsg').classList.toggle('d-none', count > 0);
+            $('btnClear').classList.toggle('d-none', count === 0);
+            $('dateCount').textContent = count === 1 ? '· 1 fecha' : `· ${count} fechas`;
+            $('sumMain').textContent = `${count} tratamiento${count === 1 ? '' : 's'}`;
+            $('sumSub').textContent = count ? sorted.map(shortDate).join(' · ') : 'Elige al menos una fecha';
+            $('submitBtn').disabled = count === 0;
         }
 
-        // ── Nav ──────────────────────────────────────────────────
-        document.getElementById('btnPrevMonth').addEventListener('click', () => {
+        // ── Navegación ───────────────────────────────────────────
+        prevBtn.addEventListener('click', () => {
             if (--viewMonth < 0) {
                 viewMonth = 11;
                 viewYear--;
             }
             renderCal();
+            if (prevBtn.disabled) nextBtn.focus();
         });
-        document.getElementById('btnNextMonth').addEventListener('click', () => {
+        nextBtn.addEventListener('click', () => {
             if (++viewMonth > 11) {
                 viewMonth = 0;
                 viewYear++;
             }
             renderCal();
         });
-        document.getElementById('btnClear').addEventListener('click', () => {
+        $('btnClear').addEventListener('click', () => {
             selected.clear();
-            renderCal();
+            markDays();
             renderSummary();
+            // El botón se oculta con el foco dentro: pasa al primer día habilitado
+            grid.querySelector('.rp-day:not(:disabled)')?.focus();
         });
 
         renderCal();
@@ -259,4 +248,3 @@
     })();
 </script>
 {% endblock %}
-

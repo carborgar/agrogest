@@ -2,217 +2,166 @@
 <html lang="es">
 <head>
     {% load static %}
-    {% load treatment_filters %}
     <meta charset="UTF-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <title>Instrucciones para operador - {{ treatment.name }}</title>
+    <title>Instrucciones para el operador · {{ treatment.name }}</title>
 
     <link href="{% static 'css/custom-bootstrap.min.css' %}" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
     <link href="{% static 'css/styles.css' %}" rel="stylesheet">
     <link href="{% static 'css/treatment-styles.css' %}" rel="stylesheet">
-
-    <style>
-        :root {
-            --border-color: #dee2e6;
-        }
-
-        body {
-            line-height: 1.6;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 20px auto;
-            padding: 15px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .header {
-            padding: 15px;
-            margin: -15px -15px 15px -15px;
-        }
-
-        .footer {
-            margin-top: 30px;
-            padding-top: 15px;
-            border-top: 1px solid var(--border-color);
-            text-align: center;
-            font-size: 12px;
-            color: #6c757d;
-        }
-
-        .export-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin: 20px 0;
-        }
-    </style>
 </head>
 <body>
-<div class="card container mb-3" id="export-container">
-    <div class="card-header header">
-        <h3 class="mb-1">Instrucciones para operador</h3>
-        <div class="d-flex flex-wrap gap-3 mt-1" style="font-size:0.9rem;">
-            <span><i class="fa fa-clipboard-check me-1"></i><strong>{{ treatment.name }}</strong></span>
-            <span><i class="fa fa-map-marked-alt me-1"></i>{{ treatment.field.name }}
-                ({{ treatment.field.crop }}, {{ treatment.effective_area }} ha{% if treatment.is_partial_treatment %} de {{ treatment.field.area }} ha{% endif %})</span>
+{% comment %}
+Hoja suelta (sin menú ni barra): lo que hay dentro de #export-container es lo que se exporta a imagen/PDF con
+html2canvas y lo que se imprime. Debe valerse por sí sola: solo texto y tablas, sin iconos ni elementos externos.
+Los botones de debajo no salen en la exportación ni en la impresión.
+{% endcomment %}
+<main class="op-wrap">
+    {% with load_info=treatment.calculate_machine_loads %}
+    <article class="card card-flat" id="export-container">
+        <div class="dt-card-head">
+            <div>
+                <div class="dt-label">Instrucciones para el operador</div>
+                <h1 class="dt-card-title fs-5">{{ treatment.name }}</h1>
+            </div>
+        </div>
+
+        {# ── Datos de la tarea ── #}
+        <div class="dt-summary">
+            <div class="dt-cell{% if treatment.machine %} op-wide{% endif %}">
+                <div class="dt-label">Parcela</div>
+                <div class="dt-value">{{ treatment.field.name }}</div>
+                <div class="dt-sub">{{ treatment.field.crop }} · {{ treatment.effective_area }} ha{% if treatment.is_partial_treatment %} de {{ treatment.field.area }} ha{% endif %}</div>
+            </div>
+            <div class="dt-cell">
+                <div class="dt-label">Fecha</div>
+                <div class="dt-value">{{ treatment.date|date:"d/m/Y" }}</div>
+                <div class="dt-sub">{{ treatment.get_type_display }}</div>
+            </div>
             {% if treatment.machine %}
-            <span><i class="fa fa-fill-drip me-1"></i>
-                {% if treatment.real_water_per_ha and treatment.real_water_per_ha != treatment.water_per_ha %}
-                <del class="text-white-50">{{ treatment.water_per_ha }} L/ha</del>
-                {% endif %}
-                <strong>{{ treatment.actual_water_per_ha }} L/ha</strong>
-            </span>
+            <div class="dt-cell">
+                <div class="dt-label">Mojado</div>
+                <div class="dt-value">
+                    {% if treatment.real_water_per_ha and treatment.real_water_per_ha != treatment.water_per_ha %}
+                    <del class="fw-normal dt-fg-2">{{ treatment.water_per_ha }}</del>
+                    {% endif %}
+                    {{ treatment.actual_water_per_ha }} L/ha
+                </div>
+                {% if load_info %}<div class="dt-sub">{{ load_info.total_water }} L en total</div>{% endif %}
+            </div>
             {% endif %}
         </div>
-    </div>
-    <div class="card-body p-0">
 
-        {% with load_info=treatment.calculate_machine_loads %}
-        {% if treatment.is_fertigation or load_info.full_loads > 0 %}
-        <div class="card mb-3">
-            <div class="card-header bg-success-subtle border-bottom border-success border-2">
-                {% if treatment.is_fertigation %}
-                <h5 class="mb-0"><i class="fa fa-droplet me-2"></i>Dosis a aplicar:</h5>
-                {% elif treatment.is_spraying %}
-                <h5 class="mb-0"><i class="fa fa-tractor me-1"></i> {{ load_info.full_loads }} máquina{{ load_info.full_loads|pluralize }} completa{{ load_info.full_loads|pluralize }} con:
-                </h5>
-                {% endif %}
-            </div>
-            <div class="card-body p-0">
-                <table class="table table-bordered table-responsive mb-0">
-                    <thead>
-                    <tr>
-                        <th scope="col">Producto</th>
-                        <th scope="col">Cantidad</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for product in products %}
-                    <tr>
-                        <td>{{ product.product.name }}</td>
-                        <td>{{ product.get_dose_per_load|floatformat:"2" }} {{ product.total_dose_unit }}</td>
-                    </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+        {# ── Qué echar y en qué orden ── #}
+        {% comment %}Sin cubas completas (todo cabe en una sola o menos) no hay reparto por máquina: se da el total.{% endcomment %}
+        {% if treatment.is_fertigation or not load_info or load_info.full_loads == 0 %}
+        <div class="dt-tone-3 px-3 py-2 fw-bold">{% if treatment.is_fertigation %}Dosis a aplicar en toda la parcela:{% else %}Cantidad total para la parcela:{% endif %}</div>
+        {% elif load_info.full_loads > 0 %}
+        <div class="dt-tone-3 px-3 py-2 fw-bold">{{ load_info.full_loads }} máquina{{ load_info.full_loads|pluralize }} completa{{ load_info.full_loads|pluralize }} con:</div>
         {% endif %}
 
-        {% if load_info.partial_load %}
-        <!-- Máquina parcial: solo mostrar el agua, el operador calcula las dosis -->
-        <div class="card mb-3 border-warning">
-            <div class="card-header bg-warning-subtle border-bottom border-warning border-2">
-                <h5 class="mb-0"><i class="fa fa-fill-drip me-1"></i>
-                    + 1 máquina parcial con <strong>{{ load_info.partial_water }} L</strong> de agua
-                </h5>
-            </div>
-        </div>
+        {% if products %}
+        <table class="table mb-0 dt-table">
+            <thead>
+            <tr>
+                <th class="dt-num-col" scope="col">#</th>
+                <th scope="col">Producto</th>
+                <th class="dt-col-full text-end" scope="col">Cantidad</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for product in products %}
+            <tr>
+                <td><span class="dt-num">{{ forloop.counter }}</span></td>
+                <td class="fw-bold">{{ product.product.name }}</td>
+                <td class="dt-col-full dt-qty text-end">{% if treatment.is_fertigation or not load_info or load_info.full_loads == 0 %}{{ product.total_dose|floatformat:"2" }}{% else %}{{ product.get_dose_per_load|floatformat:"2" }}{% endif %} {{ product.total_dose_unit }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="dt-muted px-3 py-3 mb-0">Sin productos asignados.</p>
         {% endif %}
-        {% endwith %}
 
-        <div class="alert alert-info mb-0">
-            <i class="fa fa-circle-info me-2"></i>
-            <strong>Nota:</strong>
-            Asegúrese de aplicar los productos en el orden indicado.
-        </div>
+        {# Máquina parcial: solo el agua; el operador calcula las dosis #}
+        {% if load_info.partial_load and load_info.full_loads > 0 %}
+        <div class="dt-tone-1 px-3 py-2 fw-bold">+ 1 máquina parcial con {{ load_info.partial_water }} L de agua</div>
+        {% endif %}
 
-        <div class="footer">
-            Generado por AgroGest el {{ now|date:"d/m/Y H:i" }}
-        </div>
+        {% if products|length > 1 %}
+        <div class="dt-note">Aplica los productos en el orden indicado.</div>
+        {% endif %}
+
+        <div class="dt-muted text-center border-top py-2">Generado por AgroGest el {{ now|date:"d/m/Y H:i" }}</div>
+    </article>
+    {% endwith %}
+
+    <div class="d-print-none d-flex flex-wrap justify-content-center gap-2 mt-3">
+        <button class="btn btn-primary" id="export-image" type="button">
+            <i class="fa fa-file-image me-1" aria-hidden="true"></i>Exportar imagen
+        </button>
+        <button class="btn btn-outline-secondary" id="export-pdf" type="button">
+            <i class="fa fa-file-pdf me-1" aria-hidden="true"></i>Exportar PDF
+        </button>
+        <a class="btn btn-outline-secondary" href="{% url 'treatment-detail' treatment.id %}">
+            <i class="fa fa-arrow-left me-1" aria-hidden="true"></i>Volver
+        </a>
     </div>
-</div>
+</main>
 
-
-<div class="export-buttons">
-    <button class="btn btn-danger" id="export-pdf">
-        <i class="fa fa-file-pdf"></i> Exportar PDF
-    </button>
-    <button class="btn btn-success" id="export-image">
-        <i class="fa fa-file-image"></i> Exportar Imagen
-    </button>
-    <a class="btn btn-secondary" href="{% url 'treatment-detail' treatment.id %}">
-        <i class="fa fa-arrow-left"></i> Volver
-    </a>
-</div>
-
-<!-- Scripts para la exportación -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Esperar a que se carguen las fuentes e iconos
-        window.setTimeout(function() {
-            const container = document.getElementById('export-container');
-            const pdfButton = document.getElementById('export-pdf');
-            const imageButton = document.getElementById('export-image');
+    (function () {
+        const container = document.getElementById('export-container');
+        const imageButton = document.getElementById('export-image');
+        const pdfButton = document.getElementById('export-pdf');
 
-            // Función para exportar como imagen PNG
-            imageButton.addEventListener('click', function() {
-                // Mostrar alguna indicación de carga
-                this.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Generando...';
-                this.disabled = true;
+        // Pinta la hoja en un canvas (el doble de resolución para que se lea al ampliar)
+        async function capture() {
+            if (document.fonts && document.fonts.ready) await document.fonts.ready; // tipografía e iconos ya cargados
+            return html2canvas(container, {scale: 2, logging: false, useCORS: true, windowWidth: 800});
+        }
 
-                html2canvas(container, {
-                    scale: 2, // Mejor calidad
-                    logging: false,
-                    useCORS: true
-                }).then(canvas => {
-                    // Crear enlace de descarga
-                    const link = document.createElement('a');
-                    link.download = 'instrucciones-tratamiento-{{ treatment.id }}.png';
-                    link.href = canvas.toDataURL('image/png');
-                    link.click();
+        // Cambia el botón a «Generando…» mientras dura la exportación y lo restaura siempre, también si falla
+        async function run(button, job) {
+            const original = button.innerHTML;
+            button.innerHTML = '<i class="fa fa-spinner fa-spin me-1" aria-hidden="true"></i>Generando...';
+            button.disabled = true;
+            try {
+                await job(await capture());
+            } catch (err) {
+                console.error(err);
+                alert('No se ha podido generar el archivo. Comprueba la conexión e inténtalo de nuevo.');
+            } finally {
+                button.innerHTML = original;
+                button.disabled = false;
+            }
+        }
 
-                    // Restaurar botón
-                    imageButton.innerHTML = '<i class="fa fa-file-image"></i> Exportar Imagen';
-                    imageButton.disabled = false;
-                });
-            });
+        imageButton.addEventListener('click', () => run(imageButton, canvas => {
+            const link = document.createElement('a');
+            link.download = 'instrucciones-tratamiento-{{ treatment.id }}.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }));
 
-            // Función para exportar como PDF
-            pdfButton.addEventListener('click', function() {
-                this.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Generando...';
-                this.disabled = true;
+        pdfButton.addEventListener('click', () => run(pdfButton, canvas => {
+            const {jsPDF} = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
 
-                html2canvas(container, {
-                    scale: 2,
-                    logging: false,
-                    useCORS: true
-                }).then(canvas => {
-                    const { jsPDF } = window.jspdf;
+            // Mantiene la relación de aspecto dentro de la página A4
+            const ratio = Math.min(pdfWidth / canvas.width, pdfHeight / canvas.height);
+            const imgX = (pdfWidth - canvas.width * ratio) / 2;
+            const imgY = 10; // margen superior
 
-                    // Crear PDF con dimensiones A4
-                    const imgData = canvas.toDataURL('image/png');
-                    const pdf = new jsPDF('p', 'mm', 'a4');
-
-                    const pdfWidth = pdf.internal.pageSize.getWidth();
-                    const pdfHeight = pdf.internal.pageSize.getHeight();
-
-                    // Calcular proporciones para mantener relación de aspecto
-                    const imgWidth = canvas.width;
-                    const imgHeight = canvas.height;
-                    const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-
-                    const imgX = (pdfWidth - imgWidth * ratio) / 2;
-                    const imgY = 10; // Margen superior
-
-                    pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
-                    pdf.save(`instrucciones-tratamiento-{{ treatment.id }}.pdf`);
-
-                    // Restaurar botón
-                    pdfButton.innerHTML = '<i class="fa fa-file-pdf"></i> Exportar PDF';
-                    pdfButton.disabled = false;
-                });
-            });
-        }, 500);
-    });
+            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', imgX, imgY, canvas.width * ratio, canvas.height * ratio);
+            pdf.save('instrucciones-tratamiento-{{ treatment.id }}.pdf');
+        }));
+    })();
 </script>
 </body>
 </html>

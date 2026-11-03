@@ -489,7 +489,13 @@ class CloneTreatmentView(BaseSecureViewMixin, View):
     template_name = 'farm/treatments/treatment_clone.html'
 
     def get_treatment(self, pk):
-        return get_object_or_404(Treatment, pk=pk)
+        # Solo tratamientos de la organización del usuario (sin este filtro se podía clonar el de otra)
+        queryset = (
+            Treatment.ownership_objects.get_queryset_for_user(self.request.user)
+            .select_related('field')
+            .prefetch_related('treatmentproduct_set__product')
+        )
+        return get_object_or_404(queryset, pk=pk)
 
     def get(self, request, pk):
         treatment = self.get_treatment(pk)
@@ -544,7 +550,11 @@ class RepeatTreatmentView(BaseSecureViewMixin, View):
     template_name = 'farm/treatments/treatment_repeat.html'
 
     def get_treatment(self, pk):
-        return get_object_or_404(Treatment, pk=pk, organization=self.request.user.organization)
+        queryset = (
+            Treatment.objects.select_related('field')
+            .prefetch_related('treatmentproduct_set__product')
+        )
+        return get_object_or_404(queryset, pk=pk, organization=self.request.user.organization)
 
     def get(self, request, pk):
         treatment = self.get_treatment(pk)
