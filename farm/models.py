@@ -148,7 +148,12 @@ class Field(OrganizationOwnedModel):
         return cost_by_type
 
     def can_be_deleted(self):
-        return not Treatment.objects.filter(field=self).exists()
+        # Tratamientos, gastos y cosechas usan on_delete RESTRICT: con cualquiera no se puede borrar.
+        return not (
+            Treatment.objects.filter(field=self).exists()
+            or Expense.objects.filter(field=self).exists()
+            or Harvest.objects.filter(field=self).exists()
+        )
 
 
 class Machine(OrganizationOwnedModel):

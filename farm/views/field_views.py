@@ -2,7 +2,7 @@ import json
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Count, Q, RestrictedError
+from django.db.models import Count, Q, ProtectedError, RestrictedError
 from django.shortcuts import redirect
 from django.urls import reverse_lazy, reverse
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
@@ -92,14 +92,14 @@ class FieldListView(LoginRequiredMixin, ListView):
         return result
 
 
-class FieldOwnedMixin:
+class FieldOrganizationQuerysetMixin:
     """Solo parcelas de la organización del usuario: con otro id en la URL, 404 en vez de la parcela ajena."""
 
     def get_queryset(self):
         return Field.ownership_objects.get_queryset_for_user(self.request.user)
 
 
-class FieldDetailView(FieldOwnedMixin, LoginRequiredMixin, DetailView):
+class FieldDetailView(LoginRequiredMixin, FieldOrganizationQuerysetMixin, DetailView):
     model = Field
     template_name = 'farm/fields/field_detail.html'
     context_object_name = 'field'
@@ -159,7 +159,7 @@ class FieldCreateView(LoginRequiredMixin, CreateView):
         return kwargs
 
 
-class FieldUpdateView(FieldOwnedMixin, LoginRequiredMixin, UpdateView):
+class FieldUpdateView(LoginRequiredMixin, FieldOrganizationQuerysetMixin, UpdateView):
     model = Field
     form_class = FieldForm
     template_name = 'farm/fields/field_form.html'
@@ -177,7 +177,7 @@ class FieldUpdateView(FieldOwnedMixin, LoginRequiredMixin, UpdateView):
         return kwargs
 
 
-class FieldDeleteView(FieldOwnedMixin, LoginRequiredMixin, DeleteView):
+class FieldDeleteView(LoginRequiredMixin, FieldOrganizationQuerysetMixin, DeleteView):
     model = Field
     success_url = reverse_lazy('field-list')
     http_method_names = ['post']  # borrar es una acción: sin pantalla de confirmación propia, nada de GET
@@ -186,12 +186,15 @@ class FieldDeleteView(FieldOwnedMixin, LoginRequiredMixin, DeleteView):
         # Los tratamientos, gastos y cosechas restringen el borrado: sin esta comprobación, un POST directo daba un 500.
         # (El mensaje de éxito va aquí: DeleteView ya no llama a delete() desde Django 4.)
         if not self.object.can_be_deleted():
-            messages.error(self.request, 'No se puede eliminar una parcela con tratamientos.')
+            if Treatment.objects.filter(field=self.object).exists():
+                messages.error(self.request, 'No se puede eliminar una parcela con tratamientos.')
+            else:
+                messages.error(self.request, 'No se puede eliminar: la parcela tiene tratamientos, gastos o cosechas.')
             return redirect('field-detail', pk=self.object.pk)
         try:
             response = super().form_valid(form)
-        except RestrictedError:
-            messages.error(self.request, 'No se puede eliminar una parcela con gastos o cosechas.')
+        except (RestrictedError, ProtectedError):
+            messages.error(self.request, 'No se puede eliminar: la parcela tiene tratamientos, gastos o cosechas.')
             return redirect('field-detail', pk=self.object.pk)
         messages.success(self.request, 'Parcela eliminada con éxito.')
         return response
