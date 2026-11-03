@@ -1,92 +1,78 @@
 {% extends "base.html" %}
-{% load django_bootstrap5 %}
 
 {% block title %}{% if form.instance.pk %}Editar casetilla{% else %}Nueva casetilla{% endif %}{% endblock %}
 {% block header %}{% if form.instance.pk %}Editar casetilla{% else %}Nueva casetilla{% endif %}{% endblock %}
-{% block sub_header %}Define un punto de reparto para agrupar parcelas{% endblock %}
+{% block sub_header %}Un punto de reparto donde se deja el producto de varias parcelas{% endblock %}
 
-{% block extra_head %}
-<style>
-.spf-header-icon {
-    width: 64px; height: 64px;
-    border-radius: 18px;
-    background: linear-gradient(135deg, #52B788 0%, #2D6A4F 100%);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.6rem; color: #fff;
-    margin-bottom: 1.25rem;
-}
-.spf-tip {
-    background: rgba(82,183,136,.1);
-    border-left: 3px solid #52B788;
-    border-radius: 0 10px 10px 0;
-    padding: .75rem 1rem;
-    font-size: .82rem; color: #2D6A4F;
-    margin-top: .5rem;
-}
-.spf-tip i { opacity: .8; }
-</style>
+{% block actions %}
+<a class="btn btn-outline-secondary btn-sm d-lg-none" href="{% url 'field-list' %}">Cancelar</a>
 {% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-12 col-md-8 col-lg-6 col-xl-5">
-        <div class="card border-0" style="border-radius:18px; box-shadow:0 4px 28px rgba(0,0,0,.09);">
-            <div class="card-body p-4 p-md-5">
+<script>document.body.classList.add('tf-page');</script>
 
-                <div class="spf-header-icon mx-auto text-center" style="width:64px">
-                    <i class="fa fa-warehouse"></i>
-                </div>
-                <h5 class="fw-bold text-center mb-1">
-                    {% if form.instance.pk %}Editando: {{ form.instance.name }}{% else %}Nueva casetilla{% endif %}
-                </h5>
-                <p class="text-muted text-center small mb-4">
-                    {% if form.instance.pk %}Actualiza el nombre o las notas de esta casetilla.
-                    {% else %}Después podrás asignarle parcelas desde el detalle.{% endif %}
-                </p>
+<div class="tf">
+    {% if form.errors %}
+    <div class="alert alert-danger tf-banner" role="alert">{% for e in form.non_field_errors %}{{ e }}<br>{% endfor %}Revisa los campos marcados.</div>
+    {% endif %}
 
-                <form method="post">
-                    {% csrf_token %}
-
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold" for="{{ form.name.id_for_label }}">
-                            Nombre de la casetilla <span class="text-danger">*</span>
-                        </label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-white"><i class="fa fa-warehouse text-muted"></i></span>
-                            {{ form.name }}
-                        </div>
-                        {% if form.name.errors %}
-                        <div class="invalid-feedback d-block">{{ form.name.errors|join:", " }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold" for="{{ form.notes.id_for_label }}">
-                            Notas <span class="text-muted fw-normal">(opcional)</span>
-                        </label>
+    <form method="post" novalidate autocomplete="off" id="spForm">
+        {% csrf_token %}
+        <div class="tf-layout">
+            <div class="tf-main">
+                <section class="tf-card">
+                    <label class="tf-label-col" for="{{ form.name.id_for_label }}">Nombre <span class="tf-hint">Ej: Injeros, Vegueta, Pitas.</span>
+                        {{ form.name }}
+                        {% include "farm/_tf_errors.html" with errors=form.name.errors %}
+                    </label>
+                    <label class="tf-label-col" for="{{ form.notes.id_for_label }}">Notas <span class="tf-hint">(opcional) Ubicación, número de llave u otra referencia útil en el campo.</span>
                         {{ form.notes }}
-                        {% if form.notes.errors %}
-                        <div class="invalid-feedback d-block">{{ form.notes.errors|join:", " }}</div>
-                        {% endif %}
-                        <div class="spf-tip mt-2">
-                            <i class="fa fa-lightbulb me-1"></i>
-                            Añade aquí la ubicación, número de llave, o cualquier dato que te ayude a identificarla en campo.
-                        </div>
-                    </div>
-
-                    <div class="d-flex justify-content-between align-items-center mt-4 pt-2">
-                        <a class="btn btn-outline-secondary" href="{% url 'field-list' %}">
-                            <i class="fa fa-arrow-left me-1"></i>Volver
-                        </a>
-                        <button class="btn btn-primary px-4" type="submit">
-                            <i class="fa fa-save me-1"></i>
-                            {% if form.instance.pk %}Actualizar{% else %}Crear casetilla{% endif %}
-                        </button>
-                    </div>
-                </form>
-
+                        {% include "farm/_tf_errors.html" with errors=form.notes.errors %}
+                    </label>
+                </section>
             </div>
+
+            <aside class="tf-summary" aria-label="Guardar">
+                <div class="tf-sum-top">
+                    <span class="tf-lbl tf-sum-label">Casetilla</span>
+                    <div class="tf-sum-main-wrap">
+                        <span class="tf-sum-main text-truncate" id="spSumMain">{{ form.name.value|default:"Sin nombre" }}</span>
+                        <span class="tf-sum-sub">
+                            {% if form.instance.pk %}
+                                {% if field_count %}{{ field_count }} parcela{{ field_count|pluralize }} · {{ field_area|floatformat:"-2" }} ha{% else %}Aún sin parcelas{% endif %}
+                            {% else %}Después podrás asignarle parcelas{% endif %}
+                        </span>
+                    </div>
+                    {% if form.instance.pk %}
+                    <a class="tf-link d-none d-lg-inline-flex" href="{% url 'storage-point-detail' form.instance.pk %}">Asignar parcelas</a>
+                    {% endif %}
+                </div>
+                <div class="tf-sum-actions">
+                    <button type="submit" class="tf-btn tf-btn--primary">{% if form.instance.pk %}Guardar{% else %}Crear casetilla{% endif %}</button>
+                    <a class="tf-btn tf-btn--sec tf-sum-cancel" href="{% url 'field-list' %}">Cancelar</a>
+                </div>
+            </aside>
         </div>
-    </div>
+    </form>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('spForm');
+        const name = document.getElementById('{{ form.name.id_for_label }}');
+        const out = document.getElementById('spSumMain');
+        name.addEventListener('input', () => { out.textContent = name.value.trim() || 'Sin nombre'; });
+
+        // Con errores: marca los campos y lleva al primero (en móvil la barra fija tapa parte de la pantalla)
+        form.querySelectorAll('.tf-err').forEach(err => {
+            if (!err.textContent.trim()) return;
+            const input = err.closest('label')?.querySelector('input, textarea');
+            if (input) input.setAttribute('aria-invalid', 'true');
+        });
+        const firstBad = form.querySelector('[aria-invalid="true"]');
+        if (firstBad) { firstBad.scrollIntoView({block: 'center'}); firstBad.focus({preventScroll: true}); }
+    });
+</script>
 {% endblock %}

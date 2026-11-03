@@ -5,126 +5,127 @@
 {% block sub_header %}{% if storage_point.notes %}{{ storage_point.notes }}{% else %}Marca las parcelas que dejan el producto en esta casetilla{% endif %}{% endblock %}
 
 {% block actions %}
-<a class="btn btn-outline-secondary" href="{% url 'storage-point-edit' storage_point.pk %}" title="Editar casetilla">
-    <i class="fa fa-pen"></i><span class="d-none d-md-inline ms-1">Editar</span>
-</a>
-{% endblock %}
-
-{% block extra_head %}
-{% comment %}
-Asignar parcelas: fichas seleccionables (sin buscador; una explotación tiene pocas
-parcelas). La barra inferior suma en vivo parcelas y hectáreas, que es lo que
-importa para el reparto.
-{% endcomment %}
-<style>
-.sa { --sa-ink: #1B1F1A; --sa-muted: #5F665C; --sa-line: #E6E9E3; --sa-g1: #1F5F24; --sa-g2: #2E7D32; }
-.sa-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: .75rem; }
-@media (max-width: 575px) { .sa-grid { grid-template-columns: 1fr 1fr; gap: .6rem; } }
-
-.sa-tile {
-    position: relative; display: flex; flex-direction: column; gap: .35rem; margin: 0;
-    padding: .85rem .9rem; border: 1.5px solid var(--sa-line); border-radius: 14px; background: #fff;
-    cursor: pointer; user-select: none; transition: border-color .15s, background .15s, box-shadow .15s;
-}
-.sa-tile:hover { border-color: #C9D3C5; }
-.sa-tile input { position: absolute; opacity: 0; pointer-events: none; }
-.sa-tile:has(input:focus-visible) { outline: 2px solid var(--bs-primary); outline-offset: 2px; }
-.sa-tile:has(input:checked) { border-color: var(--sa-g2); background: #F3F8F2; box-shadow: 0 0 0 3px rgba(46,125,50,.08); }
-
-.sa-check {
-    position: absolute; top: .7rem; right: .7rem; display: flex; align-items: center; justify-content: center;
-    width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid #C9D3C5; background: #fff;
-    color: transparent; font-size: .65rem; transition: all .15s;
-}
-.sa-tile:has(input:checked) .sa-check { background: var(--sa-g2); border-color: var(--sa-g2); color: #fff; }
-
-.sa-name { padding-right: 1.6rem; font-weight: 700; color: var(--sa-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sa-meta { font-size: .78rem; color: var(--sa-muted); }
-.sa-ha { font-size: 1.15rem; font-weight: 800; color: var(--sa-ink); line-height: 1.1; }
-.sa-ha small { font-size: .72rem; font-weight: 500; color: var(--sa-muted); }
-.sa-where {
-    align-self: flex-start; margin-top: .15rem; padding: .1rem .5rem; border-radius: 999px;
-    font-size: .68rem; font-weight: 700; background: #EEF1EC; color: #3D4A3E;
-}
-.sa-where--other { background: #FFF1D6; color: #8A5300; }
-/* Si se marca una de otra casetilla, se avisa de que se mueve */
-.sa-move { display: none; }
-.sa-tile:has(input:checked) .sa-where--other .sa-now { display: none; }
-.sa-tile:has(input:checked) .sa-where--other .sa-move { display: inline; }
-
-.sa-empty { padding: 2.5rem 1rem; text-align: center; color: var(--sa-muted); border: 1.5px dashed #D5DCD1; border-radius: 14px; }
-
-/* Barra de guardado: fija abajo; en móvil, encima de la barra de navegación */
-.sa-bar {
-    position: sticky; bottom: 1rem; z-index: 40; display: flex; align-items: center; gap: 1rem;
-    margin-top: 1.25rem; padding: .7rem .8rem .7rem 1.1rem;
-    background: var(--sa-ink); color: #fff; border-radius: 14px; box-shadow: 0 8px 24px rgba(0,0,0,.18);
-}
-@media (max-width: 767px) { .sa-bar { bottom: calc(58px + .75rem + env(safe-area-inset-bottom)); } }
-.sa-bar-total b { font-size: 1.05rem; }
-.sa-bar-sub { display: block; font-size: .75rem; opacity: .7; }
-.sa-bar .btn-light { margin-left: auto; font-weight: 700; }
-</style>
+<div class="dropdown">
+    <button class="btn btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false"
+            aria-label="Más acciones" title="Más acciones">
+        <i class="fa fa-ellipsis-vertical"></i>
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end dropdown-sheet shadow-sm small">
+        <li><a class="dropdown-item" href="{% url 'storage-point-edit' storage_point.pk %}"><i class="fa fa-pen me-2"></i>Editar casetilla</a></li>
+        {% if not assigned_count %}
+        <li><hr class="dropdown-divider"></li>
+        <li><button class="dropdown-item text-danger" type="button" data-url="{% url 'storage-point-delete' storage_point.pk %}"
+                    data-confirm="Se eliminará la casetilla «{{ storage_point.name }}» permanentemente." onclick="confirmDelete(this)">
+            <i class="fa fa-trash me-2"></i>Eliminar casetilla</button></li>
+        {% endif %}
+    </ul>
+</div>
 {% endblock %}
 
 {% block content %}
-<div class="sa">
+<script>document.body.classList.add('tf-page');</script>
+
+{% comment %}
+Asignar parcelas: filas seleccionables (sin buscador; una explotación tiene pocas parcelas).
+El resumen suma en vivo parcelas y hectáreas, que es lo que importa para el reparto.
+{% endcomment %}
+<div class="tf">
+{% if not all_fields %}
+<div class="card card-flat">
+    <div class="hm-empty">
+        <span class="hm-empty-icon" aria-hidden="true"><i class="fa fa-map"></i></span>
+        <b>Aún no tienes parcelas</b>
+        <span><a href="{% url 'field-create' %}">Crea una</a> y podrás asignarla aquí.</span>
+    </div>
+</div>
+{% else %}
 <form method="post" id="assignmentForm">
     {% csrf_token %}
-    {% if not all_fields %}
-    <div class="sa-empty">
-        <i class="fa fa-map fa-2x mb-2 d-block opacity-50"></i>
-        Aún no tienes parcelas. <a href="{% url 'field-create' %}">Crea una</a> y podrás asignarla aquí.
-    </div>
-    {% else %}
-    <div class="sa-grid">
-        {% for field in all_fields %}
-        <label class="sa-tile" data-area="{{ field.area|stringformat:'s' }}">
-            <input class="field-cb" type="checkbox" name="field_ids" value="{{ field.id }}"
-                   {% if field.id in assigned_field_ids %}checked{% endif %}>
-            <span class="sa-check" aria-hidden="true"><i class="fa fa-check"></i></span>
-            <span class="sa-name">{{ field.name }}</span>
-            <span class="sa-meta">{{ field.crop }}</span>
-            <span class="sa-ha">{{ field.area|floatformat:"-2" }} <small>ha</small></span>
-            {% if field.storage_point_id and field.storage_point_id != storage_point.pk %}
-            <span class="sa-where sa-where--other">
-                <span class="sa-now"><i class="fa fa-warehouse me-1"></i>En {{ field.storage_point.name }}</span>
-                <span class="sa-move"><i class="fa fa-arrow-right me-1"></i>Se moverá aquí</span>
-            </span>
-            {% elif not field.storage_point_id %}
-            <span class="sa-where">Independiente</span>
-            {% endif %}
-        </label>
-        {% endfor %}
-    </div>
-    {% endif %}
-</form>
+    <div class="tf-layout">
+        <div class="tf-main">
+            <div class="card card-flat overflow-hidden sp-list">
+                <div class="tl-head d-none d-md-grid" aria-hidden="true">
+                    <span></span><span>Parcela</span><span>Cultivo</span><span class="text-end">Superficie</span><span>Reparto</span>
+                </div>
+                {% for field in all_fields %}
+                <label class="tl-item sp-row" data-area="{{ field.area|stringformat:'s' }}">
+                    <input class="form-check-input field-cb" type="checkbox" name="field_ids" value="{{ field.id }}"
+                           aria-label="{{ field.name }}"
+                           {% if field.id in assigned_field_ids %}checked{% endif %}>
+                    <span class="tl-main">
+                        <span class="tl-name">{{ field.name }}</span>
+                        <span class="tl-meta d-md-none">{{ field.crop }}</span>
+                        {% if field.storage_point_id and field.storage_point_id != storage_point.pk %}
+                        <span class="tl-meta d-md-none">
+                            <span class="sp-now">En {{ field.storage_point.name }}</span>
+                            <span class="sp-move">Se moverá aquí</span>
+                        </span>
+                        {% elif not field.storage_point_id %}
+                        <span class="tl-meta d-md-none">Independiente</span>
+                        {% endif %}
+                    </span>
+                    <span class="d-none d-md-block text-truncate">{{ field.crop }}</span>
+                    <span class="sp-ha">{{ field.area|floatformat:"-2" }} <small>ha</small></span>
+                    <span class="d-none d-md-block">
+                        {% if field.storage_point_id and field.storage_point_id != storage_point.pk %}
+                        <span class="sp-where sp-where--other">
+                            <span class="sp-now">En {{ field.storage_point.name }}</span>
+                            <span class="sp-move">Se moverá aquí</span>
+                        </span>
+                        {% elif not field.storage_point_id %}
+                        <span class="sp-where">Independiente</span>
+                        {% endif %}
+                    </span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
 
-<div class="sa-bar d-print-none">
-    <div class="sa-bar-total">
-        <b><span id="checkedCount">{{ assigned_count }}</span> parcela<span id="checkedPlural">{{ assigned_count|pluralize }}</span></b>
-        <span class="sa-bar-sub"><span id="checkedArea">{{ assigned_area|floatformat:"-2" }}</span> ha en esta casetilla</span>
+        <aside class="tf-summary" aria-label="Guardar">
+            <div class="tf-sum-top">
+                <span class="tf-lbl tf-sum-label">En esta casetilla</span>
+                <div class="tf-sum-main-wrap">
+                    <span class="tf-sum-main" aria-live="polite"><span id="checkedCount">{{ assigned_count }}</span> parcela<span id="checkedPlural">{{ assigned_count|pluralize }}</span></span>
+                    <span class="tf-sum-sub"><span id="checkedArea">{{ assigned_area|floatformat:"-2" }}</span> ha</span>
+                </div>
+            </div>
+            <div class="tf-sum-actions">
+                <button type="submit" class="tf-btn tf-btn--primary">Guardar</button>
+                <a class="tf-btn tf-btn--sec tf-sum-cancel" href="{% url 'field-list' %}">Cancelar</a>
+            </div>
+        </aside>
     </div>
-    <a class="btn btn-outline-light btn-sm d-none d-sm-inline-block ms-auto" href="{% url 'field-list' %}">Cancelar</a>
-    <button class="btn btn-light ms-sm-0" form="assignmentForm" type="submit">
-        <i class="fa fa-save me-1"></i>Guardar
-    </button>
+</form>
+{% endif %}
 </div>
-</div>
+
+<form class="d-none" id="deleteForm" method="POST">{% csrf_token %}</form>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+function confirmDelete(el) {
+    showConfirm({
+        text: el.getAttribute('data-confirm'),
+        onConfirm: () => {
+            const form = document.getElementById('deleteForm');
+            form.action = el.getAttribute('data-url');
+            form.submit();
+        }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     const boxes = [...document.querySelectorAll('.field-cb')];
     const count = document.getElementById('checkedCount');
+    if (!count) return;
     const plural = document.getElementById('checkedPlural');
     const area = document.getElementById('checkedArea');
     const fmt = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 2 });
 
     function update() {
         const checked = boxes.filter(b => b.checked);
-        const ha = checked.reduce((sum, b) => sum + parseFloat(b.closest('.sa-tile').dataset.area || 0), 0);
+        const ha = checked.reduce((sum, b) => sum + parseFloat(b.closest('.sp-row').dataset.area || 0), 0);
         count.textContent = checked.length;
         plural.textContent = checked.length === 1 ? '' : 's';
         area.textContent = fmt.format(ha);

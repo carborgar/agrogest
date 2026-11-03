@@ -39,6 +39,15 @@ class StoragePointFormView(BaseSecureViewMixin, SuccessMessageMixin, UpdateView)
             kwargs['instance'] = StoragePoint(organization=self.request.user.organization)
         return kwargs
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Resumen de lo que agrupa la casetilla (solo al editar)
+        if self.object and self.object.pk:
+            fields = Field.ownership_objects.get_queryset_for_user(self.request.user).filter(storage_point=self.object)
+            context['field_count'] = fields.count()
+            context['field_area'] = round(sum(f.area for f in fields), 2)
+        return context
+
 
 class StoragePointDetailView(BaseSecureViewMixin, DetailView):
     model = StoragePoint
@@ -67,7 +76,7 @@ class StoragePointDetailView(BaseSecureViewMixin, DetailView):
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
-        selected_ids = [fid for fid in request.POST.getlist('field_ids') if fid.isdigit()]
+        selected_ids = [fid for fid in request.POST.getlist('field_ids') if fid.isascii() and fid.isdigit()]
 
         base_fields = Field.ownership_objects.get_queryset_for_user(request.user)
         allowed_ids = set(base_fields.filter(pk__in=selected_ids).values_list('id', flat=True))
