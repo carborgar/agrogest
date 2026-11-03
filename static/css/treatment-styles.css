@@ -1022,19 +1022,88 @@ button.cal-row:hover { background: var(--tl-soft); }
 
 /* ═══════════════════════════════════════════════
    EL TIEMPO (wx-*)
-   Reutiliza el tiempo de Inicio (hm-*: rejilla de horas, estados vacíos) y el resumen del tratamiento (dt-summary).
-   Solo se añade el selector de día (tl-tabs con tres líneas por pestaña) y el veredicto sobre fondo de estado.
+   Reutiliza el resumen del tratamiento (dt-summary, dt-tone-*) y los estados vacíos de Inicio (hm-empty).
+   Propio de esta pantalla: selector de día a todo el ancho, iconos de cielo con color y horas en columnas.
 ═══════════════════════════════════════════════ */
-.wx-days { min-width: 0; }
-.wx-days .tl-tab { flex-direction: column; flex: 1; gap: .1rem; min-width: 0; height: auto; min-height: 5rem; padding: .35rem .1rem; border: 0; background: transparent; font-size: .8rem; line-height: 1.2; }
-.wx-days .tl-tab.active { background: #fff; }
-.wx-days .tl-tab b { font-size: .95rem; }
-.wx-days .tl-tab small { display: inline-flex; align-items: center; gap: .25rem; font-size: .75rem; color: var(--tl-muted); }
-.wx-verdict .dt-label, .wx-verdict .dt-sub { color: inherit; }
-.hm-empty .btn { min-height: 44px; }
-@media (min-width: 768px) {
-    .wx-days .tl-tab { flex: 0 0 auto; min-width: 5.2rem; padding: .35rem .25rem; }
+/* Colores del cielo: los de las gráficas (--cs-*) y el gris azulado de las nubes. Solo decoran: el dato va siempre en texto */
+:root { --wx-sun: var(--cs-2); --wx-rain: var(--cs-5); --wx-storm: var(--cs-3); --wx-cloud: #6B7C8C; --wx-snow: #4F8FB8; }
+.wx-sky--sun { color: var(--wx-sun); }
+.wx-sky--cloud, .wx-sky--fog { color: var(--wx-cloud); }
+.wx-sky--rain { color: var(--wx-rain); }
+.wx-sky--storm { color: var(--wx-storm); }
+.wx-sky--snow { color: var(--wx-snow); }
+
+/* Selector de día: 7 celdas iguales; en móvil, desplazamiento horizontal con celdas de ancho cómodo */
+.wx-days-wrap { padding: .75rem 1rem; border-bottom: 1px solid var(--tl-line); }
+.wx-days { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(4.5rem, 1fr); gap: .4rem; overflow-x: auto; padding-bottom: 2px; }
+.wx-tab { --t-bg: var(--tl-2-bg); --t-fg: var(--tl-2-fg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .15rem; min-height: 6.5rem; padding: .5rem .25rem .6rem; border: 1px solid var(--bs-border-color); border-bottom: 4px solid var(--t-fg); border-radius: 10px; background: #fff; color: var(--tl-ink); font-size: .8rem; line-height: 1.2; }
+.wx-tab--ok { --t-bg: var(--tl-3-bg); --t-fg: var(--tl-3-fg); }
+.wx-tab--warn { --t-bg: var(--tl-1-bg); --t-fg: var(--tl-1-fg); }
+.wx-tab--bad { --t-bg: var(--tl-0-bg); --t-fg: var(--tl-0-fg); }
+.wx-tab:hover { background: var(--tl-soft); }
+.wx-tab.active, .wx-tab.active:hover { background: var(--t-bg); border-color: var(--t-fg); }
+.wx-tab:focus-visible, .wx-hours:focus-visible { outline: 2px solid var(--bs-primary); outline-offset: 2px; }
+.wx-tab-name { font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: .72rem; color: var(--tl-muted); }
+.wx-tab.active .wx-tab-name { color: var(--t-fg); }
+.wx-tab .wx-sky { font-size: 1.5rem; margin: .1rem 0; }
+.wx-tab b { font-size: 1.2rem; line-height: 1; }
+.wx-tab small { font-size: .8rem; color: var(--tl-muted); }
+.wx-tab em { display: inline-flex; align-items: center; gap: .2rem; font-style: normal; font-size: .78rem; font-weight: 700; color: var(--tl-muted); }
+.wx-tab em i { font-size: .7rem; }
+
+/* Resumen: veredicto grande y, al lado, las cifras que deciden; arriba va el veredicto a todo el ancho */
+.wx-summary { border-bottom: 1px solid var(--tl-line); }
+.dt-summary.wx-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-flow: row; }
+.wx-summary .dt-cell { display: flex; flex-direction: column; justify-content: center; padding: .85rem .9rem; }
+.wx-summary .dt-label i { margin-right: .35rem; }
+@media (max-width: 767.98px) {
+    .wx-summary .dt-cell { padding: .7rem .6rem; }
+    .wx-summary .dt-label { white-space: nowrap; }
+    .wx-summary .dt-label i { display: none; }
+    .wx-verdict .dt-label i { display: inline; }
 }
+.wx-summary .dt-value { font-size: 1.35rem; line-height: 1.15; }
+.wx-summary .dt-value small { font-size: .8rem; font-weight: 600; color: var(--tl-muted); }
+.wx-summary .dt-fg-0 small, .wx-summary .dt-fg-1 small { color: inherit; }
+.wx-summary .dt-sub .wx-sky { margin-right: .15rem; }
+.wx-verdict { grid-column: 1 / -1; }
+.wx-verdict .dt-label, .wx-verdict .dt-sub { color: inherit; }
+.wx-verdict .dt-value { color: inherit; font-size: 1.6rem; }
+.wx-verdict .dt-sub { font-size: .9rem; }
+@media (min-width: 768px) {
+    .dt-summary.wx-summary { grid-template-columns: 1.7fr repeat(3, minmax(0, 1fr)); }
+    .wx-verdict { grid-column: auto; padding: 1rem 1.25rem; }
+    .wx-summary .dt-value { font-size: 1.7rem; }
+    .wx-verdict .dt-value { font-size: 1.9rem; }
+}
+
+/* Horas: una columna por hora que se reparte el ancho; con muchas, desplazamiento horizontal y cabeceras fijas */
+.wx-hours { display: grid; grid-template-columns: 6.6rem; grid-auto-flow: column; grid-auto-columns: minmax(3.4rem, 1fr); gap: 4px; overflow-x: auto; padding-bottom: 6px; }
+.wx-h-labels { position: sticky; left: 0; z-index: 1; display: flex; flex-direction: column; padding: .3rem .4rem .3rem 0; background: #fff; font-size: .75rem; font-weight: 600; color: var(--tl-muted); }
+.wx-h { display: flex; flex-direction: column; align-items: center; padding: .3rem 0; border-radius: 8px; font-size: .8rem; }
+.wx-h-labels > *, .wx-h > * { display: flex; align-items: center; margin: 0; }
+.wx-h > * { justify-content: center; }
+.wx-h-labels i { width: 1.2rem; font-size: .75rem; }
+.wx-row-day { height: 1.3rem; font-size: .7rem; }
+.wx-row-hr { height: 1.8rem; }
+.wx-row-sky { height: 2.2rem; }
+.wx-row-temp { height: 2rem; }
+.wx-row-wind, .wx-row-rain { height: 1.7rem; }
+.wx-h .wx-row-hr { font-weight: 700; font-size: .85rem; }
+.wx-h .wx-sky { height: 2.2rem; font-size: 1.15rem; }
+.wx-h .wx-row-temp { font-style: normal; font-weight: 700; font-size: 1.05rem; }
+.wx-h .wx-row-wind { font-weight: 700; }
+.wx-h .wx-row-rain { font-style: normal; }
+.wx-h .wx-row-day { font-weight: 600; opacity: .8; }
+.wx-h--next { box-shadow: inset 2px 0 0 var(--tl-head-line); }
+.wx-h--ok { background: var(--tl-3-bg); color: var(--tl-3-fg); }
+.wx-h--warn { background: var(--tl-1-bg); color: var(--tl-1-fg); }
+.wx-h--bad { background: var(--tl-0-bg); color: var(--tl-0-fg); }
+.wx-h-labels { border-radius: 0; }
+
+.hm-empty .btn { min-height: 44px; }
+/* Pie de la tarjeta: leyenda y parcelas con el mismo margen lateral que el resto */
+.wx-parcels { display: flex; flex-wrap: wrap; gap: .5rem; padding: .75rem 1rem; border-top: 1px solid var(--tl-line); }
 @media (max-width: 767.98px) {
     .wx-parcels .pl-chip { height: 44px; }
 }

@@ -98,7 +98,7 @@ test('elegir un día cambia el resumen y las horas, y mueve la pestaña activa',
     assert.match(cells[3], /Temperatura 2° – 9° Despejado/);
     assert.ok(card.querySelector('.wx-verdict').classList.contains('dt-tone-0'));
     assert.deepEqual([...card.querySelectorAll('[data-day-idx]')].map(d => d.getAttribute('aria-pressed')), ['false', 'true']);
-    assert.ok(card.querySelector('.hm-hours').getAttribute('aria-label').startsWith('Hora a hora, Vie 2'));
+    assert.ok(card.querySelector('.wx-hours').getAttribute('aria-label').startsWith('Hora a hora, Vie 2'));
 });
 
 test('el veredicto da las horas buenas del día y el viento usa el nivel del servidor', async () => {
@@ -114,7 +114,7 @@ test('un día sin horas lo dice en vez de dejar un hueco', async () => {
     const w = await setup(ok({ municipalities: [{ name: 'Sevilla', fields: [], daily: [d] }], errors: [] }));
     assert.match(w.document.querySelector('.wx-verdict').textContent, /Sin detalle por horas/);
     assert.match(w.document.querySelector('.hm-wx-day').textContent, /solo da la previsión por horas/);
-    assert.equal(w.document.querySelector('.hm-hours'), null);
+    assert.equal(w.document.querySelector('.wx-hours'), null);
 });
 
 test('los errores se agrupan por motivo y se escapan', async () => {
@@ -150,9 +150,9 @@ test('sin municipios ni errores: aviso de que no hay datos', async () => {
 test('las horas son celdas con su nivel y el detalle en el título', async () => {
     const w = await setup(ok({ municipalities: [], errors: [] }));
     const html = w.AgroWeatherOverview.hourCell(hour('2099-01-01', 7, { level: 'bad', precipitation: 1.5, precipitation_probability: 70, wind_speed: 26.4, temperature: 9.6 }));
-    assert.match(html, /hm-h hm-h--bad/);
+    assert.match(html, /wx-h wx-h--bad/);
     assert.match(html, /title="07:00 · hora mala · 10° · viento 26 km\/h · lluvia 70 % · 1,5 L\/m²"/);
-    assert.match(html, /<span>7<\/span><em>10°<\/em><b>26<\/b><i>70<\/i>/);
+    assert.match(html, /<span class="wx-row-hr">7h<\/span>.*wx-sky--sun.*<em class="wx-row-temp">10°<\/em><b class="wx-row-wind">26<\/b><i class="wx-row-rain">70<\/i>/s);
 });
 
 test('nombres y textos del servidor se escapan', async () => {
@@ -178,7 +178,7 @@ test('hoy se enseñan solo las horas que quedan', async () => {
     const hours = [...Array(24).keys()].map(h => hour(date, h));
     const today = day(date, 'Hoy', { hours, sunrise: null, sunset: null });
     const w = await setup(ok({ municipalities: [{ name: 'Sevilla', fields: [], daily: [today] }], errors: [] }));
-    const times = [...w.document.querySelectorAll('.hm-h > span')].map(e => Number.parseInt(e.textContent, 10));
+    const times = [...w.document.querySelectorAll('.wx-h > .wx-row-hr')].map(e => Number.parseInt(e.textContent, 10));
     assert.equal(times[0], now.getHours());
     assert.equal(times.length, 24 - now.getHours());
 });
@@ -202,7 +202,7 @@ test('con datos antiguos las pestañas empiezan en hoy y no pasan de 7', async (
     assert.equal(tabs[0].getAttribute('aria-pressed'), 'true');
     tabs[6].click();
     assert.equal(w.document.querySelector('[data-wx-body]').getAttribute('aria-live'), 'polite');
-    assert.match(w.document.querySelector('.hm-hours').getAttribute('aria-label'), /^Hora a hora, D6/);
+    assert.match(w.document.querySelector('.wx-hours').getAttribute('aria-label'), /^Hora a hora, D6/);
 });
 
 test('si todos los días son pasados se avisa en vez de enseñar uno como hoy', async () => {
@@ -248,4 +248,58 @@ test('start() repetido no duplica el listener de clic', async () => {
     const card = w.document.querySelector('[data-card-id]');
     card.querySelectorAll('[data-day-idx]')[1].click();
     assert.equal(card.querySelectorAll('[data-day-idx]')[1].getAttribute('aria-pressed'), 'true');
+});
+
+test('el icono de cielo lleva color por tipo y solo admite clases conocidas', async () => {
+    const d = day('2099-01-01', 'Jue 1', { icon: 'fa-cloud-rain', hours: [hour('2099-01-01', 7, { icon: '"><img src=x onerror=alert(1)>' })] });
+    const w = await setup(ok({ municipalities: [{ name: 'Sevilla', fields: [], daily: [d, day('2099-01-02', 'Vie 2', { icon: 'fa-bolt' })] }], errors: [] }));
+    const tabs = [...w.document.querySelectorAll('.wx-tab .wx-sky')];
+    assert.deepEqual(tabs.map(i => i.className), ['fa fa-cloud-rain wx-sky wx-sky--rain', 'fa fa-bolt wx-sky wx-sky--storm']);
+    assert.equal(w.document.querySelector('.wx-h .wx-sky').className, 'fa fa-cloud wx-sky wx-sky--cloud');   // desconocido: nube
+    assert.equal(w.document.querySelector('img'), null);
+});
+
+test('las pestañas son 7 celdas con el color de estado del día, máxima, mínima y lluvia', async () => {
+    const w = await setup(ok({ municipalities: [{ name: 'Sevilla', fields: [], daily: DAILY }], errors: [] }));
+    const tabs = [...w.document.querySelectorAll('.wx-tab')];
+    assert.deepEqual(tabs.map(t => t.className.replace(/ active/, '')), ['wx-tab wx-tab--ok', 'wx-tab wx-tab--bad']);
+    assert.match(tabs[1].textContent.replace(/\s+/g, ' '), /Vie 2? ?9° 2° 80%|9° 2° 80%/);
+    assert.ok(tabs[1].querySelector('em.dt-fg-0'));   // lluvia ≥ 50 %: roja
+    assert.ok(w.document.querySelector('.wx-days-wrap .wx-days[role="group"]'));
+});
+
+test('las horas son una región enfocable con las cabeceras de fila aparte', async () => {
+    const w = await setup(ok({ municipalities: [{ name: 'Sevilla', fields: [], daily: DAILY }], errors: [] }));
+    const region = w.document.querySelector('.wx-hours');
+    assert.equal(region.getAttribute('role'), 'region');
+    assert.equal(region.getAttribute('tabindex'), '0');
+    assert.equal(region.querySelector('.wx-h-labels').getAttribute('aria-hidden'), 'true');
+    assert.deepEqual([...region.querySelectorAll('.wx-h-labels span')].map(e => e.textContent.trim()), ['Hora', 'Cielo', 'Temp.', 'Viento km/h', 'Lluvia %']);
+});
+
+test('si a hoy le quedan menos de 8 horas se completan con las primeras de mañana', async () => {
+    const w = await setup(ok({ municipalities: [], errors: [] }));
+    const O = w.AgroWeatherOverview;
+    const todayStr = w.AgroWeather.localDate();
+    const hrs = (date, from, to) => [...Array(to - from).keys()].map(i => hour(date, from + i));
+    const today = day(todayStr, 'Hoy', { hours: hrs(todayStr, 0, 24) });
+    const tomorrow = day('2099-12-31', 'Mañana', { hours: hrs('2099-12-31', 0, 24) });
+    w.AgroWeather.upcomingHours = d => (d === today ? hrs(todayStr, 20, 24) : d.hours);   // son las 20:xx
+    const shown = O.displayHours(today, tomorrow);
+    assert.equal(shown.length, 8);
+    assert.deepEqual(shown.slice(4).map(h => `${h.date === todayStr ? 'hoy' : 'mañ'} ${h.hour}`), ['mañ 00:00', 'mañ 01:00', 'mañ 02:00', 'mañ 03:00']);
+    assert.equal(O.displayHours(today, undefined).length, 4);   // sin datos de mañana no se inventa nada
+    assert.equal(O.displayHours(tomorrow, today).length, 24);   // otro día: sus horas tal cual
+    w.AgroWeather.upcomingHours = d => (d === today ? hrs(todayStr, 10, 24) : d.hours);
+    assert.equal(O.displayHours(today, tomorrow).length, 14);   // quedan de sobra: no se mezcla nada
+});
+
+test('las horas de mañana que completan hoy llevan marca y no cuentan en la mejor franja', async () => {
+    const w = await setup(ok({ municipalities: [], errors: [] }));
+    const html = w.AgroWeatherOverview.hourCell(hour('2099-01-02', 0), '2099-01-01');
+    assert.match(html, /wx-h--next/);
+    assert.match(html, /<small class="wx-row-day">mañ\.<\/small>/);
+    assert.match(html, /title="mañana 00:00/);
+    assert.match(w.AgroWeatherOverview.hourCell(hour('2099-01-01', 23), '2099-01-01'), /<small class="wx-row-day">hoy<\/small>/);
+    assert.doesNotMatch(w.AgroWeatherOverview.hourCell(hour('2099-01-01', 23)), /wx-row-day/);
 });
