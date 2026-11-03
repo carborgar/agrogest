@@ -1,373 +1,187 @@
 {% extends "base.html" %}
-{% load django_bootstrap5 %}
 
-{% block header %}{{ form.instance.pk|yesno:"Editar,Nuevo" }} gasto{% endblock %}
+{% block title %}{% if is_edit %}Editar{% else %}Nuevo{% endif %} gasto · AgroGest{% endblock %}
+{% block header %}{% if is_edit %}Editar gasto{% else %}Nuevo gasto{% endif %}{% endblock %}
 
-{% block extra_head %}
-<style>
-    .option-icon {
-        width: 60px;
-        height: 60px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-    }
-
-    .option-card {
-        cursor: pointer;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .option-card:hover {
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-    }
-
-    .option-card.selected {
-        border-color: var(--bs-primary) !important;
-        border-width: 2px !important;
-        box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.25);
-    }
-
-    .option-card.selected::before {
-        content: '✓';
-        position: absolute;
-        top: 8px;
-        right: 8px;
-        background: var(--bs-primary);
-        color: white;
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.8rem;
-        font-weight: bold;
-    }
-
-    .cursor-pointer {
-        cursor: pointer;
-    }
-
-    @media (max-width: 768px) {
-        .option-card {
-            margin-bottom: 1rem;
-        }
-    }
-</style>
+{% block actions %}
+<a class="btn btn-outline-secondary btn-sm d-lg-none" href="{% url 'expense-list' %}">Cancelar</a>
 {% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-10">
-        <div class="card">
-            <div class="card-header">
-                {{ form.instance.pk|yesno:"Editar,Añadir" }} gasto
-            </div>
-            <div class="card-body p-4">
-                <form id="expenseForm" method="post">
-                    {% csrf_token %}
+{{ field_areas|json_script:"expense-field-areas" }}
+{# Como en el formulario de tratamiento: la barra de guardar sustituye a la barra de navegación inferior #}
+<script>document.body.classList.add('tf-page');</script>
 
-                    <!-- Información básica -->
-                    <div class="row mb-4">
-                        {% bootstrap_field form.field wrapper_class="col-md-4 mb-2" label_class="required" %}
-                        {% bootstrap_field form.expense_type wrapper_class="col-md-4 mb-2" label_class="required" %}
-                        {% bootstrap_field form.payment_date wrapper_class="col-md-4 mb-2" label_class="required" %}
-                        {% bootstrap_field form.description wrapper_class="col-md-12" %}
-                    </div>
-
-                    <!-- Campo oculto para calculation_mode -->
-                    <input id="id_calculation_mode" name="calculation_mode" type="hidden"
-                           value="{{ form.calculation_mode.value|default:'total' }}">
-
-                    <div class="mb-4">
-                        <h5 class="mb-3 text-dark">¿Cómo quieres calcular el importe?</h5>
-                        <div class="row g-3 justify-content-center text-center">
-
-                            <!-- Opción 1: Importe directo -->
-                            <div class="col-md-4">
-                                <div class="calculation-option" data-mode="total">
-                                    <div class="option-card h-100 border rounded-3 p-3 cursor-pointer">
-                                        <div class="row align-items-center">
-                                            <div class="col-4 col-md-12 text-center text-md-center">
-                                                <div class="option-icon bg-primary bg-opacity-10 text-primary rounded-circle mx-auto mb-0 mb-md-2">
-                                                    <i class="fas fa-euro-sign"></i>
-                                                </div>
-                                            </div>
-                                            <div class="col-8 col-md-12 text-start text-md-center">
-                                                <h6 class="fw-bold mb-1">Importe total</h6>
-                                                <small class="text-muted d-block">Introduce directamente el
-                                                    importe</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Opción 2: Cantidad × Precio -->
-                            <div class="col-md-4">
-                                <div class="calculation-option" data-mode="quantity_price">
-                                    <div class="option-card h-100 border rounded-3 p-3 cursor-pointer">
-                                        <div class="row align-items-center">
-                                            <div class="col-4 col-md-12 text-center text-md-center">
-                                                <div class="option-icon bg-primary bg-opacity-10 text-primary rounded-circle mx-auto mb-0 mb-md-2">
-                                                    <i class="fas fa-calculator"></i>
-                                                </div>
-                                            </div>
-                                            <div class="col-8 col-md-12 text-start text-md-center">
-                                                <h6 class="fw-bold mb-1">Cantidad × Precio</h6>
-                                                <small class="text-muted d-block">Calcula por unidades</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Opción 3: Precio por hectárea -->
-                            <div class="col-md-4">
-                                <div class="calculation-option" data-mode="price_per_ha">
-                                    <div class="option-card h-100 border rounded-3 p-3 cursor-pointer">
-                                        <div class="row align-items-center">
-                                            <div class="col-4 col-md-12 text-center text-md-center">
-                                                <div class="option-icon bg-primary bg-opacity-10 text-primary rounded-circle mx-auto mb-0 mb-md-2">
-                                                    <i class="fas fa-map"></i>
-                                                </div>
-                                            </div>
-                                            <div class="col-8 col-md-12 text-start text-md-center">
-                                                <h6 class="fw-bold mb-1">Por hectárea</h6>
-                                                <small class="text-muted d-block">Precio por superficie</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Campos dinámicos según el modo -->
-                    <div class="calculation-fields">
-                        <!-- Modo: Importe total -->
-                        <div class="calculation-group" id="total-fields">
-                            <div class="card bg-gray-200">
-                                <div class="card-body">
-                                    <div class="row align-items-end">
-                                        {# @formatter:off #}
-                                        {% bootstrap_field form.amount wrapper_class="col-md-3" label_class="required" addon_after="€" %}
-                                        {# @formatter:on #}
-                                        <div class="col-12 mb-3">
-                                            <div class="form-text">Introduce el importe final que aparece en la
-                                                factura
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Modo: Cantidad × Precio -->
-                        <div class="calculation-group d-none" id="quantity-price-fields">
-                            <div class="card bg-gray-200">
-                                <div class="card-body">
-                                    <div class="row align-items-end">
-                                        {# @formatter:off #}
-                                        {% bootstrap_field form.quantity wrapper_class="col-md-3 mb-3" label_class="required" %}
-                                        {% bootstrap_field form.unit_price wrapper_class="col-md-3" label_class="required" addon_after="€" %}
-                                        {# @formatter:on #}
-                                        <div class="col-md-3 mt-3">
-                                            <label class="form-label fw-semibold">Total</label>
-                                            <div class="form-control border-0 px-0 bg-gray-200 fw-bold text-primary"
-                                                 id="calculated-total-qp">
-                                                0.00 €
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Modo: Precio por hectárea -->
-                        <div class="calculation-group d-none" id="price-per-ha-fields">
-                            {# @formatter:off #}
-                            {% if form.instance.field.area|floatformat:2 != form.instance.field_area_snapshot|floatformat:2 %}
-                            {# @formatter:off #}
-                            <div class="alert alert-warning">
-                                <small>Nota: Originalmente calculado con {{ form.instance.field_area_snapshot }} ha.
-                                    Actual: {{ form.instance.field.area }} ha.</small>
-                            </div>
-                            {% endif %}
-                            <div class="card bg-gray-200">
-                                <div class="card-body">
-                                    <div class="row align-items-end">
-                                        {# @formatter:off #}
-                                        {% bootstrap_field form.price_per_ha wrapper_class="col-md-3" label_class="required" %}
-                                        {# @formatter:on #}
-                                        <div class="col-md-3 mt-3">
-                                            <label class="form-label fw-semibold">Superficie de la parcela</label>
-                                            <div class="form-control bg-light" id="field-area">
-                                                <i class="fas fa-map-marked-alt me-2 text-muted"></i>
-                                                <span>-- ha</span>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-3 mt-3">
-                                            <label class="form-label fw-semibold">Total</label>
-                                            <div class="form-control border-0 px-0 bg-gray-200 fw-bold text-primary"
-                                                 id="calculated-total-ha">
-                                                0.00 €
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="d-flex justify-content-between mt-4">
-                        <a class="btn btn-secondary" href="{% url 'expense-list' %}">
-                            <i class="fa fa-arrow-left"></i>Volver
-                        </a>
-                        <button class="btn btn-primary" type="submit">
-                            <i class="fa fa-save"></i>{{ form.instance.pk|yesno:"Actualizar,Guardar" }}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+<div class="tf">
+    {% if form.errors %}
+    <div class="alert alert-danger tf-banner" role="alert" id="exBanner" tabindex="-1">
+        {% for e in form.non_field_errors %}{{ e }}<br>{% endfor %}Revisa los campos marcados.
     </div>
+    {% endif %}
+
+    <form id="expenseForm" method="post" novalidate autocomplete="off">
+        {% csrf_token %}
+        {{ form.calculation_mode }}
+
+        <div class="tf-layout">
+            <div class="tf-main">
+
+                {# ── Qué, dónde y cuándo ── #}
+                <section class="tf-card">
+                    <h2 class="tf-h2">Datos del gasto</h2>
+                    {% if not form.expense_type.field.queryset.exists %}
+                    <p class="tf-note tf-note--warn mb-0">Todavía no hay tipos de gasto.
+                        <a href="{% url 'expense-type-create' %}">Crea el primero</a> para poder clasificar los gastos.</p>
+                    {% endif %}
+                    <div class="tf-grid-2">
+                        <label class="tf-label-col" for="{{ form.expense_type.id_for_label }}">Tipo de gasto
+                            {{ form.expense_type }}
+                            {% include "farm/_tf_errors.html" with errors=form.expense_type.errors %}
+                        </label>
+                        <label class="tf-label-col" for="{{ form.field.id_for_label }}">Parcela
+                            {{ form.field }}
+                            {% include "farm/_tf_errors.html" with errors=form.field.errors %}
+                        </label>
+                        <label class="tf-label-col" for="{{ form.payment_date.id_for_label }}">Fecha de pago
+                            {{ form.payment_date }}
+                            {% include "farm/_tf_errors.html" with errors=form.payment_date.errors %}
+                        </label>
+                    </div>
+                    <label class="tf-label-col" for="{{ form.description.id_for_label }}">Descripción
+                        {{ form.description }}
+                        {% include "farm/_tf_errors.html" with errors=form.description.errors %}
+                    </label>
+                </section>
+
+                {# ── Cuánto: tres formas de calcular el importe ── #}
+                <section class="tf-card">
+                    <h2 class="tf-h2" id="exModeLbl">Importe</h2>
+                    <div class="tf-seg" role="group" aria-labelledby="exModeLbl">
+                        <button type="button" class="tf-seg-btn" data-mode="total" aria-pressed="false">Total</button>
+                        <button type="button" class="tf-seg-btn" data-mode="quantity_price" aria-pressed="false"><span class="d-lg-none">Unidades</span><span class="d-none d-lg-inline">Cantidad × precio</span></button>
+                        <button type="button" class="tf-seg-btn" data-mode="price_per_ha" aria-pressed="false"><span class="d-lg-none">Por ha</span><span class="d-none d-lg-inline">Por hectárea</span></button>
+                    </div>
+
+                    <div class="tf-group" data-panel="total">
+                        <label class="tf-label-col" for="{{ form.amount.id_for_label }}">Importe total
+                            <span class="tf-inline">{{ form.amount }}<span class="tf-unit">€</span></span>
+                        </label>
+                        <span class="tf-hint">El importe final de la factura.</span>
+                        {% include "farm/_tf_errors.html" with errors=form.amount.errors %}
+                    </div>
+
+                    <div class="tf-grid-2" data-panel="quantity_price" hidden>
+                        <label class="tf-label-col" for="{{ form.quantity.id_for_label }}">Cantidad
+                            {{ form.quantity }}
+                            <span class="tf-hint">Jornales, horas, m³, recibos…</span>
+                            {% include "farm/_tf_errors.html" with errors=form.quantity.errors %}
+                        </label>
+                        <label class="tf-label-col" for="{{ form.unit_price.id_for_label }}">Precio por unidad
+                            <span class="tf-inline">{{ form.unit_price }}<span class="tf-unit">€</span></span>
+                            {% include "farm/_tf_errors.html" with errors=form.unit_price.errors %}
+                        </label>
+                    </div>
+
+                    <div class="tf-group" data-panel="price_per_ha" hidden>
+                        <label class="tf-label-col" for="{{ form.price_per_ha.id_for_label }}">Precio por hectárea
+                            <span class="tf-inline">{{ form.price_per_ha }}<span class="tf-unit">€/ha</span></span>
+                        </label>
+                        <span class="tf-hint">Se multiplica por la superficie de la parcela: <b id="exArea">elige una parcela</b>.</span>
+                        {% include "farm/_tf_errors.html" with errors=form.price_per_ha.errors %}
+                        {% if is_edit and form.instance.calculation_mode == 'price_per_ha' and form.instance.field_area_snapshot %}
+                        {% if form.instance.field.area|floatformat:2 != form.instance.field_area_snapshot|floatformat:2 %}
+                        <p class="tf-note tf-note--warn mb-0">Se calculó con {{ form.instance.field_area_snapshot|floatformat:"-2" }} ha y la parcela tiene ahora
+                            {{ form.instance.field.area|floatformat:"-2" }} ha. Al guardar se recalcula con la superficie actual.</p>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                </section>
+            </div>
+
+            {# ── Resumen: barra fija abajo (móvil) / tarjeta lateral (escritorio) ── #}
+            <aside class="tf-summary" aria-label="Resumen del gasto">
+                <div class="tf-sum-top">
+                    <span class="tf-lbl tf-sum-label">Importe</span>
+                    <div class="tf-sum-main-wrap">
+                        <span class="tf-sum-main" id="exSumMain" aria-live="polite">0,00 €</span>
+                        <span class="tf-sum-sub" id="exSumSub"></span>
+                    </div>
+                </div>
+                <div class="tf-sum-actions">
+                    <button type="submit" class="tf-btn tf-btn--primary">{% if is_edit %}Guardar{% else %}Crear gasto{% endif %}</button>
+                    <a class="tf-btn tf-btn--sec tf-sum-cancel" href="{% url 'expense-list' %}">Cancelar</a>
+                </div>
+            </aside>
+        </div>
+    </form>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    // Pasar datos del backend al JavaScript
-    window.fieldAreas = {
-    {
-        field_areas | safe
-    }
-    }
-    ;
+    document.addEventListener('DOMContentLoaded', () => {
+        const fieldAreas = JSON.parse(document.getElementById('expense-field-areas').textContent);
+        const form = document.getElementById('expenseForm');
+        const modeInput = document.getElementById('id_calculation_mode');
+        const $ = id => document.getElementById(id);
+        const inputs = {
+            field: $('id_field'), type: $('id_expense_type'), amount: $('id_amount'),
+            quantity: $('id_quantity'), unitPrice: $('id_unit_price'), perHa: $('id_price_per_ha'),
+        };
+        const fmt = new Intl.NumberFormat('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        const fmtN = new Intl.NumberFormat('es-ES', {maximumFractionDigits: 2});
+        const num = el => {
+            const v = parseFloat(String(el.value).replace(',', '.'));
+            return Number.isFinite(v) ? v : 0;
+        };
+        const selectedText = el => (el.value && el.selectedOptions[0]) ? el.selectedOptions[0].text : '';
 
-    document.addEventListener('DOMContentLoaded', function () {
-        const calculationModeInput = document.getElementById('id_calculation_mode');
-        const fieldSelect = document.getElementById('id_field');
-        const quantityInput = document.getElementById('id_quantity');
-        const unitPriceInput = document.getElementById('id_unit_price');
-        const pricePerHaInput = document.getElementById('id_price_per_ha');
-        const amountInput = document.getElementById('id_amount');
-
-        // Datos de hectáreas de parcelas
-        const fieldAreas = window.fieldAreas || {};
-
-        // Manejar selección de opciones
-        document.querySelectorAll('.calculation-option').forEach(option => {
-            option.addEventListener('click', function () {
-                const mode = this.dataset.mode;
-                selectCalculationMode(mode);
-            });
-        });
-
-        function selectCalculationMode(mode) {
-            // Actualizar el campo oculto
-            calculationModeInput.value = mode;
-
-            // Actualizar UI de selección
-            document.querySelectorAll('.option-card').forEach(card => {
-                card.classList.remove('selected');
-            });
-            document.querySelector(`[data-mode="${mode}"] .option-card`).classList.add('selected');
-
-            // Mostrar campos correspondientes
-            showCalculationFields(mode);
+        function area() {
+            return parseFloat(fieldAreas[inputs.field.value]) || 0;
         }
 
-        function showCalculationFields(mode) {
-            // Ocultar todos los grupos
-            document.querySelectorAll('.calculation-group').forEach(group => {
-                group.classList.add('d-none');
+        function setMode(mode) {
+            modeInput.value = mode;
+            form.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === mode));
+            // Los paneles ocultos no se envían; sus valores se conservan por si se vuelve a ese modo
+            form.querySelectorAll('[data-panel]').forEach(p => {
+                p.hidden = p.dataset.panel !== mode;
+                p.querySelectorAll('input').forEach(i => { i.disabled = p.hidden; });
             });
-
-            // Mostrar el grupo correspondiente
-            const groupId = mode.replaceAll('_', '-') + '-fields';
-            const group = document.getElementById(groupId);
-            if (group) {
-                group.classList.remove('d-none');
-            }
-
-            // Limpiar campos no utilizados
-            if (mode !== 'quantity_price') {
-                quantityInput.value = '';
-                unitPriceInput.value = '';
-            }
-            if (mode !== 'price_per_ha') {
-                pricePerHaInput.value = '';
-            }
-            if (mode !== 'total') {
-                amountInput.value = '';
-            }
-
-            // Actualizar cálculos
-            updateCalculations(mode);
+            update();
         }
 
-        function updateCalculations(mode) {
+        // El importe se recalcula en el servidor al guardar; aquí solo se enseña antes de hacerlo
+        function update() {
+            const mode = modeInput.value || 'total';
+            let total = 0, sub = [selectedText(inputs.type), selectedText(inputs.field)].filter(Boolean).join(' · ');
             if (mode === 'quantity_price') {
-                calculateQuantityPriceTotal();
+                total = num(inputs.quantity) * num(inputs.unitPrice);
+                sub = `${fmtN.format(num(inputs.quantity))} × ${fmt.format(num(inputs.unitPrice))} €`;
             } else if (mode === 'price_per_ha') {
-                calculatePricePerHaTotal();
-            }
-        }
-
-        function updateFieldArea() {
-            const fieldId = fieldSelect.value;
-            const fieldAreaDiv = document.getElementById('field-area');
-
-            if (fieldId && fieldAreas[fieldId]) {
-                const area = parseFloat(fieldAreas[fieldId]);
-                fieldAreaDiv.innerHTML = `<i class="fas fa-map-marked-alt me-2 text-success"></i><span>${area} ha</span>`;
-                calculatePricePerHaTotal();
+                total = num(inputs.perHa) * area();
+                sub = area() ? `${fmt.format(num(inputs.perHa))} €/ha × ${fmtN.format(area())} ha` : 'Elige una parcela';
             } else {
-                fieldAreaDiv.innerHTML = `<i class="fas fa-map-marked-alt me-2 text-muted"></i><span>--</span>`;
-                document.getElementById('calculated-total-ha').textContent = '0.00 €';
+                total = num(inputs.amount);
             }
+            $('exSumMain').textContent = `${fmt.format(total)} €`;
+            $('exSumSub').textContent = sub;
+            $('exArea').textContent = area() ? `${fmtN.format(area())} ha` : 'elige una parcela';
         }
 
-        function calculateQuantityPriceTotal() {
-            if (currentMode() !== 'quantity_price') return;
+        form.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+        form.addEventListener('input', update);
+        form.addEventListener('change', update);
+        setMode(modeInput.value || 'total');
 
-            const quantity = parseFloat(quantityInput.value) || 0;
-            const unitPrice = parseFloat(unitPriceInput.value) || 0;
-            const total = quantity * unitPrice;
-
-            document.getElementById('calculated-total-qp').textContent = total.toFixed(2) + ' €';
-            amountInput.value = total.toFixed(2);
-        }
-
-        function calculatePricePerHaTotal() {
-            if (currentMode() !== 'price_per_ha') return;
-
-            const pricePerHa = parseFloat(pricePerHaInput.value) || 0;
-            const fieldId = fieldSelect.value;
-            const area = fieldId && fieldAreas[fieldId] ? parseFloat(fieldAreas[fieldId]) : 0;
-            const total = pricePerHa * area;
-
-            document.getElementById('calculated-total-ha').textContent = total.toFixed(2) + ' €';
-            amountInput.value = total.toFixed(2);
-        }
-
-        function currentMode() {
-            return calculationModeInput.value || 'total';
-        }
-
-        // Event listeners
-        fieldSelect.addEventListener('change', updateFieldArea);
-        quantityInput.addEventListener('input', calculateQuantityPriceTotal);
-        unitPriceInput.addEventListener('input', calculateQuantityPriceTotal);
-        pricePerHaInput.addEventListener('input', calculatePricePerHaTotal);
-
-        // Inicialización
-        selectCalculationMode(currentMode());
-        updateFieldArea();
+        // Con errores: marca los campos y lleva al primero (en móvil la barra fija tapa parte de la pantalla)
+        form.querySelectorAll('.tf-err').forEach(err => {
+            if (!err.textContent.trim()) return;
+            const input = err.closest('label, .tf-group')?.querySelector('input, select, textarea');
+            if (input) input.setAttribute('aria-invalid', 'true');
+        });
+        const firstBad = form.querySelector('[aria-invalid="true"]');
+        if (firstBad) { firstBad.scrollIntoView({block: 'center'}); firstBad.focus({preventScroll: true}); }
     });
 </script>
 {% endblock %}

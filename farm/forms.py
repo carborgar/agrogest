@@ -317,16 +317,18 @@ class ExpenseForm(forms.ModelForm):
             'field', 'expense_type', 'description', 'payment_date',
             'calculation_mode', 'quantity', 'unit_price', 'price_per_ha', 'amount'
         ]
+        # Clases del formulario de tratamiento (tf-*): el mismo aspecto en todos los formularios
         widgets = {
-            'field': forms.Select(attrs={'class': 'form-select'}),
-            'expense_type': forms.Select(attrs={'class': 'form-select'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'payment_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'calculation_mode': forms.Select(attrs={'class': 'form-select', 'id': 'id_calculation_mode'}),
-            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
-            'unit_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
-            'price_per_ha': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
-            'amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'field': forms.Select(attrs={'class': 'form-select tf-inp'}),
+            'expense_type': forms.Select(attrs={'class': 'form-select tf-inp'}),
+            'description': forms.Textarea(attrs={'class': 'tf-inp', 'rows': 2,
+                                                 'placeholder': 'Ej. Poda de enero, 3 jornales'}),
+            'payment_date': forms.DateInput(attrs={'type': 'date', 'class': 'tf-inp'}),
+            'calculation_mode': forms.HiddenInput(),
+            'quantity': forms.NumberInput(attrs={'class': 'tf-inp tf-num', 'step': '0.01', 'min': '0', 'inputmode': 'decimal'}),
+            'unit_price': forms.NumberInput(attrs={'class': 'tf-inp tf-num', 'step': '0.01', 'min': '0', 'inputmode': 'decimal'}),
+            'price_per_ha': forms.NumberInput(attrs={'class': 'tf-inp tf-num', 'step': '0.01', 'min': '0', 'inputmode': 'decimal'}),
+            'amount': forms.NumberInput(attrs={'class': 'tf-inp tf-num', 'step': '0.01', 'min': '0', 'inputmode': 'decimal'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -337,6 +339,9 @@ class ExpenseForm(forms.ModelForm):
         # Formatear correctamente la fecha para el widget HTML5 date input cuando se edita
         elif self.instance.payment_date:
             self.initial['payment_date'] = self.instance.payment_date.strftime('%Y-%m-%d')
+
+        self.fields['expense_type'].empty_label = 'Elige un tipo…'
+        self.fields['field'].empty_label = 'Elige una parcela…'
 
         # Hacer que los campos condicionales no sean obligatorios inicialmente
         self.fields['quantity'].required = False
@@ -389,6 +394,13 @@ class ExpenseForm(forms.ModelForm):
             cleaned_data['quantity'] = None
             cleaned_data['unit_price'] = None
             cleaned_data['price_per_ha'] = None
+
+        # Los campos de los otros modos se ignoran: un valor inválido en un panel oculto no debe bloquear el guardado
+        mode_fields = {'total': {'amount'}, 'quantity_price': {'quantity', 'unit_price'}, 'price_per_ha': {'price_per_ha'}}
+        for name in {'amount', 'quantity', 'unit_price', 'price_per_ha'} - mode_fields.get(calculation_mode, set()):
+            self.errors.pop(name, None)
+            if name != 'amount':
+                cleaned_data[name] = None
 
         return cleaned_data
 
