@@ -780,3 +780,26 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
     .dropdown:has(> .dropdown-sheet.show), .dt-actions:has(.dropdown-sheet.show), .tl-item:has(.dropdown-sheet.show), .pl-item:has(.dropdown-sheet.show),
     .pl-group:has(.dropdown-sheet.show), .pl-field:has(.dropdown-sheet.show) { z-index: 1050 !important; }
 }
+
+/* ═══ ESTADÍSTICAS (st-*) ═══
+   Cifras clave grandes sobre .dt-summary, gráfico de meses y barras de ranking en HTML/CSS puro (sin Chart.js: funciona sin cobertura).
+   Un solo tono (verde de la app); el mes con más actividad se oscurece. Las alturas/anchos llegan por --p desde la plantilla. */
+.st-toolbar .tl-tabs { flex: 1 1 0; }
+@media (min-width: 768px) { .st-toolbar .tl-tabs { flex: 0 0 auto; } }
+.st-key .dt-value { font-size: 1.25rem; }
+@media (min-width: 768px) { .st-key .dt-value { font-size: 1.5rem; } }
+.st-months { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: .25rem; margin: 0; padding: 1.75rem 1rem .5rem; list-style: none; }
+.st-month { display: flex; flex-direction: column; gap: .35rem; min-width: 0; }
+.st-month-plot { position: relative; display: block; height: 9rem; border-bottom: 1px solid var(--tl-head-line); }
+.st-month-bar { position: absolute; left: 50%; bottom: 0; width: min(100%, 1.75rem); height: var(--p); transform: translateX(-50%); border-radius: 4px 4px 0 0; background: var(--bs-primary); }
+.st-month-val { position: absolute; right: 0; bottom: calc(var(--p) + 3px); left: 0; text-align: center; font-size: .78rem; font-weight: 600; color: var(--tl-muted); }
+@media (min-width: 992px) { .st-month-plot { height: 14rem; } }
+.st-month-label { text-align: center; font-size: .72rem; color: var(--tl-muted); }
+.st-month--max .st-month-bar { background: var(--tl-3-fg); }
+.st-month--max .st-month-val { font-weight: 700; color: var(--tl-ink); }
+.st-bars { margin: 0; padding: .5rem 1rem 1rem; list-style: none; }
+.st-bars li { padding: .45rem 0; }
+.st-bar-row { display: flex; justify-content: space-between; gap: .75rem; font-size: .9rem; }
+.st-bar-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--tl-ink); }
+.st-track { height: 8px; margin-top: .3rem; border-radius: 4px; background: var(--tl-line); }
+.st-track span { display: block; width: var(--p); height: 100%; border-radius: 4px; background: var(--bs-primary); }
