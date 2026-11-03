@@ -12,6 +12,7 @@
     "sass": "^1.70.0"
   },
   "devDependencies": {
-    "jsdom": "^30.1.2"
+    "jsdom": "^30.1.2",
+    "marked": "9.1.6"
   }
 }
