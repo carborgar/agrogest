@@ -780,3 +780,77 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
     .dropdown:has(> .dropdown-sheet.show), .dt-actions:has(.dropdown-sheet.show), .tl-item:has(.dropdown-sheet.show), .pl-item:has(.dropdown-sheet.show),
     .pl-group:has(.dropdown-sheet.show), .pl-field:has(.dropdown-sheet.show) { z-index: 1050 !important; }
 }
+
+/* ═══════════════════════════════════════════════
+   PARCELAS (fd-* detalle · fm-* formulario · cs-* resumen de gastos)
+   El detalle usa dt-* y tl-*; el formulario, tf-*; aquí solo lo propio de cada pantalla.
+═══════════════════════════════════════════════ */
+/* Colores de los gráficos de costes (validados con la paleta de datos: ΔE entre vecinos ≥ 12 en visión normal y con daltonismo).
+   Orden fijo; con más de 6 tipos, los pequeños se agrupan en «Otros» (--cs-other). */
+:root { --cs-1: #008300; --cs-2: #EDA100; --cs-3: #6250D6; --cs-4: #EB6834; --cs-5: #2A78D6; --cs-6: #E87BA4; --cs-other: #7A8577; }
+
+/* Detalle: mapa */
+.fd-map-wrap { position: relative; }
+.fd-map { height: 260px; transition: height .3s ease; }
+.fd-map.is-expanded { height: 420px; }
+.fd-map-btn { position: absolute; right: .5rem; bottom: .5rem; z-index: 1000; width: 44px; height: 44px; padding: 0; }
+
+/* Formulario: mapa de dibujo */
+.fm-map { height: 320px; border: 1px solid var(--bs-border-color); border-radius: 10px; }
+.fm-ok { color: var(--tl-3-fg); font-weight: 600; }
+@media (min-width: 992px) { .fm-map { height: 420px; } }
+
+/* Resumen de gastos: en móvil las pestañas de periodo comparten fila con el botón de filtros */
+@media (max-width: 767.98px) { .cs-toolbar .tl-tabs { flex: 1 1 0; min-width: 0; } }
+
+/* Resumen de gastos: gráficos */
+.cs-chart { position: relative; height: 260px; padding: .75rem 1rem 1rem; }
+
+/* Listas desplegables (<details>): móvil = nombre y cifra; escritorio = columnas con cabecera */
+.cs-head, .cs-row { --cs-cols: minmax(0, 1fr) 9rem 7rem 1.5rem; }
+.cs-head--fields, .cs-item--field .cs-row { --cs-cols: minmax(0, 1fr) 7rem 9rem 7rem 1.5rem; }
+.cs-head { grid-template-columns: var(--cs-cols); }
+.cs-item { border-top: 1px solid var(--tl-line); }
+.cs-head + .cs-item, .cs-item:first-child { border-top: 0; }
+.cs-item[open] > .cs-row { background: var(--tl-soft); }
+.cs-row { display: grid; grid-template-columns: minmax(0, 1fr) auto 1.25rem; grid-template-areas: "name val chev" "name pct chev"; align-items: center; column-gap: .75rem; min-height: 56px; padding: .5rem 1rem; list-style: none; cursor: pointer; }
+.cs-row::-webkit-details-marker { display: none; }
+.cs-row:focus-visible { outline: 2px solid var(--bs-primary); outline-offset: -2px; }
+.cs-name { grid-area: name; min-width: 0; font-weight: 700; color: var(--tl-ink); overflow-wrap: anywhere; }
+.cs-name small { display: block; font-size: .78rem; font-weight: 400; color: var(--tl-muted); }
+.cs-val { grid-area: val; font-weight: 700; text-align: right; white-space: nowrap; }
+.cs-pct { grid-area: pct; font-size: .82rem; text-align: right; color: var(--tl-muted); white-space: nowrap; }
+.cs-pct small { font-size: .72rem; }
+.cs-area { color: var(--tl-muted); text-align: right; }
+.cs-chev { grid-area: chev; font-size: .75rem; color: var(--tl-muted); transition: transform .18s ease; }
+.cs-item[open] .cs-chev { transform: rotate(180deg); }
+.cs-dot { display: inline-block; width: .7rem; height: .7rem; margin-right: .5rem; border-radius: 3px; }
+.cs-more { padding: .25rem 1rem .6rem; border-top: 1px solid var(--tl-line); background: var(--tl-soft); }
+.cs-type-line { display: flex; justify-content: space-between; gap: .75rem; padding: .6rem 0 .1rem; font-size: .8rem; }
+.cs-type-line .cs-pct { margin-left: .75rem; }
+.cs-prod { display: flex; align-items: baseline; gap: .75rem; padding: .4rem 0; border-bottom: 1px solid var(--tl-line); font-size: .9rem; }
+.cs-prod:last-child { border-bottom: 0; }
+.cs-prod-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.cs-prod .cs-val, .cs-type-line .cs-val { margin-left: auto; font-weight: 600; }
+.cs-prod .cs-pct { min-width: 3.6rem; }
+@media (min-width: 768px) {
+    .cs-row { grid-template-columns: var(--cs-cols); grid-template-areas: none; column-gap: 1rem; }
+    .cs-name, .cs-val, .cs-pct, .cs-chev { grid-area: auto; }
+    .cs-name small { display: inline; margin-left: .5rem; }
+    .cs-more { padding-left: 2.2rem; }
+    .cs-item--field .cs-more, .cs-item--type .cs-more { padding-right: 3.5rem; }
+}
+
+/* Aviso de productos sin precio */
+.cs-warn { border: 1px solid #F0D9A6; border-radius: var(--bs-border-radius-lg); background: var(--tl-1-bg); color: var(--tl-1-fg); font-size: .9rem; }
+.cs-warn > summary { display: flex; align-items: center; gap: .75rem; min-height: 48px; padding: .5rem 1rem; list-style: none; cursor: pointer; }
+.cs-warn > summary::-webkit-details-marker { display: none; }
+.cs-warn > summary > span { flex: 1; min-width: 0; }
+.cs-warn[open] .cs-chev { transform: rotate(180deg); }
+.cs-warn-body { padding: 0 1rem .75rem 2.75rem; }
+.cs-warn-body ul { margin: 0 0 .5rem; padding-left: 1.1rem; }
+.cs-warn-body a { color: inherit; }
+
+/* Formularios tf-* con controles nativos (select y textarea) */
+.tf-inp.form-select { padding-right: 2.25rem; background-image: var(--bs-form-select-bg-img), var(--bs-form-select-bg-icon, none); background-repeat: no-repeat; background-position: right .75rem center; background-size: 16px 12px; }
+textarea.tf-inp { height: auto; min-height: 48px; padding: 10px 12px; resize: vertical; }

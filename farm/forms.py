@@ -1,4 +1,6 @@
 import datetime
+import json
+import math
 from datetime import date as Datetime
 from decimal import Decimal, ROUND_HALF_EVEN, ROUND_UP
 
@@ -613,8 +615,23 @@ class HarvestForm(NoPlaceholderModelForm):
         return obj
 
 
-_current_year = datetime.datetime.now().year
-_year_choices = [(y, y) for y in range(_current_year, _current_year - 10, -1)]
+PLANTING_YEAR_MIN = 1900
+
+
+def _valid_coordinates(coords, depth):
+    """Anidado GeoJSON: Polygon = lista de anillos (depth 2); MultiPolygon = lista de polígonos (depth 3)."""
+    if not isinstance(coords, list) or not coords:
+        return False
+    if depth > 1:
+        return all(_valid_coordinates(c, depth - 1) for c in coords)
+    # Anillo: al menos 4 posiciones [lng, lat] numéricas
+    if len(coords) < 4:
+        return False
+    for pos in coords:
+        if not (isinstance(pos, list) and len(pos) >= 2
+                and all(isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) for v in pos[:2])):
+            return False
+    return True
 
 
 class FieldForm(NoPlaceholderModelForm):
@@ -624,30 +641,33 @@ class FieldForm(NoPlaceholderModelForm):
         labels = {
             'name': 'Nombre',
             'crop': 'Cultivo',
-            'planting_year': 'Año de siembra',
+            'planting_year': 'Año de plantación',
             'area': 'Superficie (ha)',
-            'storage_point': 'Casetilla de riego',
+            'storage_point': 'Casetilla',
             'geometry': 'Geometría',
         }
         help_texts = {
-            'area': 'Se usa para cálculos de costos y tratamientos.',
+            'area': 'Se usa para calcular el producto y los costes. Si dibujas el contorno, se rellena sola.',
             'storage_point': 'Opcional. Si la dejas vacía, la parcela es independiente: el producto se deja en ella.',
         }
+        # Clases del formulario de tratamiento (tf-*): el mismo aspecto en todos los formularios.
+        # El año es un número y no una lista: un olivar suele ser de hace más de diez años.
         widgets = {
-            'planting_year': forms.Select(choices=_year_choices),
-            'storage_point': forms.Select(attrs={'class': 'form-select'}),
+            'name': forms.TextInput(attrs={'class': 'tf-inp', 'maxlength': 100, 'autocomplete': 'off'}),
+            'crop': forms.TextInput(attrs={'class': 'tf-inp', 'maxlength': 100, 'autocomplete': 'off'}),
+            'area': forms.NumberInput(attrs={'class': 'tf-inp tf-num', 'step': 'any', 'min': '0', 'inputmode': 'decimal'}),
+            'planting_year': forms.NumberInput(attrs={'class': 'tf-inp tf-num', 'inputmode': 'numeric', 'min': PLANTING_YEAR_MIN}),
+            'storage_point': forms.Select(attrs={'class': 'form-select tf-inp'}),
             'geometry': forms.HiddenInput(),
         }
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-        for field in self.fields.values():
-            field.widget.attrs.update({'class': 'form-control'})
         self.fields['geometry'].required = False
-        self.fields['area'].widget.attrs['id'] = 'id_area'
+        self.fields['planting_year'].widget.attrs['max'] = datetime.date.today().year
         self.fields['storage_point'].required = False
-        self.fields['storage_point'].widget.attrs['class'] = 'form-select'
+        self.fields['storage_point'].empty_label = 'Ninguna (parcela independiente)'
 
         if user and getattr(user, 'organization', None):
             self.fields['storage_point'].queryset = StoragePoint.objects.filter(
@@ -655,6 +675,35 @@ class FieldForm(NoPlaceholderModelForm):
             ).order_by('name')
         else:
             self.fields['storage_point'].queryset = StoragePoint.objects.none()
+
+    def clean_geometry(self):
+        raw = (self.cleaned_data.get('geometry') or '').strip()
+        if not raw:
+            return ''
+        error = ValidationError('El contorno no es válido. Dibújalo de nuevo en el mapa.')
+        try:
+            data = json.loads(raw)
+        except ValueError:
+            raise error
+        if isinstance(data, dict) and data.get('type') == 'Feature':
+            data = data.get('geometry')
+        if not isinstance(data, dict) or data.get('type') not in ('Polygon', 'MultiPolygon'):
+            raise error
+        if not _valid_coordinates(data.get('coordinates'), 2 if data['type'] == 'Polygon' else 3):
+            raise error
+        return raw
+
+    def clean_area(self):
+        area = self.cleaned_data['area']
+        if area <= 0:
+            raise ValidationError('La superficie debe ser mayor que 0.')
+        return area
+
+    def clean_planting_year(self):
+        year = self.cleaned_data['planting_year']
+        if not PLANTING_YEAR_MIN <= year <= datetime.date.today().year:
+            raise ValidationError(f'Indica un año entre {PLANTING_YEAR_MIN} y {datetime.date.today().year}.')
+        return year
 
 
 class StoragePointForm(NoPlaceholderModelForm):

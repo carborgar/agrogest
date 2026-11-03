@@ -1,614 +1,351 @@
-document.addEventListener('DOMContentLoaded', function() {
-    // Referencias a elementos del DOM
-    const dateFromInput = document.getElementById('dateFrom');
-    const dateToInput = document.getElementById('dateTo');
-    const applyFilterBtn = document.getElementById('applyDateFilter');
-    const fieldsContainer = document.getElementById('fieldsContainer');
-    const fieldsInput = document.getElementById('fieldSelectorDropdown');
-    const viewModeSelector = document.getElementById('viewMode');
+// Resumen de gastos por parcela: pestañas de periodo + filtros, y los datos de la API api-field-costs-data
+// pintados en gráficos (Chart.js) y en listas desplegables (<details>, sin depender de Bootstrap JS).
+document.addEventListener('DOMContentLoaded', function () {
+    const $ = (id) => document.getElementById(id);
+    const dateFromInput = $('dateFrom');
+    const dateToInput = $('dateTo');
+    const applyFilterBtn = $('applyDateFilter');
+    const fieldsContainer = $('fieldsContainer');
+    const fieldsInput = $('fieldSelectorDropdown');
+    const viewModeSelector = $('viewMode');
 
     // Salir si no estamos en la página de resumen de gastos
     if (!dateFromInput || !dateToInput || !applyFilterBtn || !fieldsContainer || !fieldsInput || !viewModeSelector) {
         return;
     }
 
-    // Inicializar fechas (año en curso por defecto)
-    const today = new Date();
-    const currentYear = today.getFullYear();
+    const currentYear = new Date().getFullYear();
+    const tabs = Array.from(document.querySelectorAll('#periodTabs .tl-tab'));
+    const states = { loading: $('costsLoading'), empty: $('costsEmpty'), error: $('costsError'), body: $('costsBody') };
 
-    dateFromInput.value = `${currentYear}-01-01`;
-    dateToInput.value   = `${currentYear}-12-31`;
+    // Colores de las series: variables --cs-* de treatment-styles.css (la paleta de la app)
+    const css = getComputedStyle(document.documentElement);
+    const SERIES = [1, 2, 3, 4, 5, 6].map(i => css.getPropertyValue('--cs-' + i).trim() || '#2E7D32');
+    const OTHER = css.getPropertyValue('--cs-other').trim() || '#7A8577';
+    const GRID = css.getPropertyValue('--tl-line').trim() || '#EEF0EC';
+    const MUTED = css.getPropertyValue('--tl-muted').trim() || '#5F665C';
+    // Más de 6 tipos: los pequeños se agrupan en «Otros» en el gráfico (una serie nunca repite color)
+    const MAX_SLICES = SERIES.length;
 
-    // Selector rápido de año (igual que en "Gestionar gastos")
-    const quickYearsContainer = document.getElementById('quickYearsContainer');
-    if (quickYearsContainer) {
-        [currentYear - 2, currentYear - 1, currentYear].forEach(y => {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.dataset.year = y;
-            btn.textContent = y;
-            const isActive = dateFromInput.value === `${y}-01-01` && dateToInput.value === `${y}-12-31`;
-            btn.className = `btn btn-sm quick-year-btn ${isActive ? 'btn-primary' : 'btn-outline-secondary'}`;
-            btn.addEventListener('click', () => {
-                dateFromInput.value = `${y}-01-01`;
-                dateToInput.value   = `${y}-12-31`;
-                quickYearsContainer.querySelectorAll('.quick-year-btn').forEach(b => {
-                    b.className = `btn btn-sm quick-year-btn ${b.dataset.year == y ? 'btn-primary' : 'btn-outline-secondary'}`;
-                });
-                loadFieldCostsData();
-            });
-            quickYearsContainer.appendChild(btn);
-        });
+    const nf = (min, max) => new Intl.NumberFormat('es-ES', { minimumFractionDigits: min, maximumFractionDigits: max });
+    const eur = (n) => nf(2, 2).format(n) + ' €';
+    const num = (n) => nf(0, 2).format(n);
+    const pct = (n) => nf(1, 1).format(n) + ' %';
+    const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => (
+        { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    let viewMode = 'cost';
+    try { viewMode = localStorage.getItem('fieldCostsViewMode') || 'cost'; } catch (e) { /* sin almacenamiento */ }
+    viewModeSelector.value = viewMode === 'quantity' ? 'quantity' : 'cost';
+    viewMode = viewModeSelector.value;
+
+    let currentData = null;
+    let typeChart = null;
+    let fieldChart = null;
+
+    // ── Periodo ────────────────────────────────────────────────────────────────
+    function setPeriod(value) {
+        if (value === 'all') {
+            dateFromInput.value = '';
+            dateToInput.value = '';
+        } else {
+            dateFromInput.value = `${value}-01-01`;
+            dateToInput.value = `${value}-12-31`;
+        }
     }
 
-    // Inicializar modo de vista desde localStorage
-    let currentViewMode = localStorage.getItem('fieldCostsViewMode') || 'cost';
-    viewModeSelector.value = currentViewMode;
+    // Pestaña activa = la que coincide con las fechas; con fechas a medida no hay ninguna
+    function activePeriod() {
+        const from = dateFromInput.value, to = dateToInput.value;
+        if (!from && !to) return 'all';
+        const m = /^(\d{4})-01-01$/.exec(from);
+        return m && to === `${m[1]}-12-31` ? m[1] : null;
+    }
 
-    // Charts
-    let productTypeChart = null;
-    let fieldCostChart = null;
+    function syncUi() {
+        const active = activePeriod();
+        tabs.forEach(t => {
+            const on = t.dataset.period === active;
+            t.classList.toggle('active', on);
+            if (on) t.setAttribute('aria-current', 'true'); else t.removeAttribute('aria-current');
+        });
+        // Contador del botón de filtros (móvil): parcelas elegidas, fechas a medida y modo cantidades
+        const selected = selectedFieldIds().length;
+        const count = (selected ? 1 : 0) + (active === null ? 1 : 0) + (viewMode === 'quantity' ? 1 : 0);
+        const badge = $('filtersBadge'), btn = $('filtersBtn');
+        if (badge) { badge.hidden = !count; badge.textContent = count; }
+        if (btn) btn.setAttribute('aria-label', count ? `Filtros (${count} activos)` : 'Filtros');
+    }
 
-    // Variable para almacenar los datos cargados
-    let currentData = null;
+    function selectedFieldIds() {
+        return Array.from(fieldsInput.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+    }
 
-    // Cargar datos al inicio
-    loadFieldCostsData();
-
-    // Event listeners
-    applyFilterBtn.addEventListener('click', loadFieldCostsData);
-
-    // Cambiar modo de visualización sin recargar datos
-    viewModeSelector.addEventListener('change', function() {
-        currentViewMode = this.value;
-        localStorage.setItem('fieldCostsViewMode', currentViewMode);
-
-        // Actualizar la visualización con los datos existentes
-        if (currentData) {
-            renderFieldCards(currentData.fields);
-            updateCharts(currentData);
+    function closePanel() {
+        const panel = $('filtersPanel');
+        if (panel && window.bootstrap && bootstrap.Offcanvas) {
+            const oc = bootstrap.Offcanvas.getInstance(panel);
+            if (oc) oc.hide();
         }
-    });
+    }
 
-    // Función para cargar datos vía AJAX
+    function show(name) {
+        Object.entries(states).forEach(([k, el]) => { if (el) el.hidden = k !== name; });
+    }
+
+    // ── Carga ──────────────────────────────────────────────────────────────────
+    let requestSeq = 0;  // solo vale la respuesta de la última petición (filtros cambiados deprisa)
+    function showError(expired) {
+        $('costsErrorTitle').textContent = expired ? 'Tu sesión ha caducado' : 'No se han podido cargar los datos';
+        $('costsErrorText').textContent = expired ? 'Inicia sesión de nuevo para ver los gastos.' : 'Comprueba la conexión e inténtalo de nuevo.';
+        const login = $('costsLogin');
+        if (login) { login.hidden = !expired; login.href = states.error.dataset.loginUrl || '#'; }
+        $('costsRetry').hidden = expired;
+        $('costSummary').textContent = '';
+        show('error');
+    }
+
     function loadFieldCostsData() {
-        const dateFrom = dateFromInput.value;
-        const dateTo = dateToInput.value;
-        const fieldsList = Array.from(fieldsInput.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
-
-        // Construir parámetros
+        const seq = ++requestSeq;
         const params = new URLSearchParams();
-        if (dateFrom) params.append('date_from', dateFrom);
-        if (dateTo) params.append('date_to', dateTo);
-        fieldsList.forEach(id => params.append('field_ids', id));
+        const from = dateFromInput.value, to = dateToInput.value;
+        if (!from && !to) {
+            params.append('all', '1');
+        } else {
+            if (from) params.append('date_from', from);
+            if (to) params.append('date_to', to);
+        }
+        selectedFieldIds().forEach(id => params.append('field_ids', id));
+        syncUi();
+        show('loading');
 
-        // Mostrar spinner
-        fieldsContainer.innerHTML = `
-            <div class="text-center py-5">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Cargando...</span>
-                </div>
-                <p class="mt-2">Cargando datos de parcelas...</p>
-            </div>
-        `;
-
-        // Hacer petición AJAX
         fetch(`${API_URLS.fieldCosts}?${params.toString()}`)
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) throw new Error(response.status);
+                return response.json();
+            })
             .then(data => {
-                // Guardar datos para uso posterior
+                if (seq !== requestSeq) return;
                 currentData = data;
-
-                updateDashboard(data);
-                renderFieldCards(data.fields);
-                updateCharts(data);
                 renderNoPriceWarning(data.no_price_products || []);
+                renderAll();
             })
             .catch(error => {
+                if (seq !== requestSeq) return;
                 console.error('Error cargando datos:', error);
-                fieldsContainer.innerHTML = `
-                    <div class="col-12">
-                        <div class="alert alert-danger">
-                            Error al cargar los datos. Por favor, inténtalo de nuevo.
-                        </div>
-                    </div>
-                `;
+                showError(String(error && error.message) === '401');
             });
     }
 
-    // Actualizar indicadores del dashboard
-    function updateDashboard(data) {
-        document.getElementById('totalCost').textContent = data.total_cost.toLocaleString('es-ES', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        }) + ' €';
-
-        document.getElementById('costPerHa').textContent = data.cost_per_ha.toLocaleString('es-ES', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        }) + ' €/ha';
-
-        document.getElementById('totalArea').textContent = data.total_area.toLocaleString('es-ES', {
-            minimumFractionDigits: 1,
-            maximumFractionDigits: 1
-        }) + ' ha';
-
-        document.getElementById('fieldCount').textContent = data.fields.length;
-    }
-
-    // Renderizar tarjetas de parcelas
-    function renderFieldCards(fields) {
-        fieldsContainer.innerHTML = '';
-
-        // Ordenar campos por coste por hectárea
-        fields.sort((a, b) => b.cost_per_ha - a.cost_per_ha);
-
-        fields.forEach(field => {
-            // Generar un color para la barra de progreso
-            const progressColor = getProgressColor(field.cost_per_ha, fields);
-
-            const card = document.createElement('div');
-            card.className = 'col-lg-4 col-md-6 mb-4';
-            card.innerHTML = `
-                <div class="card h-100">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="card-title mb-0">${field.name}</h5>
-                            <span class="badge bg-${progressColor}">${field.cost_per_ha.toLocaleString('es-ES', {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2
-                            })} €/ha</span>
-                        </div>
-                        <div class="card-text mb-3">
-                            <div class="row g-2 mb-2">
-                                <div class="col-6">
-                                    <div class="d-flex align-items-center">
-                                        <i class="fa fa-ruler-combined me-2 text-muted"></i>
-                                        <span>${field.area} ha</span>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="d-flex align-items-center">
-                                        <i class="fa fa-euro-sign me-2 text-muted"></i>
-                                        <span>${field.total_cost.toLocaleString('es-ES', {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2
-                                        })} €</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Visualización gráfica de costes -->
-                            <div class="mt-3">
-                                <h6 class="text-muted mb-2">Desglose por tipo de producto:</h6>
-                                <div class="product-type-breakdown">
-                                    ${renderFieldProductBreakdown(field.product_breakdown)}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            fieldsContainer.appendChild(card);
-        });
-    }
-
-    function renderFieldProductBreakdown(productBreakdown) {
-        if (!productBreakdown || productBreakdown.length === 0) {
-            return '<div class="text-muted small">No hay datos disponibles</div>';
-        }
-
-        const colors = [
-            'primary', 'success', 'danger', 'warning',
-            'info', 'secondary', 'dark'
-        ];
-
-        let html = '<div class="product-type-bars">';
-
-        productBreakdown.forEach((type, index) => {
-            const color = colors[index % colors.length];
-            const uniqueId = `products-${type.type_name.replace(/\s+/g, '-')}-${index}-${Math.random().toString(36).slice(2, 7)}`;
-
-            let valueDisplay = '';
-            if (currentViewMode === 'cost') {
-                valueDisplay = type.total.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
-            } else {
-                const totalQuantity = type.products.reduce((sum, p) => sum + p.quantity, 0);
-                const unit = type.products[0]?.unit || '';
-                valueDisplay = `${totalQuantity.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${unit}`;
-            }
-
-            html += `
-                <div class="product-type-item mb-2">
-                    <div class="d-flex justify-content-between mb-1 small">
-                        <span>${type.type_name}</span>
-                        <span>${valueDisplay} (${type.percentage.toFixed(1)}%)</span>
-                    </div>
-                    <div class="progress" style="height: 8px;">
-                        <div class="progress-bar bg-${color}" role="progressbar"
-                             style="width: ${type.percentage}%" aria-valuenow="${type.percentage}"
-                             aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                    <div class="mt-1">
-                        <button class="btn btn-link btn-sm p-0 text-${color} product-details-toggle"
-                                data-bs-toggle="collapse"
-                                data-bs-target="#${uniqueId}">
-                            Ver productos <i class="fas fa-chevron-down fa-xs"></i>
-                        </button>
-                        <div class="collapse mt-2" id="${uniqueId}">
-                            <div class="card card-body p-2 bg-light">
-                                ${renderProductList(type.products, currentViewMode)}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-
-        html += '</div>';
-        return html;
-    }
-
-    function renderProductList(products, viewMode = 'cost') {
-        if (!products || products.length === 0) {
-            return '<div class="text-muted small">No hay productos disponibles</div>';
-        }
-
-        let html = '<ul class="list-unstyled mb-0 small">';
-
-        products.forEach(product => {
-            // Determinar qué valor mostrar según el modo
-            let valueDisplay;
-            if (viewMode === 'cost') {
-                valueDisplay = `${product.total.toLocaleString('es-ES', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                })} €`;
-            } else {
-                valueDisplay = `${product.quantity.toLocaleString('es-ES', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                })} ${product.unit || ''}`;
-            }
-
-            html += `
-                <li class="d-flex justify-content-between align-items-center mb-1">
-                    <span>${product.name}</span>
-                    <span>${valueDisplay} (${product.percentage.toFixed(1)}%)</span>
-                </li>
-            `;
-        });
-
-        html += '</ul>';
-        return html;
-    }
-
-    // Obtener color según el coste
-    function getProgressColor(cost, fields) {
-        // Encontrar máximo y mínimo para normalizar
-        if (fields.length <= 1) return 'primary';
-
-        const costs = fields.map(f => f.cost_per_ha);
-        const max = Math.max(...costs);
-        const min = Math.min(...costs);
-        const range = max - min;
-
-        // Normalizar coste actual (0-1)
-        const normalized = range === 0 ? 0.5 : (cost - min) / range;
-
-        // Asignar color según valor normalizado
-        if (normalized > 0.8) return 'danger';
-        if (normalized > 0.6) return 'warning';
-        if (normalized > 0.4) return 'primary';
-        if (normalized > 0.2) return 'info';
-        return 'success';
-    }
-
-    // Actualizar gráficos
-    function updateCharts(data) {
-        // Preparar datos para gráficos
-        const productTypeData = prepareProductTypeChartData(data.product_breakdown);
-        const fieldCostData = prepareFieldCostChartData(data.fields);
-
-        // Actualizar/crear gráfico de tipos de producto
-        if (productTypeChart) {
-            productTypeChart.data = productTypeData;
-            productTypeChart.update();
-        } else {
-            const ctx = document.getElementById('productTypeChart').getContext('2d');
-            productTypeChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: productTypeData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'right',
-                            labels: {
-                                boxWidth: 12
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const label = context.label;
-                                    const value = context.raw;
-                                    const unit = context.dataset.units?.[context.dataIndex] || '';
-                                    const formattedValue = value.toLocaleString('es-ES', {
-                                        minimumFractionDigits: 2,
-                                        maximumFractionDigits: 2
-                                    });
-
-                                    return currentViewMode === 'cost'
-                                        ? `${label}: ${formattedValue} €`
-                                        : `${label}: ${formattedValue} ${unit}`;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // Actualizar/crear gráfico de costes por parcela
-        if (fieldCostChart) {
-            fieldCostChart.data = fieldCostData;
-            fieldCostChart.update();
-        } else {
-            const ctx = document.getElementById('fieldCostChart').getContext('2d');
-            fieldCostChart = new Chart(ctx, {
-                type: 'bar',
-                data: fieldCostData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    indexAxis: 'y',
-                    plugins: {
-                        legend: {
-                            position: 'top'
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: {
-                                display: false
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // Actualizar la sección de detalles de productos
-        updateProductTypeDetails(data.product_breakdown);
-    }
-
-    // Función para actualizar el desglose detallado de productos
-    function updateProductTypeDetails(productBreakdown) {
-        const container = document.getElementById('productTypeDetails');
-        if (!container) return;
-
-        if (!productBreakdown || productBreakdown.length === 0) {
-            container.innerHTML = '<div class="alert alert-info">No hay datos disponibles para el período seleccionado.</div>';
+    function renderAll() {
+        const data = currentData;
+        if (!data) return;
+        // En cantidades, lo que cuenta es que haya producto (un producto sin precio tiene cantidad y coste 0)
+        const hasData = viewMode === 'quantity'
+            ? data.product_breakdown.some(t => (t.products || []).some(p => p.quantity > 0))
+            : data.fields.some(f => f.total_cost > 0);
+        renderSummary(data);
+        if (!hasData) {
+            const all = activePeriod() === 'all' && !selectedFieldIds().length;
+            $('costsEmptyTitle').textContent = all ? 'Todavía no hay costes' : 'No hay costes con estos filtros';
+            $('costsEmptyText').textContent = all
+                ? 'Los costes salen de los productos de los tratamientos con precio.'
+                : 'Prueba con otro periodo u otras parcelas.';
+            $('costsEmptyAll').hidden = all;
+            show('empty');
             return;
         }
-
-        const colors = [
-            'primary', 'success', 'danger', 'warning',
-            'info', 'secondary', 'dark'
-        ];
-
-        let html = '';
-
-        productBreakdown.forEach((type, index) => {
-            const color = colors[index % colors.length];
-
-            // Determinar qué valor mostrar según el modo
-            let valueDisplay = type.total.toLocaleString('es-ES', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            }) + ' €';
-
-            html += `
-                <div class="product-type-section mb-4 col-12 col-md-4">
-                    <div class="product-type-header d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0 text-${color}">
-                            <i class="fas fa-box me-2"></i> ${type.type_name}
-                        </h6>
-                        <div>
-                            <span class="badge bg-${color} me-2">${valueDisplay}</span>
-                            <span class="badge bg-light text-dark">${type.percentage.toFixed(1)}%</span>
-                        </div>
-                    </div>
-
-                    <div class="progress mt-2 mb-3" style="height: 10px;">
-                        <div class="progress-bar bg-${color}" role="progressbar"
-                             style="width: ${type.percentage}%" aria-valuenow="${type.percentage}"
-                             aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-
-                    <div class="product-items px-2">
-                        ${type.products.map(product => {
-                            // Determinar qué valor mostrar según el modo
-                            let productValueDisplay;
-                            if (currentViewMode === 'cost') {
-                                productValueDisplay = `${product.total.toLocaleString('es-ES', {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2
-                                })} €`;
-                            } else {
-                                productValueDisplay = `${product.quantity.toLocaleString('es-ES', {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2
-                                })} ${product.unit || ''}`;
-                            }
-
-                            return `
-                                <div class="product-item d-flex justify-content-between align-items-center">
-                                    <span>${product.name}</span>
-                                    <div>
-                                        <span class="me-2">${productValueDisplay}</span>
-                                        <span class="text-muted small">(${product.percentage.toFixed(1)}%)</span>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                </div>
-            `;
-        });
-
-        container.innerHTML = html;
+        show('body');
+        renderTypes(data.product_breakdown);
+        renderFields(data.fields);
+        updateCharts(data);
     }
 
-    // Preparar datos para gráfico de tipos de producto
-    function prepareProductTypeChartData(productBreakdown) {
-        const labels = productBreakdown.map(item => item.type_name);
-        let values, units;
-
-        if (currentViewMode === 'cost') {
-            values = productBreakdown.map(item => item.total);
-            units = productBreakdown.map(() => '€');
-        } else {
-            values = productBreakdown.map(item => {
-                // Si estamos en modo cantidad, sumamos las cantidades de los productos
-                return item.products.reduce((sum, product) => sum + product.quantity, 0);
-            });
-            units = productBreakdown.map(p => {
-                const firstProduct = p.products?.[0];
-                return firstProduct ? firstProduct.unit : '';
-            });
-        }
-
-        // Generar colores para cada tipo
-        const backgroundColors = [
-            '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e',
-            '#e74a3b', '#858796', '#5a5c69', '#6610f2',
-            '#fd7e14', '#20c997', '#e83e8c', '#17a2b8'
-        ];
-
-        return {
-            labels: labels,
-            datasets: [{
-                data: values,
-                backgroundColor: backgroundColors.slice(0, labels.length),
-                hoverBackgroundColor: backgroundColors.slice(0, labels.length).map(c => lightenDarkenColor(c, -20)),
-                borderWidth: 1,
-                units
-            }]
-        };
+    // ── Totales: una línea ─────────────────────────────────────────────────────
+    function renderSummary(data) {
+        const n = data.fields.length;
+        $('costSummary').innerHTML =
+            `${n} parcela${n === 1 ? '' : 's'} · ${nf(0, 2).format(data.total_area)} ha · ` +
+            `<b class="text-body">${eur(data.total_cost)}</b> · ${eur(data.cost_per_ha)}/ha`;
     }
 
-    // Preparar datos para gráfico de costes por parcela
-    function prepareFieldCostChartData(fields) {
-        // Tomar sólo las 8 parcelas con mayor coste por hectárea
-        const sortedFields = [...fields].sort((a, b) => b.cost_per_ha - a.cost_per_ha).slice(0, 8);
+    // ── Cantidades: cada unidad por separado (no se suman litros con kilos) ────
+    function qtyLabel(products) {
+        const byUnit = {};
+        (products || []).forEach(p => { byUnit[p.unit || ''] = (byUnit[p.unit || ''] || 0) + p.quantity; });
+        return Object.entries(byUnit).map(([unit, q]) => `${num(q)} ${esc(unit)}`.trim()).join(' + ') || '—';
+    }
+    const typeValue = (t) => viewMode === 'cost' ? eur(t.total) : qtyLabel(t.products);
+    const productValue = (p) => viewMode === 'cost' ? eur(p.total) : `${num(p.quantity)} ${esc(p.unit || '')}`.trim();
+    // El % es del coste: en modo cantidades no tiene sentido
+    const pctText = (v) => viewMode === 'cost' ? `<span class="cs-pct">${pct(v)}</span>` : '';
 
-        const labels = sortedFields.map(f => f.name);
-        const totalCosts = sortedFields.map(f => parseFloat(f.total_cost));
-        const costsPerHa = sortedFields.map(f => parseFloat(f.cost_per_ha));
-
-        return {
-            labels: labels,
-            datasets: [
-                {
-                    label: 'Coste total (€)',
-                    data: totalCosts,
-                    backgroundColor: '#4e73df',
-                    borderColor: '#4e73df',
-                    borderWidth: 1
-                },
-                {
-                    label: 'Coste por ha (€/ha)',
-                    data: costsPerHa,
-                    backgroundColor: '#1cc88a',
-                    borderColor: '#1cc88a',
-                    borderWidth: 1
-                }
-            ]
-        };
+    function productLines(products) {
+        return (products || []).map(p => `
+            <div class="cs-prod"><span class="cs-prod-name">${esc(p.name)}</span>
+                <span class="cs-val">${productValue(p)}</span>${pctText(p.percentage)}</div>`).join('');
     }
 
-    // Utilidad para aclarar/oscurecer colores
-    function lightenDarkenColor(col, amt) {
-        let usePound = false;
-        if (col[0] == "#") {
-            col = col.slice(1);
-            usePound = true;
-        }
+    function colorOf(index) { return index < MAX_SLICES - (currentTypeCount() > MAX_SLICES ? 1 : 0) ? SERIES[index] : OTHER; }
+    function currentTypeCount() { return currentData ? currentData.product_breakdown.length : 0; }
 
-        let num = parseInt(col, 16);
-        let r = (num >> 16) & 255;
-        let g = (num >> 8) & 255;
-        let b = num & 255;
-
-        r = clamp(r + amt);
-        g = clamp(g + amt);
-        b = clamp(b + amt);
-
-        return (usePound ? "#" : "") + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+    // ── Por tipo de producto ───────────────────────────────────────────────────
+    function renderTypes(breakdown) {
+        const box = $('productTypeDetails');
+        if (!breakdown || !breakdown.length) { box.innerHTML = '<div class="hm-group-empty">Sin datos en este periodo.</div>'; return; }
+        const head = `<div class="tl-head cs-head d-none d-md-grid" aria-hidden="true">
+            <span>Tipo</span><span class="text-end">${viewMode === 'cost' ? 'Gasto' : 'Cantidad'}</span><span class="text-end">${viewMode === 'cost' ? '% del gasto' : ''}</span><span></span></div>`;
+        box.innerHTML = head + breakdown.map((t, i) => `
+            <details class="cs-item cs-item--type">
+                <summary class="cs-row">
+                    <span class="cs-name"><i class="cs-dot" style="background:${colorOf(i)}" aria-hidden="true"></i>${esc(t.type_name)}
+                        <small>${t.products.length} producto${t.products.length === 1 ? '' : 's'}</small></span>
+                    <span class="cs-val">${typeValue(t)}</span>
+                    <span class="cs-pct">${viewMode === 'cost' ? pct(t.percentage) : ''}</span>
+                    <i class="fa fa-chevron-down cs-chev" aria-hidden="true"></i>
+                </summary>
+                <div class="cs-more">${productLines(t.products)}</div>
+            </details>`).join('');
     }
 
-    function clamp(num) {
-        return Math.min(Math.max(num, 0), 255);
-    }
-
-    // Aviso de productos sin precio
-    function renderNoPriceWarning(products) {
-        const container = document.getElementById('noPriceWarning');
-        if (!container) return;
-
-        if (!products || products.length === 0) {
-            container.innerHTML = '';
-            return;
-        }
-
-        const totalTreatments = products.reduce((sum, p) => sum + p.treatment_count, 0);
-        const warningId = 'noPriceDetails';
-
-        const rows = products.map(p => {
-            const fieldList = p.fields.join(', ');
-            const treatLabel = p.treatment_count === 1 ? 'tratamiento' : 'tratamientos';
-            return `<li class="mb-1">
-                <strong>${p.name}</strong>
-                <span class="text-muted ms-1">— ${p.treatment_count} ${treatLabel} en: ${fieldList}</span>
-            </li>`;
+    // ── Por parcela (de más a menos €/ha) ──────────────────────────────────────
+    function renderFields(fields) {
+        const sorted = [...fields].sort((a, b) => b.cost_per_ha - a.cost_per_ha || a.name.localeCompare(b.name, 'es'));
+        const cost = viewMode === 'cost';
+        const head = `<div class="tl-head cs-head cs-head--fields d-none d-md-grid" aria-hidden="true">
+            <span>Parcela</span><span class="text-end">Superficie</span><span class="text-end">${cost ? 'Gasto' : 'Cantidad'}</span><span class="text-end">${cost ? '€/ha' : ''}</span><span></span></div>`;
+        fieldsContainer.innerHTML = head + sorted.map(f => {
+            const has = f.product_breakdown && f.product_breakdown.length;
+            const all = (f.product_breakdown || []).flatMap(t => t.products);
+            const body = has
+                ? f.product_breakdown.map(t => `
+                    <div class="cs-type-line"><b>${esc(t.type_name)}</b><span class="cs-val">${typeValue(t)}</span>${pctText(t.percentage)}</div>
+                    ${productLines(t.products)}`).join('')
+                : '<div class="cs-prod text-muted">Sin tratamientos con productos en este periodo.</div>';
+            return `
+            <details class="cs-item cs-item--field">
+                <summary class="cs-row">
+                    <span class="cs-name">${esc(f.name)}<small class="d-md-none">${num(f.area)} ha</small></span>
+                    <span class="cs-area d-none d-md-block">${num(f.area)} ha</span>
+                    <span class="cs-val">${cost ? eur(f.total_cost) : qtyLabel(all)}</span>
+                    <span class="cs-pct">${cost ? eur(f.cost_per_ha) + '<small>/ha</small>' : ''}</span>
+                    <i class="fa fa-chevron-down cs-chev" aria-hidden="true"></i>
+                </summary>
+                <div class="cs-more">${body}</div>
+            </details>`;
         }).join('');
-
-        container.innerHTML = `
-            <div class="alert alert-warning mb-0" role="alert">
-                <div class="d-flex align-items-start gap-3">
-                    <i class="fa fa-triangle-exclamation fa-lg mt-1 flex-shrink-0"></i>
-                    <div class="flex-grow-1">
-                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                            <div>
-                                <strong>${products.length} producto${products.length > 1 ? 's' : ''} sin precio</strong>
-                                <span class="text-muted ms-2 small">·
-                                    ${totalTreatments} tratamiento${totalTreatments !== 1 ? 's' : ''} afectado${totalTreatments !== 1 ? 's' : ''}
-                                </span>
-                            </div>
-                            <button class="btn btn-sm btn-outline-warning" type="button"
-                                    data-bs-toggle="collapse" data-bs-target="#${warningId}" aria-expanded="false">
-                                Ver detalle <i class="fa fa-chevron-down fa-xs ms-1"></i>
-                            </button>
-                        </div>
-                        <p class="mb-1 mt-1 small">
-                            Estos productos no tienen precio configurado. El coste total mostrado
-                            <strong>no incluye su valor real</strong> y puede estar subestimado.
-                        </p>
-                        <div class="collapse" id="${warningId}">
-                            <ul class="mb-2 mt-2 small ps-3">
-                                ${rows}
-                            </ul>
-                        </div>
-                        <a href="/productos/" class="alert-link small">
-                            Actualizar precios <i class="fa fa-arrow-right fa-xs ms-1"></i>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        `;
     }
+
+    // ── Gráficos: siempre en euros (litros y kilos no se pueden sumar en un mismo gráfico) ──
+    function updateCharts(data) {
+        if (typeof Chart === 'undefined') return;  // sin la librería, las listas dan los mismos datos
+
+        const types = data.product_breakdown.filter(t => t.total > 0);
+        let labels = types.map(t => t.type_name), values = types.map(t => t.total);
+        if (types.length > MAX_SLICES) {
+            const rest = types.slice(MAX_SLICES - 1).reduce((s, t) => s + t.total, 0);
+            labels = labels.slice(0, MAX_SLICES - 1).concat('Otros');
+            values = values.slice(0, MAX_SLICES - 1).concat(rest);
+        }
+        const colors = labels.map((_, i) => (types.length > MAX_SLICES && i === labels.length - 1) ? OTHER : SERIES[i]);
+        const typeData = { labels, datasets: [{ data: values, backgroundColor: colors, borderColor: '#fff', borderWidth: 2 }] };
+
+        const top = [...data.fields].filter(f => f.total_cost > 0).sort((a, b) => b.cost_per_ha - a.cost_per_ha).slice(0, 8);
+        const fieldData = {
+            labels: top.map(f => f.name),
+            datasets: [{ label: '€/ha', data: top.map(f => f.cost_per_ha), backgroundColor: SERIES[0], borderRadius: 4, maxBarThickness: 22 }]
+        };
+
+        if (typeChart) {
+            typeChart.data = typeData; typeChart.update();
+        } else {
+            typeChart = new Chart($('productTypeChart').getContext('2d'), {
+                type: 'doughnut',
+                data: typeData,
+                options: {
+                    responsive: true, maintainAspectRatio: false, cutout: '58%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, color: MUTED } },
+                        tooltip: { callbacks: { label: (c) => `${c.label}: ${eur(c.raw)}` } }
+                    }
+                }
+            });
+        }
+        if (fieldChart) {
+            fieldChart.data = fieldData; fieldChart.update();
+        } else {
+            fieldChart = new Chart($('fieldCostChart').getContext('2d'), {
+                type: 'bar',
+                data: fieldData,
+                options: {
+                    responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+                    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => `${eur(c.raw)}/ha` } } },
+                    scales: {
+                        x: { grid: { color: GRID }, border: { display: false }, ticks: { color: MUTED } },
+                        y: { grid: { display: false }, ticks: { color: MUTED } }
+                    }
+                }
+            });
+        }
+    }
+
+    // ── Aviso de productos sin precio ──────────────────────────────────────────
+    function renderNoPriceWarning(products) {
+        const container = $('noPriceWarning');
+        if (!products || !products.length) { container.innerHTML = ''; return; }
+        const totalTreatments = products.reduce((sum, p) => sum + p.treatment_count, 0);
+        const rows = products.map(p => `
+            <li><b>${esc(p.name)}</b> <span class="text-muted">· ${p.treatment_count} ${p.treatment_count === 1 ? 'tratamiento' : 'tratamientos'} en ${esc(p.fields.join(', '))}</span></li>`).join('');
+        container.innerHTML = `
+            <details class="cs-warn">
+                <summary>
+                    <i class="fa fa-triangle-exclamation" aria-hidden="true"></i>
+                    <span><b>${products.length} producto${products.length > 1 ? 's' : ''} sin precio</b>
+                        · ${totalTreatments} tratamiento${totalTreatments !== 1 ? 's' : ''} afectado${totalTreatments !== 1 ? 's' : ''}.
+                        El coste mostrado puede estar subestimado.</span>
+                    <i class="fa fa-chevron-down cs-chev" aria-hidden="true"></i>
+                </summary>
+                <div class="cs-warn-body">
+                    <ul>${rows}</ul>
+                    <a class="fw-semibold" href="/productos/">Actualizar precios <i class="fa fa-arrow-right fa-xs" aria-hidden="true"></i></a>
+                </div>
+            </details>`;
+    }
+
+    // ── Eventos ────────────────────────────────────────────────────────────────
+    tabs.forEach(t => t.addEventListener('click', () => { setPeriod(t.dataset.period); loadFieldCostsData(); }));
+
+    applyFilterBtn.addEventListener('click', () => { closePanel(); loadFieldCostsData(); });
+
+    fieldsInput.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.addEventListener('change', loadFieldCostsData));
+
+    // Cambiar el modo no recarga: se repintan los datos que ya hay
+    viewModeSelector.addEventListener('change', function () {
+        viewMode = this.value;
+        try { localStorage.setItem('fieldCostsViewMode', viewMode); } catch (e) { /* sin almacenamiento */ }
+        syncUi();
+        renderAll();
+    });
+
+    // Limpiar: año en curso, todas las parcelas y euros
+    $('resetFiltersBtn').addEventListener('click', () => {
+        setPeriod(String(currentYear));
+        viewModeSelector.value = 'cost';
+        viewMode = 'cost';
+        try { localStorage.setItem('fieldCostsViewMode', viewMode); } catch (e) { /* sin almacenamiento */ }
+        fieldsInput.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = false; });
+        const search = fieldsInput.querySelector('.filter-dd-search');
+        if (search) { search.value = ''; search.dispatchEvent(new Event('input')); }
+        // base.html repinta la etiqueta del desplegable al oír «change»; sin recargar por cada casilla
+        const first = fieldsInput.querySelector('input[type="checkbox"]');
+        if (first) first.dispatchEvent(new Event('change'));
+        else loadFieldCostsData();
+    });
+
+    $('costsRetry').addEventListener('click', loadFieldCostsData);
+    $('costsEmptyAll').addEventListener('click', () => { setPeriod('all'); loadFieldCostsData(); });
+
+    // Inicio: año en curso
+    setPeriod(String(currentYear));
+    loadFieldCostsData();
 });

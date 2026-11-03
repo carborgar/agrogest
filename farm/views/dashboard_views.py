@@ -9,6 +9,7 @@ from django.views.generic import ListView
 from core.models import is_enabled
 from farm.mixins import BaseSecureViewMixin
 from farm.models import Field, Treatment
+from farm.timeutils import local_today
 from farm.services import get_shopping_list
 
 
@@ -150,4 +151,14 @@ class FieldCostView(BaseSecureViewMixin, ListView):
 
     def get_queryset(self):
         return Field.ownership_objects.get_queryset_for_user(self.request.user)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Pestañas de periodo: «Todos» y el año en curso con los dos anteriores (el JS pinta los datos por la API)
+        year = local_today().year
+        context['current_year'] = year
+        context['period_tabs'] = [{'label': 'Todos', 'value': 'all'}] + [
+            {'label': str(y), 'value': str(y)} for y in (year, year - 1, year - 2)
+        ]
+        return context
 
