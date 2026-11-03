@@ -670,9 +670,15 @@ class StoragePointForm(NoPlaceholderModelForm):
             'notes': 'Opcional. Referencias útiles para el operario.',
         }
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'name': forms.TextInput(attrs={'class': 'tf-inp'}),
+            'notes': forms.Textarea(attrs={'class': 'tf-inp', 'rows': 3}),
         }
+
+    def full_clean(self):
+        super().full_clean()
+        for name in self.errors:
+            if name in self.fields:
+                self.fields[name].widget.attrs['aria-invalid'] = 'true'
 
     def clean_name(self):
         # La restricción única (organización, nombre) no la valida Django porque

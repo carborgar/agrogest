@@ -780,3 +780,24 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
     .dropdown:has(> .dropdown-sheet.show), .dt-actions:has(.dropdown-sheet.show), .tl-item:has(.dropdown-sheet.show), .pl-item:has(.dropdown-sheet.show),
     .pl-group:has(.dropdown-sheet.show), .pl-field:has(.dropdown-sheet.show) { z-index: 1050 !important; }
 }
+
+/* Formularios tf-* con controles nativos (select y textarea) */
+.tf-inp.form-select { padding-right: 2.25rem; background-image: var(--bs-form-select-bg-img), var(--bs-form-select-bg-icon, none); background-repeat: no-repeat; background-position: right .75rem center; background-size: 16px 12px; }
+textarea.tf-inp { height: auto; min-height: 48px; padding: 10px 12px; resize: vertical; }
+
+/* ═══ CASETILLAS (sp-*) ═══
+   Asignar parcelas: filas con casilla sobre tl-head/tl-item. La fila entera es el <label>, así el objetivo táctil es toda la fila. */
+.sp-list { --tl-cols: 1.5rem minmax(0, 1fr) 9rem 6rem 10rem; }
+.sp-row { display: grid; grid-template-columns: 1.5rem minmax(0, 1fr) auto; align-items: center; gap: .75rem; min-height: 60px; margin: 0; padding: .5rem 1rem; cursor: pointer; }
+.sp-row:hover { background: var(--tl-soft); }
+.sp-row:has(input:checked) { background: var(--tl-3-bg); }
+.sp-row .form-check-input { width: 1.5rem; height: 1.5rem; margin: 0; }
+.sp-where { display: inline-block; padding: .15rem .5rem; border-radius: 6px; background: var(--tl-2-bg); color: var(--tl-2-fg); font-size: .75rem; font-weight: 600; white-space: nowrap; }
+.sp-where--other { background: var(--tl-1-bg); color: var(--tl-1-fg); }
+.sp-move, .sp-row:has(input:checked) .sp-now { display: none; }
+.sp-row:has(input:checked) .sp-move { display: inline; }
+.sp-ha { text-align: right; font-weight: 700; white-space: nowrap; }
+.sp-ha small { font-weight: 500; color: var(--tl-muted); }
+@media (min-width: 768px) {
+    .sp-row { grid-template-columns: var(--tl-cols); gap: 1rem; }
+}
