@@ -9,7 +9,7 @@ from django.urls import reverse
 
 from accounts.models import Organization
 from farm.forms import FieldForm
-from farm.models import Field, Machine, Product, ProductType, StoragePoint, Treatment, TreatmentProduct
+from farm.models import Expense, ExpenseType, Field, Harvest, Product, ProductType, StoragePoint, Treatment, TreatmentProduct
 
 User = get_user_model()
 
@@ -79,6 +79,45 @@ class FieldDetailTest(_Base):
             self.assertEqual(self.client.get(reverse(name, args=[self.alien.pk])).status_code, 404)
         self.assertEqual(self.client.post(reverse('field-delete', args=[self.alien.pk])).status_code, 404)
         self.assertTrue(Field.objects.filter(pk=self.alien.pk).exists())
+
+
+@pytest.mark.django_db
+class FieldListQueriesTest(_Base):
+    def _count(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+        with CaptureQueriesContext(connection) as ctx:
+            r = self.client.get(reverse('field-list'))
+        self.assertEqual(r.status_code, 200)
+        return len(ctx), r
+
+    def _field(self, n):
+        return Field.objects.create(name=f"P{n}", area=1, crop="Olivo", planting_year=2010, organization=self.org)
+
+    def test_consultas_no_crecen_con_parcelas(self):
+        self.client.get(reverse('field-list'))  # calienta la caché de feature flags (consultas de una sola vez)
+        base, _ = self._count()  # 1 parcela
+        for n in range(4):
+            self._field(n)
+        self.assertEqual(self._count()[0], base)  # 5 parcelas, mismas consultas
+
+    def test_boton_eliminar_segun_dependencias(self):
+        libre = self._field("Libre")
+        con_trat = self._field("ConTrat")
+        con_gasto = self._field("ConGasto")
+        con_cosecha = self._field("ConCosecha")
+        self.treatment("T", date.today(), field=con_trat)
+        etype = ExpenseType.objects.create(organization=self.org, name="Agua")
+        Expense.objects.create(organization=self.org, field=con_gasto, expense_type=etype,
+                               description="x", payment_date=date.today(), amount=10)
+        Harvest.objects.create(organization=self.org, field=con_cosecha, date=date.today(), amount=100)
+        _, r = self._count()
+        html = r.content.decode()
+        for f, borrable in [(libre, True), (self.field, True), (con_trat, False),
+                            (con_gasto, False), (con_cosecha, False)]:
+            url = reverse('field-delete', args=[f.pk])
+            self.assertEqual(f'data-url="{url}"' in html, borrable, f.name)
+            self.assertEqual(f.can_be_deleted(), borrable, f.name)
 
 
 @pytest.mark.django_db

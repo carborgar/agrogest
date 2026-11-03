@@ -2,12 +2,12 @@ import json
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Count, Q, ProtectedError, RestrictedError
+from django.db.models import Count, Exists, OuterRef, Q, ProtectedError, RestrictedError
 from django.shortcuts import redirect
 from django.urls import reverse_lazy, reverse
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
 
-from farm.models import Field, StoragePoint, Treatment
+from farm.models import Expense, Field, Harvest, StoragePoint, Treatment
 from farm.forms import FieldForm
 
 
@@ -27,6 +27,12 @@ class FieldListView(LoginRequiredMixin, ListView):
         return (
             Field.ownership_objects.get_queryset_for_user(self.request.user)
             .select_related('storage_point')
+            # Evita 3 consultas por parcela al decidir si se muestra «Eliminar» (ver Field.can_be_deleted).
+            .annotate(
+                has_treatments=Exists(Treatment.objects.filter(field=OuterRef('pk'))),
+                has_expenses=Exists(Expense.objects.filter(field=OuterRef('pk'))),
+                has_harvests=Exists(Harvest.objects.filter(field=OuterRef('pk'))),
+            )
             .order_by('-area', 'name')
         )
 

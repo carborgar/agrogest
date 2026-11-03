@@ -128,7 +128,7 @@ class ExpenseViewTest(TestCase):
 
     def test_expense_list_with_expenses(self):
         """Test the expense list view with existing expenses"""
-        expense = Expense.objects.create(
+        Expense.objects.create(
             field=self.field,
             expense_type=self.expense_type,
             description="Water bill payment",

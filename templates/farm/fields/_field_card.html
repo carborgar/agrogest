@@ -19,7 +19,7 @@ Toda la tarjeta lleva al detalle; el menú ⋮ queda por encima del enlace.
                 <li><a class="dropdown-item" href="{% url 'treatment-list' %}?field={{ field.id }}"><i class="fa fa-flask me-2 text-primary"></i>Ver tratamientos</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="{% url 'field-edit' field.id %}"><i class="fa fa-edit me-2 text-secondary"></i>Editar / cambiar casetilla</a></li>
-                {% if field.can_be_deleted %}
+                {% if not field.has_treatments and not field.has_expenses and not field.has_harvests %}
                 <li><a class="dropdown-item text-danger" href="#" data-url="{% url 'field-delete' field.id %}"
                        data-confirm="Esta acción eliminará la parcela de forma permanente y no se podrá deshacer."
                        onclick="confirmDelete(this); return false;"><i class="fa fa-trash me-2"></i>Eliminar</a></li>

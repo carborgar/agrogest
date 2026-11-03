@@ -8,7 +8,7 @@ from django.contrib.messages import get_messages
 from django.test import TestCase
 from django.urls import reverse
 
-from farm.models import Expense, ExpenseType, Field, Harvest, Product, ProductPriceHistory, Treatment
+from farm.models import Expense, ExpenseType, Field, Harvest, ProductPriceHistory, Treatment
 from farm.tests.factories import FieldFactory, OrganizationFactory, ProductFactory, TreatmentFactory
 
 User = get_user_model()

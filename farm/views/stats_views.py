@@ -1,6 +1,6 @@
 from datetime import date
 
-from django.db.models import Count, Sum, Max, Min
+from django.db.models import Count, Sum, Min
 from django.db.models.functions import TruncMonth
 from django.views.generic import TemplateView
 
@@ -36,9 +36,8 @@ class YearlyStatsView(OwnershipRequiredMixin, TemplateView):
         # Rango de años disponibles (desde el primer tratamiento hasta hoy)
         year_range_qs = Treatment.objects.filter(
             field__organization=user.organization
-        ).aggregate(min_year=Min("date"), max_year=Max("date"))
+        ).aggregate(min_year=Min("date"))
         min_year = year_range_qs["min_year"].year if year_range_qs["min_year"] else current_year
-        max_year = year_range_qs["max_year"].year if year_range_qs["max_year"] else current_year
         available_years = set(range(max(min_year, current_year - 10), current_year + 1))
         available_years.add(selected_year)
         available_years = sorted(available_years)
