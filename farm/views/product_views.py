@@ -1,4 +1,5 @@
 import json
+from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
@@ -243,6 +244,8 @@ class ProductFormView(BaseSecureProductFormMixin, SuccessMessageMixin, UpdateVie
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        # Mojado con el que el resumen estima el coste/ha de las dosis por volumen de caldo
+        context['reference_water'] = Product.REFERENCE_WATER_PER_HA
         if self.object and self.object.pk:
             context['object'].has_treatments = TreatmentProduct.objects.filter(
                 product=self.object
@@ -263,7 +266,11 @@ class ProductFormView(BaseSecureProductFormMixin, SuccessMessageMixin, UpdateVie
                         trend = 'neutral'
                 else:
                     trend = 'initial'
-                history_with_trend.append({'entry': entry, 'trend': trend})
+                # Variación respecto al precio anterior, en %: lo que dice cuánto ha cambiado
+                change_pct = None
+                if i < len(history) - 1 and trend in ('up', 'down') and history[i + 1].price > 0:
+                    change_pct = ((entry.price - history[i + 1].price) / history[i + 1].price * 100).quantize(Decimal('0.1'))
+                history_with_trend.append({'entry': entry, 'trend': trend, 'change_pct': change_pct})
             context['history_with_trend'] = history_with_trend
 
             # ── Min / Max ──────────────────────────────────────────────────────────────
@@ -373,9 +380,8 @@ class ProductTypeFormView(BaseSecureProductFormMixin, SuccessMessageMixin, Updat
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         if self.object and self.object.pk:
-            context['object'].has_products = Product.objects.filter(
-                product_type=self.object
-            ).exists()
+            context['product_count'] = Product.objects.filter(product_type=self.object).count()
+            context['object'].has_products = context['product_count'] > 0
         return context
 
 

@@ -1,501 +1,442 @@
 {% extends "base.html" %}
-{% load django_bootstrap5 %}
 
-{% block header %}
-{% if object.pk %}Editar producto{% else %}Nuevo producto{% endif %}
-{% endblock %}
+{% block title %}{% if object.pk %}Editar{% else %}Nuevo{% endif %} producto · AgroGest{% endblock %}
+{% block header %}{% if object.pk %}Editar producto{% else %}Nuevo producto{% endif %}{% endblock %}
 
-{% block sub_header %}
-Define las propiedades y dosis del producto para los diferentes métodos de aplicación.
+{% block actions %}
+<a class="btn btn-outline-secondary btn-sm d-lg-none" href="{% url 'product-list' %}">Cancelar</a>
 {% endblock %}
 
 {% block content %}
-<div class="row g-4 align-items-start">
+{# Como en el formulario de tratamiento: la barra de guardar sustituye a la barra de navegación inferior #}
+<script>document.body.classList.add('tf-page');</script>
 
-    <!-- ── Columna izquierda: formulario ───────────────────────────────── -->
-    <div class="{% if object.pk and price_history|length > 0 %}col-12 col-xl-7{% else %}col-12 col-lg-8 mx-auto{% endif %}">
-
-        <form id="productForm" method="post" novalidate>
-            {% csrf_token %}
-            {% bootstrap_form_errors form %}
-
-            <!-- Basic info -->
-            <div class="card mb-3">
-                <div class="card-header">
-                    <span><i class="fa fa-info-circle me-2"></i>Información básica</span>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        {% bootstrap_field form.name wrapper_class="col-12" %}
-                        {% bootstrap_field form.product_type wrapper_class="col-12 col-sm-6" %}
-                        {% bootstrap_field form.price wrapper_class="col-12 col-sm-6" addon_after="€/ud." %}
-                        {% bootstrap_field form.comments wrapper_class="col-12" %}
-                    </div>
-
-                    {% if object.pk %}
-                    <!-- Archive toggle -->
-                    <div class="border rounded-3 p-3 mt-3 {% if not object.is_active %}bg-warning-subtle border-warning-subtle{% else %}bg-light{% endif %}"
-                         id="archiveToggleBox">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="form-check form-switch mb-0 flex-shrink-0">
-                                {{ form.is_active }}
-                            </div>
-                            <div>
-                                <label class="form-check-label fw-semibold mb-0"
-                                       for="{{ form.is_active.id_for_label }}">
-                                    <span id="archiveLabel">
-                                    {% if object.is_active %}
-                                        <i class="fa fa-check-circle text-success me-1"></i>Producto activo
-                                    {% else %}
-                                        <i class="fa fa-archive text-warning me-1"></i>Producto archivado
-                                    {% endif %}
-                                    </span>
-                                </label>
-                                <p class="text-muted small mb-0 mt-1">{{ form.is_active.help_text }}</p>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- Spraying -->
-            <div class="card mb-3">
-                <div class="card-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span><i class="fa fa-spray-can text-primary me-2"></i>Pulverización</span>
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input" id="enableSpraying" role="switch" type="checkbox">
-                            <label class="form-check-label small text-muted" for="enableSpraying">Habilitar</label>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-body spraying-fields" id="sprayingFields">
-                    <div class="row g-3">
-                        {% bootstrap_field form.spraying_dose wrapper_class="col-12 col-sm-6" %}
-                        {% bootstrap_field form.spraying_dose_type wrapper_class="col-12 col-sm-6" %}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Fertigation -->
-            <div class="card mb-3">
-                <div class="card-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span><i class="fa fa-droplet text-info me-2"></i>Fertirrigación</span>
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input" id="enableFertigation" role="switch" type="checkbox">
-                            <label class="form-check-label small text-muted" for="enableFertigation">Habilitar</label>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-body fertigation-fields" id="fertigationFields">
-                    <div class="row g-3">
-                        {% bootstrap_field form.fertigation_dose wrapper_class="col-12 col-sm-6" %}
-                        {% bootstrap_field form.fertigation_dose_type wrapper_class="col-12 col-sm-6" %}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Actions -->
-            <div class="d-flex gap-2 flex-column flex-sm-row justify-content-between">
-                <a class="btn btn-outline-secondary" href="{% url 'product-list' %}">
-                    <i class="fa fa-arrow-left me-1"></i>Volver
-                </a>
-                <div class="d-flex gap-2">
-                    {% if object.pk and not object.has_treatments %}
-                    <button class="btn btn-outline-danger"
-                            data-url="{% url 'product-delete' object.pk %}"
-                            onclick="confirmDelete(this)" type="button">
-                        <i class="fa fa-trash me-1"></i>Eliminar
-                    </button>
-                    {% endif %}
-                    <button class="btn btn-primary" type="submit">
-                        <i class="fa fa-save me-1"></i>
-                        {% if object.pk %}Guardar cambios{% else %}Crear producto{% endif %}
-                    </button>
-                </div>
-            </div>
-
-        </form>
-    </div>
-
-    <!-- ── Columna derecha: historial de precios (solo al editar) ──────── -->
-    {% if object.pk %}
-    <div class="col-12 col-xl-5">
-        <div class="row justify-content-center">
-            <div class="col-12 col-lg-6">
-                {% if object.price %}
-                <div class="card p-4 mb-3">
-                    <p class="text-uppercase text-muted fw-semibold mb-1 ls-1">Precio actual</p>
-                    <h2 class="fw-bold mb-1 text-primary">{{ object.price }} €/ud.</h2>
-                    <p class="text-muted mb-0" style="font-size: 0.95rem;">
-                        {{ price_history.0.effective_date|date:"d/m/Y" }}
-                    </p>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-
-        {% if price_history|length > 0 %}
-        <div class="row">
-            <div class="col-12">
-                <div class="card h-100">
-                    <div class="card-header">
-                        <span><i class="bi bi-graph-up me-2"></i>Evolución del precio</span>
-                    </div>
-                    <div class="card-body p-0">
-                        {% if price_history|length > 1 %}
-                        <!-- Mini chart -->
-                        <div class="px-3 pt-3 pb-0">
-                            <div style="height: 100px; position: relative;">
-                                <canvas id="priceChart"></canvas>
-                            </div>
-                        </div>
-
-                        <!-- Min / Max stats -->
-                        {% if price_max and price_min %}
-                        <div class="d-flex gap-2 px-3 pt-2 pb-1">
-                            <div class="flex-fill text-center rounded-3 py-2 px-1"
-                                 style="background:rgba(220,53,69,.07);">
-                                <div class="text-muted mb-1"
-                                     style="font-size:.68rem; text-transform:uppercase; letter-spacing:.04em;">
-                                    Máx. histórico
-                                </div>
-                                <div class="text-danger fw-semibold" style="font-size:.9rem;">
-                                    <i class="fa fa-arrow-up fa-xs me-1"></i>{{ price_max.price }} €
-                                </div>
-                                <div class="text-muted" style="font-size:.7rem;">
-                                    {{ price_max.effective_date|date:"d/m/Y" }}
-                                </div>
-                            </div>
-                            <div class="flex-fill text-center rounded-3 py-2 px-1"
-                                 style="background:rgba(25,135,84,.07);">
-                                <div class="text-muted mb-1"
-                                     style="font-size:.68rem; text-transform:uppercase; letter-spacing:.04em;">
-                                    Mín. histórico
-                                </div>
-                                <div class="text-success fw-semibold" style="font-size:.9rem;">
-                                    <i class="fa fa-arrow-down fa-xs me-1"></i>{{ price_min.price }} €
-                                </div>
-                                <div class="text-muted" style="font-size:.7rem;">
-                                    {{ price_min.effective_date|date:"d/m/Y" }}
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
-
-                        <!-- History list with trend -->
-                        <ul class="list-group list-group-flush mt-1">
-                            {% for item in history_with_trend %}
-                            <li class="list-group-item px-3 py-2 border-0">
-                                <div class="d-flex align-items-center gap-2">
-                                    <!-- Timeline dot -->
-                                    <div class="flex-shrink-0 d-flex align-items-center justify-content-center"
-                                         style="width:14px;">
-                                        <div class="rounded-circle {% if forloop.first %}bg-primary{% else %}bg-light border{% endif %}"
-                                             style="width:9px;height:9px;"></div>
-                                    </div>
-                                    <!-- Date -->
-                                    <div class="text-muted" style="min-width:75px; font-size:.78rem;">
-                                        {{ item.entry.effective_date|date:"d/m/Y" }}
-                                    </div>
-                                    <!-- Price + trend -->
-                                    <div class="flex-fill d-flex align-items-center gap-1">
-                                <span class="fw-semibold {% if forloop.first %}text-primary{% else %}text-secondary{% endif %}"
-                                      style="font-size:.85rem;">
-                                    {{ item.entry.price }} €
-                                </span>
-                                        {% if item.trend == 'up' %}
-                                        <i class="fa fa-arrow-up text-danger" style="font-size:.65rem;"
-                                           title="Subida"></i>
-                                        {% elif item.trend == 'down' %}
-                                        <i class="fa fa-arrow-down text-success" style="font-size:.65rem;"
-                                           title="Bajada"></i>
-                                        {% elif item.trend == 'initial' %}
-                                        <span class="text-muted" style="font-size:.65rem;"
-                                              title="Precio inicial">•</span>
-                                        {% endif %}
-                                    </div>
-                                    <!-- Delete -->
-                                    <form method="post"
-                                          action="{% url 'product-price-delete' item.entry.pk %}"
-                                          class="d-inline price-delete-form flex-shrink-0">
-                                        {% csrf_token %}
-                                        <button type="button"
-                                                class="btn btn-link p-0 text-muted price-delete-btn"
-                                                style="font-size:.7rem; line-height:1;" title="Eliminar">
-                                            <i class="fa fa-times"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </li>
-                            {% endfor %}
-                        </ul>
-
-                        {% elif price_history|length == 1 %}
-
-                        <!-- Single-record state (sin histórico) -->
-                        <div class="px-3 py-4">
-                            <div class="rounded-3 p-4 text-center"
-                                 style="background: rgba(13,110,253,.06); border: 1px dashed rgba(13,110,253,.25);">
-                                <div class=" mt-3" style="font-size:.74rem; opacity:.75;">
-                                    Aún no hay evolución histórica. Cuando cambies el precio y guardes,
-                                    aquí verás la tendencia y los extremos (máx./mín.).
-                                </div>
-                            </div>
-                        </div>
-
-                        {% else %}
-
-                        <!-- Empty state -->
-                        <div class="text-center py-5 px-4">
-                            <i class="fa fa-chart-line text-muted opacity-20 fa-2x mb-3 d-block"></i>
-                            <p class="text-muted small fw-semibold mb-1">Sin historial todavía</p>
-                            <p class="text-muted small mb-0">
-                                Modifica el precio y guarda para registrar la primera entrada.
-                            </p>
-                        </div>
-
-                        {% endif %}
-
-                    </div>
-
-                    <div class="card-footer bg-transparent border-top py-2 px-4">
-                        <p class="text-muted small mb-0">
-                            <i class="fa fa-info-circle me-1 opacity-50"></i>
-                            El precio se registra automáticamente al guardar si ha cambiado.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
+<div class="tf pf">
+    {% if form.errors %}
+    <div class="alert alert-danger tf-banner" role="alert" id="pfBanner" tabindex="-1">
+        {% for e in form.non_field_errors %}{{ e }}<br>{% endfor %}{% if not form.non_field_errors or form.errors|length > 1 %}Revisa los campos marcados.{% endif %}
     </div>
     {% endif %}
 
+    <form id="productForm" method="post" novalidate autocomplete="off">
+        {% csrf_token %}
+
+        <div class="tf-layout">
+            <div class="tf-main">
+
+                {# ── Qué es ── #}
+                <section class="tf-card">
+                    <h2 class="tf-h2">Datos del producto</h2>
+                    <label class="tf-label-col" for="{{ form.name.id_for_label }}">Nombre
+                        {{ form.name }}
+                        {% include "farm/_tf_errors.html" with errors=form.name.errors %}
+                    </label>
+                    <div class="tf-group">
+                        <label class="tf-label-col" for="{{ form.product_type.id_for_label }}">Tipo de producto
+                            {{ form.product_type }}
+                            {% include "farm/_tf_errors.html" with errors=form.product_type.errors %}
+                        </label>
+                        {% if not form.product_type.field.queryset.exists %}
+                        <p class="tf-note tf-note--warn mb-0" id="pfNoTypes">Todavía no hay tipos de producto. Crea el primero con «Nuevo tipo».</p>
+                        {% endif %}
+                        <button type="button" class="tf-link" id="pfNewType">+ Nuevo tipo</button>
+                    </div>
+                    <label class="tf-label-col" for="{{ form.comments.id_for_label }}"><span>Notas <span class="tf-hint">(opcional)</span></span>
+                        {{ form.comments }}
+                        {% include "farm/_tf_errors.html" with errors=form.comments.errors %}
+                    </label>
+                </section>
+
+                {# ── Cómo se aplica: cada método se activa por separado (un producto puede valer para los dos) ── #}
+                <section class="tf-card">
+                    <h2 class="tf-h2">Dosis</h2>
+                    <span class="tf-hint">Activa cómo se aplica el producto. Hace falta al menos un método.</span>
+                    <span class="tf-err" id="pfDoseErr" aria-live="polite"></span>
+
+                    <div class="tf-group">
+                        <div class="tf-switch-row">
+                            <div>
+                                <div class="tf-switch-title" id="pfSprayLbl">Pulverización</div>
+                                <div class="tf-hint">{{ form.spraying_dose.help_text }}</div>
+                            </div>
+                            <button type="button" class="tf-switch" id="pfSprayOn" role="switch" aria-checked="false"
+                                    aria-labelledby="pfSprayLbl"><span class="tf-knob"></span></button>
+                        </div>
+                        <div class="tf-grid-2" id="pfSprayFields" hidden>
+                            <label class="tf-label-col" for="{{ form.spraying_dose.id_for_label }}">Dosis
+                                {{ form.spraying_dose }}
+                                {% include "farm/_tf_errors.html" with errors=form.spraying_dose.errors %}
+                            </label>
+                            <label class="tf-label-col" for="{{ form.spraying_dose_type.id_for_label }}">Tipo de dosis
+                                {{ form.spraying_dose_type }}
+                                {% include "farm/_tf_errors.html" with errors=form.spraying_dose_type.errors %}
+                            </label>
+                        </div>
+                    </div>
+
+                    <hr class="tf-sep">
+
+                    <div class="tf-group">
+                        <div class="tf-switch-row">
+                            <div>
+                                <div class="tf-switch-title" id="pfFertLbl">Fertirrigación</div>
+                                <div class="tf-hint">{{ form.fertigation_dose.help_text }}</div>
+                            </div>
+                            <button type="button" class="tf-switch" id="pfFertOn" role="switch" aria-checked="false"
+                                    aria-labelledby="pfFertLbl"><span class="tf-knob"></span></button>
+                        </div>
+                        <div class="tf-grid-2" id="pfFertFields" hidden>
+                            <label class="tf-label-col" for="{{ form.fertigation_dose.id_for_label }}">Dosis
+                                {{ form.fertigation_dose }}
+                                {% include "farm/_tf_errors.html" with errors=form.fertigation_dose.errors %}
+                            </label>
+                            <label class="tf-label-col" for="{{ form.fertigation_dose_type.id_for_label }}">Tipo de dosis
+                                {{ form.fertigation_dose_type }}
+                                {% include "farm/_tf_errors.html" with errors=form.fertigation_dose_type.errors %}
+                            </label>
+                        </div>
+                    </div>
+                </section>
+
+                {# ── Cuánto cuesta ── #}
+                <section class="tf-card">
+                    <h2 class="tf-h2">Precio</h2>
+                    <div class="tf-group">
+                        <label class="tf-label-col" for="{{ form.price.id_for_label }}">Precio por unidad
+                            <span class="tf-inline">{{ form.price }}<span class="tf-unit">€/ud.</span></span>
+                        </label>
+                        <span class="tf-hint">{{ form.price.help_text }}.{% if object.pk %} Si lo cambias, el precio anterior queda en el histórico.{% endif %}</span>
+                        {% include "farm/_tf_errors.html" with errors=form.price.errors %}
+                    </div>
+                </section>
+
+                {% if object.pk %}
+                {# ── Histórico de precios: filas dt-*; la gráfica se dibuja sin librerías (funciona sin cobertura) ── #}
+                <section class="card card-flat" id="pfHistory">
+                    <div class="dt-card-head">
+                        <h2 class="dt-card-title">Histórico de precios</h2>
+                        {% if price_history|length > 1 %}
+                        <span class="dt-card-hint">Mín. {{ price_min.price }} € · Máx. {{ price_max.price }} €</span>
+                        {% endif %}
+                    </div>
+
+                    {% if price_history|length > 1 %}
+                    {% with newest=price_history.0 oldest=price_history|last %}
+                    <div class="pf-spark-wrap">
+                        <svg class="pf-spark" id="pfSpark" role="img"
+                             aria-label="Evolución del precio entre el {{ oldest.effective_date|date:'d/m/Y' }} y el {{ newest.effective_date|date:'d/m/Y' }}: inicial {{ oldest.price }} €, actual {{ newest.price }} €, mínimo {{ price_min.price }} €, máximo {{ price_max.price }} €"></svg>
+                        <div class="pf-spark-axis" aria-hidden="true">
+                            <span>{{ oldest.effective_date|date:"d/m/Y" }}</span>
+                            <span>{{ newest.effective_date|date:"d/m/Y" }}</span>
+                        </div>
+                    </div>
+                    {% endwith %}
+                    {% endif %}
+
+                    {% if price_history %}
+                    <ul class="dt-list">
+                        {% for item in history_with_trend %}
+                        <li>
+                            <div class="dt-list-main">
+                                <b>{{ item.entry.price }} €/ud.</b>
+                                <span>{{ item.entry.effective_date|date:"d/m/Y" }}{% if forloop.first %} · Actual{% endif %}{% if item.trend == 'initial' %} · Primer precio{% endif %}</span>
+                            </div>
+                            {% if item.trend == 'up' %}
+                            <div class="dt-list-cost"><b class="dt-fg-0"><span class="visually-hidden">Subida </span>▲{% if item.change_pct %} {{ item.change_pct|floatformat:1 }} %{% endif %}</b></div>
+                            {% elif item.trend == 'down' %}
+                            <div class="dt-list-cost"><b class="dt-fg-3"><span class="visually-hidden">Bajada </span>▼{% if item.change_pct %} {{ item.change_pct|floatformat:1 }} %{% endif %}</b></div>
+                            {% endif %}
+                            <button type="button" class="tf-icon-btn" data-price-delete="{% url 'product-price-delete' item.entry.pk %}"
+                                    aria-label="Eliminar el precio del {{ item.entry.effective_date|date:'d/m/Y' }}">
+                                <i class="fa fa-times" aria-hidden="true"></i>
+                            </button>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% if price_history|length == 1 %}
+                    <div class="dt-note">Aún no hay evolución. Cuando cambies el precio verás aquí la tendencia y los extremos.</div>
+                    {% endif %}
+                    {% else %}
+                    <div class="hm-empty">
+                        <b>Sin histórico todavía</b>
+                        <span>El precio se registra al guardar cada vez que cambia.</span>
+                    </div>
+                    {% endif %}
+                </section>
+
+                {# ── Archivar o eliminar ── #}
+                <section class="tf-card">
+                    <h2 class="tf-h2">Estado</h2>
+                    <div class="tf-switch-row">
+                        <div>
+                            <div class="tf-switch-title" id="pfActiveLbl">Producto activo</div>
+                            <div class="tf-hint">{{ form.is_active.help_text }}</div>
+                        </div>
+                        <button type="button" class="tf-switch" id="pfActiveOn" role="switch"
+                                aria-checked="{% if form.is_active.value %}true{% else %}false{% endif %}"
+                                aria-labelledby="pfActiveLbl"><span class="tf-knob"></span></button>
+                        {{ form.is_active }}
+                    </div>
+                    <hr class="tf-sep">
+                    {% if object.has_treatments %}
+                    <p class="tf-hint mb-0">Se ha usado en tratamientos, así que no se puede eliminar. Archívalo para dejar de verlo.</p>
+                    {% else %}
+                    <div class="tf-switch-row">
+                        <div>
+                            <div class="tf-switch-title">Eliminar producto</div>
+                            <div class="tf-hint">No se puede deshacer.</div>
+                        </div>
+                        <button type="button" class="tf-btn tf-btn--sec text-danger" id="pfDelete"
+                                data-delete-url="{% url 'product-delete' object.pk %}">Eliminar</button>
+                    </div>
+                    {% endif %}
+                </section>
+                {% endif %}
+            </div>
+
+            {# ── Resumen: barra fija abajo (móvil) / tarjeta lateral (escritorio) ── #}
+            <aside class="tf-summary" aria-label="Resumen del producto">
+                <div class="tf-sum-top">
+                    <span class="tf-lbl tf-sum-label">Producto</span>
+                    <div class="tf-sum-main-wrap">
+                        <span class="tf-sum-main" id="pfSumMain">Sin nombre</span>
+                        <span class="tf-sum-sub" id="pfSumSub"></span>
+                    </div>
+                    <dl class="tf-kv">
+                        <div><dt>Precio</dt><dd id="pfKvPrice">—</dd></div>
+                        <div id="pfKvSprayRow" hidden><dt>Pulverización</dt><dd id="pfKvSpray">—</dd></div>
+                        <div id="pfKvSprayCostRow" hidden><dt>Coste por ha</dt><dd id="pfKvSprayCost">—</dd></div>
+                        <div id="pfKvFertRow" hidden><dt>Fertirrigación</dt><dd id="pfKvFert">—</dd></div>
+                        <div id="pfKvFertCostRow" hidden><dt>Coste por ha</dt><dd id="pfKvFertCost">—</dd></div>
+                    </dl>
+                    <p class="tf-hint d-none d-lg-block mb-0">Coste estimado con {{ reference_water }} L/ha de caldo. En cada tratamiento se recalcula con su mojado.</p>
+                </div>
+                <div class="tf-sum-actions">
+                    <button type="submit" class="tf-btn tf-btn--primary">{% if object.pk %}Guardar{% else %}Crear producto{% endif %}</button>
+                    <a class="tf-btn tf-btn--sec tf-sum-cancel" href="{% url 'product-list' %}">Cancelar</a>
+                </div>
+            </aside>
+        </div>
+    </form>
 </div>
 
 <form class="d-none" id="deleteForm" method="POST">
     {% csrf_token %}
 </form>
-{% endblock %}
-
-{% block extra_head %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-<style>
-    .spraying-fields,
-    .fertigation-fields {
-        transition: opacity 0.2s ease;
-    }
-
-    .spraying-fields.disabled,
-    .fertigation-fields.disabled {
-        opacity: 0.4;
-        pointer-events: none;
-    }
-
-    #archiveToggleBox {
-        transition: background-color 0.3s ease;
-    }
-</style>
+{# Fechas y precios ya serializados en la vista (json.dumps), sin texto libre #}
+{% if object.pk and price_history|length > 1 %}<script type="application/json" id="pfPriceData">{{ price_history_json|safe }}</script>{% endif %}
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    function confirmDelete(button) {
-        const url = button.getAttribute('data-url');
-        showConfirm({
-            text: 'Esta acción eliminará el producto de forma permanente y no se podrá deshacer.',
-            onConfirm: () => {
-                const form = document.getElementById('deleteForm');
-                form.action = url;
-                form.submit();
-            }
-        });
-    }
+    document.addEventListener('DOMContentLoaded', () => {
+        const $ = id => document.getElementById(id);
+        const form = $('productForm');
+        const fmt = new Intl.NumberFormat('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        const fmtDose = new Intl.NumberFormat('es-ES', {maximumFractionDigits: 3});
+        const WATER = {{ reference_water|default:1000 }};
+        const num = el => {
+            const v = parseFloat(String(el.value).replace(',', '.'));
+            return Number.isFinite(v) ? v : 0;
+        };
 
-    document.addEventListener('DOMContentLoaded', function () {
+        const name = $('{{ form.name.id_for_label }}');
+        const price = $('{{ form.price.id_for_label }}');
+        const methods = {
+            spraying: {
+                sw: $('pfSprayOn'), fields: $('pfSprayFields'), short: 'Pulv.',
+                dose: $('{{ form.spraying_dose.id_for_label }}'), type: $('{{ form.spraying_dose_type.id_for_label }}'),
+                rows: [$('pfKvSprayRow'), $('pfKvSprayCostRow')], dd: [$('pfKvSpray'), $('pfKvSprayCost')],
+            },
+            fertigation: {
+                sw: $('pfFertOn'), fields: $('pfFertFields'), short: 'Fert.',
+                dose: $('{{ form.fertigation_dose.id_for_label }}'), type: $('{{ form.fertigation_dose_type.id_for_label }}'),
+                rows: [$('pfKvFertRow'), $('pfKvFertCostRow')], dd: [$('pfKvFert'), $('pfKvFertCost')],
+            },
+        };
+        const active = $('{{ form.is_active.id_for_label }}');
+
+        const isOn = m => m.sw.getAttribute('aria-checked') === 'true';
+
+        // Misma fórmula que Product.cost_per_ha (farm/models.py): las dosis por ha no dependen del agua
+        function costPerHa(m) {
+            const dose = num(m.dose), p = num(price), t = m.type.value;
+            if (!dose || !p || !t) return null;
+            if (t === 'kg_per_ha' || t === 'l_per_ha') return dose * p;
+            if (t === 'kg_per_1000l' || t === 'l_per_1000l') return dose * WATER / 1000 * p;
+            if (t === 'pct') return dose / 100 * WATER * p;
+            return null;
+        }
+
+        function update() {
+            $('pfSumMain').textContent = name.value.trim() || 'Sin nombre';
+            const p = num(price);
+            $('pfKvPrice').textContent = p ? `${fmt.format(p)} €/ud.` : 'Sin precio';
+
+            const parts = [];
+            let anyDose = false;
+            Object.values(methods).forEach(m => {
+                const on = isOn(m), c = costPerHa(m);
+                m.rows.forEach(r => { r.hidden = !on; });
+                if (!on) return;
+                const unit = m.type.value ? m.type.selectedOptions[0].text : '';
+                m.dd[0].textContent = num(m.dose) && unit ? `${fmtDose.format(num(m.dose))} ${unit}` : 'Sin completar';
+                m.dd[1].textContent = c === null ? '—' : `${fmt.format(c)} €`;
+                if (num(m.dose) && m.type.value) anyDose = true;
+                if (c !== null) parts.push(`${m.short} ${fmt.format(c)}`);
+            });
+            let sub;
+            if (parts.length) sub = `${parts.join(' · ')} €/ha`;
+            else if (!anyDose) sub = 'Falta la dosis';
+            else sub = 'Sin precio: no se calcula el coste';
+            if (active && !active.checked) sub = `Archivado · ${sub}`;
+            $('pfSumSub').textContent = sub;
+        }
+
+        function setMethod(m, on, clear) {
+            m.sw.setAttribute('aria-checked', on ? 'true' : 'false');
+            m.fields.hidden = !on;
+            if (!on && clear) { m.dose.value = ''; m.type.value = ''; }
+        }
+
+        Object.values(methods).forEach(m => {
+            setMethod(m, !!(m.dose.value || m.type.value), false);
+            m.sw.addEventListener('click', () => {
+                const on = !isOn(m);
+                setMethod(m, on, true);
+                if (on) m.dose.focus();
+                $('pfDoseErr').textContent = '';
+                update();
+            });
+        });
+
+        const activeSw = $('pfActiveOn');
+        if (activeSw && active) {
+            activeSw.addEventListener('click', () => {
+                active.checked = !active.checked;
+                activeSw.setAttribute('aria-checked', active.checked ? 'true' : 'false');
+                update();
+            });
+        }
+
+        form.addEventListener('input', update);
+        form.addEventListener('change', update);
+        update();
+
+        // Sin ninguna dosis no merece la pena enviar: el servidor también lo comprueba, pero sin cobertura ahorra una vuelta
+        form.addEventListener('submit', e => {
+            const any = Object.values(methods).some(m => isOn(m) && (m.dose.value || m.type.value));
+            if (any) return;
+            e.preventDefault();
+            $('pfDoseErr').innerHTML = '<span>Activa pulverización o fertirrigación e indica la dosis.</span>';
+            $('pfSprayOn').scrollIntoView({block: 'center'});
+            $('pfSprayOn').focus({preventScroll: true});
+        });
+
+        // Con errores: marca los campos y lleva al primero (en móvil la barra fija tapa parte de la pantalla)
+        form.querySelectorAll('.tf-err').forEach(err => {
+            if (!err.textContent.trim()) return;
+            const input = err.closest('label, .tf-group')?.querySelector('input:not(.tf-sr), select, textarea');
+            if (input) input.setAttribute('aria-invalid', 'true');
+        });
+        const firstBad = form.querySelector('[aria-invalid="true"]') || $('pfBanner');
+        if (firstBad) { firstBad.scrollIntoView({block: 'center'}); firstBad.focus({preventScroll: true}); }
 
         // ── Alta rápida de tipo: sin salir del formulario (se pierde lo escrito si se navega) ──
-        const typeSelect = document.getElementById('{{ form.product_type.id_for_label }}');
-        if (typeSelect) {
-            const addType = document.createElement('button');
-            addType.type = 'button';
-            addType.className = 'btn btn-link btn-sm p-0 mt-1 text-decoration-none';
-            addType.innerHTML = '<i class="fa fa-plus me-1"></i>Nuevo tipo';
-            typeSelect.insertAdjacentElement('afterend', addType);
-            addType.addEventListener('click', () => {
-                Swal.fire({
-                    target: '#swal-container',
-                    title: 'Nuevo tipo de producto',
-                    input: 'text',
-                    inputLabel: 'Nombre',
-                    inputAttributes: {maxlength: 100},
-                    showCancelButton: true,
-                    confirmButtonText: 'Crear',
-                    cancelButtonText: 'Cancelar',
-                    confirmButtonColor: '#2E7D32',
-                    heightAuto: false,
-                    showLoaderOnConfirm: true,
-                    allowOutsideClick: () => !Swal.isLoading(),
-                    preConfirm: async (name) => {
-                        name = (name || '').trim();
-                        if (!name) { Swal.showValidationMessage('Escribe un nombre'); return false; }
-                        const body = new FormData();
-                        body.append('name', name);
-                        body.append('csrfmiddlewaretoken', document.querySelector('#productForm [name=csrfmiddlewaretoken]').value);
-                        try {
-                            const r = await fetch('{% url 'product-type-create' %}', {
-                                method: 'POST', body, headers: {'X-Requested-With': 'XMLHttpRequest'}
-                            });
-                            const data = await r.json();
-                            if (!r.ok) { Swal.showValidationMessage((data.errors || ['No se pudo crear el tipo']).join(' ')); return false; }
-                            return data;
-                        } catch (e) {
-                            Swal.showValidationMessage('No se pudo crear el tipo. Inténtalo de nuevo.');
-                            return false;
-                        }
+        const typeSelect = $('{{ form.product_type.id_for_label }}');
+        $('pfNewType').addEventListener('click', () => {
+            Swal.fire({
+                target: '#swal-container',
+                title: 'Nuevo tipo de producto',
+                input: 'text',
+                inputLabel: 'Nombre',
+                inputAttributes: {maxlength: 100},
+                showCancelButton: true,
+                confirmButtonText: 'Crear',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#2E7D32',
+                heightAuto: false,
+                showLoaderOnConfirm: true,
+                allowOutsideClick: () => !Swal.isLoading(),
+                preConfirm: async (typeName) => {
+                    typeName = (typeName || '').trim();
+                    if (!typeName) { Swal.showValidationMessage('Escribe un nombre'); return false; }
+                    const body = new FormData();
+                    body.append('name', typeName);
+                    body.append('csrfmiddlewaretoken', form.querySelector('[name=csrfmiddlewaretoken]').value);
+                    try {
+                        const r = await fetch('{% url 'product-type-create' %}', {
+                            method: 'POST', body, headers: {'X-Requested-With': 'XMLHttpRequest'}
+                        });
+                        const data = await r.json();
+                        if (!r.ok) { Swal.showValidationMessage((data.errors || ['No se pudo crear el tipo']).join(' ')); return false; }
+                        return data;
+                    } catch (err) {
+                        Swal.showValidationMessage('No se pudo crear el tipo. Inténtalo de nuevo.');
+                        return false;
                     }
-                }).then(result => {
-                    if (!result.isConfirmed || !result.value) return;
-                    // Se inserta en orden alfabético, como llegan los demás, y queda seleccionado
-                    const option = new Option(result.value.name, result.value.id, true, true);
-                    const after = Array.from(typeSelect.options).find(o => o.value && o.text.localeCompare(option.text, 'es') > 0);
-                    typeSelect.insertBefore(option, after || null);
-                    typeSelect.value = String(result.value.id);
-                    typeSelect.dispatchEvent(new Event('change', {bubbles: true}));
-                });
-            });
-        }
-
-        // ── Dose toggles ────────────────────────────────────────────────
-        const sprayingSwitch = document.getElementById('enableSpraying');
-        const fertigationSwitch = document.getElementById('enableFertigation');
-        const sprayingFields = document.getElementById('sprayingFields');
-        const fertigationFields = document.getElementById('fertigationFields');
-
-        const sprayingDoseInput = document.getElementById('{{ form.spraying_dose.id_for_label }}');
-        const sprayingDoseTypeInput = document.getElementById('{{ form.spraying_dose_type.id_for_label }}');
-        const fertigationDoseInput = document.getElementById('{{ form.fertigation_dose.id_for_label }}');
-        const fertigationDoseTypeInput = document.getElementById('{{ form.fertigation_dose_type.id_for_label }}');
-
-        function initToggle(toggle, fields, dose, doseType) {
-            const hasData = !!(dose.value || doseType.value);
-            toggle.checked = hasData;
-            fields.classList.toggle('disabled', !hasData);
-            toggle.addEventListener('change', function () {
-                fields.classList.toggle('disabled', !this.checked);
-                if (!this.checked) {
-                    dose.value = '';
-                    doseType.value = '';
                 }
-            });
-        }
-
-        initToggle(sprayingSwitch, sprayingFields, sprayingDoseInput, sprayingDoseTypeInput);
-        initToggle(fertigationSwitch, fertigationFields, fertigationDoseInput, fertigationDoseTypeInput);
-
-        document.getElementById('productForm').addEventListener('submit', function (e) {
-            const hasSpraying = sprayingDoseInput.value && sprayingDoseTypeInput.value;
-            const hasFertigation = fertigationDoseInput.value && fertigationDoseTypeInput.value;
-            if (!hasSpraying && !hasFertigation) {
-                e.preventDefault();
-                showNotification({
-                    icon: 'warning',
-                    title: 'Sin método de aplicación',
-                    text: 'El producto debe tener configurada al menos una dosis (pulverización o fertirrigación).',
-                });
-            }
-        });
-
-        // ── Archive toggle visual feedback ───────────────────────────────
-        const archiveSwitch = document.getElementById('{{ form.is_active.id_for_label }}');
-        const archiveBox = document.getElementById('archiveToggleBox');
-        const archiveLabel = document.getElementById('archiveLabel');
-
-        if (archiveSwitch && archiveBox) {
-            archiveSwitch.addEventListener('change', function () {
-                const active = this.checked;
-                archiveBox.classList.toggle('bg-warning-subtle', !active);
-                archiveBox.classList.toggle('border-warning-subtle', !active);
-                archiveBox.classList.toggle('bg-light', active);
-                if (archiveLabel) {
-                    archiveLabel.innerHTML = active
-                        ? '<i class="fa fa-check-circle text-success me-1"></i>Producto activo'
-                        : '<i class="fa fa-archive text-warning me-1"></i>Producto archivado';
-                }
-            });
-        }
-
-        // ── Price history delete confirm ─────────────────────────────────
-        document.querySelectorAll('.price-delete-btn').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                const form = btn.closest('.price-delete-form');
-                showConfirm({
-                    text: 'Se eliminará esta entrada del historial de precios.',
-                    onConfirm: () => form.submit(),
-                });
+            }).then(result => {
+                if (!result.isConfirmed || !result.value) return;
+                // Se inserta en orden alfabético, como llegan los demás, y queda seleccionado
+                const option = new Option(result.value.name, result.value.id, true, true);
+                const after = Array.from(typeSelect.options).find(o => o.value && o.text.localeCompare(option.text, 'es') > 0);
+                typeSelect.insertBefore(option, after || null);
+                typeSelect.value = String(result.value.id);
+                typeSelect.dispatchEvent(new Event('change', {bubbles: true}));
+                const note = $('pfNoTypes');
+                if (note) note.remove();
             });
         });
 
-        // ── Price history chart ──────────────────────────────────────────
-        // @formatter:off
-        {% if price_history|length > 1 %}
-        const priceData = {{ price_history_json|safe }};
-        // @formatter:on
-
-        const ctx = document.getElementById('priceChart');
-        if (ctx && priceData.length > 1) {
-            const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 100);
-            gradient.addColorStop(0, 'rgba(13,110,253,0.15)');
-            gradient.addColorStop(1, 'rgba(13,110,253,0)');
-
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: priceData.map(d => d.date),
-                    datasets: [{
-                        data: priceData.map(d => d.price),
-                        borderColor: '#0d6efd',
-                        backgroundColor: gradient,
-                        fill: true,
-                        tension: 0.35,
-                        pointRadius: priceData.length === 1 ? 5 : 3,
-                        pointHoverRadius: 6,
-                        pointBackgroundColor: '#0d6efd',
-                        borderWidth: 2,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    animation: {duration: 400},
-                    plugins: {
-                        legend: {display: false},
-                        tooltip: {
-                            displayColors: false,
-                            callbacks: {
-                                title: items => items[0].label,
-                                label: item => `${item.raw} €/ud.`
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            display: priceData.length > 1,
-                            grid: {display: false},
-                            ticks: {font: {size: 10}, color: '#6c757d', maxTicksLimit: 4, maxRotation: 0},
-                            border: {display: false}
-                        },
-                        y: {display: false, grace: '15%'}
-                    }
+        // ── Eliminar el producto o una entrada del histórico: un único formulario oculto ──
+        function confirmPost(url, text) {
+            showConfirm({
+                text,
+                onConfirm: () => {
+                    const del = $('deleteForm');
+                    del.action = url;
+                    del.submit();
                 }
             });
         }
-        // @formatter:off
-        {% endif %}
-        // @formatter:on
+
+        const delBtn = $('pfDelete');
+        if (delBtn) delBtn.addEventListener('click', () => confirmPost(
+            delBtn.dataset.deleteUrl, 'Esta acción eliminará el producto de forma permanente y no se podrá deshacer.'));
+        document.querySelectorAll('[data-price-delete]').forEach(btn => btn.addEventListener('click', () => confirmPost(
+            btn.dataset.priceDelete, 'Se eliminará esta entrada del histórico de precios.')));
+
+        // ── Gráfica del histórico: SVG a mano con la paleta de la app ──
+        const dataEl = $('pfPriceData'), svg = $('pfSpark');
+        if (dataEl && svg) {
+            const points = JSON.parse(dataEl.textContent);  // del más antiguo al más reciente
+            const NS = 'http://www.w3.org/2000/svg';
+            const draw = () => {
+                const w = svg.clientWidth || 300, h = svg.clientHeight || 72, pad = 8;
+                const prices = points.map(p => p.price);
+                const lo = Math.min(...prices), hi = Math.max(...prices), span = (hi - lo) || 1;
+                const x = i => pad + (w - 2 * pad) * i / (points.length - 1);
+                const y = v => h - pad - (h - 2 * pad) * (v - lo) / span;
+                svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+                svg.replaceChildren();
+                const line = document.createElementNS(NS, 'polyline');
+                line.setAttribute('points', points.map((p, i) => `${x(i)},${y(p.price)}`).join(' '));
+                line.setAttribute('class', 'pf-spark-line');
+                svg.appendChild(line);
+                points.forEach((p, i) => {
+                    const dot = document.createElementNS(NS, 'circle');
+                    dot.setAttribute('cx', x(i)); dot.setAttribute('cy', y(p.price)); dot.setAttribute('r', i === points.length - 1 ? 5 : 3.5);
+                    dot.setAttribute('class', i === points.length - 1 ? 'pf-spark-dot pf-spark-dot--now' : 'pf-spark-dot');
+                    const tip = document.createElementNS(NS, 'title');
+                    tip.textContent = `${p.date}: ${fmt.format(p.price)} €/ud.`;
+                    dot.appendChild(tip);
+                    svg.appendChild(dot);
+                });
+            };
+            draw();
+            if (window.ResizeObserver) new ResizeObserver(draw).observe(svg);
+        }
     });
 </script>
 {% endblock %}

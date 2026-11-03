@@ -780,3 +780,23 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
     .dropdown:has(> .dropdown-sheet.show), .dt-actions:has(.dropdown-sheet.show), .tl-item:has(.dropdown-sheet.show), .pl-item:has(.dropdown-sheet.show),
     .pl-group:has(.dropdown-sheet.show), .pl-field:has(.dropdown-sheet.show) { z-index: 1050 !important; }
 }
+
+/* ═══ PRODUCTOS · FORMULARIOS (pf-*) ═══ */
+/* Formulario de producto y de tipo: tf-* + histórico de precios (dt-list) con gráfica SVG propia */
+.pf .tf-switch::after { content: ''; position: absolute; inset: -6px 0; }
+@media (min-width: 992px) { .pf .tf-switch::after { inset: -9px 0; } }  /* 26 px + 18 = zona táctil de 44 px en escritorio */
+.pf .tf-inp[aria-invalid="true"] { border-color: var(--tl-0-fg); }
+.pf .tf-sum-main { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-spark-wrap { padding: .75rem 1rem 0; }
+.pf-spark { display: block; width: 100%; height: 72px; }
+.pf-spark-line { fill: none; stroke: var(--tl-3-fg); stroke-width: 2; stroke-linejoin: round; }
+.pf-spark-dot { fill: #fff; stroke: var(--tl-3-fg); stroke-width: 2; }
+.pf-spark-dot--now { fill: var(--tl-3-fg); }
+.pf-spark-axis { display: flex; justify-content: space-between; margin-top: .25rem; font-size: .75rem; color: var(--tl-muted); }
+@media (min-width: 992px) {
+    .pf .tf-sum-main { font-size: 1.25rem; white-space: normal; overflow-wrap: anywhere; }
+}
+
+/* Formularios tf-* con controles nativos (select y textarea) */
+.tf-inp.form-select { padding-right: 2.25rem; background-image: var(--bs-form-select-bg-img), var(--bs-form-select-bg-icon, none); background-repeat: no-repeat; background-position: right .75rem center; background-size: 16px 12px; }
+textarea.tf-inp { height: auto; min-height: 48px; padding: 10px 12px; resize: vertical; }
