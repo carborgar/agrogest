@@ -4,6 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
 from django.shortcuts import render
 from django.urls import reverse_lazy
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.generic import ListView, UpdateView
 
 from accounts.forms import NotificationPreferencesForm
@@ -16,7 +17,11 @@ class CustomLoginView(LoginView):
 
     def get_success_url(self):
         next_url = self.request.POST.get('next') or self.request.GET.get('next')
-        return next_url or reverse_lazy('home')
+        if next_url and url_has_allowed_host_and_scheme(
+            next_url, allowed_hosts={self.request.get_host()}, require_https=self.request.is_secure()
+        ):
+            return next_url
+        return str(reverse_lazy('home'))
 
     def form_valid(self, form):
         remember_me = self.request.POST.get('remember')
@@ -77,7 +82,7 @@ class NotificationInboxView(LoginRequiredMixin, ListView):
 
         # MultipleObjectMixin requiere self.object_list antes de llamar get_context_data
         self.object_list = notifications
-        context = self.get_context_data()
+        context = self.get_context_data(new_count=len(unread_pks))
         return self.render_to_response(context)
 
 

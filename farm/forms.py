@@ -762,11 +762,11 @@ class StoragePointForm(NoPlaceholderModelForm):
 class TreatmentCostRangeForm(forms.Form):
     start_date = forms.DateField(
         label='Desde',
-        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'tf-inp'}),
     )
     end_date = forms.DateField(
         label='Hasta',
-        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'tf-inp'}),
     )
 
     def clean(self):
@@ -782,7 +782,7 @@ class TreatmentCostProductForm(forms.Form):
     product = forms.ModelChoiceField(
         queryset=Product.objects.none(),
         label='Producto',
-        widget=forms.Select(attrs={'class': 'form-select'}),
+        widget=forms.Select(attrs={'class': 'form-select tf-inp'}),
     )
 
     def __init__(self, *args, **kwargs):

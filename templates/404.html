@@ -1,26 +1,15 @@
-{% extends "base_no_menu.html" %}
-{% load static %}
+{% extends "accounts/auth_base.html" %}
 
-{% block title %}Página no encontrada{% endblock %}
+{% block title %}Página no encontrada · AgroGest{% endblock %}
 
-{% block base_content %}
-<div class="container min-vh-100 d-flex align-items-center justify-content-center">
-    <div class="row">
-        <div class="col-md-6 mb-4 mb-md-0">
-            <div class="text-center text-md-start">
-                <h1 class="display-1 fw-bold text-primary">404</h1>
-                <h2 class="mb-4">Página no encontrada</h2>
-                <p class="lead mb-4">Parece que te has perdido en el campo. No encontramos la página que buscas.</p>
-                <a class="btn btn-primary btn-lg" href="{% url 'home' %}">Volver al inicio</a>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="text-center">
-                <img alt="err-404-img" class="img-fluid rounded shadow-sm"
-                     src="{% static 'img/404-tractor.png' %}">
-            </div>
-        </div>
+{% block auth_content %}
+<div class="card card-flat">
+    <div class="hm-empty">
+        <span class="hm-empty-icon hm-empty-icon--warn"><i aria-hidden="true" class="fas fa-map-signs"></i></span>
+        <p class="fs-1 fw-bold lh-1 mb-0 text-body-secondary">404</p>
+        <h1 class="h5 fw-bold mb-0 text-body">Página no encontrada</h1>
+        <span>Parece que te has perdido en el campo. No encontramos la página que buscas.</span>
+        <a class="tf-btn tf-btn--primary w-100 mt-3" href="{% url 'home' %}">Volver al inicio</a>
     </div>
 </div>
-
 {% endblock %}
