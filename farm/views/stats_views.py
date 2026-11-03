@@ -8,8 +8,17 @@ from farm.mixins import OwnershipRequiredMixin
 from farm.models import Treatment, TreatmentProduct, Field, Harvest, Expense
 
 
+# Tope de PK admitido en el filtro de parcela (evita desbordar el entero de la BD)
+MAX_PK = 2**31 - 1
+
+
 class YearlyStatsView(OwnershipRequiredMixin, TemplateView):
     template_name = "farm/stats/yearly_stats.html"
+
+    def _year_url(self, year):
+        query = self.request.GET.copy()
+        query["year"] = str(year)
+        return "?" + query.urlencode()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -21,6 +30,8 @@ class YearlyStatsView(OwnershipRequiredMixin, TemplateView):
             selected_year = int(self.request.GET.get("year", current_year))
         except (ValueError, TypeError):
             selected_year = current_year
+        if not 2000 <= selected_year <= current_year + 1:
+            selected_year = current_year
 
         # Rango de años disponibles (desde el primer tratamiento hasta hoy)
         year_range_qs = Treatment.objects.filter(
@@ -28,7 +39,9 @@ class YearlyStatsView(OwnershipRequiredMixin, TemplateView):
         ).aggregate(min_year=Min("date"), max_year=Max("date"))
         min_year = year_range_qs["min_year"].year if year_range_qs["min_year"] else current_year
         max_year = year_range_qs["max_year"].year if year_range_qs["max_year"] else current_year
-        available_years = list(range(max(min_year, current_year - 10), current_year + 1))
+        available_years = set(range(max(min_year, current_year - 10), current_year + 1))
+        available_years.add(selected_year)
+        available_years = sorted(available_years)
 
         context["selected_year"] = selected_year
         context["available_years"] = available_years
@@ -43,10 +56,26 @@ class YearlyStatsView(OwnershipRequiredMixin, TemplateView):
         context["fields"] = fields_qs
         
         # Procesar filtros seleccionados
-        selected_types = self.request.GET.getlist("type")
-        selected_fields = self.request.GET.getlist("field")
+        valid_types = {key for key, _label in Treatment.TYPE_CHOICES}
+        selected_types = [t for t in self.request.GET.getlist("type") if t in valid_types]
+        selected_fields = [f for f in self.request.GET.getlist("field")
+                           if f.isascii() and f.isdigit() and int(f) <= MAX_PK]
         context["selected_types"] = selected_types
         context["selected_fields"] = selected_fields
+
+        context["panel_filter_count"] = len(selected_types) + len(selected_fields)
+
+        # Pestañas de año: el actual y los dos anteriores (+ el elegido si es más antiguo).
+        # Cada una conserva los filtros de parcela y tipo.
+        tab_years = [current_year - i for i in range(3)]
+        if selected_year not in tab_years:
+            tab_years.append(selected_year)
+        context["year_tabs"] = [
+            {"label": str(y), "active": y == selected_year, "url": self._year_url(y)}
+            for y in tab_years
+        ]
+        context["older_years"] = [y for y in available_years if y not in tab_years]
+        context["clear_url"] = f"?year={selected_year}"
 
         # ── Base querysets ────────────────────────────────────────────────
         treatments_qs = Treatment.objects.filter(
@@ -116,6 +145,14 @@ class YearlyStatsView(OwnershipRequiredMixin, TemplateView):
 
         context["month_labels"] = month_labels
         context["monthly_data"] = monthly_data
+        max_month = max(monthly_data)
+        context["monthly_bars"] = [
+            {"label": label, "count": count,
+             "pct": round(count * 100 / max_month) if max_month else 0,
+             # Se resalta solo si un único mes destaca; con empates no hay «el» mes más activo
+             "is_max": bool(max_month) and count == max_month and monthly_data.count(max_month) == 1}
+            for label, count in zip(month_labels, monthly_data)
+        ]
 
         busiest_month_idx = monthly_data.index(max(monthly_data)) if any(monthly_data) else None
         context["busiest_month"] = month_labels[busiest_month_idx] if busiest_month_idx is not None and max(monthly_data) > 0 else None
@@ -164,11 +201,10 @@ class YearlyStatsView(OwnershipRequiredMixin, TemplateView):
             organization=org,
             date__year=selected_year,
         ).select_related("field")
+        if selected_fields:
+            harvests_qs = harvests_qs.filter(field_id__in=selected_fields)
 
-        harvest_totals = harvests_qs.aggregate(
-            total_kg=Sum("amount"),
-            total_income=Sum("sale_price_per_kg"),  # we'll recalculate below
-        )
+        harvest_totals = harvests_qs.aggregate(total_kg=Sum("amount"))
         total_harvest_kg = harvest_totals["total_kg"] or 0
 
         # Calcular ingresos correctamente
@@ -186,12 +222,15 @@ class YearlyStatsView(OwnershipRequiredMixin, TemplateView):
         context["total_harvest_kg"] = total_harvest_kg
         context["total_harvest_income"] = total_harvest_income
         context["harvests_by_field"] = list(harvests_by_field)
+        context["harvests_without_price"] = harvests_qs.filter(sale_price_per_kg__isnull=True).count()
 
         # ── Gastos del año ────────────────────────────────────────────────
         expenses_qs = Expense.objects.filter(
             organization=org,
             payment_date__year=selected_year,
         )
+        if selected_fields:
+            expenses_qs = expenses_qs.filter(field_id__in=selected_fields)
         total_expenses = expenses_qs.aggregate(total=Sum("amount"))["total"] or 0
 
         expenses_by_type = (
@@ -202,9 +241,23 @@ class YearlyStatsView(OwnershipRequiredMixin, TemplateView):
         )
         context["total_expenses"] = total_expenses
         context["expenses_by_type"] = list(expenses_by_type)
+        # Lo que no cabe en el top 5, para que la tabla de gastos sume el total
+        expenses_listed = sum(e["total"] for e in expenses_by_type)
+        context["expenses_rest"] = total_expenses - expenses_listed
 
         # ── Coste total (productos + gastos) ─────────────────────────────
-        context["total_cost_all"] = float(total_products_cost) + float(total_expenses)
+        total_cost_all = float(total_products_cost) + float(total_expenses)
+        context["total_cost_all"] = total_cost_all
+
+        # ── Resultado y coste por hectárea ────────────────────────────────
+        # Los gastos (agua, mano de obra…) se reparten por toda la superficie, no solo por la tratada
+        scope_fields = fields_qs.filter(pk__in=selected_fields) if selected_fields else fields_qs
+        total_ha_farm = scope_fields.aggregate(total=Sum("area"))["total"] or 0
+        context["total_ha_farm"] = round(total_ha_farm, 2)
+        context["cost_per_ha"] = round(total_cost_all / total_ha_farm, 2) if total_ha_farm else None
+        # Con filtro de tipo, el coste de productos va filtrado y gastos/ingresos no:
+        # el resultado mezclaría ambos criterios, así que no se calcula.
+        context["result"] = None if selected_types else float(total_harvest_income) - total_cost_all
 
         # ── Rachas / curiosidades ─────────────────────────────────────────
         # Mes sin ningún tratamiento
