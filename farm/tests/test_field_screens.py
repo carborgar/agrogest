@@ -97,7 +97,7 @@ class FieldDeleteTest(_Base):
         self.treatment("T", date.today())
         r = self.client.post(reverse('field-delete', args=[self.field.pk]), follow=True)
         self.assertTrue(Field.objects.filter(pk=self.field.pk).exists())
-        self.assertContains(r, 'No se puede eliminar una parcela con tratamientos.')
+        self.assertContains(r, 'No se puede eliminar: la parcela tiene tratamientos, gastos o cosechas.')
 
 
 @pytest.mark.django_db

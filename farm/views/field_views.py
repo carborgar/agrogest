@@ -186,10 +186,7 @@ class FieldDeleteView(LoginRequiredMixin, FieldOrganizationQuerysetMixin, Delete
         # Los tratamientos, gastos y cosechas restringen el borrado: sin esta comprobación, un POST directo daba un 500.
         # (El mensaje de éxito va aquí: DeleteView ya no llama a delete() desde Django 4.)
         if not self.object.can_be_deleted():
-            if Treatment.objects.filter(field=self.object).exists():
-                messages.error(self.request, 'No se puede eliminar una parcela con tratamientos.')
-            else:
-                messages.error(self.request, 'No se puede eliminar: la parcela tiene tratamientos, gastos o cosechas.')
+            messages.error(self.request, 'No se puede eliminar: la parcela tiene tratamientos, gastos o cosechas.')
             return redirect('field-detail', pk=self.object.pk)
         try:
             response = super().form_valid(form)
