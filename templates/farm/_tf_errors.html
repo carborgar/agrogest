@@ -1,0 +1,2 @@
+{# Errores de un campo con el estilo de los formularios tf-*. Uso: {% include "farm/_tf_errors.html" with errors=form.campo.errors err_id="..." %} (err_id opcional, para aria-describedby) #}
+<span class="tf-err"{% if err_id %} id="{{ err_id }}"{% endif %} aria-live="polite">{% for e in errors %}<span>{{ e }}</span>{% endfor %}</span>
