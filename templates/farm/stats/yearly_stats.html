@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load humanize %}
+{% load humanize static %}
 
 {% block title %}Estadísticas {{ selected_year }}{% endblock %}
 
@@ -173,21 +173,26 @@
                 <h2 class="dt-card-title">Tratamientos por mes</h2>
                 {% if busiest_month %}<span class="dt-card-hint">Más activo: {{ busiest_month }} ({{ busiest_month_count }})</span>{% endif %}
             </div>
-            <ol class="st-months" role="list" aria-label="Tratamientos completados por mes">
-                {% for b in monthly_bars %}
-                <li class="st-month{% if b.is_max %} st-month--max{% endif %}" style="--p: {{ b.pct }}%"
-                    title="{{ b.label }}: {{ b.count }} tratamiento{{ b.count|pluralize }}"
-                    aria-label="{{ b.label }}: {{ b.count }} tratamiento{{ b.count|pluralize }}">
-                    <span class="st-month-plot" aria-hidden="true">
-                        <span class="st-month-bar"></span>
-                        {% if b.count %}<span class="st-month-val">{{ b.count }}</span>{% endif %}
-                    </span>
-                    <span class="st-month-label" aria-hidden="true">{{ b.label }}</span>
-                </li>
-                {% endfor %}
-            </ol>
+            {% if total_treatments %}
+            <div class="st-chart">
+                <canvas data-st-chart="months" role="img"
+                        aria-label="Gráfica de barras: tratamientos completados por mes en {{ selected_year }}.{% if busiest_month %} Mes más activo: {{ busiest_month }}, con {{ busiest_month_count }}.{% endif %} El detalle está en la tabla «Ver datos»."></canvas>
+            </div>
             {% if quiet_months %}
             <p class="dt-muted px-3 pb-3 mb-0">Sin actividad: {{ quiet_months|join:", " }}</p>
+            {% endif %}
+            <details class="st-data" data-st-data>
+                <summary>Ver datos</summary>
+                <div class="table-responsive">
+                    <table class="table dt-table mb-0 text-center">
+                        <caption class="visually-hidden">Tratamientos completados por mes</caption>
+                        <thead><tr>{% for b in monthly_bars %}<th scope="col">{{ b.label }}</th>{% endfor %}</tr></thead>
+                        <tbody><tr>{% for b in monthly_bars %}<td{% if b.is_max %} class="fw-bold"{% endif %}>{{ b.count }}</td>{% endfor %}</tr></tbody>
+                    </table>
+                </div>
+            </details>
+            {% else %}
+            <div class="hm-empty"><b>Sin tratamientos completados</b><span>Aparecerán por mes al completar tratamientos.</span></div>
             {% endif %}
         </section>
     </div>
@@ -199,25 +204,36 @@
                 <h2 class="dt-card-title">Gastos</h2>
                 <span class="dt-card-hint">{{ total_cost_all|floatformat:"2g" }} €</span>
             </div>
-            <div class="table-responsive">
-                <table class="table dt-table mb-0">
-                    <thead>
-                        <tr><th scope="col">Concepto</th><th scope="col" class="text-end">Importe</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>Productos (tratamientos)</td><td class="text-end">{{ total_products_cost|floatformat:"2g" }} €</td></tr>
-                        {% for e in expenses_by_type %}
-                        <tr><td>{{ e.expense_type__name }}</td><td class="text-end">{{ e.total|floatformat:"2g" }} €</td></tr>
-                        {% endfor %}
-                        {% if expenses_rest %}
-                        <tr><td class="text-muted">Otros tipos de gasto</td><td class="text-end">{{ expenses_rest|floatformat:"2g" }} €</td></tr>
-                        {% endif %}
-                    </tbody>
-                    <tfoot>
-                        <tr><th scope="row">Total</th><th class="text-end">{{ total_cost_all|floatformat:"2g" }} €</th></tr>
-                    </tfoot>
-                </table>
+            {% if stats_charts.expenses %}
+            <div class="st-chart st-chart--tall">
+                <canvas data-st-chart="expenses" role="img"
+                        aria-label="Gráfica de rosquilla: reparto del gasto total de {{ total_cost_all|floatformat:"2g" }} € por concepto. El detalle está en la tabla «Ver datos»."></canvas>
             </div>
+            <details class="st-data" data-st-data>
+                <summary>Ver datos</summary>
+                <div class="table-responsive">
+                    <table class="table dt-table mb-0">
+                        <thead>
+                            <tr><th scope="col">Concepto</th><th scope="col" class="text-end">Importe</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Productos (tratamientos)</td><td class="text-end">{{ total_products_cost|floatformat:"2g" }} €</td></tr>
+                            {% for e in expenses_by_type %}
+                            <tr><td>{{ e.expense_type__name }}</td><td class="text-end">{{ e.total|floatformat:"2g" }} €</td></tr>
+                            {% endfor %}
+                            {% if expenses_rest %}
+                            <tr><td class="text-muted">Otros tipos de gasto</td><td class="text-end">{{ expenses_rest|floatformat:"2g" }} €</td></tr>
+                            {% endif %}
+                        </tbody>
+                        <tfoot>
+                            <tr><th scope="row">Total</th><th class="text-end">{{ total_cost_all|floatformat:"2g" }} €</th></tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </details>
+            {% else %}
+            <div class="hm-empty"><b>Sin gastos en {{ selected_year }}</b><span>{% if panel_filter_count %}Con los filtros actuales no hay ninguno.{% else %}Los gastos y el coste de productos aparecerán aquí.{% endif %}</span></div>
+            {% endif %}
         </section>
     </div>
 
@@ -231,14 +247,23 @@
                 {% endif %}
             </div>
             {% if harvests_by_field %}
-            <ul class="st-bars">
-                {% for h in harvests_by_field %}
-                <li>
-                    <div class="st-bar-row"><span class="st-bar-name" title="{{ h.field__name }}">{{ h.field__name }}</span><b>{{ h.total_kg|intcomma }} kg</b></div>
-                    <div class="st-track" aria-hidden="true"><span style="--p: {% widthratio h.total_kg harvests_by_field.0.total_kg 100 %}%"></span></div>
-                </li>
-                {% endfor %}
-            </ul>
+            <div class="st-chart">
+                <canvas data-st-chart="harvests" role="img"
+                        aria-label="Gráfica de barras horizontales: kilos cosechados en {{ selected_year }} por parcela, de mayor a menor. El detalle está en la tabla «Ver datos»."></canvas>
+            </div>
+            <details class="st-data" data-st-data>
+                <summary>Ver datos</summary>
+                <div class="table-responsive">
+                    <table class="table dt-table mb-0">
+                        <thead><tr><th scope="col">Parcela</th><th scope="col" class="text-end">Cosecha</th></tr></thead>
+                        <tbody>
+                            {% for h in harvests_by_field %}
+                            <tr><td>{{ h.field__name }}</td><td class="text-end text-nowrap">{{ h.total_kg|intcomma }} kg</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </details>
             {% if harvests_without_price %}
             <p class="dt-note">{{ harvests_without_price }} cosecha{{ harvests_without_price|pluralize }} sin precio de venta: no suma{{ harvests_without_price|pluralize:"n," }} en los ingresos.</p>
             {% endif %}
@@ -258,17 +283,27 @@
                 <h2 class="dt-card-title">Usos por tipo de producto</h2>
             </div>
             {% if by_product_type %}
-            <ul class="st-bars">
-                {% for r in by_product_type %}
-                <li>
-                    <div class="st-bar-row">
-                        <span class="st-bar-name" title="{{ r.product__product_type__name|default:"Sin tipo" }}">{{ r.product__product_type__name|default:"Sin tipo" }}</span>
-                        <b>{{ r.times_used }} uso{{ r.times_used|pluralize }}</b>
-                    </div>
-                    <div class="st-track" aria-hidden="true"><span style="--p: {% widthratio r.times_used by_product_type.0.times_used 100 %}%"></span></div>
-                </li>
-                {% endfor %}
-            </ul>
+            <div class="st-chart st-chart--tall">
+                <canvas data-st-chart="types" role="img"
+                        aria-label="Gráfica de rosquilla: usos de productos en {{ selected_year }} por tipo de producto. El detalle está en la tabla «Ver datos»."></canvas>
+            </div>
+            <details class="st-data" data-st-data>
+                <summary>Ver datos</summary>
+                <div class="table-responsive">
+                    <table class="table dt-table mb-0">
+                        <thead><tr><th scope="col">Tipo</th><th scope="col" class="text-end">Usos</th><th scope="col" class="text-end">Coste</th></tr></thead>
+                        <tbody>
+                            {% for r in by_product_type %}
+                            <tr>
+                                <td>{{ r.product__product_type__name|default:"Sin tipo" }}</td>
+                                <td class="text-end">{{ r.times_used }}</td>
+                                <td class="text-end text-nowrap">{{ r.total_cost|default:0|floatformat:"2g" }} €</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </details>
             {% else %}
             <div class="hm-empty"><b>Sin productos usados</b><span>Aparecerán al completar tratamientos con productos.</span></div>
             {% endif %}
@@ -335,6 +370,14 @@
 
 </div>
 
+{{ stats_charts|json_script:"stats-charts-data" }}
+
 {% endif %}
 
+{% endblock %}
+
+{% block extra_js %}
+{# Chart.js versionado en el repositorio (sin CDN: funciona sin conexión). Solo se carga en esta pantalla. #}
+<script src="{% static 'js/vendor/chart.umd.min.js' %}"></script>
+<script src="{% static 'js/stats-charts.js' %}"></script>
 {% endblock %}

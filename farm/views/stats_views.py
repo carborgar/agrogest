@@ -271,6 +271,36 @@ class YearlyStatsView(OwnershipRequiredMixin, TemplateView):
         )
         context["avg_cost_per_treatment"] = round(avg_cost_per_treatment, 2)
 
+        # ── Datos para las gráficas (Chart.js los lee con json_script) ─────
+        # Todo en tipos nativos (float/int/str): json_script serializaría los Decimal como texto.
+        expense_items = []
+        if total_products_cost:
+            expense_items.append({"label": "Productos (tratamientos)", "value": float(total_products_cost), "other": False})
+        expense_items += [
+            {"label": e["expense_type__name"] or "Sin tipo", "value": float(e["total"]), "other": False}
+            for e in expenses_by_type
+        ]
+        if context["expenses_rest"] > 0:
+            expense_items.append({"label": "Otros tipos de gasto", "value": float(context["expenses_rest"]), "other": True})
+        context["stats_charts"] = {
+            "months": {
+                "labels": month_labels,
+                "counts": monthly_data,
+                "peak": next((i for i, b in enumerate(context["monthly_bars"]) if b["is_max"]), None),
+            },
+            "expenses": expense_items,
+            "harvests": [
+                {"label": h["field__name"], "value": float(h["total_kg"])} for h in harvests_by_field
+            ],
+            "productTypes": [
+                {"label": r["product__product_type__name"] or "Sin tipo",
+                 "value": r["times_used"],
+                 "cost": float(r["total_cost"] or 0),
+                 "other": not r["product__product_type__name"]}
+                for r in by_product_type
+            ],
+        }
+
         # ── Marca nav activo ──────────────────────────────────────────────
         context["nav_stats"] = True
 

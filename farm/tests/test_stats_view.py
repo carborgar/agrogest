@@ -1,7 +1,10 @@
+import json
+import re
 from datetime import date
 from decimal import Decimal
 
 import pytest
+from django.contrib.staticfiles import finders
 from django.urls import reverse
 
 from accounts.models import User
@@ -140,7 +143,8 @@ class TestRendering:
         client, *_ = setup
         html = _get(client).content.decode()
         assert 'Todavía no hay actividad' in html
-        assert 'st-months' not in html
+        assert '<canvas' not in html
+        assert 'stats-charts-data' not in html
 
     def test_empty_state_with_filters_offers_to_clear(self, setup):
         client, org, f1, f2 = setup
@@ -157,8 +161,85 @@ class TestRendering:
         for label in ('Gasto total', 'Ingresos', 'Resultado', 'Gasto por ha'):
             assert label in html
         assert 'aria-current="page"' in html
-        assert 'chart.js' not in html.lower()
         assert '<style' not in html.split('<body', 1)[1]
+
+
+def _chart_data(html):
+    raw = re.search(r'<script id="stats-charts-data" type="application/json">(.*?)</script>', html, re.S).group(1)
+    return json.loads(raw)
+
+
+@pytest.mark.django_db
+class TestCharts:
+
+    def test_canvases_and_json_data(self, setup):
+        client, org, f1, f2 = setup
+        _expense(org, f1, 'Agua', '500')
+        _harvest(org, f1, 1500, '2.00')
+        _harvest(org, f2, 800, '1.00')
+        for _i in range(2):
+            _done(org, f1, 3)
+        _done(org, f1, 5)
+        html = _get(client).content.decode()
+        for key in ('months', 'expenses', 'harvests'):
+            assert f'data-st-chart="{key}"' in html
+        assert html.count('role="img"') >= 3 and 'aria-label="Gráfica' in html
+        assert html.count('<details class="st-data"') >= 3 and 'Ver datos' in html
+        data = _chart_data(html)
+        assert data['months']['counts'][2:5] == [2, 0, 1]
+        assert data['months']['peak'] == 2 and len(data['months']['labels']) == 12
+        assert data['expenses'] == [{'label': 'Agua', 'value': 500.0, 'other': False}]
+        assert data['harvests'] == [{'label': f1.name, 'value': 1500.0}, {'label': f2.name, 'value': 800.0}]
+
+    def test_data_is_json_script_not_inline_js(self, setup):
+        client, org, f1, _ = setup
+        _expense(org, f1, 'Agua <b>"x"</b>', '500')
+        html = _get(client).content.decode()
+        assert 'type="application/json"' in html
+        assert 'Agua <b>' not in html  # escapado por json_script
+        assert _chart_data(html)['expenses'][0]['label'] == 'Agua <b>"x"</b>'
+        assert 'new Chart(' not in html
+
+    def test_product_type_chart_data(self, setup):
+        client, org, f1, _ = setup
+        t = _done(org, f1, 3)
+        TreatmentProductFactory(treatment=t, organization=org)
+        data = _chart_data(_get(client).content.decode())
+        assert len(data['productTypes']) == 1
+        assert data['productTypes'][0]['value'] == 1
+        assert isinstance(data['productTypes'][0]['cost'], float)
+
+    def test_sections_without_data_show_empty_state_not_canvas(self, setup):
+        client, org, f1, _ = setup
+        _expense(org, f1, 'Agua', '500')  # solo hay gasto: no hay tratamientos ni cosechas
+        html = _get(client).content.decode()
+        assert 'data-st-chart="expenses"' in html
+        for key in ('months', 'harvests', 'types'):
+            assert f'data-st-chart="{key}"' not in html
+        assert 'Sin tratamientos completados' in html
+        assert 'Sin cosechas en' in html
+        assert 'hm-empty' in html
+
+    def test_no_expenses_shows_empty_state(self, setup):
+        client, org, f1, _ = setup
+        _harvest(org, f1, 500, '1.00')
+        html = _get(client).content.decode()
+        assert 'data-st-chart="expenses"' not in html and 'Sin gastos en' in html
+        assert 'data-st-chart="harvests"' in html
+
+    def test_chartjs_is_vendored_and_loaded_with_static(self, setup):
+        client, org, f1, _ = setup
+        _done(org, f1, 3)
+        html = _get(client).content.decode()
+        vendor = finders.find('js/vendor/chart.umd.min.js')
+        assert vendor, 'Chart.js debe estar versionado en static/js/vendor'
+        with open(vendor, encoding='utf-8') as fh:
+            head = fh.read(300)
+        assert 'Chart.js v4.4.0' in head and 'MIT License' in head
+        assert finders.find('js/stats-charts.js')
+        assert '/static/js/vendor/chart.umd.min.js' in html and '/static/js/stats-charts.js' in html
+        assert 'chart.js@' not in html
+        assert html.index('chart.umd.min.js') < html.index('stats-charts.js')
 
 
 @pytest.mark.django_db
