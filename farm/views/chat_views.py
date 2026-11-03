@@ -1,13 +1,16 @@
 import json
+import logging
 import uuid
 
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views import View
 
-from farm.ai_service import chat_with_ai
+from farm.ai_service import MSG_NO_DISPONIBLE, chat_with_ai
 from farm.mixins import OwnershipRequiredMixin
 from farm.models import ChatMessage
+
+logger = logging.getLogger(__name__)
 
 
 class ChatView(OwnershipRequiredMixin, View):
@@ -87,7 +90,13 @@ class ChatView(OwnershipRequiredMixin, View):
         )
 
         # Llamada a la IA
-        response_text, error = chat_with_ai(organization, user_message, history)
+        try:
+            response_text, error = chat_with_ai(organization, user_message, history)
+        except Exception:
+            logger.exception("Error inesperado en el chat [org=%s]", organization.id)
+            return JsonResponse({
+                'error': MSG_NO_DISPONIBLE
+            })
 
         if error:
             # Devolvemos el error como texto de respuesta del asistente (código 200)
