@@ -1,68 +1,61 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static_versioned %}
 
 {% block title %}Resumen de gastos{% endblock %}
 
 {% block header %}Resumen de gastos{% endblock %}
 
-{% block sub_header %}Estos son los gatos estimados de todos los tratamientos registrados{% endblock %}
-
-{% block extra_head %}
-<style>
-    .product-details-toggle {
-        font-size: 0.8rem;
-        text-decoration: none;
-    }
-
-    .product-details-toggle:hover {
-        text-decoration: underline;
-    }
-
-    .product-type-header {
-        background-color: #fff;
-        border-bottom: 1px solid #D9DED5;
-        padding: 10px 15px;
-        border-radius: 4px;
-        margin-bottom: 10px;
-    }
-
-    .product-item {
-        padding: 6px 10px;
-        border-bottom: 1px solid #f0f0f0;
-    }
-
-    .product-item:last-child {
-        border-bottom: none;
-    }
-
-    .progress {
-        height: 8px;
-    }
-</style>
-{% endblock %}
+{% block sub_header %}<span class="d-none d-md-inline">Coste de los productos de los tratamientos, por parcela y por tipo de producto.</span>{% endblock %}
 
 {% block content %}
 
-{# ── FILTROS ─────────────────────────────────────────────────────── #}
-<div class="card mb-4">
-    <div class="card-body py-3">
-        <div class="row g-3 align-items-end">
-            {# Parcela — dropdown + checkboxes #}
-            <div class="col-12 col-md-3">
-                <label class="form-label small fw-semibold text-muted mb-1">Parcela</label>
+{% if not fields %}
+<div class="card card-flat">
+    <div class="hm-empty">
+        <span class="hm-empty-icon"><i class="fa fa-map" aria-hidden="true"></i></span>
+        <b>Aún no tienes parcelas</b>
+        <span>El resumen se calcula con los tratamientos de cada parcela.</span>
+        <a class="btn btn-primary btn-sm mt-2" href="{% url 'field-create' %}"><i class="fa fa-plus me-1" aria-hidden="true"></i>Nueva parcela</a>
+    </div>
+</div>
+{% else %}
+
+{# ── Barra superior: periodo (+ botón de filtros en móvil). Las pestañas las gestiona field-costs.js ── #}
+<div class="tl-toolbar cs-toolbar">
+    <nav class="tl-tabs pp-tabs" id="periodTabs" aria-label="Periodo">
+        {% for tab in period_tabs %}
+        <button class="tl-tab" type="button" data-period="{{ tab.value }}">{{ tab.label }}</button>
+        {% endfor %}
+    </nav>
+    <button class="btn btn-outline-secondary tl-filters-btn d-md-none" id="filtersBtn" type="button"
+            data-bs-toggle="offcanvas" data-bs-target="#filtersPanel" aria-controls="filtersPanel" aria-label="Filtros">
+        <i class="fa fa-sliders" aria-hidden="true"></i>
+        <span class="tl-filters-badge" id="filtersBadge" hidden></span>
+    </button>
+</div>
+
+{# ── Filtros: en línea en escritorio, panel inferior en móvil ── #}
+<div class="offcanvas-md offcanvas-bottom tl-filters mb-3" tabindex="-1" id="filtersPanel" aria-labelledby="filtersPanelLabel">
+    <div class="offcanvas-header d-md-none">
+        <h5 class="offcanvas-title" id="filtersPanelLabel">Filtros</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#filtersPanel" aria-label="Cerrar"></button>
+    </div>
+    <div class="offcanvas-body">
+        <div class="row g-2 align-items-end w-100 m-0">
+            <div class="col-12 col-md-6 col-xl-3">
+                <label class="form-label small fw-semibold text-muted mb-1" for="fieldSelectorBtn"><i class="fa fa-map me-1" aria-hidden="true"></i>Parcelas</label>
                 <div class="dropdown filter-check-dropdown w-100" id="fieldSelectorDropdown">
-                    <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start filter-dd-btn"
+                    <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start filter-dd-btn" id="fieldSelectorBtn"
                             data-bs-auto-close="outside" data-bs-toggle="dropdown" type="button">
                         <span class="filter-dd-label">Todas las parcelas…</span>
                     </button>
                     <div class="dropdown-menu filter-dd-menu p-2">
                         <input autocomplete="off" class="form-control form-control-sm mb-2 filter-dd-search"
-                               placeholder="Buscar…" type="text">
+                               placeholder="Buscar…" type="text" aria-label="Buscar parcela">
                         <div class="filter-dd-options">
                             {% for f in fields %}
                             <div class="form-check mb-1">
-                                <input class="form-check-input fieldcost-check" id="fc-{{ f.id }}"
-                                       type="checkbox" value="{{ f.id }}">
+                                <input class="form-check-input fieldcost-check" id="fc-{{ f.id }}" type="checkbox" value="{{ f.id }}">
                                 <label class="form-check-label small" for="fc-{{ f.id }}">{{ f.name }}</label>
                             </div>
                             {% endfor %}
@@ -70,228 +63,95 @@
                     </div>
                 </div>
             </div>
-
-            {# Mostrar valores en #}
-            <div class="col-12 col-md-3">
-                <label class="form-label small fw-semibold text-muted mb-1" for="viewMode">Mostrar valores en</label>
+            <div class="col-12 col-md-6 col-xl-3">
+                <label class="form-label small fw-semibold text-muted mb-1" for="viewMode"><i class="fa fa-scale-balanced me-1" aria-hidden="true"></i>Mostrar valores en</label>
                 <select class="form-select" id="viewMode">
                     <option value="cost">Euros (€)</option>
                     <option value="quantity">Cantidades (kg/L)</option>
                 </select>
             </div>
-
-            <div class="col-6 col-md-2">
-                <label class="form-label small fw-semibold text-muted mb-1" for="dateFrom">Desde</label>
+            <div class="col-6 col-md-4 col-xl-2">
+                <label class="form-label small fw-semibold text-muted mb-1" for="dateFrom"><i class="fa fa-calendar me-1" aria-hidden="true"></i>Desde</label>
                 <input class="form-control" id="dateFrom" type="date">
             </div>
-            <div class="col-6 col-md-2">
-                <label class="form-label small fw-semibold text-muted mb-1" for="dateTo">Hasta</label>
+            <div class="col-6 col-md-4 col-xl-2">
+                <label class="form-label small fw-semibold text-muted mb-1" for="dateTo"><i class="fa fa-calendar me-1" aria-hidden="true"></i>Hasta</label>
                 <input class="form-control" id="dateTo" type="date">
             </div>
-
-            <div class="col-6 col-md-1">
-                <button class="btn btn-primary w-100" id="applyDateFilter" type="button">
-                    <i class="fa fa-search me-1 d-none d-md-inline"></i>Filtrar
-                </button>
-            </div>
-            <div class="col-6 col-md-1">
-                <button class="btn btn-outline-secondary w-100" id="resetFiltersBtn" title="Limpiar filtros"
-                        type="button">
-                    <i class="fa fa-rotate-left"></i>
+            <div class="col-12 col-md-4 col-xl-2 d-flex gap-2 align-items-end">
+                <button class="btn btn-primary flex-fill" id="applyDateFilter" type="button"><i class="fa fa-filter me-1" aria-hidden="true"></i>Filtrar</button>
+                <button class="btn btn-outline-secondary" id="resetFiltersBtn" type="button" title="Limpiar filtros" aria-label="Limpiar filtros">
+                    <i class="fa fa-rotate-left" aria-hidden="true"></i>
                 </button>
             </div>
         </div>
-
-        {# Accesos rápidos de año — rellenados por field-costs.js #}
-        <div class="d-flex flex-wrap gap-2 mt-3" id="quickYearsContainer">
-            <span class="small text-muted align-self-center me-1 w-100">Año rápido:</span>
-        </div>
     </div>
 </div>
 
-{# ── RESUMEN DE GASTOS ───────────────────────────────────────────── #}
-<div class="card mb-4">
-    <div class="card-body">
-        <h5 class="card-title mb-4">Resumen de gastos</h5>
-        <div class="row g-3">
-            <div class="col-6 col-md-3">
-                <div class="card h-100">
-                    <div class="card-body d-flex align-items-center gap-3 py-3">
-                        <div class="rounded-circle bg-danger bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
-                             style="width:42px;height:42px">
-                            <i class="fa fa-euro-sign text-danger"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <div class="small text-muted lh-1 mb-1">Gasto total</div>
-                            <div class="fs-5 fw-bold lh-1" id="totalCost">-</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <div class="card h-100">
-                    <div class="card-body d-flex align-items-center gap-3 py-3">
-                        <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
-                             style="width:42px;height:42px">
-                            <i class="fa fa-chart-line text-primary"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <div class="small text-muted lh-1 mb-1">€/hectárea</div>
-                            <div class="fs-5 fw-bold lh-1" id="costPerHa">-</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <div class="card h-100">
-                    <div class="card-body d-flex align-items-center gap-3 py-3">
-                        <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
-                             style="width:42px;height:42px">
-                            <i class="fa fa-seedling text-success"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <div class="small text-muted lh-1 mb-1">Hectáreas</div>
-                            <div class="fs-5 fw-bold lh-1" id="totalArea">-</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <div class="card h-100">
-                    <div class="card-body d-flex align-items-center gap-3 py-3">
-                        <div class="rounded-circle bg-warning bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
-                             style="width:42px;height:42px">
-                            <i class="fa fa-layer-group text-warning"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <div class="small text-muted lh-1 mb-1">Parcelas</div>
-                            <div class="fs-5 fw-bold lh-1" id="fieldCount">-</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+{# Totales en una línea (rellena field-costs.js) #}
+<p class="pl-count" id="costSummary" aria-live="polite">Cargando…</p>
+
+{# Aviso de productos sin precio (rellena field-costs.js) #}
+<div class="mb-3" id="noPriceWarning"></div>
+
+{# Estados: cargando · sin datos en el periodo · datos #}
+<div class="card card-flat" id="costsLoading">
+    <div class="hm-empty" role="status">
+        <span class="hm-empty-icon"><i class="fa fa-spinner fa-spin" aria-hidden="true"></i></span>
+        <b>Cargando datos…</b>
+    </div>
+</div>
+<div class="card card-flat" id="costsEmpty" hidden>
+    <div class="hm-empty">
+        <span class="hm-empty-icon"><i class="fa fa-receipt" aria-hidden="true"></i></span>
+        <b id="costsEmptyTitle">No hay costes en este periodo</b>
+        <span id="costsEmptyText">Los costes salen de los productos de los tratamientos.</span>
+        <button class="btn btn-outline-secondary btn-sm mt-2" id="costsEmptyAll" type="button">Ver todos los periodos</button>
+    </div>
+</div>
+<div class="card card-flat" id="costsError" data-login-url="{% url 'accounts:login' %}?next={{ request.path|urlencode }}" hidden>
+    <div class="hm-empty">
+        <span class="hm-empty-icon hm-empty-icon--warn"><i class="fa fa-triangle-exclamation" aria-hidden="true"></i></span>
+        <b id="costsErrorTitle">No se han podido cargar los datos</b>
+        <span id="costsErrorText">Comprueba la conexión e inténtalo de nuevo.</span>
+        <button class="btn btn-outline-secondary btn-sm mt-2" id="costsRetry" type="button">Reintentar</button>
+        <a class="btn btn-primary btn-sm mt-2" id="costsLogin" href="#" hidden>Iniciar sesión</a>
     </div>
 </div>
 
-{# Aviso productos sin precio (renderizado por JS) #}
-<div class="mb-4" id="noPriceWarning"></div>
+<div id="costsBody" hidden>
+    <div class="row g-3 mb-3">
+        <div class="col-md-6">
+            <section class="card card-flat h-100" aria-labelledby="cs-chart-type">
+                <div class="dt-card-head"><h2 class="dt-card-title" id="cs-chart-type">Gasto por tipo de producto</h2></div>
+                <div class="cs-chart"><canvas id="productTypeChart" role="img" aria-label="Gráfico del gasto por tipo de producto; el detalle está en la lista de debajo"></canvas></div>
+            </section>
+        </div>
+        <div class="col-md-6">
+            <section class="card card-flat h-100" aria-labelledby="cs-chart-field">
+                <div class="dt-card-head"><h2 class="dt-card-title" id="cs-chart-field">Coste por hectárea</h2><span class="dt-card-hint">€/ha</span></div>
+                <div class="cs-chart"><canvas id="fieldCostChart" role="img" aria-label="Gráfico del coste por hectárea de cada parcela; el detalle está en la lista de debajo"></canvas></div>
+            </section>
+        </div>
+    </div>
 
-{# ── GRÁFICOS ─────────────────────────────────────────────────────── #}
-<div class="row">
-    <div class="col-md-6 mb-4">
-        <div class="card h-100">
-            <div class="card-body">
-                <h5 class="card-title">Gasto por tipo de producto</h5>
-                <div class="chart-container" style="position: relative; height:250px;">
-                    <canvas id="productTypeChart"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6 mb-4">
-        <div class="card h-100">
-            <div class="card-body">
-                <h5 class="card-title">Gasto total por parcela</h5>
-                <div class="chart-container" style="position: relative; height:250px;">
-                    <canvas id="fieldCostChart"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
+    <section class="card card-flat mb-3" aria-labelledby="cs-types-title">
+        <div class="dt-card-head"><h2 class="dt-card-title" id="cs-types-title">Por tipo de producto</h2><span class="dt-card-hint d-none d-md-inline">Pulsa un tipo para ver sus productos</span></div>
+        <div id="productTypeDetails"></div>
+    </section>
+
+    <section class="card card-flat" aria-labelledby="cs-fields-title">
+        <div class="dt-card-head"><h2 class="dt-card-title" id="cs-fields-title">Por parcela</h2><span class="dt-card-hint d-none d-md-inline">Pulsa una parcela para ver su desglose</span></div>
+        <div id="fieldsContainer"></div>
+    </section>
 </div>
 
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card mb-4">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <i aria-controls="productTypeDetailsContent"
-                       aria-expanded="false"
-                       class="bi bi-chevron-down chevron-toggle me-2 transition"
-                       data-bs-target="#productTypeDetailsContent"
-                       data-bs-toggle="collapse"
-                       role="button"></i>
-                    <h5 aria-controls="productTypeDetailsContent"
-                        aria-expanded="false"
-                        class="card-title m-0"
-                        data-bs-target="#productTypeDetailsContent"
-                        data-bs-toggle="collapse"
-                        role="button"
-                        style="cursor: pointer;">
-                        Desglose detallado por tipo de producto
-                    </h5>
-                </div>
-
-                <div class="collapse mt-3" id="productTypeDetailsContent">
-                    <div class="row" id="productTypeDetails">
-                        <div class="text-center py-5">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Cargando...</span>
-                            </div>
-                            <p class="mt-2">Cargando desglose de productos...</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-</div>
-
-{# ── GRID DE PARCELAS ────────────────────────────────────────────── #}
-<div class="row" id="fieldsContainer">
-    <div class="text-center py-5">
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Cargando...</span>
-        </div>
-        <p class="mt-2">Cargando datos de parcelas...</p>
-    </div>
-</div>
-
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
+{% if fields %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-<script src="{% static 'js/field-costs.js' %}"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // Recargar datos al cambiar los checkboxes de parcelas
-        document.querySelectorAll('.fieldcost-check').forEach(cb => {
-            cb.addEventListener('change', () => {
-                if (typeof loadFieldCostsData === 'function') loadFieldCostsData();
-            });
-        });
-
-        // Limpiar filtros — vuelve al estado inicial (año en curso, todas las parcelas, modo € )
-        const resetBtn = document.getElementById('resetFiltersBtn');
-        if (resetBtn) {
-            resetBtn.addEventListener('click', () => {
-                const currentYear = new Date().getFullYear();
-                const dateFrom = document.getElementById('dateFrom');
-                const dateTo = document.getElementById('dateTo');
-
-                dateFrom.value = `${currentYear}-01-01`;
-                dateTo.value = `${currentYear}-12-31`;
-                document.getElementById('viewMode').value = 'cost';
-                document.querySelectorAll('.fieldcost-check').forEach(cb => {
-                    cb.checked = false;
-                });
-
-                const ddLabel = document.querySelector('#fieldSelectorDropdown .filter-dd-label');
-                if (ddLabel) ddLabel.textContent = 'Todas las parcelas…';
-
-                const ddSearch = document.querySelector('#fieldSelectorDropdown .filter-dd-search');
-                if (ddSearch) ddSearch.value = '';
-
-                // Marcar el botón del año en curso como activo entre los accesos rápidos
-                document.querySelectorAll('#quickYearsContainer .quick-year-btn').forEach(b => {
-                    b.className = `btn btn-sm quick-year-btn ${b.dataset.year == currentYear ? 'btn-primary' : 'btn-outline-secondary'}`;
-                });
-
-                if (typeof loadFieldCostsData === 'function') loadFieldCostsData();
-            });
-        }
-    });
-</script>
+<script src="{% static_v 'js/field-costs.js' %}"></script>
+{% endif %}
 {% endblock %}

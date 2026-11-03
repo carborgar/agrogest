@@ -1,244 +1,164 @@
 {% extends "base.html" %}
-{% load custom_filters %}
 {% load static %}
 
 {% block title %}{{ field.name }}{% endblock %}
 {% block header %}{{ field.name }}{% endblock %}
-{% block sub_header %}{{ field.crop }} · {{ field.area }} ha{% endblock %}
+{% block sub_header %}{{ field.crop }} · {{ field.area|floatformat:"-2" }} ha{% endblock %}
 
 {% block extra_head %}
-{% if field.geometry %}
-<link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet" />
-<style>
-    #map-detail {
-        height: 260px;
-        border-radius: 0;
-        transition: height 0.3s ease;
-        cursor: pointer;
-    }
-    #map-detail.map-expanded {
-        height: 420px;
-    }
-    .map-expand-btn {
-        position: absolute;
-        bottom: 8px;
-        right: 8px;
-        z-index: 1000;
-        background: white;
-        border: 1px solid rgba(0,0,0,.2);
-        border-radius: 4px;
-        width: 30px;
-        height: 30px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        font-size: 0.8rem;
-        color: #333;
-        box-shadow: 0 1px 3px rgba(0,0,0,.2);
-    }
-    .map-expand-btn:hover { background: #f4f4f4; }
-    .map-wrapper { position: relative; }
-</style>
-{% endif %}
+{% if geometry_data %}<link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet" />{% endif %}
 {% endblock %}
-
 
 {% block actions %}
 <div class="d-flex gap-2">
-    <a class="btn btn-outline-secondary btn-sm" href="{% url 'field-edit' field.pk %}">
-        <i class="fa fa-edit me-1"></i>Editar
-    </a>
-    <a class="btn btn-primary btn-sm" href="{% url 'treatment-create' %}?field={{ field.pk }}">
-        <i class="fa fa-plus me-1"></i>Nuevo tratamiento
-    </a>
+    <a class="btn btn-outline-secondary" href="{% url 'field-edit' field.pk %}"><i class="fa fa-pen me-1" aria-hidden="true"></i>Editar</a>
+    <a class="btn btn-primary d-none d-md-inline-block" href="{% url 'treatment-create' %}?field={{ field.pk }}"><i class="fa fa-plus me-1" aria-hidden="true"></i>Nuevo tratamiento</a>
+    <div class="dropdown">
+        <button class="btn btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Más acciones de {{ field.name }}" title="Más acciones">
+            <i class="fa fa-ellipsis-vertical" aria-hidden="true"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end dropdown-sheet">
+            <li><a class="dropdown-item" href="{% url 'treatment-list' %}?field={{ field.pk }}"><i class="fa fa-flask me-2 text-secondary" aria-hidden="true"></i>Ver todos los tratamientos</a></li>
+            <li><hr class="dropdown-divider"></li>
+            {% if field.can_be_deleted %}
+            <li><a class="dropdown-item text-danger" href="#" data-url="{% url 'field-delete' field.pk %}" onclick="confirmDelete(this); return false;"><i class="fa fa-trash me-2" aria-hidden="true"></i>Eliminar parcela</a></li>
+            {% else %}
+            <li><span class="dropdown-item-text small text-muted">No se puede eliminar: tiene tratamientos.</span></li>
+            {% endif %}
+        </ul>
+    </div>
 </div>
 {% endblock %}
 
 {% block content %}
 
-<!-- ── STAT CARDS ───────────────────────────────────────── -->
-<div class="row g-3 mb-4">
-    <div class="col-6 col-lg-3">
-        <div class="dashboard-stat-card dashboard-stat-card--neutral">
-            <div class="dashboard-stat-icon"><i class="fa fa-up-right-and-down-left-from-center"></i></div>
-            <div class="dashboard-stat-body">
-                <div class="dashboard-stat-value">{{ field.area }}</div>
-                <div class="dashboard-stat-label">Hectáreas</div>
-            </div>
-        </div>
+{# ── Resumen en una franja (como el detalle de tratamiento) ── #}
+<div class="dt-summary card card-flat mb-3">
+    <div class="dt-cell">
+        <div class="dt-label">Cultivo</div>
+        <div class="dt-value">{{ field.crop }}</div>
+        <div class="dt-sub">Plantado en {{ field.planting_year }}</div>
     </div>
-    <div class="col-6 col-lg-3">
-        <div class="dashboard-stat-card dashboard-stat-card--primary">
-            <div class="dashboard-stat-icon"><i class="fa fa-flask"></i></div>
-            <div class="dashboard-stat-body">
-                <div class="dashboard-stat-value">{{ total_treatments }}</div>
-                <div class="dashboard-stat-label">Tratamientos</div>
-            </div>
-        </div>
+    <div class="dt-cell">
+        <div class="dt-label">Superficie</div>
+        <div class="dt-value">{{ field.area|floatformat:"-2" }} ha</div>
     </div>
-    <div class="col-6 col-lg-3">
-        <a class="text-decoration-none" href="{% url 'treatment-list' %}?field={{ field.pk }}&status=delayed">
-            <div class="dashboard-stat-card dashboard-stat-card--action {% if delayed_count > 0 %}dashboard-stat-card--danger{% else %}dashboard-stat-card--success{% endif %}">
-                <div class="dashboard-stat-icon">
-                    <i class="fa {% if delayed_count > 0 %}fa-triangle-exclamation{% else %}fa-check-circle{% endif %}"></i>
-                </div>
-                <div class="dashboard-stat-body">
-                    <div class="dashboard-stat-value">{{ delayed_count }}</div>
-                    <div class="dashboard-stat-label">Atrasados</div>
-                </div>
-                {% if delayed_count > 0 %}<i class="fa fa-arrow-right dashboard-stat-arrow"></i>{% endif %}
-            </div>
-        </a>
+    <div class="dt-cell">
+        <div class="dt-label">Casetilla</div>
+        {% if field.storage_point %}
+        <div class="dt-value">{{ field.storage_point.name }}</div>
+        <div class="dt-sub">Punto de reparto</div>
+        {% else %}
+        <div class="dt-value">Independiente</div>
+        <div class="dt-sub">El producto se deja aquí</div>
+        {% endif %}
     </div>
-    <div class="col-6 col-lg-3">
-        <a class="text-decoration-none" href="{% url 'treatment-list' %}?field={{ field.pk }}&status=pending">
-            <div class="dashboard-stat-card dashboard-stat-card--action {% if pending_count > 0 %}dashboard-stat-card--warning{% else %}dashboard-stat-card--success{% endif %}">
-                <div class="dashboard-stat-icon">
-                    <i class="fa {% if pending_count > 0 %}fa-clock{% else %}fa-check-circle{% endif %}"></i>
-                </div>
-                <div class="dashboard-stat-body">
-                    <div class="dashboard-stat-value">{{ pending_count }}</div>
-                    <div class="dashboard-stat-label">Pendientes</div>
-                </div>
-                {% if pending_count > 0 %}<i class="fa fa-arrow-right dashboard-stat-arrow"></i>{% endif %}
-            </div>
-        </a>
-    </div>
+    <a class="dt-cell text-reset text-decoration-none" href="{% url 'treatment-list' %}?field={{ field.pk }}&status=delayed">
+        <div class="dt-label">Atrasados</div>
+        <div class="dt-value">{% if delayed_count %}<span class="dt-fg-0">{{ delayed_count }}</span>{% else %}<span class="dt-fg-2">0</span>{% endif %}</div>
+    </a>
+    <a class="dt-cell text-reset text-decoration-none" href="{% url 'treatment-list' %}?field={{ field.pk }}&status=pending">
+        <div class="dt-label">Pendientes</div>
+        <div class="dt-value">{% if pending_count %}<span class="dt-fg-1">{{ pending_count }}</span>{% else %}<span class="dt-fg-2">0</span>{% endif %}</div>
+    </a>
+    <a class="dt-cell text-reset text-decoration-none" href="{% url 'treatment-list' %}?field={{ field.pk }}&status=completed">
+        <div class="dt-label">Hechos</div>
+        <div class="dt-value">{% if completed_count %}<span class="dt-fg-3">{{ completed_count }}</span>{% else %}<span class="dt-fg-2">0</span>{% endif %}</div>
+    </a>
 </div>
 
-<!-- ── MAIN CONTENT ──────────────────────────────────────── -->
-<div class="row g-4">
+<div class="row g-3">
 
-    <!-- LEFT: Datos de la parcela -->
-    <div class="col-lg-4">
-        <div class="card h-100">
-            <div class="card-header d-flex align-items-center justify-content-between">
-                <span class="fw-semibold"><i class="fa fa-info-circle me-2 text-primary"></i>Datos de la parcela</span>
-                <a class="btn btn-xs btn-outline-secondary" href="{% url 'field-edit' field.pk %}">
-                    <i class="fa fa-edit"></i>
-                </a>
+    {# ── Tratamientos: lo pendiente y lo último hecho, con las filas del listado ── #}
+    <div class="col-lg-7">
+        <section class="card card-flat" aria-labelledby="fd-treatments-title">
+            <div class="dt-card-head">
+                <h2 class="dt-card-title" id="fd-treatments-title">Tratamientos</h2>
+                {% if total_treatments %}<a class="small fw-semibold text-decoration-none" href="{% url 'treatment-list' %}?field={{ field.pk }}">Ver todos ({{ total_treatments }})</a>{% endif %}
             </div>
 
-            {% if field.geometry %}
-            <!-- Mapa -->
-            <div class="map-wrapper">
-                <div id="map-detail"></div>
-                <button class="map-expand-btn" id="btnExpandMap" title="Ampliar mapa">
-                    <i class="fa fa-expand"></i>
-                </button>
+            {% if not total_treatments %}
+            <div class="hm-empty">
+                <span class="hm-empty-icon"><i class="fa fa-flask" aria-hidden="true"></i></span>
+                <b>Sin tratamientos todavía</b>
+                <span>Aquí verás lo pendiente y lo último que se hizo en {{ field.name }}.</span>
+                <a class="btn btn-primary btn-sm mt-2" href="{% url 'treatment-create' %}?field={{ field.pk }}"><i class="fa fa-plus me-1" aria-hidden="true"></i>Crear el primero</a>
             </div>
-            {% endif %}
-
-            <div class="card-body">
-                <dl class="row mb-0 field-detail-dl">
-                    <dt class="col-5 text-muted small">Cultivo</dt>
-                    <dd class="col-7 fw-semibold">{{ field.crop }}</dd>
-
-                    <dt class="col-5 text-muted small">Superficie</dt>
-                    <dd class="col-7 fw-semibold">{{ field.area }} ha</dd>
-
-                    <dt class="col-5 text-muted small">Año plantación</dt>
-                    <dd class="col-7 fw-semibold">{{ field.planting_year }}</dd>
-
-
-                    {% if not field.geometry %}
-                    <dt class="col-12 mt-2">
-                        <a class="btn btn-outline-secondary btn-sm w-100" href="{% url 'field-edit' field.pk %}">
-                            <i class="fa fa-map me-1"></i>Añadir contorno en mapa
-                        </a>
-                    </dt>
-                    {% endif %}
-                </dl>
-            </div>
-
-            <!-- Acciones -->
-            <div class="card-footer bg-transparent border-top d-flex gap-2">
-                <a class="btn btn-outline-primary btn-sm flex-grow-1"
-                   href="{% url 'treatment-list' %}?field={{ field.pk }}">
-                    <i class="fa fa-flask me-1"></i>Ver todos los tratamientos
-                </a>
-            </div>
-
-            <!-- Acciones secundarias -->
-            <div class="card-footer bg-transparent border-top d-flex gap-2">
-                <a class="btn btn-outline-secondary btn-sm flex-grow-1" href="{% url 'field-edit' field.pk %}">
-                    <i class="fa fa-edit me-1"></i>Editar parcela
-                </a>
-                {% if field.can_be_deleted %}
-                <button class="btn btn-outline-danger btn-sm"
-                        data-url="{% url 'field-delete' field.pk %}"
-                        onclick="confirmDelete(this); return false;"
-                        title="Eliminar parcela">
-                    <i class="fa fa-trash"></i>
-                </button>
+            {% else %}
+            <div class="tl-group-header tl-group-header--{% if delayed_count %}0{% else %}2{% endif %} hm-group">
+                <span>Pendientes · {{ pending_total }}</span>
+                {% if pending_total > pending_treatments|length %}
+                <a class="hm-group-more" href="{% url 'treatment-list' %}?field={{ field.pk }}&status=pending&status=delayed">Ver los {{ pending_total }}</a>
                 {% endif %}
             </div>
-        </div>
+            {% if pending_treatments %}
+            {% include 'farm/treatments/treatment_list_item.html' with treatment_list=pending_treatments hide_menu=True compact=True %}
+            {% else %}
+            <div class="hm-group-empty">Nada pendiente.</div>
+            {% endif %}
+
+            <div class="tl-group-header tl-group-header--3 hm-group">
+                <span>Hechos · {{ completed_count }}</span>
+                {% if completed_count > done_treatments|length %}
+                <a class="hm-group-more" href="{% url 'treatment-list' %}?field={{ field.pk }}&status=completed">Ver los {{ completed_count }}</a>
+                {% endif %}
+            </div>
+            {% if done_treatments %}
+            {% include 'farm/treatments/treatment_list_item.html' with treatment_list=done_treatments hide_menu=True compact=True %}
+            {% else %}
+            <div class="hm-group-empty">Todavía no se ha hecho ninguno.</div>
+            {% endif %}
+            {% endif %}
+        </section>
     </div>
 
-    <!-- RIGHT: Actividad reciente -->
-    <div class="col-lg-8">
-        <div class="card h-100">
-            <div class="card-header d-flex align-items-center justify-content-between">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="dashboard-section-dot bg-primary"></span>
-                    <span class="fw-semibold">Actividad reciente</span>
-                </div>
-                <a class="btn btn-outline-primary btn-xs"
-                   href="{% url 'treatment-list' %}?field={{ field.pk }}">
-                    Ver todos <i class="fa fa-arrow-right ms-1"></i>
-                </a>
+    {# ── Mapa ── #}
+    <div class="col-lg-5">
+        <section class="card card-flat" aria-labelledby="fd-map-title">
+            <div class="dt-card-head">
+                <h2 class="dt-card-title" id="fd-map-title">Mapa</h2>
             </div>
-            <div class="card-body p-0">
-                {% for treatment in recent_treatments %}
-                {% include 'farm/fields/_treatment_alert.html' %}
-                {% empty %}
-                <div class="dashboard-empty-state">
-                    <i class="fa fa-flask fa-2x text-muted opacity-50 mb-2"></i>
-                    <p class="mb-1">Sin tratamientos registrados</p>
-                    <a class="btn btn-primary btn-sm mt-1" href="{% url 'treatment-create' %}?field={{ field.pk }}">
-                        <i class="fa fa-plus me-1"></i>Crear primer tratamiento
-                    </a>
-                </div>
-                {% endfor %}
+            {% if geometry_data %}
+            <div class="fd-map-wrap">
+                <div id="map-detail" class="fd-map" role="region" aria-label="Contorno de {{ field.name }} en el mapa"></div>
+                <button class="btn btn-light border fd-map-btn" id="btnExpandMap" type="button" title="Ampliar mapa" aria-label="Ampliar mapa" aria-expanded="false">
+                    <i class="fa fa-expand" aria-hidden="true"></i>
+                </button>
             </div>
-            {% if total_treatments > 5 %}
-            <div class="card-footer bg-transparent text-center">
-                <a class="btn btn-link btn-sm text-muted"
-                   href="{% url 'treatment-list' %}?field={{ field.pk }}">
-                    Ver los {{ total_treatments }} tratamientos
-                    <i class="fa fa-arrow-right ms-1"></i>
-                </a>
+            <a class="hm-card-link" href="{% url 'weather-overview' %}"><i class="fa fa-cloud-sun" aria-hidden="true"></i>Ver la previsión del tiempo</a>
+            {% else %}
+            <div class="hm-empty">
+                <span class="hm-empty-icon"><i class="fa fa-map" aria-hidden="true"></i></span>
+                <b>Sin contorno en el mapa</b>
+                <span>Dibújalo para ver la parcela y calcular su superficie.</span>
+                <a class="btn btn-outline-secondary btn-sm mt-2" href="{% url 'field-edit' field.pk %}"><i class="fa fa-map me-1" aria-hidden="true"></i>Añadir contorno</a>
             </div>
             {% endif %}
-        </div>
-    </div>
-
-</div>
-
-
-{% if field.geometry %}
-<div class="row g-4 mt-0">
-    <div class="col-12">
-        <div class="alert alert-info d-flex align-items-center gap-3 mb-0">
-            <i class="fa fa-cloud-sun fa-lg flex-shrink-0"></i>
-            <span>Consulta la prevision meteorologica en
-            <a class="alert-link fw-semibold" href="{% url 'weather-overview' %}"><i class="fa fa-cloud-sun me-1"></i>El Tiempo &rarr;</a></span>
-        </div>
+        </section>
     </div>
 </div>
-{% endif %}
+
+{# Móvil: «Nuevo tratamiento» como botón flotante, igual que en el listado #}
+<div class="tl-fab-spacer d-md-none"></div>
+<a class="tl-fab d-md-none" href="{% url 'treatment-create' %}?field={{ field.pk }}" aria-label="Nuevo tratamiento" title="Nuevo tratamiento">
+    <i class="fa fa-plus" aria-hidden="true"></i>
+</a>
 
 <form class="d-none" id="deleteForm" method="POST">{% csrf_token %}</form>
 
 {% endblock %}
 
 {% block extra_js %}
-{% if field.geometry %}
+{% if geometry_data %}
+{{ geometry_data|json_script:"field-geometry" }}
+{{ popup_data|json_script:"field-popup" }}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function () {
+    if (typeof L === 'undefined') {  // sin cobertura el CDN puede no cargar
+        document.getElementById('map-detail').innerHTML = '<p class="hm-group-empty">No se ha podido cargar el mapa.</p>';
+        return;
+    }
     var satellite = L.tileLayer(
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
         { attribution: 'Tiles © Esri', maxZoom: 20 }
@@ -269,18 +189,24 @@
         { position: 'topright' }
     ).addTo(map);
 
-    var geojson = {{ field.geometry|safe }};
+    var geojson = JSON.parse(document.getElementById('field-geometry').textContent);
     var layer = L.geoJSON(geojson, {
-        style: { color: '#198754', fillColor: '#198754', fillOpacity: 0.3, weight: 2 }
+        style: { color: '#1F5F24', fillColor: '#2E7D32', fillOpacity: 0.3, weight: 2 }
     }).addTo(map);
 
     // Popup con nombre y área al hacer clic
-    layer.bindPopup(
-        '<strong>{{ field.name|escapejs }}</strong><br>' +
-        '<span class="text-muted">{{ field.crop|escapejs }}</span><br>' +
-        '<i class="fa fa-ruler-combined me-1"></i>{{ field.area }} ha',
-        { closeButton: false }
-    );
+    // Nodos DOM con textContent: Leaflet inserta el HTML tal cual, así que el nombre nunca debe ir como texto HTML
+    var popup = document.createElement('div');
+    var title = document.createElement('strong');
+    var info = JSON.parse(document.getElementById('field-popup').textContent);
+    title.textContent = info.name;
+    var crop = document.createElement('span');
+    crop.className = 'text-muted';
+    crop.textContent = info.crop;
+    var areaLine = document.createElement('span');
+    areaLine.textContent = '{{ field.area|floatformat:"-2"|escapejs }} ha';
+    popup.append(title, document.createElement('br'), crop, document.createElement('br'), areaLine);
+    layer.bindPopup(popup, { closeButton: false });
 
     map.fitBounds(layer.getBounds(), { padding: [16, 16] });
 
@@ -291,11 +217,13 @@
         expandBtn.addEventListener('click', function () {
             var mapEl = document.getElementById('map-detail');
             expanded = !expanded;
-            mapEl.classList.toggle('map-expanded', expanded);
+            mapEl.classList.toggle('is-expanded', expanded);
             expandBtn.innerHTML = expanded
                 ? '<i class="fa fa-compress"></i>'
                 : '<i class="fa fa-expand"></i>';
             expandBtn.title = expanded ? 'Reducir mapa' : 'Ampliar mapa';
+            expandBtn.setAttribute('aria-label', expandBtn.title);
+            expandBtn.setAttribute('aria-expanded', expanded);
             setTimeout(function () { map.invalidateSize(); map.fitBounds(layer.getBounds(), { padding: [16,16] }); }, 310);
         });
     }

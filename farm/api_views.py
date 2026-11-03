@@ -215,21 +215,28 @@ def treatment_detail(request, treatment_id):
         return JsonResponse({'error': 'Tratamiento no encontrado'}, status=404)
 
 
+def _parse_date_param(value):
+    """Fecha ISO de un parámetro GET; None si falta o no es válida (antes, una fecha mala daba un 500)."""
+    try:
+        return parse_date(value) if value else None
+    except ValueError:
+        return None
+
+
+@api_login_required
 def field_costs_data(request):
-    # Obtener fechas de filtro o usar valores predeterminados (último año)
+    # Por defecto, el último año; «all=1» (pestaña «Todos») no limita por fechas
     end_date = datetime.now().date()
     start_date = end_date - timedelta(days=365)
 
-    date_from = request.GET.get('date_from')
-    date_to = request.GET.get('date_to')
+    if request.GET.get('all'):
+        start_date, end_date = date.min, date.max
+    else:
+        start_date = _parse_date_param(request.GET.get('date_from')) or start_date
+        end_date = _parse_date_param(request.GET.get('date_to')) or end_date
 
-    if date_from:
-        start_date = parse_date(date_from)
-    if date_to:
-        end_date = parse_date(date_to)
-
-    # Obtener IDs de campos específicos o todos
-    field_ids = request.GET.getlist('field_ids')
+    # Obtener IDs de campos específicos o todos (los que no son números se ignoran)
+    field_ids = [i for i in request.GET.getlist('field_ids') if i.isascii() and i.isdigit() and len(i) < 10]
     fields = Field.ownership_objects.get_queryset_for_user(request.user)
     if field_ids:
         fields = fields.filter(id__in=field_ids)
