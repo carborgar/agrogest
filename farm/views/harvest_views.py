@@ -54,9 +54,11 @@ class HarvestDeleteView(OwnershipRequiredMixin, QuerysetFilterMixin, DeleteView)
     model = Harvest
     success_url = reverse_lazy('harvest-summary')
 
-    def delete(self, request, *args, **kwargs):
-        messages.success(request, 'Cosecha eliminada correctamente.')
-        return super().delete(request, *args, **kwargs)
+    def form_valid(self, form):
+        # Django 5.1 ya no llama a delete() desde DeleteView: el mensaje va aquí.
+        response = super().form_valid(form)
+        messages.success(self.request, 'Cosecha eliminada correctamente.')
+        return response
 
 
 class HarvestSummaryView(BaseSecureHarvestMixin, TemplateView):

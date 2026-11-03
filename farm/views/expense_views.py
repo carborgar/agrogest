@@ -123,9 +123,11 @@ class ExpenseDeleteView(BaseSecureExpenseViewMixin, DeleteView):
     model = Expense
     success_url = reverse_lazy('expense-list')
 
-    def delete(self, request, *args, **kwargs):
-        messages.success(request, 'Gasto eliminado con éxito.')
-        return super().delete(request, *args, **kwargs)
+    def form_valid(self, form):
+        # Django 5.1 ya no llama a delete() desde DeleteView: el mensaje va aquí.
+        response = super().form_valid(form)
+        messages.success(self.request, 'Gasto eliminado con éxito.')
+        return response
 
 
 # ExpenseType CRUD Views
@@ -173,6 +175,8 @@ class ExpenseTypeDeleteView(BaseSecureExpenseViewMixin, DeleteView):
     model = ExpenseType
     success_url = reverse_lazy('expense-type-list')
 
-    def delete(self, request, *args, **kwargs):
-        messages.success(request, 'Tipo de gasto eliminado con éxito.')
-        return super().delete(request, *args, **kwargs)
+    def form_valid(self, form):
+        # Django 5.1 ya no llama a delete() desde DeleteView: el mensaje va aquí.
+        response = super().form_valid(form)
+        messages.success(self.request, 'Tipo de gasto eliminado con éxito.')
+        return response

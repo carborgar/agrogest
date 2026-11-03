@@ -1,5 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import ProtectedError, RestrictedError
+from django.shortcuts import redirect
 from django.urls import reverse_lazy, reverse
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
 
@@ -88,7 +90,14 @@ class FieldListView(LoginRequiredMixin, ListView):
         return result
 
 
-class FieldDetailView(LoginRequiredMixin, DetailView):
+class FieldOrganizationQuerysetMixin:
+    """Limita el acceso por pk a las parcelas de la organización del usuario (404 si no)."""
+
+    def get_queryset(self):
+        return Field.ownership_objects.get_queryset_for_user(self.request.user)
+
+
+class FieldDetailView(LoginRequiredMixin, FieldOrganizationQuerysetMixin, DetailView):
     model = Field
     template_name = 'farm/fields/field_detail.html'
     context_object_name = 'field'
@@ -128,7 +137,7 @@ class FieldCreateView(LoginRequiredMixin, CreateView):
         return kwargs
 
 
-class FieldUpdateView(LoginRequiredMixin, UpdateView):
+class FieldUpdateView(LoginRequiredMixin, FieldOrganizationQuerysetMixin, UpdateView):
     model = Field
     form_class = FieldForm
     template_name = 'farm/fields/field_form.html'
@@ -146,13 +155,18 @@ class FieldUpdateView(LoginRequiredMixin, UpdateView):
         return kwargs
 
 
-class FieldDeleteView(LoginRequiredMixin, DeleteView):
+class FieldDeleteView(LoginRequiredMixin, FieldOrganizationQuerysetMixin, DeleteView):
     model = Field
     success_url = reverse_lazy('field-list')
+    # La interfaz siempre borra por POST (formulario oculto + confirmación).
+    http_method_names = ['post']
 
-    def get_queryset(self):
-        return Field.objects.all()
-
-    def delete(self, request, *args, **kwargs):
-        messages.success(request, 'Parcela eliminada con éxito.')
-        return super().delete(request, *args, **kwargs)
+    def form_valid(self, form):
+        # Django 5.1 ya no llama a delete() desde DeleteView: el mensaje va aquí.
+        try:
+            response = super().form_valid(form)
+        except (RestrictedError, ProtectedError):
+            messages.error(self.request, 'No se puede eliminar: la parcela tiene tratamientos, gastos o cosechas.')
+            return redirect('field-detail', pk=self.object.pk)
+        messages.success(self.request, 'Parcela eliminada con éxito.')
+        return response
