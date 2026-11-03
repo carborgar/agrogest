@@ -800,6 +800,14 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
     .ex-month { padding-right: calc(1rem + 2.25rem + 1rem); }
 }
 
+/* ═══ COSECHAS (hv-*) ═══
+   Registros: reutiliza la fila del listado de tratamientos (tl-*) con sus propias columnas.
+   El desglose por parcela usa dt-list. Un precio pendiente va en ámbar (tl-rel--1). */
+.hv-list { --tl-cols: 3rem minmax(0, 1fr) 5.5rem 5rem 6rem 2.25rem; }
+.hv-list .tl-meta { flex-wrap: nowrap; white-space: nowrap; }
+.tl-meta > .hv-notes { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.hv-list .tl-cost b { font-size: .95rem; }
+
 /* Formularios tf-* con controles nativos (select y textarea) */
 .tf-inp.form-select { padding-right: 2.25rem; background-image: var(--bs-form-select-bg-img), var(--bs-form-select-bg-icon, none); background-repeat: no-repeat; background-position: right .75rem center; background-size: 16px 12px; }
 textarea.tf-inp { height: auto; min-height: 48px; padding: 10px 12px; resize: vertical; }

@@ -579,17 +579,19 @@ class HarvestForm(NoPlaceholderModelForm):
             'price_pending': 'Precio aún no conocido',
             'notes': 'Notas',
         }
+        # Clases del formulario de tratamiento (tf-*): el mismo aspecto en todos los formularios
         widgets = {
-            'field': forms.Select(attrs={'class': 'form-select'}),
-            'date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '1', 'min': '0'}),
-            'sale_price_per_kg': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
-            'price_pending': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'field': forms.Select(attrs={'class': 'form-select tf-inp'}),
+            'date': forms.DateInput(attrs={'type': 'date', 'class': 'tf-inp'}),
+            'amount': forms.NumberInput(attrs={'class': 'tf-inp tf-num', 'step': '1', 'min': '0', 'inputmode': 'numeric'}),
+            'sale_price_per_kg': forms.NumberInput(attrs={'class': 'tf-inp tf-num', 'step': '0.01', 'min': '0', 'inputmode': 'decimal'}),
+            'price_pending': forms.CheckboxInput(),
+            'notes': forms.Textarea(attrs={'class': 'tf-inp', 'rows': 2}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['field'].empty_label = 'Elige una parcela…'
         if not self.instance.pk:
             self.fields['date'].initial = Datetime.today().strftime('%Y-%m-%d')
         elif self.instance.date:
