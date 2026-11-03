@@ -443,8 +443,8 @@ class ProductTypeForm(NoPlaceholderModelForm):
             'description': 'Opcional. Breve descripción de los productos que incluye esta categoría.',
         }
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'name': forms.TextInput(attrs={'class': 'tf-inp'}),
+            'description': forms.Textarea(attrs={'class': 'tf-inp', 'rows': 2}),
         }
 
     def clean_name(self):
@@ -484,24 +484,27 @@ class ProductForm(NoPlaceholderModelForm):
             'spraying_dose': 'Cantidad recomendada para pulverización',
             'fertigation_dose': 'Cantidad recomendada para fertirrigación',
         }
+        # Clases del formulario de tratamiento (tf-*): el mismo aspecto en todos los formularios
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'product_type': forms.Select(attrs={'class': 'form-select'}),
-            'comments': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
-            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
-            'spraying_dose': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001', 'min': '0'}),
-            'spraying_dose_type': forms.Select(attrs={'class': 'form-select'}),
-            'fertigation_dose': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001', 'min': '0'}),
-            'fertigation_dose_type': forms.Select(attrs={'class': 'form-select'}),
+            'name': forms.TextInput(attrs={'class': 'tf-inp'}),
+            'product_type': forms.Select(attrs={'class': 'form-select tf-inp'}),
+            'comments': forms.Textarea(attrs={'class': 'tf-inp', 'rows': 2}),
+            'price': forms.NumberInput(attrs={'class': 'tf-inp tf-num', 'step': '0.01', 'min': '0', 'inputmode': 'decimal'}),
+            # Casilla real, oculta: la enseña el interruptor de la plantilla (tf-switch)
+            'is_active': forms.CheckboxInput(attrs={'class': 'tf-sr', 'tabindex': '-1', 'aria-hidden': 'true'}),
+            'spraying_dose': forms.NumberInput(attrs={'class': 'tf-inp tf-num', 'step': '0.001', 'min': '0', 'inputmode': 'decimal'}),
+            'spraying_dose_type': forms.Select(attrs={'class': 'form-select tf-inp'}),
+            'fertigation_dose': forms.NumberInput(attrs={'class': 'tf-inp tf-num', 'step': '0.001', 'min': '0', 'inputmode': 'decimal'}),
+            'fertigation_dose_type': forms.Select(attrs={'class': 'form-select tf-inp'}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         # Configurar choices para los tipos de dosis
-        self.fields['spraying_dose_type'].choices = [('', '---------')] + Product.SPRAYING_DOSE_TYPE_CHOICES
-        self.fields['fertigation_dose_type'].choices = [('', '---------')] + Product.FERTIGATION_DOSE_TYPE_CHOICES
+        self.fields['spraying_dose_type'].choices = [('', 'Elige…')] + Product.SPRAYING_DOSE_TYPE_CHOICES
+        self.fields['fertigation_dose_type'].choices = [('', 'Elige…')] + Product.FERTIGATION_DOSE_TYPE_CHOICES
+        self.fields['product_type'].empty_label = 'Elige un tipo…'
 
         # Hacer campos condicionales opcionales inicialmente
         self.fields['spraying_dose'].required = False
