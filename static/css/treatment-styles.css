@@ -943,3 +943,62 @@ textarea.tf-inp { height: auto; min-height: 48px; padding: 10px 12px; resize: ve
 @media (min-width: 992px) {
     .pf .tf-sum-main { font-size: 1.25rem; white-space: normal; overflow-wrap: anywhere; }
 }
+
+/* ═══ CALENDARIO (cal-*, cm-*) ═══
+   Las sobrescrituras de FullCalendar están en calendar.css. Los tonos .cal-tN son el color intenso de --tl-N
+   (0 atrasado, 1 próximo, 2 neutro, 3 hecho) para puntos y barras, donde un fondo claro no se vería. */
+.cal-t0 { background: var(--tl-0-fg); }
+.cal-t1 { background: var(--tl-1-fg); }
+.cal-t2 { background: var(--tl-2-fg); }
+.cal-t3 { background: var(--tl-3-fg); }
+.cal-dot { flex: none; display: inline-block; width: 10px; height: 10px; margin-right: .4rem; border-radius: 50%; }
+.cal-row > .cal-dot { margin-right: 0; }
+.cal-nav { min-width: 44px; height: 44px; padding: 0 .75rem; }
+.cal-top .tl-tabs { flex: 1 1 0; }
+button.tl-tab { border: 0; background: transparent; }
+.cal-chips .btn-check:not(:checked) + .btn { background: #fff; border-color: var(--tl-head-line); color: var(--tl-muted); }
+.cal-chips .btn-check:checked + .btn { background: var(--tl-2-bg); border-color: var(--tl-head-line); color: var(--tl-ink); }
+.cal-chips .btn-check:focus-visible + .btn { outline: 2px solid var(--bs-primary); outline-offset: 1px; }
+@media (max-width: 767.98px) { .cal-chips .btn { min-height: 44px; } }
+/* Fila de lista (día, agenda): una caja con filas separadas por línea */
+.cal-row { display: flex; align-items: center; gap: .75rem; width: 100%; min-height: 56px; padding: .6rem 1rem; border: 0; border-top: 1px solid var(--tl-line); background: #fff; color: var(--tl-ink); text-align: left; }
+.cal-row:first-child { border-top: 0; }
+button.cal-row:hover { background: var(--tl-soft); }
+.cal-overdue { min-height: 44px; padding: .6rem 1rem; border: 1px solid var(--tl-0-fg); border-radius: var(--bs-border-radius-lg); background: var(--tl-0-bg); color: var(--tl-0-fg); font-weight: 600; }
+
+/* Modal con dos paneles (día / detalle): el cambio es una transición, no un cierre y apertura */
+#treatment-detail .modal-content { --bs-modal-bg: #fff; }
+#treatment-detail .modal-header, #treatment-detail .modal-footer { border-color: var(--tl-head-line); }
+#treatment-detail .modal-footer .btn, #day-new { min-height: 44px; }
+.modal .dt-summary { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.dt-cell--wide { grid-column: 1 / -1; }
+.cal-pane { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+.cal-pane.cal-in-forward { animation: cal-in-forward .2s ease-out; }
+.cal-pane.cal-in-back { animation: cal-in-back .2s ease-out; }
+@keyframes cal-in-forward { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+@keyframes cal-in-back { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .cal-pane.cal-in-forward, .cal-pane.cal-in-back { animation: none; } }
+
+/* Móvil: tira semanal / mes en puntos + agenda */
+.cm-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+.cm-wd { font-size: .7rem; color: var(--tl-muted); }
+.cm-day { border: 0; background: none; color: inherit; border-radius: .75rem; padding: .35rem 0; min-height: 3.2rem; display: flex; flex-direction: column; align-items: center; gap: .15rem; }
+.cm-week .cm-day { min-height: 4.2rem; }
+.cm-out { background: var(--tl-soft); color: var(--tl-muted); }
+.swal2-confirm.cal-swal-confirm { background-color: var(--tl-3-fg); }
+.cm-today .cm-num { color: var(--bs-primary); font-weight: 700; }
+.cm-sel { background: var(--bs-primary); color: #fff; }
+.cm-sel .cm-num { color: #fff; }
+.cm-dots { display: flex; gap: 2px; min-height: 6px; }
+.cm-dot { width: 6px; height: 6px; border-radius: 50%; }
+.cm-sel .cm-dot { box-shadow: 0 0 0 1px #fff; }
+.cm-more { font-size: .6rem; line-height: 1; }
+.cm-bar { width: 4px; align-self: stretch; border-radius: 2px; flex-shrink: 0; }
+
+/* El detalle se abre como hoja inferior en móvil */
+@media (max-width: 767.98px) {
+    #treatment-detail .modal-dialog { margin: 0; max-width: none; height: 100%; display: flex; align-items: flex-end; }
+    #treatment-detail.modal.fade .modal-dialog { transform: translateY(100%); }
+    #treatment-detail.modal.show .modal-dialog { transform: none; }
+    #treatment-detail .modal-content { max-height: 88%; border-radius: 16px 16px 0 0; border: 0; }
+}
