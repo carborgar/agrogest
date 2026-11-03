@@ -1,44 +1,62 @@
 {% extends "base.html" %}
-{% load django_bootstrap5 %}
-{% load static %}
+{% load django_bootstrap5 custom_filters %}
 
 {% block header %}Gastos{% endblock %}
-{% block sub_header %}{{ expense_count }} gasto{{ expense_count|pluralize }} · {{ total_amount|floatformat:2 }} € en total{% endblock %}
+{% block sub_header %}<span class="d-none d-md-inline">Mano de obra, agua, cuotas y demás gastos que no son productos.</span>{% endblock %}
 
 {% block actions %}
-<a class="btn btn-primary" href="{% url 'expense-create' %}" type="button">
+<a class="btn btn-outline-secondary d-none d-md-inline-block" href="{% url 'expense-type-list' %}">
+    <i class="fa fa-tags me-1"></i>Tipos de gasto
+</a>
+<a class="btn btn-primary d-none d-md-inline-block" href="{% url 'expense-create' %}">
     <i class="fa fa-plus me-1"></i>Nuevo gasto
 </a>
 {% endblock %}
 
 {% block content %}
 
-{# ── FILTROS ─────────────────────────────────────────────────────── #}
-<div class="card mb-4">
-    <div class="card-body py-3">
-        <form method="get">
-            <div class="row g-3 align-items-end">
-                {# Parcela — dropdown + checkboxes #}
-                <div class="col-12 col-md-3">
-                    <label class="form-label small fw-semibold text-muted mb-1">Parcela</label>
+<form method="get" id="filterForm" class="mb-3">
+    {# ── Barra superior: año + búsqueda (+ botón de filtros en móvil) ── #}
+    <div class="tl-toolbar">
+        <nav class="tl-tabs" aria-label="Año">
+            {% for tab in year_tabs %}
+            <a class="tl-tab{% if tab.active %} active{% endif %}" href="{{ tab.url }}"
+               {% if tab.active %}aria-current="page"{% endif %}>{{ tab.label }}</a>
+            {% endfor %}
+        </nav>
+        <div class="tl-search">
+            <i class="fa fa-search" aria-hidden="true"></i>
+            <input type="search" name="q" value="{{ search_query }}" class="form-control" id="searchInput"
+                   placeholder="Buscar gasto…" autocomplete="off" aria-label="Buscar gasto">
+        </div>
+        <button class="btn btn-outline-secondary tl-filters-btn d-md-none" type="button"
+                data-bs-toggle="offcanvas" data-bs-target="#filtersPanel" aria-controls="filtersPanel"
+                aria-label="Filtros{% if panel_filter_count %} ({{ panel_filter_count }} activos){% endif %}">
+            <i class="fa fa-sliders"></i>
+            {% if panel_filter_count %}<span class="tl-filters-badge">{{ panel_filter_count }}</span>{% endif %}
+        </button>
+    </div>
+
+    {# ── Filtros: en línea en escritorio, panel inferior en móvil ── #}
+    <div class="offcanvas-md offcanvas-bottom tl-filters" tabindex="-1" id="filtersPanel" aria-labelledby="filtersPanelLabel">
+        <div class="offcanvas-header d-md-none">
+            <h5 class="offcanvas-title" id="filtersPanelLabel">Filtros</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#filtersPanel" aria-label="Cerrar"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div class="row g-2 align-items-end w-100 m-0">
+                <div class="col-12 col-md-6 col-xl-3">
+                    <label class="form-label small fw-semibold text-muted mb-1"><i class="fa fa-map me-1"></i>Parcelas</label>
                     <div class="dropdown filter-check-dropdown w-100">
                         <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start filter-dd-btn{% if selected_field_ids %} filter-dd-btn--active{% endif %}"
                                 type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
-                            <span class="filter-dd-label">
-                                {% if selected_field_ids %}
-                                {{ selected_field_ids|length }} parcela{{ selected_field_ids|length|pluralize }}
-                                {% else %}Todas las parcelas…
-                                {% endif %}
-                            </span>
-                            {% if selected_field_ids %}
-                            <span class="badge bg-primary flex-shrink-0">{{ selected_field_ids|length }}</span>
-                            {% endif %}
+                            <span class="filter-dd-label">{% if selected_field_ids %}{{ selected_field_ids|length }} parcela{{ selected_field_ids|length|pluralize }}{% else %}Todas las parcelas…{% endif %}</span>
+                            {% if selected_field_ids %}<span class="badge bg-primary flex-shrink-0">{{ selected_field_ids|length }}</span>{% endif %}
                         </button>
                         <div class="dropdown-menu filter-dd-menu p-2">
                             {% for f in fields %}
                             <div class="form-check mb-1">
-                                <input class="form-check-input" type="checkbox" name="field"
-                                       value="{{ f.id }}" id="ef-{{ f.id }}"
+                                <input class="form-check-input" type="checkbox" name="field" value="{{ f.id }}" id="ef-{{ f.id }}"
                                        {% if f.id|stringformat:"s" in selected_field_ids %}checked{% endif %}>
                                 <label class="form-check-label small" for="ef-{{ f.id }}">{{ f.name }}</label>
                             </div>
@@ -46,26 +64,18 @@
                         </div>
                     </div>
                 </div>
-                {# Tipo — dropdown + checkboxes #}
-                <div class="col-12 col-md-3">
-                    <label class="form-label small fw-semibold text-muted mb-1">Tipo</label>
+                <div class="col-12 col-md-6 col-xl-3">
+                    <label class="form-label small fw-semibold text-muted mb-1"><i class="fa fa-tags me-1"></i>Tipo</label>
                     <div class="dropdown filter-check-dropdown w-100">
                         <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start filter-dd-btn{% if selected_type_ids %} filter-dd-btn--active{% endif %}"
                                 type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
-                            <span class="filter-dd-label">
-                                {% if selected_type_ids %}
-                                {{ selected_type_ids|length }} tipo{{ selected_type_ids|length|pluralize }}
-                                {% else %}Todos los tipos…
-                                {% endif %}
-                            </span>
-                            {% if selected_type_ids %}<span class="badge bg-primary flex-shrink-0">{{ selected_type_ids|length }}</span>
-                            {% endif %}
+                            <span class="filter-dd-label">{% if selected_type_ids %}{{ selected_type_ids|length }} tipo{{ selected_type_ids|length|pluralize }}{% else %}Todos los tipos…{% endif %}</span>
+                            {% if selected_type_ids %}<span class="badge bg-primary flex-shrink-0">{{ selected_type_ids|length }}</span>{% endif %}
                         </button>
                         <div class="dropdown-menu filter-dd-menu p-2">
                             {% for et in expense_types %}
                             <div class="form-check mb-1">
-                                <input class="form-check-input" type="checkbox" name="type"
-                                       value="{{ et.id }}" id="et-{{ et.id }}"
+                                <input class="form-check-input" type="checkbox" name="type" value="{{ et.id }}" id="et-{{ et.id }}"
                                        {% if et.id|stringformat:"s" in selected_type_ids %}checked{% endif %}>
                                 <label class="form-check-label small" for="et-{{ et.id }}">{{ et.name }}</label>
                             </div>
@@ -73,210 +83,127 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-6 col-md-2">
-                    <label class="form-label small fw-semibold text-muted mb-1" for="dateFromFilter">Desde</label>
-                    <input class="form-control" id="dateFromFilter" name="date_from" type="date"
-                           value="{{ active_date_from }}">
+                <div class="col-6 col-md-4 col-xl-2">
+                    <label class="form-label small fw-semibold text-muted mb-1" for="dateFromFilter"><i class="fa fa-calendar me-1"></i>Desde</label>
+                    <input class="form-control" id="dateFromFilter" name="date_from" type="date" value="{{ active_date_from }}">
                 </div>
-                <div class="col-6 col-md-2">
-                    <label class="form-label small fw-semibold text-muted mb-1" for="dateToFilter">Hasta</label>
-                    <input class="form-control" id="dateToFilter" name="date_to" type="date"
-                           value="{{ active_date_to }}">
+                <div class="col-6 col-md-4 col-xl-2">
+                    <label class="form-label small fw-semibold text-muted mb-1" for="dateToFilter"><i class="fa fa-calendar me-1"></i>Hasta</label>
+                    <input class="form-control" id="dateToFilter" name="date_to" type="date" value="{{ active_date_to }}">
                 </div>
-                <div class="col-6 col-md-1">
-                    <button class="btn btn-primary w-100" type="submit">
-                        <i class="fa fa-search me-1 d-none d-md-inline"></i>Filtrar
-                    </button>
-                </div>
-                <div class="col-6 col-md-1">
-                    <a class="btn btn-outline-secondary w-100" href="{% url 'expense-list' %}" title="Limpiar filtros">
+                <div class="col-12 col-md-4 col-xl-2 d-flex gap-2 align-items-end">
+                    <button class="btn btn-primary flex-fill" type="submit"><i class="fa fa-filter me-1"></i>Filtrar</button>
+                    {% if has_filters %}
+                    <a class="btn btn-outline-secondary" href="{{ clear_url }}" title="Limpiar filtros" aria-label="Limpiar filtros">
                         <i class="fa fa-rotate-left"></i>
                     </a>
-                </div>
-            </div>
-            {# Accesos rápidos de año #}
-            <div class="d-flex flex-wrap gap-2 mt-3">
-                <span class="small text-muted align-self-center me-1">Año rápido:</span>
-                {% for y in quick_years %}
-                <button type="button" data-year="{{ y }}"
-                        class="btn btn-sm quick-year-btn {% if active_date_from == y|stringformat:'s'|add:'-01-01' and active_date_to == y|stringformat:'s'|add:'-12-31' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
-                    {{ y }}
-                </button>
-                {% endfor %}
-            </div>
-        </form>
-    </div>
-</div>
-
-{# ── MÉTRICAS ─────────────────────────────────────────────────────── #}
-<div class="row g-3 mb-4">
-    <div class="col-6 col-md-3">
-        <div class="card h-100">
-            <div class="card-body d-flex align-items-center gap-3 py-3">
-                <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
-                     style="width:42px;height:42px">
-                    <i class="fa fa-receipt text-primary"></i>
-                </div>
-                <div class="min-w-0">
-                    <div class="small text-muted lh-1 mb-1">Gastos</div>
-                    <div class="fs-5 fw-bold lh-1">{{ expense_count }}</div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="card h-100">
-            <div class="card-body d-flex align-items-center gap-3 py-3">
-                <div class="rounded-circle bg-danger bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
-                     style="width:42px;height:42px">
-                    <i class="fa fa-euro-sign text-danger"></i>
-                </div>
-                <div class="min-w-0">
-                    <div class="small text-muted lh-1 mb-1">Total</div>
-                    <div class="fs-5 fw-bold lh-1">{{ total_amount|floatformat:2 }} <span
-                            class="fs-6 fw-normal text-muted">€</span></div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-{# ── LISTA ─────────────────────────────────────────────────────────── #}
-{% if not expenses %}
-<div class="empty-state text-center py-5">
-    <i class="fa fa-receipt fa-3x text-muted opacity-50 mb-3 d-block"></i>
-    <h5 class="text-muted">No hay gastos registrados</h5>
-    <p class="text-muted small mb-3">
-        {% if filter_params %}Prueba a cambiar los filtros{% else %}Crea tu primer gasto{% endif %}
-    </p>
-    {% if not filter_params %}
-    <a class="btn btn-primary" href="{% url 'expense-create' %}">
-        <i class="fa fa-plus me-2"></i>Nuevo gasto
-    </a>
-    {% endif %}
-</div>
-{% else %}
-<div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <span class="fw-semibold"><i class="fa fa-list me-2 text-muted"></i>Registros</span>
-        <span class="badge bg-secondary" id="expense-count">{{ expense_count }}</span>
-    </div>
-
-    {# Cabecera de columnas — visible desde sm #}
-    <div class="d-none d-sm-flex align-items-center gap-2 px-3 py-1 border-bottom bg-white"
-         style="font-size:.8rem">
-        <div class="flex-shrink-0 text-muted" style="min-width:44px">Fecha</div>
-        <div class="flex-grow-1 text-muted">Parcela / Descripción</div>
-        <div class="flex-shrink-0 d-flex gap-3">
-            <div class="text-muted" style="min-width:90px">Tipo</div>
-            <div class="text-muted d-none d-md-block" style="min-width:100px">Cálculo</div>
-            <div class="text-end text-muted" style="min-width:72px">Importe</div>
-        </div>
-        <div class="flex-shrink-0 ms-1" style="min-width:52px"></div>
-    </div>
-
-    {# Lista unificada #}
-    <div id="expense-list">
-        {% for expense in expenses %}
-        <div class="expense-row {% if not forloop.last %}border-bottom{% endif %}"
-             data-index="{{ forloop.counter0 }}">
-            <div class="d-flex align-items-center gap-2 px-3 py-2">
-
-                {# Fecha #}
-                <div class="flex-shrink-0 text-center" style="min-width:44px">
-                    <div class="fw-bold lh-1" style="font-size:.95rem">{{ expense.payment_date|date:"d" }}</div>
-                    <div class="text-muted text-uppercase lh-1"
-                         style="font-size:.75rem">{{ expense.payment_date|date:"M" }}
-                    </div>
-                    <div class="text-muted lh-1 d-none d-sm-block"
-                         style="font-size:.7rem">{{ expense.payment_date|date:"Y" }}
-                    </div>
-                </div>
-
-                {# Parcela + descripción #}
-                <div class="flex-grow-1 min-w-0">
-                    <div class="d-flex align-items-center gap-1 flex-wrap">
-                        <span class="badge bg-light text-dark border fw-normal">{{ expense.field.name }}</span>
-                        <span class="badge bg-primary fw-normal d-sm-none">{{ expense.expense_type.name }}</span>
-                    </div>
-                    {% if expense.description %}
-                    <div class="text-muted mt-1 lh-sm text-truncate"
-                         style="font-size:.85rem;max-width:260px"
-                         title="{{ expense.description }}">{{ expense.description }}
-                    </div>
                     {% endif %}
                 </div>
-
-                {# Datos numéricos #}
-                <div class="flex-shrink-0 d-flex align-items-center gap-3">
-
-                    {# Tipo — visible desde sm #}
-                    <div class="d-none d-sm-block text-center" style="min-width:90px">
-                        <span class="badge bg-primary fw-normal">{{ expense.expense_type.name }}</span>
-                    </div>
-
-                    {# Cálculo — visible desde md #}
-                    <div class="d-none d-md-block text-muted" style="min-width:100px;font-size:.82rem">
-                        {{ expense.calculation_details }}
-                    </div>
-
-                    {# Importe #}
-                    <div class="text-end" style="min-width:72px">
-                        <div class="fw-semibold lh-1">{{ expense.amount|floatformat:2 }}</div>
-                        <div class="text-muted lh-1" style="font-size:.78rem">€</div>
-                    </div>
-                </div>
-
-                {# Acciones #}
-                <div class="flex-shrink-0 ms-1 d-flex gap-1">
-                    <a class="btn btn-sm btn-outline-primary" href="{% url 'expense-edit' expense.id %}"
-                       title="Editar">
-                        <i class="fa fa-pen"></i>
-                    </a>
-                    <button class="btn btn-sm btn-outline-danger"
-                            data-url="{% url 'expense-delete' expense.id %}"
-                            onclick="confirmDelete(this)"
-                            title="Eliminar">
-                        <i class="fa fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-
-            {# En móvil (< sm): cálculo como badge debajo #}
-            {% if expense.calculation_mode != 'total' %}
-            <div class="d-flex d-sm-none flex-wrap gap-1 px-3 pb-2">
-                <span class="badge bg-light text-dark border fw-normal">{{ expense.calculation_details }}</span>
-            </div>
-            {% endif %}
-        </div>
-        {% endfor %}
-    </div>
-
-    {# Paginación front-end #}
-    <div class="card-footer bg-transparent border-top py-2 px-3" id="pagination-wrap"
-         style="display:none!important">
-        <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
-            <span class="small text-muted" id="page-info"></span>
-            <div class="d-flex gap-1">
-                <button class="btn btn-sm btn-outline-secondary" id="btn-prev" disabled>
-                    <i class="fa fa-chevron-left"></i>
-                </button>
-                <div class="d-flex gap-1" id="page-numbers"></div>
-                <button class="btn btn-sm btn-outline-secondary" id="btn-next">
-                    <i class="fa fa-chevron-right"></i>
-                </button>
             </div>
         </div>
     </div>
 
-    {# Pie con total #}
-    <div class="card-footer bg-transparent border-top py-2 px-3 d-flex justify-content-end">
-        <span class="text-muted small me-2 align-self-center">Total filtrado:</span>
-        <span class="fw-bold fs-6">{{ total_amount|floatformat:2 }} €</span>
+    {# ── Chips de filtros activos ── #}
+    {% if search_query or selected_field_ids or selected_type_ids or custom_dates %}
+    <div class="d-flex flex-wrap gap-1 align-items-center mt-2">
+        {% if search_query %}<span class="filter-active-chip"><i class="fa fa-search me-1"></i>{{ search_query }}</span>{% endif %}
+        {% if selected_field_ids %}<span class="filter-active-chip"><i class="fa fa-map me-1"></i>{{ selected_field_ids|length }} parcela{{ selected_field_ids|length|pluralize }}</span>{% endif %}
+        {% if selected_type_ids %}<span class="filter-active-chip"><i class="fa fa-tags me-1"></i>{{ selected_type_ids|length }} tipo{{ selected_type_ids|length|pluralize }}</span>{% endif %}
+        {% if custom_dates %}<span class="filter-active-chip"><i class="fa fa-calendar me-1"></i>{{ active_date_from|default:"…" }} → {{ active_date_to|default:"…" }}</span>{% endif %}
     </div>
+    {% endif %}
+</form>
 
+{% if not expenses %}
+<div class="card card-flat">
+    <div class="hm-empty">
+        <span class="hm-empty-icon"><i class="fa fa-receipt" aria-hidden="true"></i></span>
+        {% if has_filters %}
+        <b>No hay gastos con estos filtros</b>
+        <span>Prueba a cambiar o quitar los filtros.</span>
+        <a class="btn btn-outline-secondary btn-sm mt-2" href="{{ clear_url }}"><i class="fa fa-times me-1"></i>Quitar filtros</a>
+        {% else %}
+        <b>Todavía no hay gastos</b>
+        <span>Apunta aquí lo que no son productos: mano de obra, agua, cuotas…</span>
+        <a class="btn btn-primary btn-sm mt-2" href="{% url 'expense-create' %}"><i class="fa fa-plus me-1"></i>Nuevo gasto</a>
+        {% endif %}
+    </div>
 </div>
+{% else %}
+
+<p class="pl-count">
+    {{ expense_count }} gasto{{ expense_count|pluralize }} · <b class="text-body">{{ total_amount|floatformat:"2g" }} €</b>
+</p>
+
+<div class="card card-flat overflow-visible ex-list" id="expenseList">
+    <div class="tl-head d-none d-md-grid" aria-hidden="true">
+        <span>Fecha</span><span>Gasto</span><span>Cálculo</span><span class="text-end">Importe</span><span></span>
+    </div>
+
+    {% for expense in expenses %}
+    {% with month=expense.payment_date|date:"Y-m" %}
+    {% ifchanged month %}
+    {% with m=month_totals|get_item:month %}
+    <div class="tl-group-header tl-group-header--2 ex-month">
+        <span>{{ expense.payment_date|date:"F Y" }}{% if forloop.first and page_obj.number > 1 %} (cont.){% endif %}</span>
+        <span>{{ m.total|floatformat:"2g" }} €</span>
+    </div>
+    {% endwith %}
+    {% endifchanged %}
+    {% endwith %}
+
+    <div class="tl-item">
+        <div class="tl-row">
+            <div class="tl-date tl-date--2" title="{{ expense.payment_date|date:'d/m/Y' }}">
+                <span class="tl-day">{{ expense.payment_date|date:"j" }}</span>
+                <span class="tl-month">{{ expense.payment_date|date:"b" }}</span>
+            </div>
+
+            <div class="tl-main">
+                <a class="tl-name" href="{% url 'expense-edit' expense.id %}">{{ expense.expense_type.name }}</a>
+                <div class="tl-meta">
+                    <span class="tl-field">{{ expense.field.name }}</span>
+                    {% if expense.description %}<span class="ex-desc" title="{{ expense.description }}">· {{ expense.description }}</span>{% endif %}
+                </div>
+            </div>
+
+            <div class="ex-calc d-none d-md-block">{% include "farm/expenses/_expense_calc.html" %}</div>
+
+            <div class="ex-amount">
+                <b>{{ expense.amount|floatformat:"2g" }} €</b>
+            </div>
+
+            <div class="dropdown">
+                <button class="tl-icon-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                        aria-label="Más acciones" title="Más acciones">
+                    <i class="fa fa-ellipsis-vertical"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end dropdown-sheet shadow-sm small">
+                    <li><a class="dropdown-item" href="{% url 'expense-edit' expense.id %}"><i class="fa fa-pen me-2 text-primary"></i>Editar</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><button class="dropdown-item text-danger" type="button" data-url="{% url 'expense-delete' expense.id %}"
+                                onclick="confirmDelete(this)"><i class="fa fa-trash me-2"></i>Eliminar</button></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if page_obj.has_other_pages %}
+<p class="text-muted pt-2 mb-0 small">Mostrando {{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ expense_count }} gastos</p>
+{% with request.GET.urlencode as querystring %}
+<div class="mt-3">{% bootstrap_pagination page_obj pages_to_show="5" extra="&"|add:querystring %}</div>
+{% endwith %}
 {% endif %}
+
+{% endif %}
+
+{# Móvil: «Nuevo gasto» como botón flotante, al alcance del pulgar #}
+<div class="tl-fab-spacer d-md-none"></div>
+<a class="tl-fab d-md-none" href="{% url 'expense-create' %}" aria-label="Nuevo gasto" title="Nuevo gasto">
+    <i class="fa fa-plus" aria-hidden="true"></i>
+</a>
 
 <form class="d-none" id="deleteForm" method="POST">{% csrf_token %}</form>
 
@@ -285,80 +212,25 @@
 {% block extra_js %}
 <script>
     function confirmDelete(button) {
-        const url = button.getAttribute('data-url');
         showConfirm({
             text: 'Esta acción eliminará el gasto de forma permanente y no se podrá deshacer.',
             onConfirm: () => {
                 const form = document.getElementById('deleteForm');
-                form.action = url;
+                form.action = button.getAttribute('data-url');
                 form.submit();
             }
         });
     }
 
+    // Búsqueda: se envía sola al dejar de escribir, como en Tratamientos
     document.addEventListener('DOMContentLoaded', () => {
-        document.querySelectorAll('.quick-year-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const y = btn.dataset.year;
-                document.getElementById('dateFromFilter').value = `${y}-01-01`;
-                document.getElementById('dateToFilter').value = `${y}-12-31`;
-                btn.closest('form').submit();
-            });
+        const input = document.getElementById('searchInput');
+        if (!input) return;
+        let timer;
+        input.addEventListener('input', () => {
+            clearTimeout(timer);
+            timer = setTimeout(() => document.getElementById('filterForm').submit(), 500);
         });
-
-        // ── Paginación front-end ───────────────────────────────────
-        const PER_PAGE = 15;
-        const rows = Array.from(document.querySelectorAll('.expense-row'));
-        const total = rows.length;
-
-        if (total <= PER_PAGE) return;
-
-        const wrap = document.getElementById('pagination-wrap');
-        const info = document.getElementById('page-info');
-        const pageNums = document.getElementById('page-numbers');
-        const btnPrev = document.getElementById('btn-prev');
-        const btnNext = document.getElementById('btn-next');
-        const totalPages = Math.ceil(total / PER_PAGE);
-        let current = 1;
-
-        wrap.style.setProperty('display', 'block', 'important');
-
-        function render(page) {
-            current = page;
-            const start = (page - 1) * PER_PAGE;
-            const end = start + PER_PAGE;
-
-            rows.forEach((r, i) => {
-                r.style.display = (i >= start && i < end) ? '' : 'none';
-                r.classList.remove('border-bottom');
-            });
-            const visible = rows.filter((_, i) => i >= start && i < end);
-            visible.slice(0, -1).forEach(r => r.classList.add('border-bottom'));
-
-            btnPrev.disabled = page === 1;
-            btnNext.disabled = page === totalPages;
-            info.textContent = `${start + 1}–${Math.min(end, total)} de ${total}`;
-
-            pageNums.innerHTML = '';
-            const delta = 2;
-            let lo = Math.max(1, page - delta);
-            let hi = Math.min(totalPages, page + delta);
-            if (hi - lo < delta * 2) {
-                lo = Math.max(1, hi - delta * 2);
-                hi = Math.min(totalPages, lo + delta * 2);
-            }
-            for (let p = lo; p <= hi; p++) {
-                const b = document.createElement('button');
-                b.className = `btn btn-sm ${p === page ? 'btn-primary' : 'btn-outline-secondary'}`;
-                b.textContent = p;
-                b.addEventListener('click', () => render(p));
-                pageNums.appendChild(b);
-            }
-        }
-
-        btnPrev.addEventListener('click', () => render(current - 1));
-        btnNext.addEventListener('click', () => render(current + 1));
-        render(1);
     });
 </script>
 {% endblock %}

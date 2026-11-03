@@ -1,11 +1,10 @@
 {% extends "base.html" %}
 
 {% block header %}Tipos de gasto{% endblock %}
-
-{% block sub_header %}{{ expense_types|length }} tipo{{ expense_types|length|pluralize }} configurado{{ expense_types|length|pluralize }}{% endblock %}
+{% block sub_header %}<span class="d-none d-md-inline">Sirven para agrupar los gastos en el listado y en el informe.</span>{% endblock %}
 
 {% block actions %}
-<a class="btn btn-primary" href="{% url 'expense-type-create' %}" type="button">
+<a class="btn btn-primary d-none d-md-inline-block" href="{% url 'expense-type-create' %}">
     <i class="fa fa-plus me-1"></i>Nuevo tipo
 </a>
 {% endblock %}
@@ -13,172 +12,83 @@
 {% block content %}
 
 {% if not expense_types %}
-<div class="empty-state text-center py-5">
-    <i class="fa fa-tags fa-3x text-muted opacity-50 mb-3 d-block"></i>
-    <h5 class="text-muted">No hay tipos de gasto</h5>
-    <p class="text-muted small mb-3">Crea tu primer tipo de gasto para organizar mejor tus finanzas.</p>
-    <a class="btn btn-primary" href="{% url 'expense-type-create' %}">
-        <i class="fa fa-plus me-2"></i>Crear primer tipo
-    </a>
+<div class="card card-flat">
+    <div class="hm-empty">
+        <span class="hm-empty-icon"><i class="fa fa-tags" aria-hidden="true"></i></span>
+        <b>Todavía no hay tipos de gasto</b>
+        <span>Por ejemplo: mano de obra, agua de riego, cuota de la comunidad…</span>
+        <a class="btn btn-primary btn-sm mt-2" href="{% url 'expense-type-create' %}"><i class="fa fa-plus me-1"></i>Crear el primero</a>
+    </div>
 </div>
-
 {% else %}
 
-<!-- Vista escritorio: tabla -->
-<div class="d-none d-md-block">
-    <div class="card">
-        <div class="table-responsive">
-            <table class="table modern-table mb-0">
-                <thead>
-                    <tr>
-                        <th>Nombre</th>
-                        <th>Descripción</th>
-                        <th class="text-center">Gastos registrados</th>
-                        <th class="text-end">Total acumulado</th>
-                        <th class="text-center">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for expense_type in expense_types %}
-                    <tr>
-                        <td>
-                            <div class="d-flex align-items-center gap-2">
-                                <div class="expense-type-icon">
-                                    <i class="fa fa-tag text-primary"></i>
-                                </div>
-                                <span class="fw-semibold">{{ expense_type.name }}</span>
-                            </div>
-                        </td>
-                        <td class="text-muted small">
-                            {% if expense_type.description %}
-                                {{ expense_type.description|truncatechars:80 }}
-                            {% else %}
-                                <span class="text-muted fst-italic">Sin descripción</span>
-                            {% endif %}
-                        </td>
-                        <td class="text-center">
-                            {% if expense_type.expense_count %}
-                                <a class="badge bg-primary text-decoration-none"
-                                   href="{% url 'expense-list' %}?type={{ expense_type.pk }}">
-                                    {{ expense_type.expense_count }} gasto{{ expense_type.expense_count|pluralize }}
-                                </a>
-                            {% else %}
-                                <span class="badge bg-light text-muted">Sin gastos</span>
-                            {% endif %}
-                        </td>
-                        <td class="text-end fw-semibold">
-                            {% if expense_type.total_amount %}
-                                {{ expense_type.total_amount|floatformat:2 }} €
-                            {% else %}
-                                <span class="text-muted">—</span>
-                            {% endif %}
-                        </td>
-                        <td class="text-center">
-                            <div class="d-flex justify-content-center gap-2">
-                                <a class="btn btn-sm btn-outline-secondary"
-                                   href="{% url 'expense-type-edit' expense_type.pk %}"
-                                   title="Editar">
-                                    <i class="fa fa-edit"></i>
-                                </a>
-                                {% if not expense_type.has_expenses %}
-                                <button class="btn btn-sm btn-outline-danger"
-                                        data-url="{% url 'expense-type-delete' expense_type.pk %}"
-                                        onclick="confirmDelete(this)"
-                                        title="Eliminar">
-                                    <i class="fa fa-trash"></i>
-                                </button>
-                                {% else %}
-                                <button class="btn btn-sm btn-outline-danger" disabled title="No se puede eliminar: tiene gastos asociados">
-                                    <i class="fa fa-trash"></i>
-                                </button>
-                                {% endif %}
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+<p class="pl-count">{{ expense_types|length }} tipo{{ expense_types|length|pluralize }}</p>
+
+<div class="card card-flat overflow-visible ext-list">
+    <div class="tl-head d-none d-md-grid" aria-hidden="true">
+        <span>Tipo</span><span class="text-end">Gastos</span><span class="text-end">Total</span><span></span>
     </div>
-</div>
 
-<!-- Vista móvil: cards -->
-<div class="d-md-none">
-    <div class="row row-cols-1 g-3">
-        {% for expense_type in expense_types %}
-        <div class="col">
-            <div class="card h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-start justify-content-between mb-2">
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="expense-type-icon">
-                                <i class="fa fa-tag text-primary"></i>
-                            </div>
-                            <h6 class="mb-0 fw-semibold">{{ expense_type.name }}</h6>
-                        </div>
-                        {% if expense_type.expense_count %}
-                        <a class="badge bg-primary text-decoration-none"
-                           href="{% url 'expense-list' %}?type={{ expense_type.pk }}">
-                            {{ expense_type.expense_count }} gasto{{ expense_type.expense_count|pluralize }}
-                        </a>
-                        {% else %}
-                        <span class="badge bg-light text-muted">Sin gastos</span>
-                        {% endif %}
-                    </div>
-
-                    {% if expense_type.description %}
-                    <p class="text-muted small mb-2">{{ expense_type.description|truncatechars:100 }}</p>
-                    {% endif %}
-
-                    {% if expense_type.total_amount %}
-                    <div class="text-end text-muted small mb-2">
-                        Total: <span class="fw-semibold text-dark">{{ expense_type.total_amount|floatformat:2 }} €</span>
-                    </div>
-                    {% endif %}
-                </div>
-                <div class="card-footer bg-transparent pt-0 pb-3 px-3">
-                    <div class="d-flex gap-2">
-                        <a class="btn btn-outline-secondary btn-sm flex-fill"
-                           href="{% url 'expense-type-edit' expense_type.pk %}">
-                            <i class="fa fa-edit me-1"></i>Editar
-                        </a>
-                        {% if not expense_type.has_expenses %}
-                        <button class="btn btn-outline-danger btn-sm"
-                                data-url="{% url 'expense-type-delete' expense_type.pk %}"
-                                onclick="confirmDelete(this)">
-                            <i class="fa fa-trash"></i>
-                        </button>
-                        {% else %}
-                        <button class="btn btn-outline-danger btn-sm" disabled title="Tiene gastos asociados">
-                            <i class="fa fa-trash"></i>
-                        </button>
-                        {% endif %}
-                    </div>
+    {% for expense_type in expense_types %}
+    <div class="tl-item">
+        <div class="tl-row">
+            <div class="tl-main">
+                <a class="tl-name" href="{% url 'expense-type-edit' expense_type.pk %}">{{ expense_type.name }}</a>
+                <div class="tl-meta">
+                    {% if expense_type.description %}<span class="ex-desc" title="{{ expense_type.description }}">{{ expense_type.description }}</span>{% endif %}
+                    <span class="d-md-none">{% if expense_type.description %}· {% endif %}{{ expense_type.expense_count }} gasto{{ expense_type.expense_count|pluralize }}</span>
                 </div>
             </div>
-        </div>
-        {% endfor %}
-    </div>
-</div>
 
+            <div class="ex-calc text-end d-none d-md-block">
+                {% if expense_type.expense_count %}
+                <a href="{% url 'expense-list' %}?type={{ expense_type.pk }}">{{ expense_type.expense_count }} gasto{{ expense_type.expense_count|pluralize }}</a>
+                {% else %}Sin gastos{% endif %}
+            </div>
+
+            <div class="ex-amount">
+                {% if expense_type.total_amount %}<b>{{ expense_type.total_amount|floatformat:"2g" }} €</b>{% else %}<span>—</span>{% endif %}
+            </div>
+
+            <div class="dropdown">
+                <button class="tl-icon-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                        aria-label="Más acciones de {{ expense_type.name }}" title="Más acciones">
+                    <i class="fa fa-ellipsis-vertical"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end dropdown-sheet shadow-sm small">
+                    <li><a class="dropdown-item" href="{% url 'expense-type-edit' expense_type.pk %}"><i class="fa fa-pen me-2 text-primary"></i>Editar</a></li>
+                    {% if expense_type.expense_count %}
+                    <li><a class="dropdown-item" href="{% url 'expense-list' %}?type={{ expense_type.pk }}"><i class="fa fa-receipt me-2 text-muted"></i>Ver sus gastos</a></li>
+                    {% else %}
+                    <li><hr class="dropdown-divider"></li>
+                    <li><button class="dropdown-item text-danger" type="button" data-url="{% url 'expense-type-delete' expense_type.pk %}"
+                                data-name="{{ expense_type.name }}" onclick="confirmDelete(this)"><i class="fa fa-trash me-2"></i>Eliminar</button></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+<p class="text-muted small mt-2 mb-0">Solo se pueden eliminar los tipos sin gastos.</p>
 {% endif %}
 
-<!-- Formulario oculto para las acciones de eliminación -->
-<form class="d-none" id="deleteForm" method="POST">
-    {% csrf_token %}
-</form>
+<div class="tl-fab-spacer d-md-none"></div>
+<a class="tl-fab d-md-none" href="{% url 'expense-type-create' %}" aria-label="Nuevo tipo de gasto" title="Nuevo tipo de gasto">
+    <i class="fa fa-plus" aria-hidden="true"></i>
+</a>
 
+<form class="d-none" id="deleteForm" method="POST">{% csrf_token %}</form>
 {% endblock %}
 
 {% block extra_js %}
 <script>
     function confirmDelete(button) {
-        const url = button.getAttribute('data-url');
         showConfirm({
-            text: 'Esta acción eliminará el tipo de gasto de forma permanente y no se podrá deshacer.',
+            text: `Se eliminará el tipo «${button.dataset.name}». No se podrá deshacer.`,
             onConfirm: () => {
                 const form = document.getElementById('deleteForm');
-                form.action = url;
+                form.action = button.getAttribute('data-url');
                 form.submit();
             }
         });

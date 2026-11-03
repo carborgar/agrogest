@@ -780,3 +780,26 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
     .dropdown:has(> .dropdown-sheet.show), .dt-actions:has(.dropdown-sheet.show), .tl-item:has(.dropdown-sheet.show), .pl-item:has(.dropdown-sheet.show),
     .pl-group:has(.dropdown-sheet.show), .pl-field:has(.dropdown-sheet.show) { z-index: 1050 !important; }
 }
+
+/* ═══════════════════════════════════════════════
+   GASTOS (ex-*): reutiliza la fila del listado de tratamientos (tl-*) con sus propias columnas.
+   El importe se alinea a la derecha; la fecha va en gris porque un gasto no tiene urgencia.
+═══════════════════════════════════════════════ */
+.ex-list { --tl-cols: 3rem minmax(0, 1fr) 13rem 7.5rem 2.25rem; }
+.ext-list { --tl-cols: minmax(0, 1fr) 8rem 7.5rem 2.25rem; }
+.ex-month { display: flex; justify-content: space-between; gap: 1rem; padding-right: calc(.75rem + 34px + .75rem); }
+.ex-list .tl-meta > .tl-field { flex-shrink: 0; max-width: 60%; overflow: hidden; text-overflow: ellipsis; }
+.ex-list .tl-meta, .ext-list .tl-meta { flex-wrap: nowrap; white-space: nowrap; }
+.tl-meta > .ex-desc { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.ex-calc { font-size: .85rem; color: var(--tl-muted); }
+.ex-amount { flex: none; text-align: right; font-size: .95rem; line-height: 1.25; }
+.ex-amount > span { display: block; font-size: .72rem; color: var(--tl-muted); }
+
+@media (min-width: 768px) {
+    /* El total del mes, alineado con la columna de importe (deja el hueco del menú ⋮) */
+    .ex-month { padding-right: calc(1rem + 2.25rem + 1rem); }
+}
+
+/* Formularios tf-* con controles nativos (select y textarea) */
+.tf-inp.form-select { padding-right: 2.25rem; background-image: var(--bs-form-select-bg-img), var(--bs-form-select-bg-icon, none); background-repeat: no-repeat; background-position: right .75rem center; background-size: 16px 12px; }
+textarea.tf-inp { height: auto; min-height: 48px; padding: 10px 12px; resize: vertical; }
