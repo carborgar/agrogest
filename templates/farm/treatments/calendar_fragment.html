@@ -1,107 +1,107 @@
 {% load static %}
 {% load custom_filters %}
 
-{# ── MÓVIL (<768 px): barra superior; el resto del componente va tras los filtros ── #}
-<div class="d-md-none d-flex align-items-center gap-2 mb-2" id="cm-top">
-    <div class="btn-group btn-group-sm" role="group" aria-label="Vista">
-        <button class="btn btn-outline-secondary" data-cm-view="week" type="button">Semana</button>
-        <button class="btn btn-outline-secondary" data-cm-view="month" type="button">Mes</button>
+{# ── MÓVIL (<768 px): vista (semana/mes) y botón de filtros; el resto del componente va más abajo ── #}
+<div class="tl-toolbar cal-top d-md-none" id="cm-top">
+    <div class="tl-tabs" role="group" aria-label="Vista">
+        <button class="tl-tab" data-cm-view="week" type="button">Semana</button>
+        <button class="tl-tab" data-cm-view="month" type="button">Mes</button>
     </div>
-    <button class="btn btn-outline-secondary btn-sm" id="cm-today" type="button">Hoy</button>
-    <button aria-controls="cal-filters-wrap" class="btn btn-outline-secondary btn-sm ms-auto" data-bs-target="#cal-filters-wrap"
-            data-bs-toggle="collapse" type="button">
-        <i class="fa fa-sliders me-1"></i>Filtros <span class="badge bg-primary d-none" id="cm-filter-badge"></span>
+    <button class="btn btn-outline-secondary tl-filters-btn" type="button"
+            data-bs-toggle="offcanvas" data-bs-target="#cal-filters-wrap" aria-controls="cal-filters-wrap"
+            aria-label="Filtros">
+        <i class="fa fa-sliders" aria-hidden="true"></i>
+        <span class="tl-filters-badge d-none" id="cm-filter-badge"></span>
     </button>
 </div>
 
-{# ── BARRA DE FILTROS (se recuerdan entre visitas). En móvil va plegada tras el botón "Filtros" ── #}
-<div class="collapse d-md-block" id="cal-filters-wrap">
-<div class="card border-0 shadow-sm mb-3 cal-filters">
-    <div class="card-body py-2 px-3">
-        <div class="d-flex flex-column flex-md-row flex-md-wrap align-items-md-center gap-2">
+{# ── FILTROS (se recuerdan por dispositivo): en línea en escritorio, panel inferior en móvil ── #}
+<div class="offcanvas-md offcanvas-bottom tl-filters mb-3" tabindex="-1" id="cal-filters-wrap" aria-label="Filtros">
+    <div class="offcanvas-header d-md-none">
+        <h5 class="offcanvas-title" id="cal-filters-title">Filtros</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#cal-filters-wrap" aria-label="Cerrar"></button>
+    </div>
+    <div class="offcanvas-body">
+        <div class="row g-2 align-items-end w-100 m-0">
 
-            {# Fila 1: parcelas #}
-            <div class="dropdown">
-                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button"
-                        data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                    <i class="fa fa-map me-1"></i><span id="field-filter-label">Todas las parcelas</span>
-                </button>
-                <div class="dropdown-menu p-2" style="min-width:240px;max-height:320px;overflow:auto">
-                    <label class="d-flex align-items-center gap-2 py-1 px-2 rounded field-filter-item" style="cursor:pointer">
-                        <input checked class="form-check-input m-0 flex-shrink-0" id="filter-all" type="checkbox" value="all">
-                        <span class="small">Todas</span>
-                    </label>
-                    {% for field in fields %}
-                    <label class="d-flex align-items-center gap-2 py-1 px-2 rounded field-filter-item" style="cursor:pointer">
-                        <input class="form-check-input m-0 flex-shrink-0 field-checkbox"
-                               data-name="{{ field.name }}" id="filter-field-{{ field.id }}"
-                               type="checkbox" value="{{ field.id }}">
-                        <span class="small text-truncate">{{ field.name }}</span>
-                        <span class="badge bg-light text-muted border ms-auto fw-normal"
-                              style="font-size:.65rem">{{ field.area }} ha</span>
+            {# Parcelas: sin ninguna marcada se muestran todas #}
+            <div class="col-12 col-md-4 col-xl-3">
+                <label class="form-label small fw-semibold text-muted mb-1"><i class="fa fa-map me-1" aria-hidden="true"></i>Parcelas</label>
+                <div class="dropdown filter-check-dropdown w-100">
+                    <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start filter-dd-btn" type="button"
+                            data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                        <span class="filter-dd-label">Todas las parcelas…</span>
+                    </button>
+                    <div class="dropdown-menu filter-dd-menu p-2">
+                        {% for field in fields %}
+                        <div class="form-check mb-1">
+                            <input class="form-check-input field-checkbox" data-name="{{ field.name }}"
+                                   id="filter-field-{{ field.id }}" type="checkbox" value="{{ field.id }}">
+                            <label class="form-check-label small" for="filter-field-{{ field.id }}">{{ field.name }}</label>
+                        </div>
+                        {% empty %}
+                        <span class="small text-muted">Aún no hay parcelas.</span>
+                        {% endfor %}
+                        <button class="btn btn-link btn-sm p-0 mt-1" id="filter-clear" type="button">Quitar selección</button>
+                    </div>
+                </div>
+            </div>
+
+            {# Tipo #}
+            <div class="col-12 col-md-auto">
+                <div class="form-label small fw-semibold text-muted mb-1" id="cal-type-label"><i class="fa fa-flask me-1" aria-hidden="true"></i>Tipo</div>
+                <div class="d-flex flex-wrap gap-2 cal-chips" role="group" aria-labelledby="cal-type-label">
+                    {% for type_value, type_name in treatment_types %}
+                    <input checked autocomplete="off" class="btn-check treatment-type-checkbox"
+                           id="filter-type-{{ type_value }}" type="checkbox" value="{{ type_value }}">
+                    <label class="btn btn-outline-secondary" for="filter-type-{{ type_value }}">
+                        <i class="fa fa-{{ type_value|type_icon }} me-1" aria-hidden="true"></i>{{ type_name }}
                     </label>
                     {% endfor %}
                 </div>
             </div>
 
-            {# Fila 2: tipo #}
-            <div class="d-flex flex-wrap gap-2">
-            {% for type_value, type_name in treatment_types %}
-            <input checked autocomplete="off" class="btn-check treatment-type-checkbox"
-                   id="filter-type-{{ type_value }}" type="checkbox" value="{{ type_value }}">
-            <label class="btn btn-outline-secondary btn-sm" for="filter-type-{{ type_value }}">
-                <i class="fa fa-{{ type_value|type_icon }} me-1"></i>{{ type_name }}
-            </label>
-            {% endfor %}
-            </div>
-
-            <span class="vr d-none d-md-block mx-1"></span>
-
-            {# Fila 3: estado (también hace de leyenda) #}
-            <div class="d-flex flex-wrap gap-2">
-            <input checked autocomplete="off" class="btn-check status-checkbox" id="filter-status-pending" type="checkbox" value="pending">
-            <label class="btn btn-outline-secondary btn-sm" for="filter-status-pending">
-                <span class="calendar-legend-dot bg-warning me-1"></span>Pendiente
-            </label>
-            <input checked autocomplete="off" class="btn-check status-checkbox" id="filter-status-delayed" type="checkbox" value="delayed">
-            <label class="btn btn-outline-secondary btn-sm" for="filter-status-delayed">
-                <span class="calendar-legend-dot bg-danger me-1"></span>Atrasado
-            </label>
-            <input checked autocomplete="off" class="btn-check status-checkbox" id="filter-status-completed" type="checkbox" value="completed">
-            <label class="btn btn-outline-secondary btn-sm" for="filter-status-completed">
-                <span class="calendar-legend-dot bg-success me-1"></span>Completado
-            </label>
+            {# Estado (también hace de leyenda de colores) #}
+            <div class="col-12 col-md-auto">
+                <div class="form-label small fw-semibold text-muted mb-1" id="cal-status-label"><i class="fa fa-circle-dot me-1" aria-hidden="true"></i>Estado</div>
+                <div class="d-flex flex-wrap gap-2 cal-chips" role="group" aria-labelledby="cal-status-label">
+                    <input checked autocomplete="off" class="btn-check status-checkbox" id="filter-status-pending" type="checkbox" value="pending">
+                    <label class="btn btn-outline-secondary" for="filter-status-pending"><span class="cal-dot cal-t1" aria-hidden="true"></span>Pendiente</label>
+                    <input checked autocomplete="off" class="btn-check status-checkbox" id="filter-status-delayed" type="checkbox" value="delayed">
+                    <label class="btn btn-outline-secondary" for="filter-status-delayed"><span class="cal-dot cal-t0" aria-hidden="true"></span>Atrasado</label>
+                    <input checked autocomplete="off" class="btn-check status-checkbox" id="filter-status-completed" type="checkbox" value="completed">
+                    <label class="btn btn-outline-secondary" for="filter-status-completed"><span class="cal-dot cal-t3" aria-hidden="true"></span>Completado</label>
+                </div>
             </div>
         </div>
     </div>
 </div>
-</div>
 
-{# ── CALENDARIO (ancho completo) ────────────────────────────────────── #}
-<div class="card border-0 shadow-sm d-none d-md-block" id="cal-desktop">
-    <div class="card-body p-2 p-md-3">
-        <div id="calendar"></div>
-    </div>
+{# ── CALENDARIO DE ESCRITORIO ───────────────────────────────────────── #}
+<div class="card card-flat p-2 p-md-3 d-none d-md-block" id="cal-desktop">
+    <div id="calendar"></div>
 </div>
 
 {# ── CALENDARIO MÓVIL: tira semanal / mes en puntos + agenda del día ── #}
 <div class="d-md-none" id="cal-mobile">
-    <button class="alert alert-danger d-none w-100 text-start py-2 px-3 mb-2" id="cm-overdue" type="button"></button>
-    <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body p-2">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-                <button aria-label="Anterior" class="btn btn-light btn-sm" id="cm-prev" type="button"><i class="fa fa-chevron-left"></i></button>
-                <div class="fw-semibold" id="cm-title">—</div>
-                <button aria-label="Siguiente" class="btn btn-light btn-sm" id="cm-next" type="button"><i class="fa fa-chevron-right"></i></button>
-            </div>
-            <div id="cm-grid"></div>
+    <button class="cal-overdue d-none w-100 text-start mb-2" id="cm-overdue" type="button"></button>
+    <div class="card card-flat p-2 mb-3">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <div class="fw-bold flex-grow-1 text-truncate ps-1" id="cm-title">—</div>
+            <button class="btn btn-outline-secondary cal-nav" id="cm-today" type="button">Hoy</button>
+            <button aria-label="Anterior" class="btn btn-outline-secondary cal-nav" id="cm-prev" type="button"><i class="fa fa-chevron-left" aria-hidden="true"></i></button>
+            <button aria-label="Siguiente" class="btn btn-outline-secondary cal-nav" id="cm-next" type="button"><i class="fa fa-chevron-right" aria-hidden="true"></i></button>
         </div>
+        <div id="cm-grid"></div>
     </div>
-    <div class="d-flex align-items-center justify-content-between mb-2">
-        <div class="fw-semibold" id="cm-agenda-title">—</div>
-        <a class="btn btn-primary btn-sm" href="#" id="cm-new"><i class="fa fa-plus me-1"></i>Nuevo</a>
-    </div>
-    <div class="d-flex flex-column gap-2" id="cm-agenda"></div>
+    <div class="fw-bold mb-2" id="cm-agenda-title">—</div>
+    <div class="card card-flat" id="cm-agenda"></div>
+
+    {# «Nuevo tratamiento» con la fecha del día seleccionado, como botón flotante #}
+    <div class="tl-fab-spacer"></div>
+    <a class="tl-fab" href="#" id="cm-new" aria-label="Nuevo tratamiento en el día seleccionado" title="Nuevo tratamiento">
+        <i class="fa fa-plus" aria-hidden="true"></i>
+    </a>
 </div>
 
 {# ── MODAL ÚNICO: panel "día" (listado) y panel "detalle". Se cambia de panel sin cerrar el modal ── #}
@@ -111,27 +111,27 @@
 
             {# Panel: tratamientos de un día #}
             <div class="cal-pane d-none" id="pane-day">
-                <div class="modal-header border-0 pb-0">
+                <div class="modal-header">
                     <h5 class="modal-title fw-bold" id="day-title">—</h5>
                     <button aria-label="Cerrar" class="btn-close" data-bs-dismiss="modal" type="button"></button>
                 </div>
-                <div class="modal-body pt-2">
-                    <div class="d-flex flex-column gap-2" id="day-list"></div>
+                <div class="modal-body">
+                    <div class="card card-flat" id="day-list"></div>
                 </div>
-                <div class="modal-footer border-0 pt-0">
-                    <a class="btn btn-primary btn-sm w-100" href="#" id="day-new">
-                        <i class="fa fa-plus me-1"></i>Nuevo tratamiento este día
+                <div class="modal-footer">
+                    <a class="btn btn-primary w-100" href="#" id="day-new">
+                        <i class="fa fa-plus me-1" aria-hidden="true"></i>Nuevo tratamiento este día
                     </a>
                 </div>
             </div>
 
             {# Panel: detalle de un tratamiento #}
             <div class="cal-pane" id="pane-detail">
-                <div class="modal-header border-0 pb-0">
-                    <div class="d-flex align-items-start gap-2 min-w-0">
-                        <button aria-label="Volver al día" class="btn btn-light btn-sm rounded-circle flex-shrink-0 d-none"
+                <div class="modal-header">
+                    <div class="d-flex align-items-center gap-2 min-w-0">
+                        <button aria-label="Volver al día" class="btn btn-outline-secondary cal-nav rounded-circle flex-shrink-0 d-none"
                                 id="detail-back" title="Volver al día" type="button">
-                            <i class="fa fa-arrow-left"></i>
+                            <i class="fa fa-arrow-left" aria-hidden="true"></i>
                         </button>
                         <div>
                             <h5 class="modal-title fw-bold treatment-title mb-0" id="detailsModalTitle">—</h5>
@@ -141,74 +141,59 @@
                     <button aria-label="Cerrar" class="btn-close" data-bs-dismiss="modal" type="button"></button>
                 </div>
 
-                <div class="modal-body pt-2">
+                <div class="modal-body">
 
-                    {# Stats #}
-                    <div class="row g-2 mb-3">
-                        <div class="col-6">
-                            <div class="bg-light rounded p-2 h-100" id="status-container">
-                                <div class="small text-muted mb-1"><i class="fa fa-circle-dot me-1"></i>Estado</div>
-                                <div class="fw-semibold" id="detail-status">—</div>
-                            </div>
+                    {# Resumen #}
+                    <div class="dt-summary card card-flat mb-3">
+                        <div class="dt-cell" id="status-container">
+                            <div class="dt-label">Estado</div>
+                            <span class="dt-status mt-1" id="detail-status">—</span>
                         </div>
-                        <div class="col-6">
-                            <div class="bg-light rounded p-2 h-100">
-                                <div class="small text-muted mb-1"><i class="fa fa-flask me-1"></i>Tipo</div>
-                                <div class="fw-semibold" id="detail-type">—</div>
-                            </div>
+                        <div class="dt-cell">
+                            <div class="dt-label">Tipo</div>
+                            <div class="dt-value" id="detail-type">—</div>
                         </div>
-                        <div class="col-6">
-                            <div class="bg-light rounded p-2 h-100">
-                                <div class="small text-muted mb-1"><i class="fa fa-map me-1"></i>Parcela</div>
-                                <div class="fw-semibold lh-1" id="detail-field">—</div>
-                                <div class="small text-muted mt-1" id="detail-field-info"></div>
-                            </div>
+                        <div class="dt-cell">
+                            <div class="dt-label">Parcela</div>
+                            <div class="dt-value" id="detail-field">—</div>
+                            <div class="dt-sub" id="detail-field-info"></div>
                         </div>
-                        <div class="col-6" id="water-wrap">
-                            <div class="bg-light rounded p-2 h-100">
-                                <div class="small text-muted mb-1"><i class="fa fa-fill-drip me-1"></i>Mojado</div>
-                                <div class="fw-semibold" id="detail-water">—</div>
-                            </div>
+                        <div class="dt-cell" id="water-wrap">
+                            <div class="dt-label">Mojado</div>
+                            <div class="dt-value" id="detail-water">—</div>
                         </div>
-                        <div class="col-12" id="machine-wrap">
-                            <div class="bg-light rounded p-2">
-                                <div class="small text-muted mb-1"><i class="fa fa-tractor me-1"></i>Maquinaria</div>
-                                <div class="fw-semibold lh-1" id="detail-machine">—</div>
-                                <div class="small text-muted mt-1" id="detail-machine-info"></div>
-                            </div>
+                        <div class="dt-cell dt-cell--wide" id="machine-wrap">
+                            <div class="dt-label">Maquinaria</div>
+                            <div class="dt-value" id="detail-machine">—</div>
+                            <div class="dt-sub" id="detail-machine-info"></div>
                         </div>
                     </div>
 
                     {# Cambiar fecha (solo móvil: no hay arrastrar) #}
                     <div class="d-md-none mb-3">
-                        <label class="small text-muted mb-1" for="detail-date">
-                            <i class="fa fa-calendar me-1"></i><span id="detail-date-label">Fecha</span>
-                        </label>
-                        <input class="form-control form-control-sm" id="detail-date" type="date">
+                        <label class="dt-label mb-1" for="detail-date"><span id="detail-date-label">Fecha</span></label>
+                        <input class="form-control" id="detail-date" type="date">
                     </div>
 
                     {# Productos #}
-                    <div class="fw-semibold small text-muted text-uppercase mb-2"
-                         style="font-size:.7rem;letter-spacing:.05em">
-                        <i class="fa fa-box me-1"></i>Productos
-                    </div>
-                    <div class="d-flex flex-column gap-2" id="detail-products-list">
+                    <div class="dt-label mb-2">Productos</div>
+                    <div class="card card-flat" id="detail-products-list">
                         <div class="text-center text-muted small py-3">
-                            <i class="fa fa-spinner fa-spin me-1"></i>Cargando...
+                            <i class="fa fa-spinner fa-spin me-1" aria-hidden="true"></i>Cargando...
                         </div>
                     </div>
 
                 </div>
 
-                <div class="modal-footer border-0 pt-0 gap-2 flex-wrap">
-                    <button class="btn btn-success btn-sm d-none" id="detail-finish" type="button">
-                        <i class="fa fa-check me-1"></i>Finalizar
+                <div class="modal-footer gap-2 flex-wrap">
+                    <button class="btn btn-success d-none" id="detail-finish" type="button">
+                        <i class="fa fa-check me-1" aria-hidden="true"></i>Finalizar
                     </button>
-                    <a class="btn btn-outline-secondary btn-sm" href="#" id="detail-clone">
-                        <i class="fa fa-copy me-1"></i>Clonar
+                    <a class="btn btn-outline-secondary" href="#" id="detail-clone">
+                        <i class="fa fa-copy me-1" aria-hidden="true"></i>Clonar
                     </a>
-                    <a class="btn btn-primary btn-sm ms-auto" href="#" id="view-treatment">
-                        <i class="fa fa-eye me-1"></i>Ver detalles
+                    <a class="btn btn-primary ms-auto" href="#" id="view-treatment">
+                        <i class="fa fa-eye me-1" aria-hidden="true"></i>Ver detalles
                     </a>
                 </div>
 

@@ -6,13 +6,15 @@ document.addEventListener('DOMContentLoaded', function () {
     // YYYY-MM-DD en hora local (toISOString usa UTC y puede desplazar el día)
     const toDateStr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-    // Mismos tonos suaves que el listado y el detalle (--tl-0…3): fondo claro + texto oscuro del mismo color.
-    // `dot` (color intenso) para puntos, barras y leyenda, donde un fondo claro no se vería.
+    // Mismos tonos que el listado y el detalle (--tl-0…3): fondo claro + texto oscuro del mismo color.
+    // `tone` (0 atrasado, 1 próximo, 3 hecho) da la clase .cal-tN para puntos y barras, donde un fondo claro no se vería.
     const STATUS_STYLE = {
-        pending: { bg: '#FFF1D6', fg: '#8A5300', dot: '#C77700', cls: 'treatment-pending' },
-        delayed: { bg: '#FDECEA', fg: '#B42318', dot: '#B42318', cls: 'treatment-delayed' },
-        completed: { bg: '#E3F1E4', fg: '#1F5F24', dot: '#2E7D32', cls: 'treatment-completed' },
+        pending: { bg: 'var(--tl-1-bg)', fg: 'var(--tl-1-fg)', tone: 1, cls: 'treatment-pending' },
+        delayed: { bg: 'var(--tl-0-bg)', fg: 'var(--tl-0-fg)', tone: 0, cls: 'treatment-delayed' },
+        completed: { bg: 'var(--tl-3-bg)', fg: 'var(--tl-3-fg)', tone: 3, cls: 'treatment-completed' },
     };
+    const toneOf = (status) => (STATUS_STYLE[status] || STATUS_STYLE.pending).tone;
+    const emptyState = (text) => `<div class="hm-empty"><span class="hm-empty-icon"><i class="fa fa-calendar-check" aria-hidden="true"></i></span><b>${text}</b></div>`;
     const TYPE_ICON = { spraying: 'spray-can-sparkles', fertigation: 'droplet' };
 
     // Preferencias por dispositivo (filtros y vista); si el almacenamiento falla, se ignora.
@@ -24,11 +26,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const saved = store.get();
 
     // ── Filtros ───────────────────────────────────────────────────────────
-    const filterAll = document.getElementById('filter-all');
     const fieldCheckboxes = [...document.querySelectorAll('.field-checkbox')];
     const typeCheckboxes = [...document.querySelectorAll('.treatment-type-checkbox')];
     const statusCheckboxes = [...document.querySelectorAll('.status-checkbox')];
-    const fieldLabel = document.getElementById('field-filter-label');
+    const fieldClear = document.getElementById('filter-clear');
 
     function restoreFilters() {
         if (Array.isArray(saved.fields)) fieldCheckboxes.forEach(cb => { cb.checked = saved.fields.includes(cb.value); });
@@ -36,13 +37,10 @@ document.addEventListener('DOMContentLoaded', function () {
         if (Array.isArray(saved.statuses)) statusCheckboxes.forEach(cb => { cb.checked = saved.statuses.includes(cb.value); });
     }
 
+    // El texto y el contador del desplegable de parcelas los pone el script global de .filter-check-dropdown (base.html)
+    // al recibir "change"; aquí se lanza una vez para reflejar las parcelas restauradas.
     function refreshFieldFilterUi() {
-        const selected = fieldCheckboxes.filter(cb => cb.checked);
-        filterAll.checked = selected.length === 0;
-        filterAll.closest('.field-filter-item')?.classList.toggle('active', selected.length === 0);
-        fieldLabel.textContent = selected.length === 0 ? 'Todas las parcelas'
-            : selected.length === 1 ? selected[0].dataset.name
-                : `${selected.length} parcelas`;
+        fieldCheckboxes.find(cb => cb.checked)?.dispatchEvent(new Event('change'));
     }
 
     const checkedValues = (list) => list.filter(cb => cb.checked).map(cb => cb.value);
@@ -51,7 +49,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function updateFilterBadge() {
         const badge = document.getElementById('cm-filter-badge');
         if (!badge) return;
-        const n = checkedValues(fieldCheckboxes).length
+        const n = (checkedValues(fieldCheckboxes).length ? 1 : 0)
             + [...typeCheckboxes, ...statusCheckboxes].filter(cb => !cb.checked).length;
         badge.textContent = n;
         badge.classList.toggle('d-none', n === 0);
@@ -111,14 +109,14 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
 
-    filterAll.addEventListener('change', () => {
-        fieldCheckboxes.forEach(cb => { cb.checked = false; });
-        refreshFieldFilterUi();
-        persistFilters();
-        refetchAll();
+    // Sin ninguna parcela marcada se muestran todas
+    fieldClear.addEventListener('click', () => {
+        const marked = fieldCheckboxes.filter(cb => cb.checked);
+        marked.forEach(cb => { cb.checked = false; });
+        marked[0]?.dispatchEvent(new Event('change')); // actualiza el texto del desplegable y recarga
     });
     fieldCheckboxes.forEach(cb => cb.addEventListener('change', () => {
-        refreshFieldFilterUi(); persistFilters(); refetchAll();
+        persistFilters(); refetchAll();
     }));
     [...typeCheckboxes, ...statusCheckboxes].forEach(cb => cb.addEventListener('change', () => {
         persistFilters(); refetchAll();
@@ -261,19 +259,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const events = (calendar ? calendar.getEvents() : []).filter(e => e.startStr.slice(0, 10) === dateStr);
         const list = document.getElementById('day-list');
-        list.innerHTML = events.length ? '' : '<div class="text-center text-muted small py-3">No hay tratamientos este día</div>';
+        list.innerHTML = events.length ? '' : emptyState('No hay tratamientos este día');
         events.forEach(ev => {
             const t = ev.extendedProps;
-            const style = STATUS_STYLE[t.status] || STATUS_STYLE.pending;
             const btn = document.createElement('button');
             btn.type = 'button';
-            btn.className = 'btn btn-light text-start d-flex align-items-center gap-2 py-2';
-            btn.innerHTML = `<span class="calendar-legend-dot" style="background:${style.dot}"></span>
+            btn.className = 'cal-row';
+            btn.innerHTML = `<span class="cal-dot cal-t${toneOf(t.status)}" aria-hidden="true"></span>
                 <span class="flex-grow-1 min-w-0">
-                    <span class="d-block fw-semibold small text-truncate">${esc(ev.title)}</span>
+                    <span class="d-block fw-semibold text-truncate">${esc(ev.title)}</span>
                     <span class="d-block small text-muted text-truncate">${esc(t.field_name)} · ${esc(t.type_display)}</span>
                 </span>
-                <i class="fa fa-chevron-right text-muted small"></i>`;
+                <i class="fa fa-chevron-right text-muted small" aria-hidden="true"></i>`;
             btn.addEventListener('click', () => loadTreatmentDetail(ev, dateStr));
             list.appendChild(btn);
         });
@@ -320,9 +317,9 @@ document.addEventListener('DOMContentLoaded', function () {
         backBtn.onclick = () => openDay(fromDay, true);
 
         // Resetear estado del modal
-        const statusContainer = document.getElementById('status-container');
-        statusContainer.className = 'bg-light rounded p-2 h-100';
-        document.getElementById('detail-status').textContent = '—';
+        const statusEl = document.getElementById('detail-status');
+        statusEl.className = 'dt-status mt-1';
+        statusEl.textContent = '—';
         document.getElementById('detail-type').textContent = '—';
         document.getElementById('detail-field').textContent = '—';
         document.getElementById('detail-field-info').textContent = '';
@@ -346,9 +343,8 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(data => {
                 document.getElementById('detail-meta').textContent = `${formatDate(event.start)} · ${data.field_name}`;
 
-                document.getElementById('detail-status').textContent = data.status_display;
-                const statusColors = { pending: 'warning', delayed: 'danger', completed: 'success' };
-                statusContainer.className = `bg-${statusColors[data.status] || 'secondary'} bg-opacity-10 rounded p-2 h-100`;
+                statusEl.textContent = data.status_display;
+                statusEl.className = `dt-status mt-1 dt-tone-${toneOf(data.status)}`;
 
                 document.getElementById('detail-type').textContent = data.type_display;
                 const isFertigation = data.type === 'fertigation';
@@ -388,7 +384,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .catch(error => {
                 console.error('Error:', error);
                 document.getElementById('detail-products-list').innerHTML =
-                    '<div class="text-center text-danger small py-3"><i class="fa fa-circle-exclamation me-1"></i>Error al cargar los datos</div>';
+                    '<div class="text-center dt-fg-0 small py-3"><i class="fa fa-circle-exclamation me-1" aria-hidden="true"></i>Error al cargar los datos</div>';
             });
     }
 
@@ -418,7 +414,7 @@ document.addEventListener('DOMContentLoaded', function () {
             showCancelButton: true,
             confirmButtonText: 'Finalizar',
             cancelButtonText: 'Cancelar',
-            confirmButtonColor: '#198754',
+            customClass: { confirmButton: 'cal-swal-confirm' },
             didOpen: () => {
                 document.getElementById('cal-finish-water')?.addEventListener('input', (e) => {
                     document.getElementById('cal-finish-total').textContent = `Total: ${formatNumber(Math.round(e.target.value) * area, 0)} L`;
@@ -484,24 +480,24 @@ document.addEventListener('DOMContentLoaded', function () {
             container.innerHTML = '<div class="text-center text-muted small py-2">Sin productos asignados</div>';
             return;
         }
-        container.innerHTML = products.map(p => {
+        container.innerHTML = '<ul class="dt-list">' + products.map(p => {
             const perLoad = p.dose_per_load != null
-                ? `<div class="small text-muted">Por cuba: <b>${formatDose(p.dose_per_load)} ${esc(p.total_dose_unit)}</b>${
+                ? `<span>Por cuba: <strong>${formatDose(p.dose_per_load)} ${esc(p.total_dose_unit)}</strong>${
                     loads?.partial_load && p.dose_partial_load != null
-                        ? ` · última (${formatNumber(loads.partial_water, 0)} L): <b>${formatDose(p.dose_partial_load)} ${esc(p.total_dose_unit)}</b>` : ''}</div>`
+                        ? ` · última (${formatNumber(loads.partial_water, 0)} L): <strong>${formatDose(p.dose_partial_load)} ${esc(p.total_dose_unit)}</strong>` : ''}</span>`
                 : '';
             return `
-            <div class="d-flex align-items-center gap-2 px-2 py-2 bg-light rounded">
-                <div class="flex-grow-1 min-w-0">
-                    <div class="fw-semibold small text-truncate">${esc(p.name)}</div>
+            <li>
+                <div class="dt-list-main">
+                    <b class="text-truncate">${esc(p.name)}</b>
                     ${perLoad}
                 </div>
-                <div class="text-end flex-shrink-0">
-                    <div class="small fw-semibold">${formatDose(p.dose)} <span class="fw-normal text-muted">${esc(p.dose_type_display)}</span></div>
-                    <div class="small text-muted">${formatDose(p.total_dose)} ${esc(p.total_dose_unit)} total</div>
+                <div class="dt-list-cost">
+                    <b>${formatDose(p.dose)} <small class="fw-normal text-muted">${esc(p.dose_type_display)}</small></b>
+                    <span>${formatDose(p.total_dose)} ${esc(p.total_dose_unit)} total</span>
                 </div>
-            </div>`;
-        }).join('');
+            </li>`;
+        }).join('') + '</ul>';
     }
 
     function formatDate(date) {
@@ -567,14 +563,18 @@ document.addEventListener('DOMContentLoaded', function () {
         $('cm-title').textContent = M.view === 'week'
             ? `${fmt({ day: 'numeric', month: 'short' }, s)} – ${fmt({ day: 'numeric', month: 'short' }, addDays(e, -1))}`
             : cap(fmt({ month: 'long', year: 'numeric' }, M.cursor));
-        document.querySelectorAll('[data-cm-view]').forEach(b => b.classList.toggle('active', b.dataset.cmView === M.view));
+        document.querySelectorAll('[data-cm-view]').forEach(b => {
+            const on = b.dataset.cmView === M.view;
+            b.classList.toggle('active', on);
+            b.setAttribute('aria-pressed', on);
+        });
 
         let html = ['L', 'M', 'X', 'J', 'V', 'S', 'D'].map(d => `<div class="cm-wd">${d}</div>`).join('');
         for (let d = s; d < e; d = addDays(d, 1)) {
             const str = toDateStr(d);
             const evs = byDay[str] || [];
             const dots = evs.slice(0, 3).map(ev =>
-                `<i class="cm-dot" style="background:${(STATUS_STYLE[ev.extendedProps.status] || STATUS_STYLE.pending).dot}"></i>`).join('');
+                `<i class="cm-dot cal-t${toneOf(ev.extendedProps.status)}"></i>`).join('');
             const out = M.view === 'month' && d.getMonth() !== M.cursor.getMonth();
             html += `<button type="button" class="cm-day${out ? ' cm-out' : ''}${str === M.selected && !M.showOverdue ? ' cm-sel' : ''}${str === todayStr ? ' cm-today' : ''}" data-date="${str}"
                         aria-label="${esc(fmt({ weekday: 'long', day: 'numeric', month: 'long' }, d))}, ${evs.length} tratamientos">
@@ -587,7 +587,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Banner de atrasados
         const banner = $('cm-overdue');
         banner.classList.toggle('d-none', M.overdue.length === 0);
-        banner.innerHTML = `<i class="fa fa-triangle-exclamation me-1"></i><b>${M.overdue.length}</b> atrasado${M.overdue.length === 1 ? '' : 's'}
+        banner.innerHTML = `<i class="fa fa-triangle-exclamation me-1" aria-hidden="true"></i><b>${M.overdue.length}</b> atrasado${M.overdue.length === 1 ? '' : 's'}
             <span class="float-end small">${M.showOverdue ? 'Ocultar' : 'Ver'}</span>`;
 
         mRenderAgenda();
@@ -600,17 +600,16 @@ document.addEventListener('DOMContentLoaded', function () {
         $('cm-new').href = `${API_URLS.treatmentCreate}?date=${M.selected}`;
         $('cm-agenda').innerHTML = list.length ? list.map(ev => {
             const t = ev.extendedProps;
-            const style = STATUS_STYLE[t.status] || STATUS_STYLE.pending;
-            return `<div class="d-flex align-items-center gap-2 bg-white rounded shadow-sm p-2">
-                <span class="cm-bar" style="background:${style.dot}"></span>
+            return `<div class="cal-row">
+                <span class="cm-bar cal-t${toneOf(t.status)}"></span>
                 <button type="button" class="btn p-0 border-0 text-start flex-grow-1 min-w-0" data-open="${ev.id}">
-                    <span class="d-block fw-semibold small text-truncate"><i class="fa fa-${TYPE_ICON[t.type] || 'flask'} me-1 text-muted"></i>${esc(ev.title)}</span>
+                    <span class="d-block fw-semibold text-truncate"><i class="fa fa-${TYPE_ICON[t.type] || 'flask'} me-1 text-muted" aria-hidden="true"></i>${esc(ev.title)}</span>
                     <span class="d-block small text-muted text-truncate">${M.showOverdue ? `${esc(formatDate(ev.start))} · ` : ''}${esc(t.field_name)} · ${esc(t.type_display)}</span>
                 </button>
-                ${t.status === 'completed' ? '<i class="fa fa-circle-check text-success px-2"></i>'
-                    : `<button type="button" class="btn btn-outline-success btn-sm" data-finish="${ev.id}" aria-label="Finalizar"><i class="fa fa-check"></i></button>`}
+                ${t.status === 'completed' ? '<i class="fa fa-circle-check dt-fg-3 px-2" aria-label="Completado" role="img"></i>'
+                    : `<button type="button" class="btn btn-outline-success cal-nav" data-finish="${ev.id}" aria-label="Finalizar ${esc(ev.title)}"><i class="fa fa-check" aria-hidden="true"></i></button>`}
             </div>`;
-        }).join('') : '<div class="text-center text-muted small py-4">No hay tratamientos este día</div>';
+        }).join('') : emptyState(M.showOverdue ? 'No hay tratamientos atrasados' : 'No hay tratamientos este día');
     }
 
     // ✓ rápido: carga el detalle (dosis, mojado por defecto…) y abre el formulario de finalizar
