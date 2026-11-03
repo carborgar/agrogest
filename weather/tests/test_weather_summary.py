@@ -366,3 +366,26 @@ class TestWeatherApiAndPage:
 
         assert [f['id'] for f in response.context['fields_with_geo']] == [mine.id]
         assert 'Ajena' not in response.content.decode()
+
+    def test_weather_page_has_one_skeleton_card_and_no_inline_styles(self, client, user):
+        for name in ('Cartuja', 'Borboli', 'Vegueta'):
+            FieldFactory(organization=user.organization, geometry=GEOMETRY, name=name)
+
+        with patch('core.models.is_enabled', return_value=True):
+            html = client.get(reverse('weather-overview')).content.decode()
+
+        assert html.count('placeholder-glow') == 2   # un esqueleto (dos días), no uno por parcela
+        assert 'id="wov-grid"' in html and 'aria-busy="true"' in html
+        assert '<style' not in html.split('<body', 1)[1] and ' style="' not in html.split('id="wov-grid"', 1)[1].split('<footer', 1)[0]
+
+    def test_weather_page_without_geometry_explains_what_to_do(self, client, user):
+        FieldFactory(organization=user.organization, geometry='', name='Sin contorno')
+
+        with patch('core.models.is_enabled', return_value=True):
+            response = client.get(reverse('weather-overview'))
+
+        html = response.content.decode()
+        assert 'Ninguna parcela tiene contorno definido' in html
+        assert 'hm-empty' in html
+        assert 'wov-grid' not in html
+        assert 'Cargando previsión' not in html
