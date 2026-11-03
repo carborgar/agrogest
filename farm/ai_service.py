@@ -27,6 +27,17 @@ logger = logging.getLogger(__name__)
 
 MAX_TREATMENTS_CONTEXT = 100
 
+# Mensajes genéricos para el usuario: nunca incluyen detalles técnicos
+# (texto de excepciones, modelo, claves ni URLs del proveedor).
+MSG_NO_CONFIGURADO = "⚙️ El asistente no está configurado. Contacta con el administrador."
+MSG_NO_DISPONIBLE = (
+    "❌ El asistente no está disponible ahora mismo, inténtalo de nuevo en unos minutos."
+)
+MSG_LIMITE_CUOTA = (
+    "⚠️ **Límite de uso alcanzado.** El asistente está pausado hasta mañana. "
+    "Se reinicia cada día de madrugada (hora de España). ¡Hasta mañana! 🌙"
+)
+
 # ── Circuit breaker de quota Gemini ──────────────────────────────────────────
 # Clave de caché que se activa cuando la API devuelve 429/RESOURCE_EXHAUSTED.
 # Expira automáticamente a la próxima medianoche UTC (cuando Gemini resetea cuotas).
@@ -40,6 +51,15 @@ def _seconds_until_midnight_utc() -> int:
         hour=0, minute=0, second=0, microsecond=0
     )
     return int((next_midnight - now).total_seconds()) + 90
+
+
+def _error_code(exc: Exception):
+    """Código HTTP de la excepción del SDK (`code` o `status_code`), o None."""
+    for attr in ('code', 'status_code'):
+        value = getattr(exc, attr, None)
+        if isinstance(value, int) and not isinstance(value, bool):
+            return value
+    return None
 
 
 def mark_quota_exhausted(retry_after_seconds: int = 0) -> None:
@@ -299,11 +319,13 @@ def check_daily_limit(organization) -> tuple[bool, str | None]:
     ).count()
 
     if used >= daily_limit:
-        reset_hour = "02:00h" if timezone.now().month in range(4, 11) else "01:00h"
+        logger.warning(
+            "Límite diario del asistente alcanzado [org=%s]: %s/%s",
+            organization.id, used, daily_limit,
+        )
         return False, (
-            f"🚫 **Límite diario alcanzado** (`{used}/{daily_limit}` consultas).\n\n"
-            f"El asistente se reinicia cada día a las {reset_hour} (España). "
-            f"Puedes aumentar el límite configurando `GEMINI_DAILY_LIMIT` en el fichero `.env`. 🌙"
+            f"🚫 **Límite diario alcanzado** (`{used}/{daily_limit}` consultas). "
+            "Podrás volver a usar el asistente mañana. 🌙"
         )
     return True, None
 
@@ -323,19 +345,12 @@ def chat_with_ai(organization, user_message: str, history_messages) -> tuple:
     """
     api_key = getattr(settings, 'GEMINI_API_KEY', None) or ''
     if not api_key:
-        return None, (
-            "⚙️ No hay clave de API configurada. "
-            "El administrador debe añadir GEMINI_API_KEY en el fichero .env."
-        )
+        logger.warning("Asistente sin configurar: falta GEMINI_API_KEY")
+        return None, MSG_NO_CONFIGURADO
 
     # ── Circuit breaker: quota global agotada ─────────────────────────────
     if is_quota_exhausted():
-        return None, (
-            "⚠️ **Consultas del día agotadas.** La cuota gratuita de la API se ha "
-            "alcanzado y el asistente está pausado para todos hasta que Gemini la "
-            "restablezca (cada día a las 00:00 UTC · `02:00h` en verano / `01:00h` "
-            "en invierno en España). ¡Hasta mañana! 🌙"
-        )
+        return None, MSG_LIMITE_CUOTA
 
     # ── Límite diario por organización (protección extra) ─────────────────
     ok, limit_error = check_daily_limit(organization)
@@ -371,23 +386,21 @@ def chat_with_ai(organization, user_message: str, history_messages) -> tuple:
 
     except Exception as exc:
         error_str = str(exc)
-        logger.warning("Gemini API error [org=%s]: %s", organization.id, error_str)
+        code = _error_code(exc)
+        # Detalle completo solo al log (sin clave API ni prompt con datos de la finca)
+        logger.exception("Error del asistente [org=%s]", organization.id)
 
-        if any(k in error_str for k in ('429', 'RESOURCE_EXHAUSTED', 'quota', 'rate limit')):
+        if code == 429 or (code is None and any(
+                k in error_str for k in ('429', 'RESOURCE_EXHAUSTED', 'quota', 'rate limit'))):
             # Intentar extraer retryDelay del mensaje de error
             retry_seconds = 0
-            import re as _re
-            m = _re.search(r"retryDelay.*?'(\d+)s'", error_str)
+            m = re.search(r"retryDelay.*?'(\d+)s'", error_str)
             if m:
                 retry_seconds = int(m.group(1))
             mark_quota_exhausted(retry_after_seconds=retry_seconds)
-            return None, (
-                "⚠️ **Consultas del día agotadas.** La cuota gratuita de la API se ha "
-                "alcanzado y el asistente está pausado para todos hasta que Gemini la "
-                "restablezca (cada día a las 00:00 UTC · `02:00h` en verano / `01:00h` "
-                "en invierno en España). ¡Hasta mañana! 🌙"
-            )
-        if any(k in error_str for k in ('403', 'API_KEY_INVALID', 'invalid api key')):
-            return None, "❌ Clave de API no válida. Revisa la configuración en .env (GEMINI_API_KEY)."
+            return None, MSG_LIMITE_CUOTA
+        if code in (401, 403) or (code is None and any(
+                k in error_str for k in ('403', 'API_KEY_INVALID', 'invalid api key'))):
+            return None, MSG_NO_CONFIGURADO
 
-        return None, f"❌ Error inesperado al conectar con el asistente. Detalles: {error_str}"
+        return None, MSG_NO_DISPONIBLE
