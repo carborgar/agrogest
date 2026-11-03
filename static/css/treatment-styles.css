@@ -780,3 +780,81 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
     .dropdown:has(> .dropdown-sheet.show), .dt-actions:has(.dropdown-sheet.show), .tl-item:has(.dropdown-sheet.show), .pl-item:has(.dropdown-sheet.show),
     .pl-group:has(.dropdown-sheet.show), .pl-field:has(.dropdown-sheet.show) { z-index: 1050 !important; }
 }
+
+/* ═══ CUENTA (au-*, nt-*, lp-*) ═══ */
+/* Pantallas públicas (login, recuperar contraseña, 404/500): marca arriba y una columna centrada con card-flat */
+.au { display: flex; align-items: center; justify-content: center; min-height: 100vh; min-height: 100dvh; padding: 1.5rem 1rem; }
+.au-box { width: 100%; max-width: 26rem; }
+.au-brand { display: flex; align-items: center; justify-content: center; gap: .6rem; margin-bottom: 1.25rem; font-size: 1.4rem; font-weight: 700; color: var(--tl-ink); text-decoration: none; }
+.au-brand:hover { color: var(--tl-ink); }
+.au-link { display: inline-flex; align-items: center; min-height: 44px; font-size: .875rem; font-weight: 600; text-decoration: none; }
+.au-link:hover { text-decoration: underline; }
+.au-check { display: flex; align-items: center; gap: .6rem; min-height: 44px; margin: 0; font-size: .95rem; cursor: pointer; }
+.au-check .form-check-input { flex: none; width: 1.25rem; height: 1.25rem; margin: 0; }
+.au-pass { position: relative; }
+.au-pass .tf-inp { padding-right: 3rem; }
+.au-eye { position: absolute; top: 0; right: 0; bottom: 0; width: 44px; padding: 0; border: 0; border-radius: 0 10px 10px 0; background: transparent; color: var(--tl-muted); }
+.au-eye:hover, .au-eye:focus-visible { color: var(--tl-ink); }
+
+/* Notificaciones: filas del listado tl-*; las nuevas llevan fondo suave, punto sobre el icono y título en negrita */
+.nt { max-width: 56rem; }
+.nt-list { --tl-cols: 3rem minmax(0, 1fr) 7.5rem; }
+.nt-list > .tl-item:first-child { border-top: 0; border-radius: 12px 12px 0 0; }
+.nt-list .tl-row { align-items: flex-start; padding-block: .75rem; }
+.nt-list .tl-date { position: relative; }
+.nt-list .tl-name { overflow: visible; font-weight: 600; white-space: normal; }
+.nt-list .tl-meta { display: block; margin-top: .1rem; white-space: normal; }
+.nt-new { background: #F1F8F2; }
+.nt-new .tl-name { font-weight: 700; }
+.nt-dot { position: absolute; top: -3px; right: -3px; width: 12px; height: 12px; border: 2px solid #fff; border-radius: 50%; background: var(--tl-3-fg); }
+.nt-when { font-size: .78rem; color: var(--tl-muted); text-align: right; }
+.nt-go { margin-top: .15rem; font-size: .8rem; font-weight: 600; color: var(--tl-3-fg); }
+@media (max-width: 767.98px) { .nt-when { flex: none; max-width: 5.5rem; } }
+
+/* Preferencias: el selector segmentado tf-seg con radios (el escrito para botones usa aria-pressed) */
+.tf-seg > .tf-sr + .tf-seg-btn { display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.tf-seg > .tf-sr:checked + .tf-seg-btn { background: #fff; color: var(--primary-dark); font-weight: 600; box-shadow: 0 1px 3px rgba(0, 0, 0, .12); }
+.tf-seg > .tf-sr:focus-visible + .tf-seg-btn { outline: 2px solid var(--bs-primary); outline-offset: 1px; }
+
+/* Acción destructiva de las herramientas de administración */
+.tf-btn--danger { background: var(--tl-0-fg); color: #fff; }
+.tf-btn--danger:hover, .tf-btn--danger:focus-visible { background: #8E1B11; color: #fff; }
+.tf-btn--danger:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Formularios tf-* con controles nativos (select y textarea) */
+.tf-inp.form-select { padding-right: 2.25rem; background-image: var(--bs-form-select-bg-img), var(--bs-form-select-bg-icon, none); background-repeat: no-repeat; background-position: right .75rem center; background-size: 16px 12px; }
+textarea.tf-inp { height: auto; min-height: 48px; padding: 10px 12px; resize: vertical; }
+
+/* Página de inicio pública (lp-*): mismas cajas, paleta y botones que la app, sin degradados */
+.lp-nav { position: sticky; top: 0; z-index: 1020; background: #fff; border-bottom: 1px solid var(--tl-head-line); }
+.lp-nav .container { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 64px; }
+.lp-nav .au-brand { margin: 0; font-size: 1.15rem; }
+.lp-hero { padding: 2.5rem 0; background: #fff; border-bottom: 1px solid var(--tl-head-line); }
+.lp-kicker { margin: 0 0 .5rem; font-size: .75rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--tl-3-fg); }
+.lp-h1 { margin: 0 0 1rem; font-size: clamp(2rem, 7vw, 3.25rem); font-weight: 800; line-height: 1.1; letter-spacing: -.02em; color: var(--tl-ink); }
+.lp-h1 span { color: var(--tl-3-fg); }
+.lp-lead { max-width: 36rem; margin-bottom: 1.5rem; font-size: 1.05rem; color: var(--tl-muted); }
+.lp-point { display: flex; align-items: center; gap: .85rem; padding: .85rem 1rem; border-top: 1px solid var(--tl-line); font-weight: 600; }
+.lp-point:first-child { border-top: 0; }
+.lp-section { padding: 2.5rem 0; }
+.lp-section--line { background: #fff; border-block: 1px solid var(--tl-head-line); }
+.lp-head { max-width: 40rem; margin-bottom: 1.5rem; }
+.lp-h2 { margin: 0 0 .5rem; font-size: clamp(1.5rem, 4.5vw, 2rem); font-weight: 700; letter-spacing: -.01em; color: var(--tl-ink); }
+.lp-ico, .lp-num { display: flex; align-items: center; justify-content: center; flex: none; width: 44px; height: 44px; border-radius: 10px; background: var(--tl-3-bg); color: var(--tl-3-fg); }
+.lp-num { width: 36px; height: 36px; border-radius: 50%; font-weight: 700; }
+.lp-check { display: flex; flex-direction: column; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+.lp-check i { margin-right: .6rem; color: var(--tl-3-fg); }
+.lp-chat { display: flex; flex-direction: column; gap: .75rem; padding: 1rem; }
+.lp-msg { max-width: 92%; padding: .7rem .9rem; border-radius: 12px; font-size: .9rem; line-height: 1.5; }
+.lp-msg--user { align-self: flex-end; background: var(--tl-2-bg); }
+.lp-msg--ai { align-self: flex-start; background: var(--tl-3-bg); }
+.lp-msg-label { display: block; margin-bottom: .15rem; font-size: .7rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--tl-muted); }
+.lp-cta { padding: 2rem 1.25rem; text-align: center; }
+.lp-cta p { max-width: 30rem; margin: 0 auto 1.25rem; }
+@media (min-width: 992px) {
+    .lp-hero { padding: 4.5rem 0; }
+    .lp-section { padding: 4rem 0; }
+    .lp-cta { padding: 3rem 1.5rem; }
+}
+/* El pie compartido deja hueco para el menú lateral y la barra inferior; en la página pública no hay ninguno */
+.lp .footer { margin: 0; }
