@@ -1025,3 +1025,22 @@ button.cal-row:hover { background: var(--tl-soft); }
 .st-bar-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--tl-ink); }
 .st-track { height: 8px; margin-top: .3rem; border-radius: 4px; background: var(--tl-line); }
 .st-track span { display: block; width: var(--p); height: 100%; border-radius: 4px; background: var(--bs-primary); }
+
+/* ═══════════════════════════════════════════════
+   EL TIEMPO (wx-*)
+   Reutiliza el tiempo de Inicio (hm-*: rejilla de horas, estados vacíos) y el resumen del tratamiento (dt-summary).
+   Solo se añade el selector de día (tl-tabs con tres líneas por pestaña) y el veredicto sobre fondo de estado.
+═══════════════════════════════════════════════ */
+.wx-days { min-width: 0; }
+.wx-days .tl-tab { flex-direction: column; flex: 1; gap: .1rem; min-width: 0; height: auto; min-height: 5rem; padding: .35rem .1rem; border: 0; background: transparent; font-size: .8rem; line-height: 1.2; }
+.wx-days .tl-tab.active { background: #fff; }
+.wx-days .tl-tab b { font-size: .95rem; }
+.wx-days .tl-tab small { display: inline-flex; align-items: center; gap: .25rem; font-size: .75rem; color: var(--tl-muted); }
+.wx-verdict .dt-label, .wx-verdict .dt-sub { color: inherit; }
+.hm-empty .btn { min-height: 44px; }
+@media (min-width: 768px) {
+    .wx-days .tl-tab { flex: 0 0 auto; min-width: 5.2rem; padding: .35rem .25rem; }
+}
+@media (max-width: 767.98px) {
+    .wx-parcels .pl-chip { height: 44px; }
+}
