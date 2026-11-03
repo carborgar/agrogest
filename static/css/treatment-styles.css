@@ -1,15 +1,5 @@
 
 
-.treatment-icon {
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-}
-
 .treatment-title {
     font-size: 0.95rem;
     font-weight: 600;
@@ -779,4 +769,43 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
     *:has(> .dropdown-sheet.show)::before { content: ''; position: fixed; inset: 0; z-index: 1049; background: rgba(0, 0, 0, .4); }
     .dropdown:has(> .dropdown-sheet.show), .dt-actions:has(.dropdown-sheet.show), .tl-item:has(.dropdown-sheet.show), .pl-item:has(.dropdown-sheet.show),
     .pl-group:has(.dropdown-sheet.show), .pl-field:has(.dropdown-sheet.show) { z-index: 1050 !important; }
+}
+
+/* ═══════════════════════════════════════════════
+   TRATAMIENTOS SECUNDARIOS (rp-*, op-*): clonar, repetir e instrucciones del operador.
+   Clonar y repetir usan los bloques tf-* del formulario; aquí solo lo propio.
+   La hoja del operador (op-*) se exporta a imagen/PDF y se imprime: sin menú ni dependencias.
+═══════════════════════════════════════════════ */
+.tf-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Clonar: casilla nativa (oculta) + fila táctil tf-opt; nombre y fecha aparecen al marcarla */
+.rp-field { position: relative; }
+.rp-check:checked + .tf-opt { border-color: var(--bs-primary); background: #F3F8F3; }
+.rp-check:checked + .tf-opt .tf-opt-box { background: var(--bs-primary); border-color: var(--bs-primary); }
+.rp-check:focus-visible + .tf-opt { outline: 2px solid var(--bs-primary); outline-offset: 2px; }
+.rp-extra { display: none; margin: .65rem 0 .25rem 36px; }
+.rp-check:checked ~ .rp-extra { display: grid; }
+
+/* Repetir: calendario de un mes (7 columnas) y lista de fechas elegidas */
+.rp-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; text-align: center; }
+.rp-wd { padding: .25rem 0; font-size: .72rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--tl-muted); }
+.rp-day { min-height: 44px; padding: 0; border: 0; border-radius: 10px; background: transparent; color: var(--tl-ink); font-size: .95rem; font-weight: 600; }
+.rp-day:hover:not(:disabled) { background: var(--tl-2-bg); }
+.rp-day:focus-visible { outline: 2px solid var(--bs-primary); outline-offset: -2px; }
+.rp-day:disabled { color: #B3B9AF; cursor: not-allowed; }
+.rp-day--today { box-shadow: inset 0 0 0 1.5px var(--tl-head-line); }
+.rp-day--origin:disabled { background: var(--tl-2-bg); color: var(--tl-2-fg); }
+.rp-day[aria-pressed="true"], .rp-day[aria-pressed="true"]:hover { background: var(--bs-primary); color: #fff; }
+.rp-dates { max-height: 320px; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.rp-date { display: flex; align-items: center; gap: .5rem; border-top: 1px solid var(--tl-line); }
+.rp-date:first-child { border-top: 0; }
+.rp-date-main { flex: 1; min-width: 0; font-weight: 700; }
+.rp-date-main span { display: block; font-size: .78rem; font-weight: 500; color: var(--tl-muted); }
+
+/* Instrucciones del operador: hoja compacta; en móvil la parcela ocupa la fila entera si hay tres celdas */
+.op-wrap { max-width: 640px; margin: 0 auto; padding: 1rem .75rem 2rem; }
+.op-wide { grid-column: 1 / -1; }
+@media (min-width: 768px) { .op-wide { grid-column: auto; } }
+@media print {
+    .op-wrap { max-width: none; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }

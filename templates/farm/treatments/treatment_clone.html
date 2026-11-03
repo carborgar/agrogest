@@ -1,110 +1,119 @@
 {% extends "base.html" %}
 {% load custom_filters %}
 
-{% block title %}Clonar — {{ treatment.name }}{% endblock %}
+{% block title %}Clonar tratamiento · AgroGest{% endblock %}
 {% block header %}Clonar tratamiento{% endblock %}
 
+{% block actions %}
+<a class="btn btn-outline-secondary btn-sm d-lg-none" href="{% url 'treatment-detail' treatment.id %}">Cancelar</a>
+{% endblock %}
+
 {% block content %}
-{% with state_class=treatment|treatment_state_class %}
-<div class="row justify-content-center">
-    <div class="col-lg-7">
+{% if available_fields %}
+{# Como en el formulario de tratamiento: la barra de acción sustituye a la barra de navegación inferior #}
+<script>document.body.classList.add('tf-page');</script>
+<div class="tf">
+    <form id="cloneForm" method="post" novalidate autocomplete="off">
+        {% csrf_token %}
+        <div class="tf-layout">
+            <div class="tf-main">
+                {% include "farm/treatments/_secondary_origin.html" %}
 
-        <!-- Resumen del tratamiento original -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="fa fa-copy me-2"></i>Original a clonar
-            </div>
-            <div class="card-body d-flex align-items-center gap-3">
-                <div class="treatment-icon bg-{{ state_class }} bg-opacity-10">
-                    <i class="fa fa-{{ treatment|treatment_type_icon }} text-{{ state_class }}"></i>
-                </div>
-                <div>
-                    <div class="fw-bold fs-5">{{ treatment.name }}</div>
-                    <div class="text-muted small">
-                        {{ treatment.get_type_display }} &middot;
-                        {{ treatment.field.name }} &middot;
-                        {{ treatment.date|date:"d/m/Y" }}
+                <section class="tf-card" aria-labelledby="cloneTitle">
+                    <div class="tf-head">
+                        <h2 class="tf-h2" id="cloneTitle">Parcelas de destino</h2>
+                        {% if available_fields|length > 1 %}<button type="button" class="tf-link" id="cloneAll">Marcar todas</button>{% endif %}
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <form method="POST">
-            {% csrf_token %}
-
-            <!-- Parcelas -->
-            <div class="card mb-4">
-                <div class="card-header">Parcelas de destino</div>
-                <div class="card-body p-0">
-                    {% if available_fields %}
-                    <ul class="list-group list-group-flush" id="fieldList">
+                    <p class="tf-hint mb-0">Se crea un tratamiento por parcela, con los mismos productos y las cantidades recalculadas con su superficie.</p>
+                    <div class="tf-opts" role="group" aria-labelledby="cloneTitle">
                         {% for field in available_fields %}
-                        <li class="list-group-item px-3 py-3">
-                            <!-- Checkbox -->
-                            <div class="form-check mb-0">
-                                <input class="form-check-input field-checkbox"
-                                       id="field_{{ field.id }}"
-                                       name="field_id"
-                                       type="checkbox"
-                                       value="{{ field.id }}">
-                                <label class="form-check-label fw-semibold" for="field_{{ field.id }}">
-                                    {{ field.name }}
-                                    <span class="text-muted fw-normal">({{ field.area }} ha &middot; {{ field.crop }})</span>
+                        <div class="rp-field">
+                            <input class="rp-check visually-hidden" id="field_{{ field.id }}" name="field_id" type="checkbox"
+                                   value="{{ field.id }}" data-name="{{ field.name }}">
+                            <label class="tf-opt" for="field_{{ field.id }}">
+                                <span class="tf-opt-box" aria-hidden="true"><i class="bi bi-check-lg"></i></span>
+                                <span class="tf-opt-body">
+                                    <span class="tf-opt-name">{{ field.name }}</span>
+                                    <span class="tf-opt-sub">{{ field.crop }} · {{ field.area|floatformat:"-2" }} ha</span>
+                                </span>
+                            </label>
+                            <div class="rp-extra tf-grid-2">
+                                <label class="tf-label-col" for="name_{{ field.id }}">Nombre
+                                    <input class="tf-inp" id="name_{{ field.id }}" maxlength="100" name="name_{{ field.id }}" type="text" value="{{ treatment.name }}">
+                                </label>
+                                <label class="tf-label-col" for="date_{{ field.id }}">Fecha
+                                    <input class="tf-inp" id="date_{{ field.id }}" name="date_{{ field.id }}" type="date" value="{{ treatment.date|date:'Y-m-d' }}">
                                 </label>
                             </div>
-                            <!-- Nombre y fecha, visibles solo al marcar -->
-                            <div class="field-options mt-2 ms-4 d-none" id="options_{{ field.id }}">
-                                <div class="row g-2">
-                                    <div class="col-sm-7">
-                                        <label class="form-label small text-muted mb-1" for="name_{{ field.id }}">Nombre</label>
-                                        <input class="form-control form-control-sm"
-                                               id="name_{{ field.id }}"
-                                               name="name_{{ field.id }}"
-                                               type="text"
-                                               value="{{ treatment.name }}">
-                                    </div>
-                                    <div class="col-sm-5">
-                                        <label class="form-label small text-muted mb-1" for="date_{{ field.id }}">Fecha</label>
-                                        <input class="form-control form-control-sm"
-                                               id="date_{{ field.id }}"
-                                               name="date_{{ field.id }}"
-                                               type="date"
-                                               value="{{ treatment.date|date:'Y-m-d' }}">
-                                    </div>
-                                </div>
-                            </div>
-                        </li>
+                        </div>
                         {% endfor %}
-                    </ul>
-                    {% else %}
-                    <div class="p-3 text-muted">No hay otras parcelas disponibles.</div>
-                    {% endif %}
+                    </div>
+                </section>
+            </div>
+
+            {# ── Resumen: barra fija abajo (móvil) / tarjeta lateral (escritorio) ── #}
+            <aside class="tf-summary" aria-label="Resumen de la clonación">
+                <div class="tf-sum-top">
+                    <span class="tf-lbl tf-sum-label">Se crearán</span>
+                    <div class="tf-sum-main-wrap">
+                        <span class="tf-sum-main" id="cloneMain" aria-live="polite">0 tratamientos</span>
+                        <span class="tf-sum-sub" id="cloneSub">Elige al menos una parcela</span>
+                    </div>
                 </div>
+                <div class="tf-sum-actions">
+                    <button class="tf-btn tf-btn--primary" disabled id="submitBtn" type="submit">Clonar</button>
+                    <a class="tf-btn tf-btn--sec tf-sum-cancel" href="{% url 'treatment-detail' treatment.id %}">Cancelar</a>
+                </div>
+            </aside>
+        </div>
+    </form>
+</div>
+{% else %}
+<div class="d-flex flex-column gap-3">
+    {% include "farm/treatments/_secondary_origin.html" %}
+    <div class="card card-flat">
+        <div class="hm-empty">
+            <span class="hm-empty-icon hm-empty-icon--warn"><i class="bi bi-diagram-3" aria-hidden="true"></i></span>
+            <b>No hay otras parcelas</b>
+            <span>Para clonar el tratamiento necesitas al menos una parcela más.</span>
+            <div class="d-flex flex-wrap justify-content-center gap-2 mt-2">
+                <a class="btn btn-primary" href="{% url 'field-create' %}">Nueva parcela</a>
+                <a class="btn btn-outline-secondary" href="{% url 'treatment-detail' treatment.id %}">Volver al tratamiento</a>
             </div>
-
-            <div class="d-flex gap-2 justify-content-end">
-                <a class="btn btn-secondary" href="{% url 'treatment-detail' treatment.id %}">Cancelar</a>
-                <button class="btn btn-primary" disabled id="submitBtn" type="submit">
-                    <i class="fa fa-copy me-1"></i>Clonar
-                </button>
-            </div>
-        </form>
-
+        </div>
     </div>
 </div>
-{% endwith %}
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
+{% if available_fields %}
 <script>
-    const checkboxes = document.querySelectorAll('.field-checkbox');
-    const submitBtn = document.getElementById('submitBtn');
+    (function () {
+        const boxes = Array.from(document.querySelectorAll('.rp-check'));
+        const main = document.getElementById('cloneMain');
+        const sub = document.getElementById('cloneSub');
+        const submit = document.getElementById('submitBtn');
+        const all = document.getElementById('cloneAll');
 
-    checkboxes.forEach(cb => {
-        cb.addEventListener('change', () => {
-            document.getElementById('options_' + cb.value).classList.toggle('d-none', !cb.checked);
-            submitBtn.disabled = !document.querySelector('.field-checkbox:checked');
+        function update() {
+            const on = boxes.filter(b => b.checked);
+            const n = on.length;
+            main.textContent = `${n} tratamiento${n === 1 ? '' : 's'}`;
+            sub.textContent = n ? on.map(b => b.dataset.name).join(', ') : 'Elige al menos una parcela';
+            submit.disabled = n === 0;
+            if (all) all.textContent = n === boxes.length ? 'Quitar todas' : 'Marcar todas';
+        }
+
+        boxes.forEach(b => b.addEventListener('change', update));
+        if (all) all.addEventListener('click', () => {
+            const check = !boxes.every(b => b.checked);
+            boxes.forEach(b => { b.checked = check; });
+            update();
         });
-    });
+        window.addEventListener('pageshow', update); // el navegador puede restaurar casillas al volver atrás
+        update();
+    })();
 </script>
+{% endif %}
 {% endblock %}
