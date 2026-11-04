@@ -98,8 +98,6 @@ urlpatterns = [
     path('api/treatments/<int:treatment_id>/move/', api_views.move_treatment, name='api-treatment-move'),
     path('api/field-costs-data/', api_views.field_costs_data, name='api-field-costs-data'),
 
-    # AI Assistant
-
     # Estadísticas anuales
     path('estadisticas/', YearlyStatsView.as_view(), name='yearly-stats'),
 ]
