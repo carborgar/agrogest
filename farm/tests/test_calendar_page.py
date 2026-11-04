@@ -35,8 +35,10 @@ def test_calendar_chips_show_active_state_with_check(client):
     org = OrganizationFactory()
     client.force_login(User.objects.create_user(username='calchips', password='pass', organization=org))
     html = client.get(reverse('treatment-calendar')).content.decode()
-    chips = html.count('class="btn btn-outline-secondary cal-chip"')
+    chips = html.count('class="cal-chip"')
     assert chips >= 4
     assert html.count('cal-chip-check') == chips
     assert html.count('class="btn-check status-checkbox"') == 3
     assert 'btn-check treatment-type-checkbox' in html
+    # Chip propio (no .btn): no debe parecer un botón de acción
+    assert 'btn-outline-secondary cal-chip' not in html

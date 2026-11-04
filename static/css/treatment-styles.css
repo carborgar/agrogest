@@ -1019,21 +1019,30 @@ button.cs-rank-row:hover { background: var(--tl-soft); }
 .cal-nav { min-width: 44px; height: 44px; padding: 0 .75rem; }
 .cal-top .tl-tabs { flex: 1 1 0; }
 button.tl-tab { border: 0; background: transparent; }
-/* Chips de filtro (Tipo, Estado): el estado no depende solo del color.
-   Activo: verde del proyecto con texto blanco (5,1:1) y ✓ delante. Inactivo: blanco, borde discontinuo y texto
-   --tl-muted (5,9:1), sin ✓. El estado real lo lleva la casilla (.btn-check); treatment-calendar.js solo lee las casillas. */
-.cal-chip { display: inline-flex; align-items: center; gap: 0; }
+/* Chips de filtro (Tipo, Estado), patrón «filter chip»: píldora en tonos suaves para no confundirse con los
+   botones de acción. Activo: verde claro --tl-3-bg, borde verde y texto --tl-3-fg (6,9:1) con ✓ delante.
+   Inactivo: blanco, borde gris sólido y texto --tl-muted (5,9:1). El estado no depende solo del color (✓).
+   El estado real lo lleva la casilla (.btn-check); treatment-calendar.js solo lee las casillas. */
+.cal-chips { gap: .5rem; }
+.cal-chip { position: relative; display: inline-flex; align-items: center; min-height: 32px; margin: 0; padding: .25rem .9rem .25rem .7rem; border: 1px solid var(--tl-head-line); border-radius: 999px; background: #fff; color: var(--tl-muted); font-size: .875rem; font-weight: 500; line-height: 1.2; white-space: nowrap; cursor: pointer; user-select: none; transition: background-color .15s ease, border-color .15s ease, color .15s ease; }
 /* El ✓ ocupa siempre su hueco (oculto si inactivo) para que el chip no cambie de ancho al marcar/desmarcar */
-.cal-chip-check { display: inline-block; width: 1em; margin-right: .4rem; font-size: .8em; text-align: center; visibility: hidden; }
-.cal-chips .btn-check:not(:checked) + .btn { background: #fff; border: 1px dashed #7B8794; color: var(--tl-muted); }
-.cal-chips .btn-check:not(:checked) + .btn:hover { background: var(--tl-2-bg); border-color: var(--tl-ink); color: var(--tl-ink); }
-.cal-chips .btn-check:checked + .btn { background: var(--bs-primary); border: 1px solid var(--bs-primary); color: #fff; }
-.cal-chips .btn-check:checked + .btn:hover { background: #005005; border-color: #005005; color: #fff; }
-.cal-chips .btn-check:checked + .btn .cal-chip-check { visibility: visible; }
-.cal-chips .btn-check:focus-visible + .btn { outline: 2px solid var(--bs-primary); outline-offset: 2px; box-shadow: 0 0 0 2px #fff; }
-/* El punto de estado sobre el verde: aro blanco para que se distinga (el verde de «Completado» incluido) */
-.cal-chips .btn-check:checked + .btn .cal-dot { box-shadow: 0 0 0 2px #fff; }
-@media (max-width: 767.98px) { .cal-chips .btn { min-height: 44px; } }
+.cal-chip-check { display: inline-block; width: .9em; margin-right: .3rem; font-size: .75em; text-align: center; visibility: hidden; }
+.cal-chip-icon { margin-right: .4rem; font-size: .85em; }
+.cal-chip .cal-dot { width: 8px; height: 8px; }
+.cal-chips .btn-check:checked + .cal-chip { background: var(--tl-3-bg); border-color: var(--bs-primary); color: var(--tl-3-fg); }
+.cal-chips .btn-check:checked + .cal-chip .cal-chip-check { visibility: visible; }
+.cal-chips .btn-check:focus-visible + .cal-chip { outline: 2px solid var(--bs-primary); outline-offset: 2px; }
+/* Hover solo con ratón: en táctil se quedaría «pegado» tras tocar el chip */
+@media (hover: hover) {
+    .cal-chip:hover { background: var(--tl-soft); border-color: #B7BEB2; color: var(--tl-ink); }
+    .cal-chips .btn-check:checked + .cal-chip:hover { background: #D3E8D5; border-color: var(--bs-primary); color: var(--tl-3-fg); }
+}
+@media (prefers-reduced-motion: reduce) { .cal-chip { transition: none; } }
+/* Móvil: chip de 36 px y zona táctil de 44 px con ::after (el hueco de 8 px entre filas evita solapes) */
+@media (max-width: 767.98px) {
+    .cal-chip { min-height: 36px; }
+    .cal-chip::after { content: ""; position: absolute; inset: -4px 0; }
+}
 /* Fila de lista (día, agenda): una caja con filas separadas por línea */
 .cal-row { display: flex; align-items: center; gap: .75rem; width: 100%; min-height: 56px; padding: .6rem 1rem; border: 0; border-top: 1px solid var(--tl-line); background: #fff; color: var(--tl-ink); text-align: left; }
 .cal-row:first-child { border-top: 0; }
