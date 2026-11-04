@@ -95,7 +95,6 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'farm.context_processors.sidebar_state',
                 'farm.context_processors.active_nav',
-                'farm.context_processors.ai_configured',
                 'farm.context_processors.unread_notifications',
                 'farm.context_processors.feature_flags',
             ],
@@ -203,18 +202,10 @@ RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
 # URL pública de la app (usada para construir enlaces absolutos en emails)
 SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000')
 
-# ── Asistente IA (Google Gemini) ──────────────────────────────────────────────
-# Obtén tu clave GRATIS en: https://aistudio.google.com/apikey
-# Modelo: gemini-flash-lite-latest → alias siempre actualizado al Flash Lite más reciente (FREE TIER)
-# GEMINI_DAILY_LIMIT: límite diario de peticiones por organización (protección extra).
-#   Por defecto 50 (bien por debajo de los límites gratuitos de Gemini). Ponlo a 0 para sin límite.
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-flash-lite-latest")
-
 # Caché en BD: en Vercel cada instancia tiene su propia memoria, así que una caché en memoria
 # no se comparte ni sobrevive a los arranques en frío. La tabla la crea la migración
 # core/0002_cache_table (createcachetable), así existe en cualquier entorno tras `migrate`.
-# Solo se cachean datos externos (AEMET), feature flags y la cuota del asistente.
+# Solo se cachean datos externos (AEMET) y feature flags.
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.db.DatabaseCache",
@@ -224,7 +215,6 @@ CACHES = {
 }
 
 AEMET_API_KEY = os.environ.get("AEMET_API_KEY", "")
-GEMINI_DAILY_LIMIT = int(os.environ.get("GEMINI_DAILY_LIMIT", "50"))
 
 LOGGING = {
     "version": 1,
@@ -260,9 +250,8 @@ if not DEBUG:
         # Add data like request headers and IP for users,
         # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
         send_default_pii=True,
-        # No enviar variables locales de los frames: logger.exception en el
-        # asistente expondría api_key, system_prompt (datos de la finca) y
-        # user_message. Fijado por farm/tests/test_ai_errores_genericos.py.
+        # No enviar variables locales de los frames: pueden contener claves
+        # de APIs externas y datos de la finca.
         include_local_variables=False,
         # Enable sending logs to Sentry
         enable_logs=True,

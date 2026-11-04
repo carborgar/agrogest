@@ -12,7 +12,6 @@ from farm.views.treatment_views import (
     RepeatTreatmentView, TreatmentExcelExportView,
 )
 from . import api_views
-from .views.chat_views import ChatView
 from .views.expense_views import ExpenseListView, ExpenseFormView, ExpenseDeleteView, ExpenseTypeListView, \
     ExpenseTypeFormView, ExpenseTypeDeleteView
 from .views.field_views import FieldListView, FieldCreateView, FieldUpdateView, FieldDeleteView, FieldDetailView
@@ -100,7 +99,6 @@ urlpatterns = [
     path('api/field-costs-data/', api_views.field_costs_data, name='api-field-costs-data'),
 
     # AI Assistant
-    path('asistente/', ChatView.as_view(), name='chat'),
 
     # Estadísticas anuales
     path('estadisticas/', YearlyStatsView.as_view(), name='yearly-stats'),

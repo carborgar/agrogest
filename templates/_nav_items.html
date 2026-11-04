@@ -119,25 +119,6 @@
     </ul>
 </div>
 
-{% if gemini_configured %}
-<div class="nav-section">
-    <div class="nav-title"><span class="nav-link-text">Herramientas</span></div>
-    <ul class="nav flex-column">
-        <li class="nav-item">
-            <a class="nav-link {% if nav_chat %}active{% endif %}"
-               href="{% url 'chat' %}" data-label="Asistente IA">
-                <span class="nav-icon-wrap nav-icon-wrap--beta">
-                    <i class="fa fa-robot"></i>
-                    <span class="nav-beta-collapsed">BETA</span>
-                </span>
-                <span class="nav-link-text">Asistente IA</span>
-                <span class="badge bg-warning text-dark ms-auto nav-beta-expanded" style="font-size:0.6rem;">BETA</span>
-            </a>
-        </li>
-    </ul>
-</div>
-{% endif %}
-
 <div class="nav-section">
     <div class="nav-title"><span class="nav-link-text">Configuración</span></div>
     <ul class="nav flex-column">
