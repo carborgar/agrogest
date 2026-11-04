@@ -11,18 +11,21 @@
 }(typeof self !== 'undefined' ? self : this, function () {
     'use strict';
 
-    // Orden categórico: verde de marca, azul, ámbar, rojo, morado, rosa, azul claro.
+    // Paleta categórica de la app (--cs-1…6, la misma de las gráficas de costes de Parcelas; ver treatment-styles.css).
     // El segundo valor es solo el respaldo si el token no existe en la página.
     const PALETTE_TOKENS = [
-        ['--bs-primary', '#2E7D32'],
-        ['--bs-secondary', '#1565C0'],
-        ['--bs-warning', '#F59E0B'],
-        ['--tl-0-fg', '#B42318'],
-        ['--bs-purple', '#6F42C1'],
-        ['--bs-pink', '#D63384'],
-        ['--bs-info', '#2196F3'],
+        ['--cs-1', '#008300'],
+        ['--cs-2', '#EDA100'],
+        ['--cs-3', '#6250D6'],
+        ['--cs-4', '#EB6834'],
+        ['--cs-5', '#2A78D6'],
+        ['--cs-6', '#E87BA4'],
     ];
+    const OTHER_TOKEN = ['--cs-other', '#7A8577'];
     const MUTED_TOKEN = ['--tl-muted', '#5F665C'];
+    // Serie única de barras mensuales: verde de marca; el mes más activo, morado (--cs-3, contraste 5,8:1 sobre blanco)
+    const PRIMARY_TOKEN = ['--bs-primary', '#2E7D32'];
+    const HIGHLIGHT_TOKEN = PALETTE_TOKENS[2];
     const MAX_LABEL = 22;
 
     // ── Formato es-ES (manual: no depende de los datos de ICU del navegador/node) ──
@@ -58,15 +61,16 @@
     function readPalette(getVar) {
         return {
             categorical: PALETTE_TOKENS.map(t => readToken(getVar, t)),
+            other: readToken(getVar, OTHER_TOKEN),
             muted: readToken(getVar, MUTED_TOKEN),
-            primary: readToken(getVar, PALETTE_TOKENS[0]),
-            highlight: readToken(getVar, PALETTE_TOKENS[2]),
+            primary: readToken(getVar, PRIMARY_TOKEN),
+            highlight: readToken(getVar, HIGHLIGHT_TOKEN),
         };
     }
-    // Cada elemento normal toma el siguiente color categórico; los «otros / sin tipo» van en gris.
+    // Cada elemento normal toma el siguiente color categórico; «otros» va en gris (--cs-other).
     function assignColors(items, palette) {
         let i = 0;
-        return items.map(it => it.other ? palette.muted : palette.categorical[i++ % palette.categorical.length]);
+        return items.map(it => it.other ? palette.other : palette.categorical[i++ % palette.categorical.length]);
     }
 
     // ── Constructores de datasets (puros) ──
@@ -118,7 +122,7 @@
             maintainAspectRatio: false,
             animation: ui.reduceMotion ? false : undefined,
             font: { family: ui.font },
-            plugins: { legend: { labels: { color: ui.ink, boxWidth: 12, padding: 12, font: { size: 12 } } } },
+            plugins: { legend: { labels: { color: ui.ink, boxWidth: 12, padding: 14, font: { size: 12 } } } },
         };
     }
 
@@ -237,6 +241,7 @@
 
     return {
         PALETTE_TOKENS, formatNumber, formatEuro, formatKg, formatPercent, formatCount, shortLabel,
-        readPalette, assignColors, buildMonths, buildDoughnut, buildHarvests, init,
+        readPalette, assignColors, buildMonths, buildDoughnut, buildHarvests,
+        monthsConfig, doughnutConfig, harvestsConfig, init,
     };
 }));

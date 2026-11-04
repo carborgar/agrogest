@@ -10,7 +10,8 @@ const SCRIPT = fs.readFileSync(path.join(__dirname, '..', 'stats-charts.js'), 'u
 
 const palette = {
     categorical: ['#a', '#b', '#c'],
-    muted: '#gris',
+    other: '#gris',
+    muted: '#muted',
     primary: '#verde',
     highlight: '#ambar',
 };
@@ -45,15 +46,17 @@ test('shortLabel recorta con puntos suspensivos solo si hace falta', () => {
     assert.equal(SC.shortLabel(null), '');
 });
 
-test('readPalette lee los tokens CSS y usa respaldo si faltan', () => {
+test('readPalette lee los tokens --cs-* y usa respaldo si faltan', () => {
     const seen = [];
-    const p = SC.readPalette(name => { seen.push(name); return name === '--bs-primary' ? ' #123456 ' : ''; });
-    assert.equal(p.primary, '#123456');
+    const p = SC.readPalette(name => { seen.push(name); return name === '--cs-1' ? ' #123456 ' : ''; });
     assert.equal(p.categorical[0], '#123456');
-    assert.equal(p.categorical.length, SC.PALETTE_TOKENS.length);
-    assert.ok(p.categorical.length >= 6 && p.categorical.length <= 8);
+    assert.equal(p.categorical.length, 6);
+    assert.equal(p.other, '#7A8577');
     assert.equal(p.muted, '#5F665C');
-    assert.ok(seen.includes('--tl-0-fg') && seen.includes('--bs-secondary'));
+    assert.equal(p.primary, '#2E7D32');
+    assert.equal(p.highlight, p.categorical[2], 'el mes más activo usa --cs-3, no el ámbar ni el rojo semántico');
+    assert.deepEqual(seen.filter(n => n.startsWith('--cs-')), ['--cs-1', '--cs-2', '--cs-3', '--cs-4', '--cs-5', '--cs-6', '--cs-other', '--cs-3']);
+    for (const bad of ['--tl-0-fg', '--bs-warning', '--bs-secondary', '--bs-info']) assert.ok(!seen.includes(bad), bad);
     assert.equal(new Set(p.categorical).size, p.categorical.length, 'colores categóricos distintos');
 });
 
@@ -68,7 +71,7 @@ test('buildMonths separa el mes más activo en su propia serie', () => {
     assert.deepEqual(d.datasets[0].data, [1, 0, null]);
     assert.deepEqual(d.datasets[1].data, [null, null, 3]);
     assert.equal(d.datasets[0].backgroundColor, '#verde');
-    assert.equal(d.datasets[1].backgroundColor, '#ambar');
+    assert.equal(d.datasets[1].backgroundColor, '#ambar');   // el color del mes lo decide la paleta
     assert.equal(d.datasets[1].label, 'Mes más activo');
 });
 
@@ -127,4 +130,51 @@ test('sin Chart.js oculta los lienzos y abre las tablas', () => {
     w.StatsCharts.init(w);
     assert.equal(w.document.querySelector('canvas').parentElement.hidden, true);
     assert.equal(w.document.querySelector('details').open, true);
+});
+
+// ── Configuraciones (puras: reciben los datos y los colores ya leídos) ──
+const ui = {
+    palette, ink: '#ink', muted: '#muted', line: '#line', surface: '#surface', font: 'Inter', reduceMotion: true,
+    Chart: { overrides: { doughnut: { plugins: { legend: { labels: { generateLabels: () => [{ text: 'Fungicida', index: 0 }, { text: 'Otros tipos', index: 1 }] } } } } } },
+};
+
+test('doughnutConfig: leyenda con el valor y tooltip con porcentaje y coste', () => {
+    const items = [{ label: 'Fungicida', value: 3, cost: 12.5 }, { label: 'Otros tipos', value: 1, other: true }];
+    const cfg = SC.doughnutConfig(items, ui, { seriesLabel: 'Usos', format: v => SC.formatCount(v, 'uso', 'usos'), extra: it => (it.cost ? 'Coste: ' + SC.formatEuro(it.cost) : '') });
+    assert.equal(cfg.type, 'doughnut');
+    assert.equal(cfg.options.plugins.legend.position, 'bottom');
+    assert.equal(cfg.data.datasets[0].borderColor, '#surface');
+    assert.deepEqual(cfg.data.datasets[0].backgroundColor, ['#a', '#gris']);
+    const labels = cfg.options.plugins.legend.labels.generateLabels({});
+    assert.deepEqual(labels.map(l => l.text), ['Fungicida · 3 usos', 'Otros tipos · 1 uso']);
+    const cb = cfg.options.plugins.tooltip.callbacks;
+    assert.equal(cb.label({ label: 'Fungicida', raw: 3 }), ' Fungicida: 3 usos (75 %)');
+    assert.equal(cb.afterLabel({ dataIndex: 0 }), 'Coste: 12,50 €');
+    assert.equal(cb.afterLabel({ dataIndex: 1 }), '');
+});
+
+test('doughnutConfig sin Chart.overrides no rompe la leyenda', () => {
+    const cfg = SC.doughnutConfig([{ label: 'A', value: 1 }], Object.assign({}, ui, { Chart: null }), { seriesLabel: 'Gasto', format: SC.formatEuro });
+    assert.deepEqual(cfg.options.plugins.legend.labels.generateLabels({}), []);
+});
+
+test('harvestsConfig: barras horizontales, sin leyenda, etiqueta recortada y kg en el tooltip', () => {
+    const items = [{ label: 'Parcela con un nombre larguísimo', value: 12500 }];
+    const cfg = SC.harvestsConfig(items, ui);
+    assert.equal(cfg.options.indexAxis, 'y');
+    assert.equal(cfg.options.plugins.legend.display, false);
+    assert.equal(cfg.options.plugins.tooltip.callbacks.title([{ dataIndex: 0 }]), items[0].label);
+    assert.equal(cfg.options.plugins.tooltip.callbacks.title([]), '');
+    assert.equal(cfg.options.plugins.tooltip.callbacks.label({ raw: 12500 }), ' 12.500 kg');
+    const tick = cfg.options.scales.y.ticks.callback.call({ getLabelForValue: () => items[0].label }, 0);
+    assert.ok(tick.length <= 18 && tick.endsWith('…'));
+    assert.equal(cfg.options.scales.x.ticks.callback(1500), '1.500');
+});
+
+test('monthsConfig: leyenda solo si hay mes más activo y barras apiladas', () => {
+    const withPeak = SC.monthsConfig({ labels: ['Ene', 'Feb'], counts: [1, 3], peak: 1 }, ui);
+    assert.equal(withPeak.options.plugins.legend.display, true);
+    assert.equal(withPeak.options.scales.x.stacked, true);
+    const noPeak = SC.monthsConfig({ labels: ['Ene', 'Feb'], counts: [2, 2], peak: null }, ui);
+    assert.equal(noPeak.options.plugins.legend.display, false);
 });

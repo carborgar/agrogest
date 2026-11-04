@@ -1,3 +1,4 @@
+import hashlib
 import json
 import re
 from datetime import date
@@ -12,6 +13,7 @@ from farm.models import Expense, ExpenseType, Harvest, Treatment
 from farm.tests.factories import *
 
 YEAR = date.today().year
+CHARTJS_4_4_0_SHA256 = '4189ade3d07862981d2a92e0629d48a83ae840260122bc1fac01094e4b1c0aa2'
 
 
 @pytest.fixture
@@ -209,6 +211,22 @@ class TestCharts:
         assert data['productTypes'][0]['value'] == 1
         assert isinstance(data['productTypes'][0]['cost'], float)
 
+    def test_product_types_chart_groups_the_rest_in_otros_but_table_keeps_all(self, setup):
+        client, org, f1, _ = setup
+        t = _done(org, f1, 3)
+        for i in range(8):   # 8 tipos con nombre; el tipo i se usa 8 - i veces
+            ptype = ProductTypeFactory(organization=org, name=f'Tipo {i}')
+            for _ in range(8 - i):
+                TreatmentProductFactory(treatment=t, product=ProductFactory(organization=org, product_type=ptype))
+        response = _get(client)
+        items = _chart_data(response.content.decode())['productTypes']
+        assert [it['label'] for it in items] == [f'Tipo {i}' for i in range(6)] + ['Otros tipos']
+        assert [it['other'] for it in items] == [False] * 6 + [True]
+        assert items[-1]['value'] == 2 + 1
+        assert sum(it['value'] for it in items) == sum(range(1, 9))
+        assert len(response.context['by_product_type']) == 8   # «Ver datos» lista todos
+        assert 'product_type_labels' not in response.context and 'product_type_data' not in response.context
+
     def test_sections_without_data_show_empty_state_not_canvas(self, setup):
         client, org, f1, _ = setup
         _expense(org, f1, 'Agua', '500')  # solo hay gasto: no hay tratamientos ni cosechas
@@ -233,9 +251,14 @@ class TestCharts:
         html = _get(client).content.decode()
         vendor = finders.find('js/vendor/chart.umd.min.js')
         assert vendor, 'Chart.js debe estar versionado en static/js/vendor'
-        with open(vendor, encoding='utf-8') as fh:
-            head = fh.read(300)
+        with open(vendor, 'rb') as fh:
+            content = fh.read()
+        head = content[:300].decode('utf-8')
         assert 'Chart.js v4.4.0' in head and 'MIT License' in head
+        # dist/chart.umd.js de chart.js 4.4.0 sin su última línea (//# sourceMappingURL, que apunta a un .map que no se sirve)
+        assert hashlib.sha256(content).hexdigest() == CHARTJS_4_4_0_SHA256
+        assert b'sourceMappingURL' not in content
+        assert finders.find('js/vendor/chart.LICENSE.md')
         assert finders.find('js/stats-charts.js')
         assert '/static/js/vendor/chart.umd.min.js' in html and '/static/js/stats-charts.js' in html
         assert 'chart.js@' not in html

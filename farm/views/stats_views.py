@@ -10,6 +10,8 @@ from farm.models import Treatment, TreatmentProduct, Field, Harvest, Expense
 
 # Tope de PK admitido en el filtro de parcela (evita desbordar el entero de la BD)
 MAX_PK = 2**31 - 1
+# Sectores con color propio en la rosquilla de tipos de producto (el resto, en «Otros»)
+TOP_PRODUCT_TYPES = 6
 
 
 class YearlyStatsView(OwnershipRequiredMixin, TemplateView):
@@ -180,8 +182,6 @@ class YearlyStatsView(OwnershipRequiredMixin, TemplateView):
             .order_by("-times_used")
         )
         context["by_product_type"] = list(by_product_type)
-        context["product_type_labels"] = [r["product__product_type__name"] or "Sin tipo" for r in by_product_type]
-        context["product_type_data"] = [r["times_used"] for r in by_product_type]
 
         # ── Parcelas más activas ──────────────────────────────────────────
         most_active_fields = (
@@ -282,6 +282,21 @@ class YearlyStatsView(OwnershipRequiredMixin, TemplateView):
         ]
         if context["expenses_rest"] > 0:
             expense_items.append({"label": "Otros tipos de gasto", "value": float(context["expenses_rest"]), "other": True})
+        # Rosquilla de tipos de producto: los 6 más usados y el resto en «Otros tipos» (gris), como en gastos.
+        # La tabla «Ver datos» sigue con todos. El tipo es obligatorio en el producto, así que siempre hay nombre.
+        product_type_items = [
+            {"label": r["product__product_type__name"], "value": r["times_used"],
+             "cost": float(r["total_cost"] or 0), "other": False}
+            for r in context["by_product_type"][:TOP_PRODUCT_TYPES]
+        ]
+        rest_types = context["by_product_type"][TOP_PRODUCT_TYPES:]
+        if rest_types:
+            product_type_items.append({
+                "label": "Otros tipos",
+                "value": sum(r["times_used"] for r in rest_types),
+                "cost": float(sum(r["total_cost"] or 0 for r in rest_types)),
+                "other": True,
+            })
         context["stats_charts"] = {
             "months": {
                 "labels": month_labels,
@@ -292,13 +307,7 @@ class YearlyStatsView(OwnershipRequiredMixin, TemplateView):
             "harvests": [
                 {"label": h["field__name"], "value": float(h["total_kg"])} for h in harvests_by_field
             ],
-            "productTypes": [
-                {"label": r["product__product_type__name"] or "Sin tipo",
-                 "value": r["times_used"],
-                 "cost": float(r["total_cost"] or 0),
-                 "other": not r["product__product_type__name"]}
-                for r in by_product_type
-            ],
+            "productTypes": product_type_items,
         }
 
         # ── Marca nav activo ──────────────────────────────────────────────
