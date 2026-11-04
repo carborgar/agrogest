@@ -143,29 +143,36 @@ porque una región que pasa de oculta a visible no siempre se anuncia.{% endcomm
     </div>
 </div>
 
+{% comment %}Composición: en escritorio (≥ lg) la rosquilla y su lista de tipos comparten una card (la lista hace de leyenda,
+con los mismos colores) junto a la de €/ha; debajo, las parcelas a todo el ancho con la barra de reparto ocupando el
+espacio libre de la fila. En móvil todo apilado. Las parcelas salen plegadas: la fila ya resume.{% endcomment %}
 <div id="costsBody" hidden>
     <div class="row g-3 mb-3">
-        <div class="col-md-6">
-            <section class="card card-flat h-100" aria-labelledby="cs-chart-type">
-                <div class="dt-card-head"><h2 class="dt-card-title" id="cs-chart-type">Gasto por tipo de producto</h2></div>
-                <div class="cs-chart"><canvas id="productTypeChart" role="img" aria-label="Gráfico del gasto por tipo de producto; el detalle está en la lista de debajo"></canvas></div>
+        <div class="col-lg-7">
+            <section class="card card-flat h-100" aria-labelledby="cs-types-title">
+                <div class="dt-card-head"><h2 class="dt-card-title" id="cs-types-title">Gasto por tipo de producto</h2><span class="dt-card-hint d-none d-md-inline">Pulsa un tipo para ver sus productos</span></div>
+                <div class="cs-split">
+                    <div class="cs-chart cs-chart--donut"><canvas id="productTypeChart" role="img" aria-label="Gráfico del gasto por tipo de producto; el detalle está en la lista"></canvas></div>
+                    <div class="cs-split-list" id="productTypeDetails"></div>
+                </div>
             </section>
         </div>
-        <div class="col-md-6">
+        <div class="col-lg-5">
             <section class="card card-flat h-100" aria-labelledby="cs-chart-field">
                 <div class="dt-card-head"><h2 class="dt-card-title" id="cs-chart-field">Coste por hectárea</h2><span class="dt-card-hint">€/ha</span></div>
-                <div class="cs-chart"><canvas id="fieldCostChart" role="img" aria-label="Gráfico del coste por hectárea de cada parcela; el detalle está en la lista de debajo"></canvas></div>
+                <div class="cs-chart cs-chart--grow"><canvas id="fieldCostChart" role="img" aria-label="Gráfico del coste por hectárea de cada parcela; el detalle está en la lista «Por parcela»"></canvas></div>
             </section>
         </div>
     </div>
 
-    <section class="card card-flat mb-3" aria-labelledby="cs-types-title">
-        <div class="dt-card-head"><h2 class="dt-card-title" id="cs-types-title">Por tipo de producto</h2><span class="dt-card-hint d-none d-md-inline">Pulsa un tipo para ver sus productos</span></div>
-        <div id="productTypeDetails"></div>
-    </section>
-
     <section class="card card-flat" aria-labelledby="cs-fields-title">
-        <div class="dt-card-head"><h2 class="dt-card-title" id="cs-fields-title">Por parcela</h2><span class="dt-card-hint d-none d-md-inline">Pulsa una parcela para ver su desglose</span></div>
+        <div class="dt-card-head">
+            <h2 class="dt-card-title" id="cs-fields-title">Por parcela</h2>
+            <span class="d-flex align-items-center gap-2">
+                <span class="dt-card-hint d-none d-md-inline">Pulsa una parcela para ver su desglose</span>
+                <button class="btn btn-sm btn-outline-secondary" id="fieldsToggleAll" type="button" aria-controls="fieldsContainer" aria-expanded="false" hidden>Expandir todo</button>
+            </span>
+        </div>
         <div id="fieldsContainer"></div>
     </section>
 </div>

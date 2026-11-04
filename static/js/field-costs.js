@@ -1,6 +1,66 @@
 // Resumen de gastos por parcela: pestañas de periodo + filtros, y los datos de la API api-field-costs-data
 // pintados en gráficos (Chart.js) y en listas desplegables (<details>, sin depender de Bootstrap JS).
-document.addEventListener('DOMContentLoaded', function () {
+// Las funciones puras (reparto por tipo, colores, orden, plegado) se exportan para los tests de node.
+(function (root, factory) {
+    if (typeof module === 'object' && module.exports) module.exports = factory();
+    else root.FieldCosts = factory();
+}(typeof self !== 'undefined' ? self : this, function () {
+    'use strict';
+
+    // Color de cada tipo de producto: el mismo orden que la rosquilla (tipos con gasto, de más a menos).
+    // Con más tipos que colores, los pequeños comparten el color de «Otros»; los tipos sin gasto también.
+    function typeColorMap(breakdown, series, other) {
+        const types = (breakdown || []).filter(t => t.total > 0);
+        const grouped = types.length > series.length;
+        const map = {};
+        types.forEach((t, i) => { map[t.type_name] = (!grouped || i < series.length - 1) ? series[i] : other; });
+        return map;
+    }
+
+    // % del gasto de cada tipo dentro de una parcela, calculado con los totales (suma 100 con lo que hay)
+    function typeShares(breakdown) {
+        const types = (breakdown || []).filter(t => t.total > 0);
+        const sum = types.reduce((s, t) => s + t.total, 0);
+        return types.map(t => ({ type_name: t.type_name, total: t.total, pct: sum ? t.total / sum * 100 : 0 }))
+            .sort((a, b) => b.total - a.total || a.type_name.localeCompare(b.type_name, 'es'));
+    }
+
+    // Tramos de la barra apilada: un tramo por tipo; los que caen en «Otros» se juntan en uno al final
+    function barSegments(shares, colors, other) {
+        const segs = [];
+        let rest = null;
+        shares.forEach(s => {
+            const color = colors[s.type_name] || other;
+            if (color === other) {
+                rest = rest || { name: 'Otros', pct: 0, color: other };
+                rest.pct += s.pct;
+            } else {
+                segs.push({ name: s.type_name, pct: s.pct, color });
+            }
+        });
+        if (rest) segs.push(rest);
+        return segs;
+    }
+
+    // Parcelas de más a menos €/ha; a igualdad, por nombre
+    function sortFields(fields) {
+        return [...(fields || [])].sort((a, b) => b.cost_per_ha - a.cost_per_ha || a.name.localeCompare(b.name, 'es'));
+    }
+
+    // Parcela con más €/ha: solo las que tienen gasto y superficie (sin superficie no hay €/ha que comparar)
+    function topField(fields) {
+        return (fields || []).filter(f => f.total_cost > 0 && f.area > 0)
+            .reduce((best, f) => (!best || f.cost_per_ha > best.cost_per_ha ? f : best), null);
+    }
+
+    // «Expandir todo» mientras quede alguna plegada; «Plegar todo» cuando están todas abiertas
+    function allOpen(states) { return states.length > 0 && states.every(Boolean); }
+
+    return { typeColorMap, typeShares, barSegments, sortFields, topField, allOpen };
+}));
+
+if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded', function () {
+    const FC = window.FieldCosts;
     const $ = (id) => document.getElementById(id);
     const dateFromInput = $('dateFrom');
     const dateToInput = $('dateTo');
@@ -94,7 +154,8 @@ document.addEventListener('DOMContentLoaded', function () {
         // Las cifras clave solo acompañan a los datos: así nunca quedan las de una carga anterior
         const key = $('costKey');
         if (key) key.hidden = name !== 'body';
-        if (name === 'loading') $('costSummary').textContent = 'Cargando…';
+        // Al cargar avisa #costsLoading (role="status"); aquí solo se vacía para no anunciarlo dos veces
+        if (name === 'loading') $('costSummary').textContent = '';
     }
 
     // ── Carga ──────────────────────────────────────────────────────────────────
@@ -160,6 +221,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
         show('body');
+        colors = FC.typeColorMap(data.product_breakdown, SERIES, OTHER);
         renderSummary(data);
         renderTypes(data.product_breakdown);
         renderFields(data.fields);
@@ -177,7 +239,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const area = nf(0, 2).format(data.total_area);
         setText('costKeyTotal', eur(data.total_cost));
         setText('costKeyTotalSub', plural(n, 'parcela', 'parcelas'));
-        setText('costKeyPerHa', `${eur(data.cost_per_ha)}/ha`);
+        // La etiqueta ya dice «por ha»: la cifra va sola para que no se parta en móvil
+        setText('costKeyPerHa', eur(data.cost_per_ha));
         setText('costKeyPerHaSub', `sobre ${area} ha`);
 
         // Tipo y parcela que más pesan: los mismos datos de las listas, sin cálculos nuevos
@@ -185,8 +248,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .reduce((best, t) => (!best || t.total > best.total ? t : best), null);
         setText('costKeyType', topType ? topType.type_name : '—');
         setText('costKeyTypeSub', topType ? `${eur(topType.total)} · ${pct(topType.percentage)}` : 'sin precio');
-        const topField = data.fields.filter(f => f.total_cost > 0)
-            .reduce((best, f) => (!best || f.cost_per_ha > best.cost_per_ha ? f : best), null);
+        const topField = FC.topField(data.fields);
         setText('costKeyField', topField ? topField.name : '—');
         setText('costKeyFieldSub', topField ? `${eur(topField.cost_per_ha)}/ha` : 'sin precio');
 
@@ -211,19 +273,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 <span class="cs-val">${productValue(p)}</span>${pctText(p.percentage)}</div>`).join('');
     }
 
-    function colorOf(index) { return index < MAX_SLICES - (currentTypeCount() > MAX_SLICES ? 1 : 0) ? SERIES[index] : OTHER; }
-    function currentTypeCount() { return currentData ? currentData.product_breakdown.length : 0; }
+    // Mismo color por tipo en la rosquilla, la lista de tipos y las barras de cada parcela
+    let colors = {};
+    const colorOf = (name) => colors[name] || OTHER;
 
     // ── Por tipo de producto ───────────────────────────────────────────────────
     function renderTypes(breakdown) {
         const box = $('productTypeDetails');
         if (!breakdown || !breakdown.length) { box.innerHTML = '<div class="hm-group-empty">Sin datos en este periodo.</div>'; return; }
-        const head = `<div class="tl-head cs-head d-none d-md-grid" aria-hidden="true">
-            <span>Tipo</span><span class="text-end">${viewMode === 'cost' ? 'Gasto' : 'Cantidad'}</span><span class="text-end">${viewMode === 'cost' ? '% del gasto' : ''}</span><span></span></div>`;
-        box.innerHTML = head + breakdown.map((t, i) => `
+        box.innerHTML = breakdown.map(t => `
             <details class="cs-item cs-item--type">
                 <summary class="cs-row">
-                    <span class="cs-name"><i class="cs-dot" style="background:${colorOf(i)}" aria-hidden="true"></i>${esc(t.type_name)}
+                    <span class="cs-name"><i class="cs-dot" style="background:${colorOf(t.type_name)}" aria-hidden="true"></i>${esc(t.type_name)}
                         <small>${t.products.length} producto${t.products.length === 1 ? '' : 's'}</small></span>
                     <span class="cs-val">${typeValue(t)}</span>
                     <span class="cs-pct">${viewMode === 'cost' ? pct(t.percentage) : ''}</span>
@@ -233,49 +294,81 @@ document.addEventListener('DOMContentLoaded', function () {
             </details>`).join('');
     }
 
-    // ── Por parcela (de más a menos €/ha) ──────────────────────────────────────
+    // ── Por parcela (de más a menos €/ha), plegadas: la fila resume y el desglose se abre a demanda ──
+    // Barra apilada con el % de gasto por tipo; el texto alternativo lleva los mismos % (no solo color)
+    function fieldBar(f) {
+        const segs = FC.barSegments(FC.typeShares(f.product_breakdown), colors, OTHER);
+        if (!segs.length) return '<span class="cs-bar cs-bar--empty" role="img" aria-label="Sin gasto"></span>';
+        const label = 'Reparto del gasto: ' + segs.map(s => `${s.name} ${pct(s.pct)}`).join(', ');
+        return `<span class="cs-bar" role="img" aria-label="${esc(label)}">${segs.map(s =>
+            `<i style="width:${s.pct.toFixed(2)}%;background:${s.color}"></i>`).join('')}</span>`;
+    }
+
+    function fieldBody(f) {
+        if (!f.product_breakdown || !f.product_breakdown.length) {
+            return '<div class="cs-prod text-muted">Sin tratamientos con productos en este periodo.</div>';
+        }
+        const share = {};
+        FC.typeShares(f.product_breakdown).forEach(s => { share[s.type_name] = s.pct; });
+        return f.product_breakdown.map(t => `
+            <div class="cs-type-line"><b><i class="cs-dot" style="background:${colorOf(t.type_name)}" aria-hidden="true"></i>${esc(t.type_name)}</b>
+                <span class="cs-val">${typeValue(t)}</span>${pctText(share[t.type_name] || 0)}</div>
+            ${productLines(t.products)}`).join('');
+    }
+
     function renderFields(fields) {
-        const sorted = [...fields].sort((a, b) => b.cost_per_ha - a.cost_per_ha || a.name.localeCompare(b.name, 'es'));
+        // Al repintar (cambio de modo) se mantienen abiertas las que el usuario abrió
+        const open = new Set(Array.from(fieldsContainer.querySelectorAll('details[open]')).map(d => d.dataset.id));
         const cost = viewMode === 'cost';
         const head = `<div class="tl-head cs-head cs-head--fields d-none d-md-grid" aria-hidden="true">
-            <span>Parcela</span><span class="text-end">Superficie</span><span class="text-end">${cost ? 'Gasto' : 'Cantidad'}</span><span class="text-end">${cost ? '€/ha' : ''}</span><span></span></div>`;
-        fieldsContainer.innerHTML = head + sorted.map(f => {
-            const has = f.product_breakdown && f.product_breakdown.length;
+            <span>Parcela</span><span class="text-end">Superficie</span><span>${cost ? 'Reparto por tipo' : ''}</span>
+            <span class="text-end">${cost ? 'Gasto' : 'Cantidad'}</span><span class="text-end">${cost ? '€/ha' : ''}</span><span></span></div>`;
+        fieldsContainer.innerHTML = head + FC.sortFields(fields).map(f => {
             const all = (f.product_breakdown || []).flatMap(t => t.products);
-            const body = has
-                ? f.product_breakdown.map(t => `
-                    <div class="cs-type-line"><b>${esc(t.type_name)}</b><span class="cs-val">${typeValue(t)}</span>${pctText(t.percentage)}</div>
-                    ${productLines(t.products)}`).join('')
-                : '<div class="cs-prod text-muted">Sin tratamientos con productos en este periodo.</div>';
             return `
-            <details class="cs-item cs-item--field">
+            <details class="cs-item cs-item--field" data-id="${esc(f.id)}"${open.has(String(f.id)) ? ' open' : ''}>
                 <summary class="cs-row">
                     <span class="cs-name">${esc(f.name)}<small class="d-md-none">${num(f.area)} ha</small></span>
                     <span class="cs-area d-none d-md-block">${num(f.area)} ha</span>
+                    ${cost ? fieldBar(f) : '<span class="cs-bar-slot" aria-hidden="true"></span>'}
                     <span class="cs-val">${cost ? eur(f.total_cost) : qtyLabel(all)}</span>
-                    <span class="cs-pct">${cost ? eur(f.cost_per_ha) + '<small>/ha</small>' : ''}</span>
+                    <span class="cs-pct">${cost ? (f.area > 0 ? eur(f.cost_per_ha) + '<small>/ha</small>' : '—') : ''}</span>
                     <i class="fa fa-chevron-down cs-chev" aria-hidden="true"></i>
                 </summary>
-                <div class="cs-more">${body}</div>
+                <div class="cs-more">${fieldBody(f)}</div>
             </details>`;
         }).join('');
+        syncToggleAll();
+    }
+
+    // «Expandir todo / Plegar todo»: solo con más de una parcela
+    const toggleAllBtn = $('fieldsToggleAll');
+    function fieldItems() { return Array.from(fieldsContainer.querySelectorAll('details.cs-item--field')); }
+    function syncToggleAll() {
+        if (!toggleAllBtn) return;
+        const items = fieldItems();
+        toggleAllBtn.hidden = items.length < 2;
+        const expanded = FC.allOpen(items.map(d => d.open));
+        toggleAllBtn.textContent = expanded ? 'Plegar todo' : 'Expandir todo';
+        toggleAllBtn.setAttribute('aria-expanded', String(expanded));
     }
 
     // ── Gráficos: siempre en euros (litros y kilos no se pueden sumar en un mismo gráfico) ──
     function updateCharts(data) {
         if (typeof Chart === 'undefined') return;  // sin la librería, las listas dan los mismos datos
 
-        const types = data.product_breakdown.filter(t => t.total > 0);
+        const types = data.product_breakdown.filter(t => t.total > 0);  // ya vienen de más a menos
         let labels = types.map(t => t.type_name), values = types.map(t => t.total);
         if (types.length > MAX_SLICES) {
             const rest = types.slice(MAX_SLICES - 1).reduce((s, t) => s + t.total, 0);
             labels = labels.slice(0, MAX_SLICES - 1).concat('Otros');
             values = values.slice(0, MAX_SLICES - 1).concat(rest);
         }
-        const colors = labels.map((_, i) => (types.length > MAX_SLICES && i === labels.length - 1) ? OTHER : SERIES[i]);
-        const typeData = { labels, datasets: [{ data: values, backgroundColor: colors, borderColor: '#fff', borderWidth: 2 }] };
+        const grouped = types.length > MAX_SLICES;
+        const sliceColors = labels.map((l, i) => (grouped && i === labels.length - 1) ? OTHER : colorOf(l));
+        const typeData = { labels, datasets: [{ data: values, backgroundColor: sliceColors, borderColor: '#fff', borderWidth: 2 }] };
 
-        const top = [...data.fields].filter(f => f.total_cost > 0).sort((a, b) => b.cost_per_ha - a.cost_per_ha).slice(0, 8);
+        const top = FC.sortFields(data.fields.filter(f => f.total_cost > 0 && f.area > 0)).slice(0, 8);
         const fieldData = {
             labels: top.map(f => f.name),
             datasets: [{ label: '€/ha', data: top.map(f => f.cost_per_ha), backgroundColor: SERIES[0], borderRadius: 4, maxBarThickness: 22 }]
@@ -290,7 +383,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 options: {
                     responsive: true, maintainAspectRatio: false, cutout: '58%',
                     plugins: {
-                        legend: { position: 'bottom', labels: { boxWidth: 12, color: MUTED } },
+                        legend: { display: false },  // la lista de al lado hace de leyenda (mismos colores)
                         tooltip: { callbacks: { label: (c) => `${c.label}: ${eur(c.raw)}` } }
                     }
                 }
@@ -303,7 +396,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 type: 'bar',
                 data: fieldData,
                 options: {
-                    responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+                    responsive: true, maintainAspectRatio: false, indexAxis: 'y', locale: 'es-ES',
                     plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => `${eur(c.raw)}/ha` } } },
                     scales: {
                         x: { grid: { color: GRID }, border: { display: false }, ticks: { color: MUTED } },
@@ -366,6 +459,16 @@ document.addEventListener('DOMContentLoaded', function () {
         if (first) first.dispatchEvent(new Event('change'));
         else loadFieldCostsData();
     });
+
+    if (toggleAllBtn) {
+        toggleAllBtn.addEventListener('click', () => {
+            const open = !FC.allOpen(fieldItems().map(d => d.open));
+            fieldItems().forEach(d => { d.open = open; });
+            syncToggleAll();
+        });
+        // «toggle» no burbujea: se escucha en captura para seguir lo que se abre a mano
+        fieldsContainer.addEventListener('toggle', syncToggleAll, true);
+    }
 
     $('costsRetry').addEventListener('click', loadFieldCostsData);
     $('costsEmptyAll').addEventListener('click', () => { setPeriod('all'); loadFieldCostsData(); });

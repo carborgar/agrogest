@@ -250,6 +250,14 @@ class FieldCostsTest(_Base):
             self.assertIn(f'id="{marker}"', html)
         self.assertIn('id="costSummary" aria-live="polite"', html)
 
+    def test_tipos_junto_a_su_grafico_y_parcelas_con_plegado_global(self):
+        html = self.client.get(reverse('field-costs')).content.decode()
+        # La lista de tipos va en la misma card que la rosquilla (hace de leyenda)
+        self.assertRegex(html, r'class="cs-split">\s*<div class="cs-chart cs-chart--donut"><canvas id="productTypeChart"')
+        self.assertIn('id="productTypeDetails"', html)
+        # «Expandir todo / Plegar todo» oculto hasta que haya más de una parcela
+        self.assertIn('id="fieldsToggleAll" type="button" aria-controls="fieldsContainer" aria-expanded="false" hidden', html)
+
     def test_sin_parcelas_muestra_estado_vacio(self):
         other = User.objects.create_user(username="vacio", email="v@example.com", password="x",
                                          organization=Organization.objects.create(name="Vacía"))

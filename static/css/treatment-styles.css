@@ -824,54 +824,75 @@ textarea.tf-inp { height: auto; min-height: 48px; padding: 10px 12px; resize: ve
 /* Resumen de gastos: en móvil las pestañas de periodo comparten fila con el botón de filtros */
 @media (max-width: 767.98px) { .cs-toolbar .tl-tabs { flex: 1 1 0; min-width: 0; } }
 
-/* Resumen de gastos: gráficos */
+/* Resumen de gastos: gráficos. La rosquilla va junto a su lista de tipos (que hace de leyenda);
+   la de €/ha crece hasta la altura de esa card para no dejar hueco debajo. */
 .cs-chart { position: relative; height: 260px; padding: .75rem 1rem 1rem; }
+.cs-chart--donut { height: 220px; }
+.cs-chart--grow { flex: 1 1 auto; min-height: 260px; height: auto; }
+@media (min-width: 768px) {
+    .cs-split { display: grid; grid-template-columns: 220px minmax(0, 1fr); }
+    .cs-chart--donut { height: 240px; padding: 1rem .5rem 1rem 1rem; }
+    .cs-split-list { border-left: 1px solid var(--tl-line); }
+}
+@media (max-width: 767.98px) { .cs-split-list { border-top: 1px solid var(--tl-line); } }
 
-/* Listas desplegables (<details>): móvil = nombre y cifra; escritorio = columnas con cabecera */
-.cs-head, .cs-row { --cs-cols: minmax(0, 1fr) 9rem 7rem 1.5rem; }
-.cs-head--fields, .cs-item--field .cs-row { --cs-cols: minmax(0, 1fr) 7rem 9rem 7rem 1.5rem; }
+/* Listas desplegables (<details>). Tipos: siempre nombre a la izquierda y cifra con su % debajo (la lista va en
+   media card junto a la rosquilla; en columnas el nombre quedaría en 4 letras). Parcelas: en móvil igual;
+   en escritorio, columnas con cabecera.
+   Parcelas: la barra de reparto por tipo ocupa el ancho libre de la fila (en móvil, una línea propia). */
+.cs-head--fields, .cs-item--field .cs-row { --cs-cols: minmax(0, 1.3fr) 5.5rem minmax(6rem, 1fr) 8.5rem 8rem 1.5rem; }
 .cs-head { grid-template-columns: var(--cs-cols); }
 .cs-item { border-top: 1px solid var(--tl-line); }
 .cs-head + .cs-item, .cs-item:first-child { border-top: 0; }
 .cs-item[open] > .cs-row { background: var(--tl-soft); }
 .cs-row { display: grid; grid-template-columns: minmax(0, 1fr) auto 1.25rem; grid-template-areas: "name val chev" "name pct chev"; align-items: center; column-gap: .75rem; min-height: 56px; padding: .5rem 1rem; list-style: none; cursor: pointer; }
+.cs-item--field .cs-row { grid-template-areas: "name val chev" "name pct chev" "bar bar chev"; row-gap: .1rem; }
 .cs-row::-webkit-details-marker { display: none; }
 .cs-row:focus-visible { outline: 2px solid var(--bs-primary); outline-offset: -2px; }
 .cs-name { grid-area: name; min-width: 0; font-weight: 700; color: var(--tl-ink); overflow-wrap: anywhere; }
+.cs-item--type .cs-row { min-height: 52px; }
 .cs-name small { display: block; font-size: .78rem; font-weight: 400; color: var(--tl-muted); }
 .cs-val { grid-area: val; font-weight: 700; text-align: right; white-space: nowrap; }
 .cs-pct { grid-area: pct; font-size: .82rem; text-align: right; color: var(--tl-muted); white-space: nowrap; }
 .cs-pct small { font-size: .72rem; }
-.cs-area { color: var(--tl-muted); text-align: right; }
+.cs-area { color: var(--tl-muted); text-align: right; white-space: nowrap; }
 .cs-chev { grid-area: chev; font-size: .75rem; color: var(--tl-muted); transition: transform .18s ease; }
 .cs-item[open] .cs-chev { transform: rotate(180deg); }
-.cs-dot { display: inline-block; width: .7rem; height: .7rem; margin-right: .5rem; border-radius: 3px; }
+.cs-dot { display: inline-block; flex: none; width: .7rem; height: .7rem; margin-right: .5rem; border-radius: 3px; }
+/* Barra apilada: un tramo por tipo con los colores de la rosquilla; el % va en su aria-label y al abrir la fila */
+.cs-bar { grid-area: bar; display: flex; height: .5rem; margin-top: .35rem; overflow: hidden; border-radius: 99px; background: var(--tl-line); }
+.cs-bar > i { display: block; height: 100%; min-width: 2px; }
+.cs-bar > i + i { box-shadow: inset 1px 0 0 #fff; }
+.cs-bar-slot { display: none; }
 .cs-more { padding: .25rem 1rem .6rem; border-top: 1px solid var(--tl-line); background: var(--tl-soft); }
-.cs-type-line { display: flex; justify-content: space-between; gap: .75rem; padding: .6rem 0 .1rem; font-size: .8rem; }
-.cs-type-line .cs-pct { margin-left: .75rem; }
+.cs-type-line { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; padding: .6rem 0 .1rem; font-size: .8rem; }
+.cs-type-line .cs-pct { min-width: 3.6rem; }
 .cs-prod { display: flex; align-items: baseline; gap: .75rem; padding: .4rem 0; border-bottom: 1px solid var(--tl-line); font-size: .9rem; }
 .cs-prod:last-child { border-bottom: 0; }
 .cs-prod-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .cs-prod .cs-val, .cs-type-line .cs-val { margin-left: auto; font-weight: 600; }
 .cs-prod .cs-pct { min-width: 3.6rem; }
 @media (min-width: 768px) {
-    .cs-row { grid-template-columns: var(--cs-cols); grid-template-areas: none; column-gap: 1rem; }
-    .cs-name, .cs-val, .cs-pct, .cs-chev { grid-area: auto; }
-    .cs-name small { display: inline; margin-left: .5rem; }
+    .cs-item--field .cs-row { grid-template-columns: var(--cs-cols); grid-template-areas: none; column-gap: 1rem; }
+    .cs-item--field :is(.cs-name, .cs-val, .cs-pct, .cs-chev, .cs-bar) { grid-area: auto; }
+    .cs-bar { margin-top: 0; }
+    .cs-bar-slot { display: block; }
     .cs-more { padding-left: 2.2rem; }
     .cs-item--field .cs-more, .cs-item--type .cs-more { padding-right: 3.5rem; }
 }
 
-/* Aviso de productos sin precio */
 /* Cifras clave: el componente .dt-summary con los números grandes de Estadísticas (.st-key).
-   Móvil: 2 × 2. Los nombres (tipo, parcela) van algo más pequeños y cortan en 2 líneas para no descuadrar la fila. */
-.cs-key .dt-value { font-size: 1.25rem; line-height: 1.2; overflow-wrap: anywhere; }
-.cs-key .dt-value.cs-key-name { font-size: 1rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+   Móvil: 2 × 2. Las cifras no se parten (la unidad va en la etiqueta); los nombres (tipo, parcela) van algo más
+   pequeños y cortan en 2 líneas para no descuadrar la fila. */
+.cs-key .dt-value { font-size: 1.15rem; line-height: 1.2; white-space: nowrap; }
+.cs-key .dt-value.cs-key-name { font-size: 1rem; white-space: normal; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 @media (min-width: 768px) {
     .cs-key .dt-cell { padding: .8rem 1rem; }
     .cs-key .dt-value { font-size: 1.5rem; }
     .cs-key .dt-value.cs-key-name { font-size: 1.1rem; }
 }
+
+/* Aviso de productos sin precio */
 .cs-warn { border: 1px solid #F0D9A6; border-radius: var(--bs-border-radius-lg); background: var(--tl-1-bg); color: var(--tl-1-fg); font-size: .9rem; }
 .cs-warn > summary { display: flex; align-items: center; gap: .75rem; min-height: 48px; padding: .5rem 1rem; list-style: none; cursor: pointer; }
 .cs-warn > summary::-webkit-details-marker { display: none; }
