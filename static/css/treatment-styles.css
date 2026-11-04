@@ -965,9 +965,19 @@ textarea.tf-inp { height: auto; min-height: 48px; padding: 10px 12px; resize: ve
 .cal-nav { min-width: 44px; height: 44px; padding: 0 .75rem; }
 .cal-top .tl-tabs { flex: 1 1 0; }
 button.tl-tab { border: 0; background: transparent; }
-.cal-chips .btn-check:not(:checked) + .btn { background: #fff; border-color: var(--tl-head-line); color: var(--tl-muted); }
-.cal-chips .btn-check:checked + .btn { background: var(--tl-2-bg); border-color: var(--tl-head-line); color: var(--tl-ink); }
-.cal-chips .btn-check:focus-visible + .btn { outline: 2px solid var(--bs-primary); outline-offset: 1px; }
+/* Chips de filtro (Tipo, Estado): el estado no depende solo del color.
+   Activo: verde del proyecto con texto blanco (5,1:1) y ✓ delante. Inactivo: blanco, borde discontinuo y texto
+   --tl-muted (5,9:1), sin ✓. El estado real lo lleva la casilla (.btn-check); treatment-calendar.js solo lee las casillas. */
+.cal-chip { display: inline-flex; align-items: center; gap: 0; }
+.cal-chip-check { display: none; margin-right: .4rem; font-size: .8em; }
+.cal-chips .btn-check:not(:checked) + .btn { background: #fff; border: 1px dashed #7B8794; color: var(--tl-muted); }
+.cal-chips .btn-check:not(:checked) + .btn:hover { background: var(--tl-2-bg); border-color: var(--tl-ink); color: var(--tl-ink); }
+.cal-chips .btn-check:checked + .btn { background: var(--bs-primary); border: 1px solid var(--bs-primary); color: #fff; }
+.cal-chips .btn-check:checked + .btn:hover { background: #005005; border-color: #005005; color: #fff; }
+.cal-chips .btn-check:checked + .btn .cal-chip-check { display: inline-block; }
+.cal-chips .btn-check:focus-visible + .btn { outline: 2px solid var(--bs-primary); outline-offset: 2px; box-shadow: 0 0 0 2px #fff; }
+/* El punto de estado sobre el verde: aro blanco para que se distinga (el verde de «Completado» incluido) */
+.cal-chips .btn-check:checked + .btn .cal-dot { box-shadow: 0 0 0 2px #fff; }
 @media (max-width: 767.98px) { .cal-chips .btn { min-height: 44px; } }
 /* Fila de lista (día, agenda): una caja con filas separadas por línea */
 .cal-row { display: flex; align-items: center; gap: .75rem; width: 100%; min-height: 56px; padding: .6rem 1rem; border: 0; border-top: 1px solid var(--tl-line); background: #fff; color: var(--tl-ink); text-align: left; }

@@ -54,8 +54,8 @@
                     {% for type_value, type_name in treatment_types %}
                     <input checked autocomplete="off" class="btn-check treatment-type-checkbox"
                            id="filter-type-{{ type_value }}" type="checkbox" value="{{ type_value }}">
-                    <label class="btn btn-outline-secondary" for="filter-type-{{ type_value }}">
-                        <i class="fa fa-{{ type_value|type_icon }} me-1" aria-hidden="true"></i>{{ type_name }}
+                    <label class="btn btn-outline-secondary cal-chip" for="filter-type-{{ type_value }}">
+                        <i class="fa fa-check cal-chip-check" aria-hidden="true"></i><i class="fa fa-{{ type_value|type_icon }} me-1" aria-hidden="true"></i>{{ type_name }}
                     </label>
                     {% endfor %}
                 </div>
@@ -66,11 +66,11 @@
                 <div class="form-label small fw-semibold text-muted mb-1" id="cal-status-label"><i class="fa fa-circle-dot me-1" aria-hidden="true"></i>Estado</div>
                 <div class="d-flex flex-wrap gap-2 cal-chips" role="group" aria-labelledby="cal-status-label">
                     <input checked autocomplete="off" class="btn-check status-checkbox" id="filter-status-pending" type="checkbox" value="pending">
-                    <label class="btn btn-outline-secondary" for="filter-status-pending"><span class="cal-dot cal-t1" aria-hidden="true"></span>Pendiente</label>
+                    <label class="btn btn-outline-secondary cal-chip" for="filter-status-pending"><i class="fa fa-check cal-chip-check" aria-hidden="true"></i><span class="cal-dot cal-t1" aria-hidden="true"></span>Pendiente</label>
                     <input checked autocomplete="off" class="btn-check status-checkbox" id="filter-status-delayed" type="checkbox" value="delayed">
-                    <label class="btn btn-outline-secondary" for="filter-status-delayed"><span class="cal-dot cal-t0" aria-hidden="true"></span>Atrasado</label>
+                    <label class="btn btn-outline-secondary cal-chip" for="filter-status-delayed"><i class="fa fa-check cal-chip-check" aria-hidden="true"></i><span class="cal-dot cal-t0" aria-hidden="true"></span>Atrasado</label>
                     <input checked autocomplete="off" class="btn-check status-checkbox" id="filter-status-completed" type="checkbox" value="completed">
-                    <label class="btn btn-outline-secondary" for="filter-status-completed"><span class="cal-dot cal-t3" aria-hidden="true"></span>Completado</label>
+                    <label class="btn btn-outline-secondary cal-chip" for="filter-status-completed"><i class="fa fa-check cal-chip-check" aria-hidden="true"></i><span class="cal-dot cal-t3" aria-hidden="true"></span>Completado</label>
                 </div>
             </div>
         </div>

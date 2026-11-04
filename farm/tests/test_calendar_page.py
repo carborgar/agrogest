@@ -27,3 +27,16 @@ def test_calendar_page_uses_design_language(client):
         assert marker in html
     own = html[html.index('id="cal-filters-wrap"'):]
     assert 'shadow-sm' not in own and 'bg-light' not in own and 'style="' not in own
+
+
+@pytest.mark.django_db
+def test_calendar_chips_show_active_state_with_check(client):
+    """Cada chip de Tipo y Estado lleva su ✓ (visible solo activo) y los filtros siguen leyendo las casillas."""
+    org = OrganizationFactory()
+    client.force_login(User.objects.create_user(username='calchips', password='pass', organization=org))
+    html = client.get(reverse('treatment-calendar')).content.decode()
+    chips = html.count('class="btn btn-outline-secondary cal-chip"')
+    assert chips >= 4
+    assert html.count('cal-chip-check') == chips
+    assert html.count('class="btn-check status-checkbox"') == 3
+    assert 'btn-check treatment-type-checkbox' in html
