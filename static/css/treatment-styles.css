@@ -807,7 +807,7 @@ textarea.tf-inp { height: auto; min-height: 48px; padding: 10px 12px; resize: ve
    El detalle usa dt-* y tl-*; el formulario, tf-*; aquí solo lo propio de cada pantalla.
 ═══════════════════════════════════════════════ */
 /* Colores de los gráficos de costes (validados con la paleta de datos: ΔE entre vecinos ≥ 12 en visión normal y con daltonismo).
-   Orden fijo; con más de 6 tipos, los pequeños se agrupan en «Resto» (--cs-other). */
+   Orden fijo; con más de 6 tipos, los demás se agrupan en «Resto» (--cs-other). */
 :root { --cs-1: #008300; --cs-2: #EDA100; --cs-3: #6250D6; --cs-4: #EB6834; --cs-5: #2A78D6; --cs-6: #E87BA4; --cs-other: #7A8577; }
 
 /* Detalle: mapa */
@@ -824,65 +824,98 @@ textarea.tf-inp { height: auto; min-height: 48px; padding: 10px 12px; resize: ve
 /* Resumen de gastos: en móvil las pestañas de periodo comparten fila con el botón de filtros */
 @media (max-width: 767.98px) { .cs-toolbar .tl-tabs { flex: 1 1 0; min-width: 0; } }
 
-/* Resumen de gastos: gráficos. La rosquilla va junto a su lista de tipos (que hace de leyenda);
-   la de €/ha crece hasta la altura de esa card para no dejar hueco debajo. */
-.cs-chart { position: relative; height: 260px; padding: .75rem 1rem 1rem; }
-.cs-chart--donut { height: 220px; }
-.cs-chart--grow { flex: 1 1 auto; min-height: 260px; height: auto; }
-@media (min-width: 768px) {
-    .cs-split { display: grid; grid-template-columns: 220px minmax(0, 1fr); }
-    .cs-chart--donut { height: 240px; padding: 1rem .5rem 1rem 1rem; }
-    .cs-split-list { border-left: 1px solid var(--tl-line); }
-}
-@media (max-width: 767.98px) { .cs-split-list { border-top: 1px solid var(--tl-line); } }
-
-/* Listas desplegables (<details>). Tipos: siempre nombre a la izquierda y cifra con su % debajo (la lista va en
-   media card junto a la rosquilla; en columnas el nombre quedaría en 4 letras). Parcelas: en móvil igual;
-   en escritorio, columnas con cabecera.
-   Parcelas: la barra de reparto por tipo ocupa el ancho libre de la fila (en móvil, una línea propia). */
-.cs-head--fields, .cs-item--field .cs-row { --cs-cols: minmax(0, 1.3fr) 5.5rem minmax(6rem, 1fr) 8.5rem 8rem 1.5rem; }
-.cs-head { grid-template-columns: var(--cs-cols); }
-.cs-item { border-top: 1px solid var(--tl-line); }
-.cs-head + .cs-item, .cs-item:first-child { border-top: 0; }
-.cs-item[open] > .cs-row { background: var(--tl-soft); }
-.cs-row { display: grid; grid-template-columns: minmax(0, 1fr) auto 1.25rem; grid-template-areas: "name val chev" "name pct chev"; align-items: center; column-gap: .75rem; min-height: 56px; padding: .5rem 1rem; list-style: none; cursor: pointer; }
-.cs-item--field .cs-row { grid-template-areas: "name val chev" "name pct chev" "bar bar chev"; row-gap: .1rem; }
-.cs-row::-webkit-details-marker { display: none; }
-.cs-row:focus-visible { outline: 2px solid var(--bs-primary); outline-offset: -2px; }
-.cs-name { grid-area: name; min-width: 0; font-weight: 700; color: var(--tl-ink); overflow-wrap: anywhere; }
-.cs-item--type .cs-row { min-height: 52px; }
-.cs-name small { display: block; font-size: .78rem; font-weight: 400; color: var(--tl-muted); }
-.cs-val { grid-area: val; font-weight: 700; text-align: right; white-space: nowrap; }
-.cs-pct { grid-area: pct; font-size: .82rem; text-align: right; color: var(--tl-muted); white-space: nowrap; }
-.cs-pct small { font-size: .72rem; }
-.cs-area { color: var(--tl-muted); text-align: right; white-space: nowrap; }
+/* Resumen de gastos: rankings de barras horizontales (HTML y CSS). Una fila por tipo o por parcela en una
+   línea: color, nombre, barra proporcional al mayor, importe y %. Escalan mejor que una rosquilla (con más
+   de 6 tipos no se lee y obliga a una leyenda larga) y las cards quedan con su altura natural, sin huecos.
+   En móvil (< 576 px) la barra baja a una segunda línea para que nombre e importe no se aprieten. */
+.cs-rank, .cs-perha, .cs-ftypes, .cs-prods { list-style: none; margin: 0; padding: 0; }
+.cs-rank { padding: .25rem 0; }
+.cs-rank-item + .cs-rank-item, .cs-ft + .cs-ft { border-top: 1px solid var(--tl-line); }
+.cs-rank-row { display: grid; grid-template-columns: .7rem minmax(8rem, 1.4fr) minmax(3rem, 1fr) minmax(6.5rem, auto) 3.4rem 1rem;
+    grid-template-areas: "dot name bar val pct chev"; align-items: center; column-gap: .75rem; width: 100%; min-height: 44px;
+    padding: .3rem 1rem; border: 0; background: none; color: var(--tl-ink); font: inherit; text-align: left; }
+button.cs-rank-row { cursor: pointer; }
+button.cs-rank-row:hover { background: var(--tl-soft); }
+.cs-rank-row:focus-visible, .cs-more-btn:focus-visible, .cs-sort:focus-visible, .cs-f-btn:focus-visible { outline: 2px solid var(--bs-primary); outline-offset: -2px; }
+.cs-dot { grid-area: dot; display: inline-block; width: .7rem; height: .7rem; border-radius: 3px; }
+/* Nombre en una línea; el nº de productos va al lado solo si cabe (si no, baja a una 2.ª línea que se recorta) */
+.cs-rank-name { grid-area: name; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: .35rem; min-width: 0; height: 1.5em; overflow: hidden; font-weight: 600; }
+.cs-rank-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cs-rank-name small { font-size: .75rem; font-weight: 400; color: var(--tl-muted); white-space: nowrap; }
+.cs-rank-item--rest > .cs-rank-row .cs-rank-name { color: var(--tl-muted); }
+.cs-rank-bar { grid-area: bar; display: block; height: .6rem; overflow: hidden; border-radius: 99px; background: var(--tl-line); }
+.cs-rank-bar > i { display: block; height: 100%; border-radius: 99px; background: var(--bs-primary); }
+.cs-rank-bar--empty { background: none; }
+.cs-rank-val { grid-area: val; font-weight: 700; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cs-rank-pct { grid-area: pct; font-size: .8rem; text-align: right; white-space: nowrap; color: var(--tl-muted); font-variant-numeric: tabular-nums; }
 .cs-chev { grid-area: chev; font-size: .75rem; color: var(--tl-muted); transition: transform .18s ease; }
-.cs-item[open] .cs-chev { transform: rotate(180deg); }
-.cs-dot { display: inline-block; flex: none; width: .7rem; height: .7rem; margin-right: .5rem; border-radius: 3px; }
-/* Barra apilada: un tramo por tipo con los colores de la rosquilla; el % va en su aria-label y al abrir la fila */
-.cs-bar { grid-area: bar; display: flex; height: .5rem; margin-top: .35rem; overflow: hidden; border-radius: 99px; background: var(--tl-line); }
+[aria-expanded="true"] > .cs-chev, .cs-f.is-open > .cs-f-row .cs-chev { transform: rotate(180deg); }
+/* Tipos del «Resto» desplegados: agrupados bajo su fila, con sangría y un gris distinto cada uno */
+.cs-rank--rest { padding: 0; border-top: 1px solid var(--tl-line); background: var(--tl-soft); }
+.cs-rank--rest .cs-rank-row { padding-left: 2rem; font-size: .92rem; }
+/* Productos de un tipo (tercer nivel): letra más pequeña, importe sin negrita y «% del tipo» en gris */
+.cs-prods { padding: .15rem 2.75rem .4rem 2.45rem; border-top: 1px solid var(--tl-line); background: var(--tl-soft); }
+.cs-prod { display: flex; align-items: baseline; gap: .75rem; padding: .3rem 0; font-size: .85rem; }
+.cs-prod + .cs-prod { border-top: 1px solid var(--tl-line); }
+.cs-prod-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.cs-prod-val { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cs-prod-pct { min-width: 5.5rem; font-size: .75rem; text-align: right; white-space: nowrap; color: var(--tl-muted); }
+.cs-more-btn { display: block; width: 100%; min-height: 44px; border: 0; border-top: 1px solid var(--tl-line); background: none; color: var(--bs-primary); font-size: .875rem; font-weight: 600; }
+.cs-more-btn:hover { background: var(--tl-soft); }
+/* Coste por hectárea: filas de altura fija, solo lectura (el detalle está en «Por parcela») */
+.cs-perha { padding: .35rem 0; }
+.cs-perha-row { display: grid; grid-template-columns: minmax(5rem, 9rem) minmax(3rem, 1fr) auto; grid-template-areas: "name bar val"; align-items: center; column-gap: .75rem; height: 38px; padding: 0 1rem; font-size: .9rem; }
+.cs-perha-name { grid-area: name; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cs-perha-val { grid-area: val; font-weight: 600; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+@media (max-width: 575.98px) {
+    .cs-rank-row { grid-template-columns: .7rem minmax(0, 1fr) auto auto 1rem; grid-template-areas: "dot name val pct chev" ". bar bar bar ."; row-gap: .3rem; padding-top: .5rem; padding-bottom: .5rem; }
+    .cs-rank-bar--empty { display: none; }
+    .cs-prods { padding-right: 1rem; }
+    .cs-perha-row { grid-template-columns: minmax(0, 7.5rem) minmax(2rem, 1fr) auto; }
+}
+
+/* Por parcela: tabla con una fila por parcela (plegada). Al abrirla, sus tipos (2.º nivel, plegados) y, al abrir
+   un tipo, sus productos (3.º nivel): sangría y letra decrecientes. En móvil, superficie y barra van bajo el nombre. */
+.cs-table { width: 100%; border-collapse: collapse; }
+.cs-table thead th { padding: 0 .75rem; height: 44px; border-bottom: 1px solid var(--tl-line); font-size: .75rem; font-weight: 600; color: var(--tl-muted); white-space: nowrap; }
+.cs-table th:first-child, .cs-table td:first-child { padding-left: 1rem; }
+.cs-sort { display: inline-flex; align-items: center; gap: .35rem; min-height: 44px; padding: 0; border: 0; background: none; color: inherit; font: inherit; }
+.cs-sort i { display: none; font-size: .7rem; }
+[aria-sort="descending"] > .cs-sort { color: var(--tl-ink); }
+[aria-sort="descending"] > .cs-sort i { display: inline; }
+.cs-f + .cs-f > tr:first-child > * { border-top: 1px solid var(--tl-line); }
+.cs-f-row { cursor: pointer; }
+.cs-f-row > * { height: 52px; padding: .45rem .75rem; vertical-align: middle; font-weight: 400; }
+.cs-f-row:hover, .cs-f.is-open > .cs-f-row { background: var(--tl-soft); }
+.cs-f-btn { display: block; max-width: 100%; padding: 0; border: 0; background: none; color: var(--tl-ink); font: inherit; font-weight: 700; text-align: left; overflow-wrap: anywhere; }
+.cs-f-sub { display: block; font-size: .75rem; color: var(--tl-muted); }
+.cs-f-area { width: 6.5rem; color: var(--tl-muted); text-align: right; white-space: nowrap; }
+.cs-f-bar { width: 32%; min-width: 8rem; }
+.cs-f-val, .cs-f-perha { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cs-f-val { font-weight: 700 !important; }
+.cs-f-chev { width: 2.5rem; text-align: center; }
+.cs-table .cs-f-chev { padding-left: 0; padding-right: 1rem; }
+/* Barra apilada: un tramo por tipo con los colores del ranking; el % va en su aria-label y al abrir la fila */
+.cs-bar { display: flex; height: .5rem; overflow: hidden; border-radius: 99px; background: var(--tl-line); }
+.cs-f-name .cs-bar { margin-top: .4rem; }
 .cs-bar > i { display: block; height: 100%; min-width: 2px; }
 .cs-bar > i + i { box-shadow: inset 1px 0 0 #fff; }
-.cs-bar-slot { display: none; }
-.cs-more { padding: .25rem 1rem .6rem; border-top: 1px solid var(--tl-line); background: var(--tl-soft); }
-.cs-type-line { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; padding: .6rem 0 .1rem; font-size: .8rem; }
-.cs-type-line .cs-pct { min-width: 3.6rem; }
-.cs-prod { display: flex; align-items: baseline; gap: .75rem; padding: .4rem 0; border-bottom: 1px solid var(--tl-line); font-size: .9rem; }
-.cs-prod:last-child { border-bottom: 0; }
-.cs-prod-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.cs-prod .cs-val, .cs-type-line .cs-val { margin-left: auto; font-weight: 600; }
-.cs-prod .cs-pct { min-width: 3.6rem; }
-@media (min-width: 768px) {
-    .cs-item--field .cs-row { grid-template-columns: var(--cs-cols); grid-template-areas: none; column-gap: 1rem; }
-    .cs-item--field :is(.cs-name, .cs-val, .cs-pct, .cs-chev, .cs-bar) { grid-area: auto; }
-    .cs-bar { margin-top: 0; }
-    .cs-bar-slot { display: block; }
-    .cs-more { padding-left: 2.2rem; }
-    .cs-item--field .cs-more, .cs-item--type .cs-more { padding-right: 3.5rem; }
+.cs-f-detail > td { padding: 0 !important; border-top: 1px solid var(--tl-line); background: var(--tl-soft); }
+.cs-ftypes { max-width: 60rem; padding: .2rem 0; }
+.cs-rank-row--sub { padding-left: 2rem; font-size: .9rem; }
+.cs-rank-row--sub .cs-rank-name { font-weight: 500; }
+.cs-ft .cs-prods { padding-left: 3.45rem; background: var(--bs-body-bg); }
+.cs-ft-empty { margin: 0; padding: .75rem 1rem .75rem 2rem; font-size: .9rem; color: var(--tl-muted); }
+@media (max-width: 767.98px) {
+    .cs-table thead th, .cs-f-row > * { padding-left: .5rem; padding-right: .5rem; }
+    .cs-f-row > * { font-size: .9rem; }
+    .cs-f-perha { font-size: .8rem; }
+    .cs-rank-row--sub { padding-left: 1.5rem; }
+    .cs-ft .cs-prods { padding-left: 2.95rem; }
 }
 
 /* Cifras clave: el componente .dt-summary con los números grandes de Estadísticas (.st-key).
-   Móvil: 2 × 2. Las cifras no se parten (la unidad va en la etiqueta); los nombres (tipo, parcela) van algo más
+   Móvil: 2 × 2. Las cifras no se parten (la unidad va pegada con espacio duro); los nombres (tipo, parcela) van algo más
    pequeños y cortan en 2 líneas para no descuadrar la fila. */
 .cs-key .dt-value { font-size: 1.15rem; line-height: 1.2; white-space: nowrap; }
 .cs-key .dt-value.cs-key-name { font-size: 1rem; white-space: normal; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }

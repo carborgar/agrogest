@@ -143,24 +143,24 @@ porque una región que pasa de oculta a visible no siempre se anuncia.{% endcomm
     </div>
 </div>
 
-{% comment %}Composición: en escritorio (≥ lg) la rosquilla y su lista de tipos comparten una card (la lista hace de leyenda,
-con los mismos colores) junto a la de €/ha; debajo, las parcelas a todo el ancho con la barra de reparto ocupando el
-espacio libre de la fila. En móvil todo apilado. Las parcelas salen plegadas: la fila ya resume.{% endcomment %}
+{% comment %}Composición: en escritorio (≥ lg) dos cards de altura natural alineadas arriba: el ranking de tipos (barras
+horizontales; los 6 con más gasto con color propio y el resto agrupado) y el ranking de €/ha por parcela. Debajo, la
+tabla de parcelas a todo el ancho. Todo en HTML y CSS (field-costs.js): una rosquilla con más de 6 tipos no se lee
+y obliga a una leyenda larga; las barras comparan mejor y ocupan poco. En móvil todo apilado.{% endcomment %}
 <div id="costsBody" hidden>
-    <div class="row g-3 mb-3">
+    <div class="row g-3 mb-3 align-items-start">
         <div class="col-lg-7">
-            <section class="card card-flat h-100" aria-labelledby="cs-types-title">
+            <section class="card card-flat" aria-labelledby="cs-types-title">
                 <div class="dt-card-head"><h2 class="dt-card-title" id="cs-types-title">Gasto por tipo de producto</h2><span class="dt-card-hint d-none d-md-inline">Pulsa un tipo para ver sus productos</span></div>
-                <div class="cs-split">
-                    <div class="cs-chart cs-chart--donut"><canvas id="productTypeChart" role="img" aria-label="Gráfico del gasto por tipo de producto; el detalle está en la lista"></canvas></div>
-                    <div class="cs-split-list" id="productTypeDetails"></div>
-                </div>
+                <ul class="cs-rank" id="productTypeDetails"></ul>
+                <button class="cs-more-btn" id="typesMore" type="button" data-act="rest" aria-controls="typesRest" aria-expanded="false" hidden>Ver todos los tipos</button>
             </section>
         </div>
         <div class="col-lg-5">
-            <section class="card card-flat h-100" aria-labelledby="cs-chart-field">
-                <div class="dt-card-head"><h2 class="dt-card-title" id="cs-chart-field">Coste por hectárea</h2><span class="dt-card-hint">€/ha</span></div>
-                <div class="cs-chart cs-chart--grow"><canvas id="fieldCostChart" role="img" aria-label="Gráfico del coste por hectárea de cada parcela; el detalle está en la lista «Por parcela»"></canvas></div>
+            <section class="card card-flat" aria-labelledby="cs-perha-title">
+                <div class="dt-card-head"><h2 class="dt-card-title" id="cs-perha-title">Coste por hectárea</h2><span class="dt-card-hint">De más a menos €/ha</span></div>
+                <ol class="cs-perha" id="perHaList"></ol>
+                <button class="cs-more-btn" id="perHaMore" type="button" data-act="perha" aria-controls="perHaList" aria-expanded="false" hidden>Ver todas las parcelas</button>
             </section>
         </div>
     </div>
@@ -169,11 +169,11 @@ espacio libre de la fila. En móvil todo apilado. Las parcelas salen plegadas: l
         <div class="dt-card-head">
             <h2 class="dt-card-title" id="cs-fields-title">Por parcela</h2>
             <span class="d-flex align-items-center gap-2">
-                <span class="dt-card-hint d-none d-md-inline">Pulsa una parcela para ver su desglose</span>
-                <button class="btn btn-sm btn-outline-secondary" id="fieldsToggleAll" type="button" aria-controls="fieldsContainer" aria-expanded="false" hidden>Expandir todo</button>
+                <span class="dt-card-hint d-none d-md-inline">Pulsa una parcela para ver sus tipos</span>
+                <button class="btn btn-sm btn-outline-secondary" id="fieldsToggleAll" type="button" data-act="toggle-fields" aria-controls="fieldsContainer" aria-expanded="false" hidden>Abrir parcelas</button>
             </span>
         </div>
-        <div id="fieldsContainer"></div>
+        <div class="cs-table-wrap" id="fieldsContainer"></div>
     </section>
 </div>
 
@@ -182,7 +182,6 @@ espacio libre de la fila. En móvil todo apilado. Las parcelas salen plegadas: l
 
 {% block extra_js %}
 {% if fields %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 <script src="{% static_v 'js/field-costs.js' %}"></script>
 {% endif %}
 {% endblock %}

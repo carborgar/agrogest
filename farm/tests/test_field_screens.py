@@ -250,13 +250,18 @@ class FieldCostsTest(_Base):
             self.assertIn(f'id="{marker}"', html)
         self.assertIn('id="costSummary" aria-live="polite"', html)
 
-    def test_tipos_junto_a_su_grafico_y_parcelas_con_plegado_global(self):
+    def test_rankings_de_barras_y_parcelas_con_apertura_global(self):
         html = self.client.get(reverse('field-costs')).content.decode()
-        # La lista de tipos va en la misma card que la rosquilla (hace de leyenda)
-        self.assertRegex(html, r'class="cs-split">\s*<div class="cs-chart cs-chart--donut"><canvas id="productTypeChart"')
-        self.assertIn('id="productTypeDetails"', html)
-        # «Expandir todo / Plegar todo» oculto hasta que haya más de una parcela
-        self.assertIn('id="fieldsToggleAll" type="button" aria-controls="fieldsContainer" aria-expanded="false" hidden', html)
+        # Rankings en HTML (sin librería de gráficos): tipos con «Ver todos» y €/ha con «Ver todas»
+        self.assertIn('<ul class="cs-rank" id="productTypeDetails"></ul>', html)
+        self.assertIn('id="typesMore" type="button" data-act="rest" aria-controls="typesRest" aria-expanded="false" hidden', html)
+        self.assertIn('<ol class="cs-perha" id="perHaList"></ol>', html)
+        self.assertIn('id="perHaMore" type="button" data-act="perha" aria-controls="perHaList" aria-expanded="false" hidden', html)
+        self.assertNotIn('chart.js', html)
+        self.assertNotIn('<canvas', html)
+        # «Abrir parcelas / Cerrar parcelas» oculto hasta que haya más de una parcela
+        self.assertIn('id="fieldsToggleAll" type="button" data-act="toggle-fields" aria-controls="fieldsContainer" '
+                      'aria-expanded="false" hidden>Abrir parcelas', html)
 
     def test_sin_parcelas_muestra_estado_vacio(self):
         other = User.objects.create_user(username="vacio", email="v@example.com", password="x",
