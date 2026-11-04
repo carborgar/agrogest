@@ -85,10 +85,21 @@ def test_preferencias_marca_canal_y_guarda(client, user):
 
 @pytest.mark.django_db
 def test_landing_publica_y_errores_renderizan(client):
-    html = client.get('/').content.decode()
-    assert 'Tu campo, ' in html and 'Todos los derechos reservados' in html
+    r = client.get('/')
+    assert r.status_code == 200
+    html = r.content.decode()
+    assert f'href="{reverse("accounts:login")}"' in html and '>Entrar</a>' in html
+    assert '<title>AgroGest</title>' in html and '<meta name="robots" content="noindex">' in html
+    assert 'Proyecto de' in html and 'class="lp' not in html
     assert 'linear-gradient' not in html and '<style' not in html
     assert '404' in render_to_string('404.html') and '500' in render_to_string('500.html')
+
+
+@pytest.mark.django_db
+def test_landing_con_sesion_va_a_la_app(client, user):
+    client.force_login(user)
+    r = client.get('/')
+    assert r.status_code == 302 and r.url == reverse('field_list')
 
 
 @pytest.mark.django_db

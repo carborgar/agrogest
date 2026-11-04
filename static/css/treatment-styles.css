@@ -1288,8 +1288,8 @@ button.cal-row:hover { background: var(--tl-soft); }
     .as-kb .main-content { padding-bottom: 8px; padding-top: 8px; }
 }
 
-/* ═══ CUENTA (au-*, nt-*, lp-*) ═══ */
-/* Pantallas públicas (login, recuperar contraseña, 404/500): marca arriba y una columna centrada con card-flat */
+/* ═══ CUENTA (au-*, nt-*) ═══ */
+/* Pantallas públicas (portada, login, recuperar contraseña, 404/500): marca arriba y una columna centrada con card-flat */
 .au { display: flex; align-items: center; justify-content: center; min-height: 100vh; min-height: 100dvh; padding: 1.5rem 1rem; }
 .au-box { width: 100%; max-width: 26rem; }
 .au-brand { display: flex; align-items: center; justify-content: center; gap: .6rem; margin-bottom: 1.25rem; font-size: 1.4rem; font-weight: 700; color: var(--tl-ink); text-decoration: none; }
@@ -1327,37 +1327,3 @@ button.cal-row:hover { background: var(--tl-soft); }
 .tf-btn--danger { background: var(--tl-0-fg); color: #fff; }
 .tf-btn--danger:hover, .tf-btn--danger:focus-visible { background: #8E1B11; color: #fff; }
 .tf-btn--danger:disabled { opacity: .5; cursor: not-allowed; }
-
-/* Página de inicio pública (lp-*): mismas cajas, paleta y botones que la app, sin degradados */
-.lp-nav { position: sticky; top: 0; z-index: 1020; background: #fff; border-bottom: 1px solid var(--tl-head-line); }
-.lp-nav .container { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 64px; }
-.lp-nav .au-brand { margin: 0; font-size: 1.15rem; }
-.lp-hero { padding: 2.5rem 0; background: #fff; border-bottom: 1px solid var(--tl-head-line); }
-.lp-kicker { margin: 0 0 .5rem; font-size: .75rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--tl-3-fg); }
-.lp-h1 { margin: 0 0 1rem; font-size: clamp(2rem, 7vw, 3.25rem); font-weight: 800; line-height: 1.1; letter-spacing: -.02em; color: var(--tl-ink); }
-.lp-h1 span { color: var(--tl-3-fg); }
-.lp-lead { max-width: 36rem; margin-bottom: 1.5rem; font-size: 1.05rem; color: var(--tl-muted); }
-.lp-point { display: flex; align-items: center; gap: .85rem; padding: .85rem 1rem; border-top: 1px solid var(--tl-line); font-weight: 600; }
-.lp-point:first-child { border-top: 0; }
-.lp-section { padding: 2.5rem 0; }
-.lp-section--line { background: #fff; border-block: 1px solid var(--tl-head-line); }
-.lp-head { max-width: 40rem; margin-bottom: 1.5rem; }
-.lp-h2 { margin: 0 0 .5rem; font-size: clamp(1.5rem, 4.5vw, 2rem); font-weight: 700; letter-spacing: -.01em; color: var(--tl-ink); }
-.lp-ico, .lp-num { display: flex; align-items: center; justify-content: center; flex: none; width: 44px; height: 44px; border-radius: 10px; background: var(--tl-3-bg); color: var(--tl-3-fg); }
-.lp-num { width: 36px; height: 36px; border-radius: 50%; font-weight: 700; }
-.lp-check { display: flex; flex-direction: column; gap: .5rem; margin: 0; padding: 0; list-style: none; }
-.lp-check i { margin-right: .6rem; color: var(--tl-3-fg); }
-.lp-chat { display: flex; flex-direction: column; gap: .75rem; padding: 1rem; }
-.lp-msg { max-width: 92%; padding: .7rem .9rem; border-radius: 12px; font-size: .9rem; line-height: 1.5; }
-.lp-msg--user { align-self: flex-end; background: var(--tl-2-bg); }
-.lp-msg--ai { align-self: flex-start; background: var(--tl-3-bg); }
-.lp-msg-label { display: block; margin-bottom: .15rem; font-size: .7rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--tl-muted); }
-.lp-cta { padding: 2rem 1.25rem; text-align: center; }
-.lp-cta p { max-width: 30rem; margin: 0 auto 1.25rem; }
-@media (min-width: 992px) {
-    .lp-hero { padding: 4.5rem 0; }
-    .lp-section { padding: 4rem 0; }
-    .lp-cta { padding: 3rem 1.5rem; }
-}
-/* El pie compartido deja hueco para el menú lateral y la barra inferior; en la página pública no hay ninguno */
-.lp .footer { margin: 0; }
