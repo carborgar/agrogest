@@ -807,7 +807,7 @@ textarea.tf-inp { height: auto; min-height: 48px; padding: 10px 12px; resize: ve
    El detalle usa dt-* y tl-*; el formulario, tf-*; aquí solo lo propio de cada pantalla.
 ═══════════════════════════════════════════════ */
 /* Colores de los gráficos de costes (validados con la paleta de datos: ΔE entre vecinos ≥ 12 en visión normal y con daltonismo).
-   Orden fijo; con más de 6 tipos, los pequeños se agrupan en «Otros» (--cs-other). */
+   Orden fijo; con más de 6 tipos, los pequeños se agrupan en «Resto» (--cs-other). */
 :root { --cs-1: #008300; --cs-2: #EDA100; --cs-3: #6250D6; --cs-4: #EB6834; --cs-5: #2A78D6; --cs-6: #E87BA4; --cs-other: #7A8577; }
 
 /* Detalle: mapa */

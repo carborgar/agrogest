@@ -8,7 +8,7 @@
     'use strict';
 
     // Color de cada tipo de producto: el mismo orden que la rosquilla (tipos con gasto, de más a menos).
-    // Con más tipos que colores, los pequeños comparten el color de «Otros»; los tipos sin gasto también.
+    // Con más tipos que colores, los pequeños comparten el color de «Resto»; los tipos sin gasto también.
     function typeColorMap(breakdown, series, other) {
         const types = (breakdown || []).filter(t => t.total > 0);
         const grouped = types.length > series.length;
@@ -25,14 +25,17 @@
             .sort((a, b) => b.total - a.total || a.type_name.localeCompare(b.type_name, 'es'));
     }
 
-    // Tramos de la barra apilada: un tramo por tipo; los que caen en «Otros» se juntan en uno al final
+    // Nombre del grupo de tipos pequeños (rosquilla y barras): no «Otros», que puede ser un tipo real
+    const REST_LABEL = 'Resto';
+
+    // Tramos de la barra apilada: un tramo por tipo; los que caen en «Resto» se juntan en uno al final
     function barSegments(shares, colors, other) {
         const segs = [];
         let rest = null;
         shares.forEach(s => {
             const color = colors[s.type_name] || other;
             if (color === other) {
-                rest = rest || { name: 'Otros', pct: 0, color: other };
+                rest = rest || { name: REST_LABEL, pct: 0, color: other };
                 rest.pct += s.pct;
             } else {
                 segs.push({ name: s.type_name, pct: s.pct, color });
@@ -53,10 +56,34 @@
             .reduce((best, f) => (!best || f.cost_per_ha > best.cost_per_ha ? f : best), null);
     }
 
+    // % redondeados a un decimal que suman exactamente 100,0 (método del mayor resto): se trunca cada uno
+    // a décimas y las décimas que faltan van a los de mayor parte decimal (a igualdad, al primero).
+    function roundPcts(pcts) {
+        const tenths = (pcts || []).map(p => p * 10);
+        const total = Math.round(tenths.reduce((s, v) => s + v, 0));
+        if (total !== 1000) return tenths.map(v => Math.round(v) / 10);  // no es un reparto completo
+        const floors = tenths.map(v => Math.floor(v + 1e-9));
+        let missing = 1000 - floors.reduce((s, v) => s + v, 0);
+        tenths.map((v, i) => ({ i, rem: v - floors[i] }))
+            .sort((a, b) => b.rem - a.rem || a.i - b.i)
+            .forEach(({ i }) => { if (missing > 0) { floors[i] += 1; missing -= 1; } });
+        return floors.map(v => v / 10);
+    }
+
+    // Llama a fn una sola vez por tanda aunque se pida muchas (p. ej., un «toggle» por parcela al plegar todo)
+    function coalesce(fn, schedule) {
+        let pending = false;
+        return function () {
+            if (pending) return;
+            pending = true;
+            schedule(() => { pending = false; fn(); });
+        };
+    }
+
     // «Expandir todo» mientras quede alguna plegada; «Plegar todo» cuando están todas abiertas
     function allOpen(states) { return states.length > 0 && states.every(Boolean); }
 
-    return { typeColorMap, typeShares, barSegments, sortFields, topField, allOpen };
+    return { REST_LABEL, typeColorMap, typeShares, barSegments, roundPcts, coalesce, sortFields, topField, allOpen };
 }));
 
 if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded', function () {
@@ -84,7 +111,7 @@ if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded
     const OTHER = css.getPropertyValue('--cs-other').trim() || '#7A8577';
     const GRID = css.getPropertyValue('--tl-line').trim() || '#EEF0EC';
     const MUTED = css.getPropertyValue('--tl-muted').trim() || '#5F665C';
-    // Más de 6 tipos: los pequeños se agrupan en «Otros» en el gráfico (una serie nunca repite color)
+    // Más de 6 tipos: los pequeños se agrupan en «Resto» en el gráfico (una serie nunca repite color)
     const MAX_SLICES = SERIES.length;
 
     const nf = (min, max) => new Intl.NumberFormat('es-ES', { minimumFractionDigits: min, maximumFractionDigits: max });
@@ -298,8 +325,10 @@ if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded
     // Barra apilada con el % de gasto por tipo; el texto alternativo lleva los mismos % (no solo color)
     function fieldBar(f) {
         const segs = FC.barSegments(FC.typeShares(f.product_breakdown), colors, OTHER);
-        if (!segs.length) return '<span class="cs-bar cs-bar--empty" role="img" aria-label="Sin gasto"></span>';
-        const label = 'Reparto del gasto: ' + segs.map(s => `${s.name} ${pct(s.pct)}`).join(', ');
+        // Sin gasto: la barra vacía ya es gris (fondo --tl-line) y el lector de pantalla oye «Sin gasto»
+        if (!segs.length) return '<span class="cs-bar" role="img" aria-label="Sin gasto"></span>';
+        const shown = FC.roundPcts(segs.map(s => s.pct));
+        const label = 'Reparto del gasto: ' + segs.map((s, i) => `${s.name} ${pct(shown[i])}`).join(', ');
         return `<span class="cs-bar" role="img" aria-label="${esc(label)}">${segs.map(s =>
             `<i style="width:${s.pct.toFixed(2)}%;background:${s.color}"></i>`).join('')}</span>`;
     }
@@ -309,7 +338,9 @@ if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded
             return '<div class="cs-prod text-muted">Sin tratamientos con productos en este periodo.</div>';
         }
         const share = {};
-        FC.typeShares(f.product_breakdown).forEach(s => { share[s.type_name] = s.pct; });
+        const shares = FC.typeShares(f.product_breakdown);
+        const shown = FC.roundPcts(shares.map(s => s.pct));  // los textos de la parcela suman 100,0 %
+        shares.forEach((s, i) => { share[s.type_name] = shown[i]; });
         return f.product_breakdown.map(t => `
             <div class="cs-type-line"><b><i class="cs-dot" style="background:${colorOf(t.type_name)}" aria-hidden="true"></i>${esc(t.type_name)}</b>
                 <span class="cs-val">${typeValue(t)}</span>${pctText(share[t.type_name] || 0)}</div>
@@ -361,7 +392,7 @@ if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded
         let labels = types.map(t => t.type_name), values = types.map(t => t.total);
         if (types.length > MAX_SLICES) {
             const rest = types.slice(MAX_SLICES - 1).reduce((s, t) => s + t.total, 0);
-            labels = labels.slice(0, MAX_SLICES - 1).concat('Otros');
+            labels = labels.slice(0, MAX_SLICES - 1).concat(FC.REST_LABEL);
             values = values.slice(0, MAX_SLICES - 1).concat(rest);
         }
         const grouped = types.length > MAX_SLICES;
@@ -466,8 +497,10 @@ if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded
             fieldItems().forEach(d => { d.open = open; });
             syncToggleAll();
         });
-        // «toggle» no burbujea: se escucha en captura para seguir lo que se abre a mano
-        fieldsContainer.addEventListener('toggle', syncToggleAll, true);
+        // «toggle» no burbujea: se escucha en captura para seguir lo que se abre a mano. Al plegar todo llega
+        // uno por parcela; se sincroniza una sola vez en el siguiente fotograma, no una vez por parcela.
+        const nextFrame = window.requestAnimationFrame ? (cb) => window.requestAnimationFrame(cb) : (cb) => setTimeout(cb, 0);
+        fieldsContainer.addEventListener('toggle', FC.coalesce(syncToggleAll, nextFrame), true);
     }
 
     $('costsRetry').addEventListener('click', loadFieldCostsData);
