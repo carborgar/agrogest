@@ -13,7 +13,6 @@ campo, no al grupo.
 from dataclasses import dataclass, field
 from typing import Callable
 
-from django.conf import settings
 from django.urls import reverse
 
 
@@ -34,10 +33,6 @@ def _feature(name: str) -> Callable:
     def check(request) -> bool:
         return bool(request_flags(request).get(name, False))
     return check
-
-
-def _ai_configured(request) -> bool:
-    return bool(getattr(settings, 'GEMINI_API_KEY', ''))
 
 
 @dataclass(frozen=True)
@@ -85,9 +80,6 @@ NAV = (
         NavItem('nav_expenses', 'Gastos', 'fa fa-receipt', 'expense-list', match=('expense-create', 'expense-edit')),
         NavItem('nav_costs', 'Informe de gastos', 'fa fa-chart-bar', 'field-costs'),
         NavItem('nav_stats', 'Estadísticas', 'fa fa-chart-line', 'yearly-stats'),
-    )),
-    NavGroup('Herramientas', (
-        NavItem('nav_chat', 'Asistente IA', 'fa fa-robot', 'chat', visible=_ai_configured),
     )),
     NavGroup('Configuración', (
         NavItem('nav_expense_types', 'Tipos de gasto', 'fa fa-tags', 'expense-type-list',

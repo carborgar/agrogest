@@ -1,7 +1,6 @@
 """Menú: una sola definición (farm/navigation.py) para el lateral, la barra inferior y la hoja «Más»."""
 import pytest
 from django.core.cache import cache
-from django.test import override_settings
 from django.urls import reverse
 
 from accounts.models import User
@@ -76,11 +75,6 @@ class TestNavigation:
         FeatureFlag.objects.create(name='WEATHER', enabled=True)
         cache.clear()
         assert 'nav_weather' in keys(_ctx(logged))
-
-    @override_settings(GEMINI_API_KEY='x')
-    def test_ai_group_only_when_configured(self, logged):
-        titles = [g['title'] for g in _ctx(logged)['nav_groups']]
-        assert 'Herramientas' in titles
 
     def test_rendered_menu(self, logged):
         # Página sin enlaces propios a estas secciones: solo cuenta el menú

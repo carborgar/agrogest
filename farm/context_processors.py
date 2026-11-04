@@ -16,13 +16,6 @@ def sidebar_state(request):
     }
 
 
-def ai_configured(request):
-    from django.conf import settings
-    return {
-        'gemini_configured': bool(getattr(settings, 'GEMINI_API_KEY', ''))
-    }
-
-
 def unread_notifications(request):
     if not request.user.is_authenticated:
         return {'unread_notifications_count': 0}
