@@ -46,37 +46,31 @@ document.addEventListener('DOMContentLoaded', function () {
     initSidebarTooltips();
     syncTooltips(htmlEl.classList.contains('sidebar-collapsed'));
 
+    // ── 2. Plegado automático por debajo de xl ────────────────────────────
+    // Por debajo del breakpoint xl de Bootstrap el lateral va siempre plegado
+    // (el script de <head> lo aplica antes de pintar). Desde xl manda la
+    // preferencia guardada en la cookie. El botón solo se ve desde xl.
+    const xl = getComputedStyle(htmlEl).getPropertyValue('--bs-breakpoint-xl').trim() || '1200px';
+    const wide = window.matchMedia('(min-width: ' + xl + ')');
+
+    function savedCollapsed() {
+        return document.cookie.split('; ').includes(COOKIE_KEY + '=true');
+    }
+
+    function applyWidth() {
+        const collapsed = !wide.matches || savedCollapsed();
+        htmlEl.classList.toggle('sidebar-collapsed', collapsed);
+        syncTooltips(collapsed);
+    }
+
+    wide.addEventListener('change', applyWidth);
+
     if (sidebarCollapseBtn) {
         sidebarCollapseBtn.addEventListener('click', function () {
             const isNowCollapsed = htmlEl.classList.toggle('sidebar-collapsed');
             setCookie(COOKIE_KEY, isNowCollapsed);
             syncTooltips(isNowCollapsed);
         });
-
-        // Cuando el sidebar está colapsado y el usuario hace clic en un ítem
-        // con submenú: expandir el sidebar primero, luego abrir el submenú.
-        if (sidebar) {
-            sidebar.querySelectorAll('[data-bs-toggle="collapse"]').forEach(function (link) {
-                link.addEventListener('click', function (e) {
-                    if (htmlEl.classList.contains('sidebar-collapsed')) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        // Expandir sidebar
-                        htmlEl.classList.remove('sidebar-collapsed');
-                        setCookie(COOKIE_KEY, false);
-                        syncTooltips(false);
-                        // Abrir el submenú tras la transición
-                        const targetId = this.getAttribute('data-bs-target');
-                        setTimeout(function () {
-                            const target = document.querySelector(targetId);
-                            if (target) {
-                                bootstrap.Collapse.getOrCreateInstance(target, { toggle: false }).show();
-                            }
-                        }, 280);
-                    }
-                }, true); // capture phase — se ejecuta antes que Bootstrap
-            });
-        }
     }
 
 });

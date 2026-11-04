@@ -47,17 +47,21 @@ _NAV_GROUPS = {
     'nav_products':     {'product-list', 'product-create', 'product-edit',
                          'product-type-create', 'product-type-edit', 'product-comparison'},
     'nav_treatment_cost_admin': {'treatment-cost-admin'},
+    'nav_stats':        {'yearly-stats'},
+    'nav_weather':      {'weather-overview'},
     'nav_chat':         {'chat'},
 }
 
 
 def active_nav(request):
     """
-    Inyecta en el contexto un booleano por cada grupo de navegación,
-    más un helper para el grupo colapsable:
-      nav_gastos_open   → True si hay que mostrar el submenu de Gastos abierto
+    Inyecta en el contexto un booleano por cada grupo de navegación
+    (nav_home, nav_treatments…) y el menú ya montado (ver farm/navigation.py).
     """
+    from farm.navigation import build_navigation
     url_name = getattr(request.resolver_match, 'url_name', '') or ''
     ctx = {key: url_name in names for key, names in _NAV_GROUPS.items()}
-    ctx['nav_gastos_open']   = ctx['nav_costs'] or ctx['nav_expenses']
+    if not request.user.is_authenticated:
+        return ctx
+    ctx.update(build_navigation(request, ctx))
     return ctx

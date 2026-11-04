@@ -24,6 +24,16 @@
     <link href="{% static 'css/treatment-styles.css' %}" rel="stylesheet">
     <link href="{% static 'css/calendar.css' %}" rel="stylesheet">
     <link href="{% static 'css/menu.css' %}" rel="stylesheet">
+    <script>
+        /* Lateral plegado por debajo del breakpoint xl de Bootstrap (tableta,
+           portátil pequeño). Va aquí, antes de pintar, para que no dé un salto. */
+        (function () {
+            var xl = getComputedStyle(document.documentElement).getPropertyValue('--bs-breakpoint-xl').trim() || '1200px';
+            if (!window.matchMedia('(min-width: ' + xl + ')').matches) {
+                document.documentElement.classList.add('sidebar-collapsed');
+            }
+        })();
+    </script>
     <link href="{% static 'css/sweetalert2-custom.css' %}" rel="stylesheet">
     <link href="{% static 'css/tables.css' %}" rel="stylesheet">
 
