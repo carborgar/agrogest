@@ -10,8 +10,6 @@ from farm.models import Treatment, TreatmentProduct, Field, Harvest, Expense
 
 # Tope de PK admitido en el filtro de parcela (evita desbordar el entero de la BD)
 MAX_PK = 2**31 - 1
-# Sectores con color propio en la rosquilla de tipos de producto (el resto, en «Otros»)
-TOP_PRODUCT_TYPES = 6
 
 
 class YearlyStatsView(OwnershipRequiredMixin, TemplateView):
@@ -149,7 +147,6 @@ class YearlyStatsView(OwnershipRequiredMixin, TemplateView):
         max_month = max(monthly_data)
         context["monthly_bars"] = [
             {"label": label, "count": count,
-             "pct": round(count * 100 / max_month) if max_month else 0,
              # Se resalta solo si un único mes destaca; con empates no hay «el» mes más activo
              "is_max": bool(max_month) and count == max_month and monthly_data.count(max_month) == 1}
             for label, count in zip(month_labels, monthly_data)
@@ -240,9 +237,6 @@ class YearlyStatsView(OwnershipRequiredMixin, TemplateView):
         )
         context["total_expenses"] = total_expenses
         context["expenses_by_type"] = list(expenses_by_type)
-        # Lo que no cabe en el top 5, para que la tabla de gastos sume el total
-        expenses_listed = sum(e["total"] for e in expenses_by_type)
-        context["expenses_rest"] = total_expenses - expenses_listed
 
         # ── Coste total (productos + gastos) ─────────────────────────────
         total_cost_all = float(total_products_cost) + float(total_expenses)
@@ -272,42 +266,17 @@ class YearlyStatsView(OwnershipRequiredMixin, TemplateView):
         context["avg_cost_per_treatment"] = round(avg_cost_per_treatment, 2)
 
         # ── Datos para las gráficas (Chart.js los lee con json_script) ─────
-        # Todo en tipos nativos (float/int/str): json_script serializaría los Decimal como texto.
-        expense_items = []
-        if total_products_cost:
-            expense_items.append({"label": "Productos (tratamientos)", "value": float(total_products_cost), "other": False})
-        expense_items += [
-            {"label": e["expense_type__name"] or "Sin tipo", "value": float(e["total"]), "other": False}
-            for e in expenses_by_type
-        ]
-        if context["expenses_rest"] > 0:
-            expense_items.append({"label": "Otros tipos de gasto", "value": float(context["expenses_rest"]), "other": True})
-        # Rosquilla de tipos de producto: los 6 más usados y el resto en «Otros tipos» (gris), como en gastos.
-        # La tabla «Ver datos» sigue con todos. El tipo es obligatorio en el producto, así que siempre hay nombre.
-        product_type_items = [
-            {"label": r["product__product_type__name"], "value": r["times_used"],
-             "cost": float(r["total_cost"] or 0), "other": False}
-            for r in context["by_product_type"][:TOP_PRODUCT_TYPES]
-        ]
-        rest_types = context["by_product_type"][TOP_PRODUCT_TYPES:]
-        if rest_types:
-            product_type_items.append({
-                "label": "Otros tipos",
-                "value": sum(r["times_used"] for r in rest_types),
-                "cost": float(sum(r["total_cost"] or 0 for r in rest_types)),
-                "other": True,
-            })
+        # Solo tipos nativos (int/str): json_script serializaría los Decimal como texto.
         context["stats_charts"] = {
             "months": {
                 "labels": month_labels,
                 "counts": monthly_data,
                 "peak": next((i for i, b in enumerate(context["monthly_bars"]) if b["is_max"]), None),
             },
-            "expenses": expense_items,
-            "harvests": [
-                {"label": h["field__name"], "value": float(h["total_kg"])} for h in harvests_by_field
-            ],
-            "productTypes": product_type_items,
+            "productTypes": {
+                "labels": [r["product__product_type__name"] or "Sin tipo" for r in context["by_product_type"]],
+                "data": [r["times_used"] for r in context["by_product_type"]],
+            },
         }
 
         # ── Marca nav activo ──────────────────────────────────────────────

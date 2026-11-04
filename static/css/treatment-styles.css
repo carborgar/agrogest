@@ -1005,7 +1005,8 @@ button.cal-row:hover { background: var(--tl-soft); }
 
 /* ═══ ESTADÍSTICAS (st-*) ═══
    Cifras clave grandes sobre .dt-summary y gráficas Chart.js (static/js/stats-charts.js) dentro de .card-flat.
-   El lienzo vive en un contenedor con altura fija (maintainAspectRatio:false); «Ver datos» es la alternativa en tabla. */
+   El lienzo vive en un contenedor con altura fija (maintainAspectRatio:false); «Ver datos» es la alternativa en tabla.
+   Rankings, barras de cosecha y curiosidades conservan los colores de la pantalla original, sin sombras ni degradados. */
 .st-toolbar .tl-tabs { flex: 1 1 0; }
 @media (min-width: 768px) { .st-toolbar .tl-tabs { flex: 0 0 auto; } }
 .st-key .dt-value { font-size: 1.25rem; }
@@ -1019,6 +1020,27 @@ button.cal-row:hover { background: var(--tl-soft); }
 .st-data > summary::after { content: "\25BE"; margin-left: .4rem; }
 .st-data[open] > summary::after { content: "\25B4"; }
 .st-data > .table-responsive { border-top: 1px solid var(--tl-line); }
+
+.st-rank { display: flex; flex-direction: column; gap: .5rem; margin: 0; padding: 1rem; list-style: none; }
+.st-rank li { display: flex; align-items: center; gap: .75rem; padding: .5rem .75rem; border-radius: 10px; background: rgba(0, 0, 0, .025); }
+.st-rank-num { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: #E9ECEF; color: #495057; font-size: .8rem; font-weight: 700; }
+.st-rank-num--1 { background: #FFD700; color: #7F4F24; }
+.st-rank-num--2 { background: #C0C0C0; color: #3D3D3D; }
+.st-rank-num--3 { background: #CD7F32; color: #fff; }
+.st-rank-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.st-rank-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .85rem; font-weight: 600; }
+.st-bars { padding: 1rem 1rem .25rem; }
+.st-bars .progress { height: 5px; }
+.st-insight { display: flex; align-items: center; gap: .85rem; height: 100%; padding: .85rem 1rem; border-radius: 12px; background: var(--si-bg); }
+.st-insight-icon { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 42px; height: 42px; border-radius: 10px; background: var(--si-ic); color: var(--si-fg); font-size: 1.3rem; }
+.st-insight-value { font-size: .95rem; font-weight: 700; overflow-wrap: anywhere; }
+.st-insight--green { --si-bg: #D8F3DC; --si-ic: #B7E4C7; --si-fg: #1B4332; }
+.st-insight--blue { --si-bg: #DBEAFE; --si-ic: #BFDBFE; --si-fg: #1D3557; }
+.st-insight--orange { --si-bg: #FDE8D8; --si-ic: #FED7AA; --si-fg: #7F4F24; }
+.st-insight--gray { --si-bg: #F3F4F6; --si-ic: #E5E7EB; --si-fg: #4B5563; }
+.st-insight--purple { --si-bg: #EDE9FE; --si-ic: #DDD6FE; --si-fg: #3C096C; }
+.st-insight--teal { --si-bg: #CCFBF1; --si-ic: #99F6E4; --si-fg: #134E4A; }
+.st-insight--gold { --si-bg: #FEF9C3; --si-ic: #FEF08A; --si-fg: #713F12; }
 
 /* ═══════════════════════════════════════════════
    EL TIEMPO (wx-*)

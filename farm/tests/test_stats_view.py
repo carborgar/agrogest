@@ -72,15 +72,15 @@ class TestKeyFigures:
         assert ctx['total_ha_farm'] == 2.0
         assert ctx['cost_per_ha'] == 250.0
 
-    def test_expenses_rest_completes_the_total(self, setup):
+    def test_other_expenses_lists_top_five_and_header_shows_total(self, setup):
         client, org, f1, _ = setup
         for i in range(7):
             _expense(org, f1, f'Tipo {i}', str(100 + i))
-        ctx = _get(client).context
-        assert len(ctx['expenses_by_type']) == 5
-        listed = sum(e['total'] for e in ctx['expenses_by_type'])
-        assert listed + ctx['expenses_rest'] == ctx['total_expenses']
-        assert ctx['expenses_rest'] > 0
+        resp = _get(client)
+        assert len(resp.context['expenses_by_type']) == 5
+        html = resp.content.decode()
+        assert 'Otros gastos' in html and 'Tipo 6' in html and 'Tipo 0' not in html
+        assert resp.context['total_expenses'] == sum(100 + i for i in range(7))
 
     def test_harvests_without_price_are_counted(self, setup):
         client, org, f1, _ = setup
@@ -127,7 +127,7 @@ class TestMonthlyBars:
             _done(org, f1, 3)
         _done(org, f1, 5)
         bars = _get(client).context['monthly_bars']
-        assert [b['pct'] for b in bars][2:5] == [100, 0, 50]
+        assert [b['count'] for b in bars][2:5] == [2, 0, 1]
         assert [b['is_max'] for b in bars].count(True) == 1 and bars[2]['is_max']
 
     def test_no_highlight_on_ties_or_empty(self, setup):
@@ -171,79 +171,131 @@ def _chart_data(html):
     return json.loads(raw)
 
 
-@pytest.mark.django_db
-class TestCharts:
+def _full_year(org, f1, f2):
+    """Un año con actividad en todas las secciones de la pantalla."""
+    _expense(org, f1, 'Agua', '500')
+    _harvest(org, f1, 1500, '2.00')
+    _harvest(org, f2, 800, '1.00')
+    for _i in range(2):
+        t = _done(org, f1, 3)
+    _done(org, f1, 5)
+    TreatmentProductFactory(treatment=t, organization=org)
+    return t
 
-    def test_canvases_and_json_data(self, setup):
+
+@pytest.mark.django_db
+class TestOriginalSections:
+    """La pantalla recupera el contenido y la disposición originales (main) con el estilo nuevo."""
+
+    def test_all_original_sections_are_present_in_order(self, setup):
         client, org, f1, f2 = setup
-        _expense(org, f1, 'Agua', '500')
-        _harvest(org, f1, 1500, '2.00')
-        _harvest(org, f2, 800, '1.00')
-        for _i in range(2):
-            _done(org, f1, 3)
-        _done(org, f1, 5)
+        _full_year(org, f1, f2)
         html = _get(client).content.decode()
-        for key in ('months', 'expenses', 'harvests'):
+        titles = ['Tratamientos por mes', 'Por tipo de producto', 'Productos más usados', 'Parcelas más activas',
+                  'Cosechas por parcela', 'Otros gastos', 'Curiosidades de']
+        positions = [html.index(f'{t}') for t in titles]
+        assert positions == sorted(positions)
+        assert html.index('Gasto por ha') < html.index('Tratamientos por mes')   # la franja de 4 cifras va primero
+
+    def test_cards_are_flat_with_header_and_no_inline_style_block_or_gradients(self, setup):
+        client, org, f1, f2 = setup
+        _full_year(org, f1, f2)
+        html = _get(client).content.decode()
+        body = html.split('<body', 1)[1]
+        assert '<style' not in body and 'bg-gradient' not in body and 'shadow-sm' not in body
+        assert body.count('card card-flat') >= 8 and body.count('dt-card-title') >= 7
+        assert 'stat-kpi' not in body and 'stats-hero' not in body   # sin tarjetas de colores ni banner del diseño anterior
+
+    def test_two_canvases_with_json_script_data(self, setup):
+        client, org, f1, f2 = setup
+        _full_year(org, f1, f2)
+        html = _get(client).content.decode()
+        assert html.count('<canvas') == 2
+        for key in ('months', 'types'):
             assert f'data-st-chart="{key}"' in html
-        assert html.count('role="img"') >= 3 and 'aria-label="Gráfica' in html
-        assert html.count('<details class="st-data"') >= 3 and 'Ver datos' in html
+        assert html.count('role="img"') == 2 and html.count('<details class="st-data"') == 2
         data = _chart_data(html)
         assert data['months']['counts'][2:5] == [2, 0, 1]
         assert data['months']['peak'] == 2 and len(data['months']['labels']) == 12
-        assert data['expenses'] == [{'label': 'Agua', 'value': 500.0, 'other': False}]
-        assert data['harvests'] == [{'label': f1.name, 'value': 1500.0}, {'label': f2.name, 'value': 800.0}]
+        assert len(data['productTypes']['labels']) == 1 and data['productTypes']['data'] == [1]
+
+    def test_rankings_harvests_expenses_and_curiosities_show_the_data(self, setup):
+        client, org, f1, f2 = setup
+        _full_year(org, f1, f2)
+        html = _get(client).content.decode()
+        assert html.count('st-rank-num st-rank-num--1') == 2   # productos y parcelas
+        assert f1.name in html and f2.name in html
+        assert '1\u00a0500 kg' in html and '800 kg' in html and 'progress-bar' in html
+        assert 'Agua' in html and '500,00 €' in html
+        for tile in ('Mes más activo', 'Coste medio por tratamiento', 'Gasto total (productos + otros)',
+                     'Producto estrella', 'Parcela más trabajada', 'Rendimiento medio de cosecha'):
+            assert tile in html
+        assert 'Marzo' not in html  # los meses se muestran abreviados, como en la gráfica
+
+    def test_harvest_bar_is_proportional_to_the_biggest_field(self, setup):
+        client, org, f1, f2 = setup
+        _harvest(org, f1, 1000, '1.00')
+        _harvest(org, f2, 250, '1.00')
+        html = _get(client).content.decode()
+        assert 'style="width:100%"' in html and 'style="width:25%"' in html
 
     def test_data_is_json_script_not_inline_js(self, setup):
-        client, org, f1, _ = setup
-        _expense(org, f1, 'Agua <b>"x"</b>', '500')
+        client, org, f1, f2 = setup
+        t = _done(org, f1, 3)
+        ptype = ProductTypeFactory(organization=org, name='Tipo <b>"x"</b>')
+        TreatmentProductFactory(treatment=t, product=ProductFactory(organization=org, product_type=ptype))
         html = _get(client).content.decode()
         assert 'type="application/json"' in html
-        assert 'Agua <b>' not in html  # escapado por json_script
-        assert _chart_data(html)['expenses'][0]['label'] == 'Agua <b>"x"</b>'
-        assert 'new Chart(' not in html
+        assert 'Tipo <b>"x"</b>' not in html  # escapado
+        assert _chart_data(html)['productTypes']['labels'] == ['Tipo <b>"x"</b>']
+        assert 'new Chart(' not in html and '|safe' not in html
 
-    def test_product_type_chart_data(self, setup):
-        client, org, f1, _ = setup
-        t = _done(org, f1, 3)
-        TreatmentProductFactory(treatment=t, organization=org)
-        data = _chart_data(_get(client).content.decode())
-        assert len(data['productTypes']) == 1
-        assert data['productTypes'][0]['value'] == 1
-        assert isinstance(data['productTypes'][0]['cost'], float)
-
-    def test_product_types_chart_groups_the_rest_in_otros_but_table_keeps_all(self, setup):
+    def test_product_type_chart_has_one_sector_per_type_and_no_grouping(self, setup):
         client, org, f1, _ = setup
         t = _done(org, f1, 3)
         for i in range(8):   # 8 tipos con nombre; el tipo i se usa 8 - i veces
             ptype = ProductTypeFactory(organization=org, name=f'Tipo {i}')
             for _ in range(8 - i):
                 TreatmentProductFactory(treatment=t, product=ProductFactory(organization=org, product_type=ptype))
-        response = _get(client)
-        items = _chart_data(response.content.decode())['productTypes']
-        assert [it['label'] for it in items] == [f'Tipo {i}' for i in range(6)] + ['Otros tipos']
-        assert [it['other'] for it in items] == [False] * 6 + [True]
-        assert items[-1]['value'] == 2 + 1
-        assert sum(it['value'] for it in items) == sum(range(1, 9))
-        assert len(response.context['by_product_type']) == 8   # «Ver datos» lista todos
-        assert 'product_type_labels' not in response.context and 'product_type_data' not in response.context
+        data = _chart_data(_get(client).content.decode())['productTypes']
+        assert data['labels'] == [f'Tipo {i}' for i in range(8)]
+        assert data['data'] == [8 - i for i in range(8)]
 
     def test_sections_without_data_show_empty_state_not_canvas(self, setup):
         client, org, f1, _ = setup
         _expense(org, f1, 'Agua', '500')  # solo hay gasto: no hay tratamientos ni cosechas
         html = _get(client).content.decode()
-        assert 'data-st-chart="expenses"' in html
-        for key in ('months', 'harvests', 'types'):
-            assert f'data-st-chart="{key}"' not in html
-        assert 'Sin tratamientos completados' in html
-        assert 'Sin cosechas en' in html
-        assert 'hm-empty' in html
+        assert '<canvas' not in html
+        assert 'Sin tratamientos completados' in html and 'Sin cosechas' in html
+        assert 'Agua' in html and 'hm-empty' in html
+        assert 'Todavía no hay tratamientos completados' in html   # mensaje de curiosidades
 
     def test_no_expenses_shows_empty_state(self, setup):
         client, org, f1, _ = setup
         _harvest(org, f1, 500, '1.00')
         html = _get(client).content.decode()
-        assert 'data-st-chart="expenses"' not in html and 'Sin gastos en' in html
-        assert 'data-st-chart="harvests"' in html
+        assert 'Sin gastos' in html and '500 kg' in html
+
+    def test_expense_and_harvest_sections_follow_the_field_filter(self, setup):
+        client, org, f1, f2 = setup
+        _expense(org, f1, 'Agua', '500')
+        _expense(org, f2, 'Mano de obra', '300')
+        _harvest(org, f1, 1000, '1.00')
+        _harvest(org, f2, 4000, '1.00')
+        html = _get(client, field=f1.id).content.decode()
+        assert 'Agua' in html and 'Mano de obra' not in html
+        assert '1\u00a0000 kg' in html and '4\u00a0000 kg' not in html
+
+    def test_other_organization_data_is_not_shown(self, setup):
+        client, org, f1, _ = setup
+        other = OrganizationFactory(name='Otra organización')
+        of = FieldFactory(organization=other, area=7.0, name='Parcela ajena')
+        _expense(other, of, 'Gasto ajeno', '900')
+        _harvest(other, of, 9999, '1.00')
+        _done(other, of, 3)
+        _done(org, f1, 3)
+        html = _get(client).content.decode()
+        assert 'Gasto ajeno' not in html and 'Parcela ajena' not in html and '9\u00a0999' not in html
 
     def test_chartjs_is_vendored_and_loaded_with_static(self, setup):
         client, org, f1, _ = setup
