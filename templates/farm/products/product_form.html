@@ -223,8 +223,8 @@
 <form class="d-none" id="deleteForm" method="POST">
     {% csrf_token %}
 </form>
-{# Fechas y precios ya serializados en la vista (json.dumps), sin texto libre #}
-{% if object.pk and price_history|length > 1 %}<script type="application/json" id="pfPriceData">{{ price_history_json|safe }}</script>{% endif %}
+{# Fechas y precios del histórico, serializados y escapados por json_script #}
+{% if object.pk and price_history|length > 1 %}{{ price_history_data|json_script:"pfPriceData" }}{% endif %}
 {% endblock %}
 
 {% block extra_js %}

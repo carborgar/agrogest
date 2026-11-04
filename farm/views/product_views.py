@@ -1,4 +1,3 @@
-import json
 from decimal import Decimal
 
 from django.contrib import messages
@@ -280,11 +279,11 @@ class ProductFormView(BaseSecureProductFormMixin, SuccessMessageMixin, UpdateVie
                 context['price_max'] = max_entry
                 context['price_min'] = min_entry
 
-            # ── JSON seguro para el gráfico ────────────────────────────────────────────
-            context['price_history_json'] = json.dumps([
+            # ── Datos del gráfico: la plantilla los serializa con json_script ──────────
+            context['price_history_data'] = [
                 {'date': e.effective_date.strftime('%d/%m/%Y'), 'price': float(e.price)}
                 for e in reversed(history)  # oldest first for chart X axis
-            ])
+            ]
         return context
 
 

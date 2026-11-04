@@ -54,6 +54,16 @@ class TestProductForm:
         assert 'id="pfSpark"' in html and 'id="pfPriceData"' in html
         assert 'data-price-delete' in html and 'chart.js' not in html
 
+    def test_price_chart_data_goes_through_json_script(self, setup):
+        client, org = setup
+        product = ProductFactory(organization=org, price=Decimal('11'))
+        _history(product, org, ['10.00', '11.00'])
+        html = client.get(reverse('product-edit', args=[product.pk])).content.decode()
+        match = re.search(r'<script id="pfPriceData" type="application/json">(.*?)</script>', html, re.S)
+        assert match is not None
+        points = json.loads(match.group(1))
+        assert [p['price'] for p in points] == [10.0, 11.0]
+
     def test_edit_without_history_shows_empty_state_and_no_chart(self, setup):
         client, org = setup
         product = ProductFactory(organization=org)

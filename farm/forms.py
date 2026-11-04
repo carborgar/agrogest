@@ -13,6 +13,10 @@ from core.forms import NoPlaceholderModelForm
 from .timeutils import local_today
 from .models import Treatment, TreatmentProduct, Expense, Product, Harvest, ProductType, Field, Machine, StoragePoint
 
+# Clases de los campos con el estilo de los formularios tf-*
+TF_SELECT = 'form-select tf-inp'
+TF_NUM = 'tf-inp tf-num'
+
 
 class TreatmentForm(forms.ModelForm):
     water_per_ha = forms.FloatField(
@@ -321,16 +325,16 @@ class ExpenseForm(forms.ModelForm):
         ]
         # Clases del formulario de tratamiento (tf-*): el mismo aspecto en todos los formularios
         widgets = {
-            'field': forms.Select(attrs={'class': 'form-select tf-inp'}),
-            'expense_type': forms.Select(attrs={'class': 'form-select tf-inp'}),
+            'field': forms.Select(attrs={'class': TF_SELECT}),
+            'expense_type': forms.Select(attrs={'class': TF_SELECT}),
             'description': forms.Textarea(attrs={'class': 'tf-inp', 'rows': 2,
                                                  'placeholder': 'Ej. Poda de enero, 3 jornales'}),
             'payment_date': forms.DateInput(attrs={'type': 'date', 'class': 'tf-inp'}),
             'calculation_mode': forms.HiddenInput(),
-            'quantity': forms.NumberInput(attrs={'class': 'tf-inp tf-num', 'step': '0.01', 'min': '0', 'inputmode': 'decimal'}),
-            'unit_price': forms.NumberInput(attrs={'class': 'tf-inp tf-num', 'step': '0.01', 'min': '0', 'inputmode': 'decimal'}),
-            'price_per_ha': forms.NumberInput(attrs={'class': 'tf-inp tf-num', 'step': '0.01', 'min': '0', 'inputmode': 'decimal'}),
-            'amount': forms.NumberInput(attrs={'class': 'tf-inp tf-num', 'step': '0.01', 'min': '0', 'inputmode': 'decimal'}),
+            'quantity': forms.NumberInput(attrs={'class': TF_NUM, 'step': '0.01', 'min': '0', 'inputmode': 'decimal'}),
+            'unit_price': forms.NumberInput(attrs={'class': TF_NUM, 'step': '0.01', 'min': '0', 'inputmode': 'decimal'}),
+            'price_per_ha': forms.NumberInput(attrs={'class': TF_NUM, 'step': '0.01', 'min': '0', 'inputmode': 'decimal'}),
+            'amount': forms.NumberInput(attrs={'class': TF_NUM, 'step': '0.01', 'min': '0', 'inputmode': 'decimal'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -487,15 +491,15 @@ class ProductForm(NoPlaceholderModelForm):
         # Clases del formulario de tratamiento (tf-*): el mismo aspecto en todos los formularios
         widgets = {
             'name': forms.TextInput(attrs={'class': 'tf-inp'}),
-            'product_type': forms.Select(attrs={'class': 'form-select tf-inp'}),
+            'product_type': forms.Select(attrs={'class': TF_SELECT}),
             'comments': forms.Textarea(attrs={'class': 'tf-inp', 'rows': 2}),
-            'price': forms.NumberInput(attrs={'class': 'tf-inp tf-num', 'step': '0.01', 'min': '0', 'inputmode': 'decimal'}),
+            'price': forms.NumberInput(attrs={'class': TF_NUM, 'step': '0.01', 'min': '0', 'inputmode': 'decimal'}),
             # Casilla real, oculta: la enseña el interruptor de la plantilla (tf-switch)
             'is_active': forms.CheckboxInput(attrs={'class': 'tf-sr', 'tabindex': '-1', 'aria-hidden': 'true'}),
-            'spraying_dose': forms.NumberInput(attrs={'class': 'tf-inp tf-num', 'step': '0.001', 'min': '0', 'inputmode': 'decimal'}),
-            'spraying_dose_type': forms.Select(attrs={'class': 'form-select tf-inp'}),
-            'fertigation_dose': forms.NumberInput(attrs={'class': 'tf-inp tf-num', 'step': '0.001', 'min': '0', 'inputmode': 'decimal'}),
-            'fertigation_dose_type': forms.Select(attrs={'class': 'form-select tf-inp'}),
+            'spraying_dose': forms.NumberInput(attrs={'class': TF_NUM, 'step': '0.001', 'min': '0', 'inputmode': 'decimal'}),
+            'spraying_dose_type': forms.Select(attrs={'class': TF_SELECT}),
+            'fertigation_dose': forms.NumberInput(attrs={'class': TF_NUM, 'step': '0.001', 'min': '0', 'inputmode': 'decimal'}),
+            'fertigation_dose_type': forms.Select(attrs={'class': TF_SELECT}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -586,10 +590,10 @@ class HarvestForm(NoPlaceholderModelForm):
         }
         # Clases del formulario de tratamiento (tf-*): el mismo aspecto en todos los formularios
         widgets = {
-            'field': forms.Select(attrs={'class': 'form-select tf-inp'}),
+            'field': forms.Select(attrs={'class': TF_SELECT}),
             'date': forms.DateInput(attrs={'type': 'date', 'class': 'tf-inp'}),
-            'amount': forms.NumberInput(attrs={'class': 'tf-inp tf-num', 'step': '1', 'min': '0', 'inputmode': 'numeric'}),
-            'sale_price_per_kg': forms.NumberInput(attrs={'class': 'tf-inp tf-num', 'step': '0.01', 'min': '0', 'inputmode': 'decimal'}),
+            'amount': forms.NumberInput(attrs={'class': TF_NUM, 'step': '1', 'min': '0', 'inputmode': 'numeric'}),
+            'sale_price_per_kg': forms.NumberInput(attrs={'class': TF_NUM, 'step': '0.01', 'min': '0', 'inputmode': 'decimal'}),
             'price_pending': forms.CheckboxInput(),
             'notes': forms.Textarea(attrs={'class': 'tf-inp', 'rows': 2}),
         }
@@ -672,9 +676,9 @@ class FieldForm(NoPlaceholderModelForm):
         widgets = {
             'name': forms.TextInput(attrs={'class': 'tf-inp', 'maxlength': 100, 'autocomplete': 'off'}),
             'crop': forms.TextInput(attrs={'class': 'tf-inp', 'maxlength': 100, 'autocomplete': 'off'}),
-            'area': forms.NumberInput(attrs={'class': 'tf-inp tf-num', 'step': 'any', 'min': '0', 'inputmode': 'decimal'}),
-            'planting_year': forms.NumberInput(attrs={'class': 'tf-inp tf-num', 'inputmode': 'numeric', 'min': PLANTING_YEAR_MIN}),
-            'storage_point': forms.Select(attrs={'class': 'form-select tf-inp'}),
+            'area': forms.NumberInput(attrs={'class': TF_NUM, 'step': 'any', 'min': '0', 'inputmode': 'decimal'}),
+            'planting_year': forms.NumberInput(attrs={'class': TF_NUM, 'inputmode': 'numeric', 'min': PLANTING_YEAR_MIN}),
+            'storage_point': forms.Select(attrs={'class': TF_SELECT}),
             'geometry': forms.HiddenInput(),
         }
 
@@ -782,7 +786,7 @@ class TreatmentCostProductForm(forms.Form):
     product = forms.ModelChoiceField(
         queryset=Product.objects.none(),
         label='Producto',
-        widget=forms.Select(attrs={'class': 'form-select tf-inp'}),
+        widget=forms.Select(attrs={'class': TF_SELECT}),
     )
 
     def __init__(self, *args, **kwargs):
