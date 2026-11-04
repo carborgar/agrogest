@@ -1327,3 +1327,6 @@ button.cal-row:hover { background: var(--tl-soft); }
 .tf-btn--danger { background: var(--tl-0-fg); color: #fff; }
 .tf-btn--danger:hover, .tf-btn--danger:focus-visible { background: #8E1B11; color: #fff; }
 .tf-btn--danger:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Títulos y frases cortas centradas: reparte las líneas sin dejar una palabra sola */
+.text-balance { text-wrap: balance; }

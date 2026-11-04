@@ -1,7 +1,7 @@
 {% extends 'base_no_menu.html' %}
 {% load static %}
 
-{# Portada pública de uso familiar: una sola pantalla con la marca, una frase y el acceso. Mismo marco que el login (au-*) #}
+{# Portada pública de uso familiar: una sola pantalla con la marca, una frase y el acceso. Mismo marco que el login (au-*), repetido a mano porque aquí la marca es el h1 y en auth_base es un enlace #}
 
 {% block title %}AgroGest{% endblock %}
 
@@ -18,7 +18,7 @@
             <img alt="" height="48" src="{% static 'img/favicon.svg' %}" width="48">
             <span>AgroGest</span>
         </h1>
-        <p class="text-muted mb-4">Los tratamientos, productos y gastos de la finca, en un sitio.</p>
+        <p class="text-muted mb-4 text-balance">Los tratamientos, productos y gastos de la finca, en un sitio.</p>
         <ul class="d-flex justify-content-center gap-4 list-unstyled small text-muted mb-4">
             <li><i aria-hidden="true" class="bi bi-droplet-half d-block fs-4 text-primary"></i>Tratamientos</li>
             <li><i aria-hidden="true" class="bi bi-box-seam d-block fs-4 text-primary"></i>Productos</li>
@@ -26,7 +26,7 @@
         </ul>
         <a class="tf-btn tf-btn--primary w-100" href="{% url 'accounts:login' %}">Entrar</a>
         <p class="small text-muted mt-4 mb-0">
-            © {% now "Y" %} · Proyecto de <a class="text-decoration-none" href="https://github.com/carborgar" rel="noopener" target="_blank">@carborgar</a>
+            © {% now "Y" %} · Proyecto de <a class="text-decoration-none" href="https://github.com/carborgar" rel="noopener" target="_blank">@carborgar<span class="visually-hidden"> (abre en otra pestaña)</span></a>
         </p>
     </div>
 </main>
