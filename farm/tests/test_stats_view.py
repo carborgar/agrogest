@@ -382,3 +382,58 @@ class TestScopeAndFilters:
         resp = _get(client)
         assert resp.context['cost_per_ha'] is None
         assert '—' in resp.content.decode()
+
+
+@pytest.mark.django_db
+class TestStatsCoherence:
+
+    def test_most_active_fields_counts_each_treatment_once(self, setup):
+        client, org, f1, _ = setup
+        t = _done(org, f1, 3)
+        TreatmentProductFactory(treatment=t, organization=org)
+        TreatmentProductFactory(treatment=t, organization=org)
+        fields = _get(client).context['most_active_fields']
+        assert len(fields) == 1 and fields[0]['treatments_count'] == 1
+
+    def test_busiest_month_hidden_on_tie_like_the_chart(self, setup):
+        client, org, f1, _ = setup
+        _done(org, f1, 3)
+        _done(org, f1, 4)
+        resp = _get(client)
+        assert resp.context['busiest_month'] is None
+        assert _chart_data(resp.content.decode())['months']['peak'] is None
+        assert 'Mes más activo' not in resp.content.decode()
+
+    def test_busiest_month_shown_when_single_peak(self, setup):
+        client, org, f1, _ = setup
+        _done(org, f1, 3)
+        _done(org, f1, 3)
+        _done(org, f1, 4)
+        resp = _get(client)
+        assert resp.context['busiest_month'] == 'Mar' and resp.context['busiest_month_count'] == 2
+        assert _chart_data(resp.content.decode())['months']['peak'] == 2
+
+    def test_other_expenses_rest_row_adds_up_to_total(self, setup):
+        client, org, f1, _ = setup
+        for i in range(7):
+            _expense(org, f1, f'Tipo {i}', str(100 + i))
+        resp = _get(client)
+        assert resp.context['expenses_rest'] == {'count': 2, 'total': Decimal('201')}
+        html = resp.content.decode()
+        assert 'data-st-expenses-rest' in html and 'Resto (2 tipos más)' in html and '201,00 €' in html
+
+    def test_no_rest_row_with_five_or_fewer_types(self, setup):
+        client, org, f1, _ = setup
+        for i in range(5):
+            _expense(org, f1, f'Tipo {i}', '10')
+        resp = _get(client)
+        assert resp.context['expenses_rest'] is None
+        assert 'data-st-expenses-rest' not in resp.content.decode()
+
+    def test_rank_modifier_only_on_podium(self, setup):
+        client, org, f1, _ = setup
+        for i in range(5):
+            t = _done(org, f1, 3)
+            TreatmentProductFactory(treatment=t, organization=org)
+        html = _get(client).content.decode()
+        assert 'st-rank-num--3' in html and 'st-rank-num--4' not in html

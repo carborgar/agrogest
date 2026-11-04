@@ -152,9 +152,10 @@ class YearlyStatsView(OwnershipRequiredMixin, TemplateView):
             for label, count in zip(month_labels, monthly_data)
         ]
 
-        busiest_month_idx = monthly_data.index(max(monthly_data)) if any(monthly_data) else None
-        context["busiest_month"] = month_labels[busiest_month_idx] if busiest_month_idx is not None and max(monthly_data) > 0 else None
-        context["busiest_month_count"] = max(monthly_data) if any(monthly_data) else 0
+        # Mismo criterio que la gráfica: con empate en el máximo no se nombra ningún mes
+        peak_idx = next((i for i, b in enumerate(context["monthly_bars"]) if b["is_max"]), None)
+        context["busiest_month"] = month_labels[peak_idx] if peak_idx is not None else None
+        context["busiest_month_count"] = max_month if peak_idx is not None else 0
 
         # ── Top productos más usados ──────────────────────────────────────
         top_products = (
@@ -185,7 +186,8 @@ class YearlyStatsView(OwnershipRequiredMixin, TemplateView):
             treatments_qs
             .values("field__name")
             .annotate(
-                treatments_count=Count("id"),
+                # distinct: el join con productos da una fila por producto del tratamiento
+                treatments_count=Count("id", distinct=True),
                 total_cost=Sum("treatmentproduct__total_price"),
             )
             .order_by("-treatments_count")[:6]
@@ -229,14 +231,17 @@ class YearlyStatsView(OwnershipRequiredMixin, TemplateView):
             expenses_qs = expenses_qs.filter(field_id__in=selected_fields)
         total_expenses = expenses_qs.aggregate(total=Sum("amount"))["total"] or 0
 
-        expenses_by_type = (
+        expenses_by_type = list(
             expenses_qs
             .values("expense_type__name")
             .annotate(total=Sum("amount"))
-            .order_by("-total")[:5]
+            .order_by("-total")
         )
         context["total_expenses"] = total_expenses
-        context["expenses_by_type"] = list(expenses_by_type)
+        context["expenses_by_type"] = expenses_by_type[:5]
+        # Los tipos que no caben en la lista se agrupan para que la lista sume la cabecera
+        rest = expenses_by_type[5:]
+        context["expenses_rest"] = {"count": len(rest), "total": sum(e["total"] for e in rest)} if rest else None
 
         # ── Coste total (productos + gastos) ─────────────────────────────
         total_cost_all = float(total_products_cost) + float(total_expenses)
@@ -271,7 +276,7 @@ class YearlyStatsView(OwnershipRequiredMixin, TemplateView):
             "months": {
                 "labels": month_labels,
                 "counts": monthly_data,
-                "peak": next((i for i, b in enumerate(context["monthly_bars"]) if b["is_max"]), None),
+                "peak": peak_idx,
             },
             "productTypes": {
                 "labels": [r["product__product_type__name"] or "Sin tipo" for r in context["by_product_type"]],

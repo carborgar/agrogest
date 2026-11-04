@@ -238,7 +238,7 @@
             <ol class="st-rank">
                 {% for p in top_products %}
                 <li>
-                    <span class="st-rank-num st-rank-num--{{ forloop.counter }}">{{ forloop.counter }}</span>
+                    <span class="st-rank-num{% if forloop.counter <= 3 %} st-rank-num--{{ forloop.counter }}{% endif %}">{{ forloop.counter }}</span>
                     <span class="st-rank-info">
                         <span class="st-rank-name">{{ p.product__name }}</span>
                         <span class="dt-muted">{{ p.product__product_type__name|default:"Sin tipo" }}</span>
@@ -263,7 +263,7 @@
             <ol class="st-rank">
                 {% for f in most_active_fields %}
                 <li>
-                    <span class="st-rank-num st-rank-num--{{ forloop.counter }}">{{ forloop.counter }}</span>
+                    <span class="st-rank-num{% if forloop.counter <= 3 %} st-rank-num--{{ forloop.counter }}{% endif %}">{{ forloop.counter }}</span>
                     <span class="st-rank-info">
                         <span class="st-rank-name">{{ f.field__name }}</span>
                         <span class="dt-muted">{{ f.total_cost|default:0|floatformat:"2g" }} € en productos</span>
@@ -320,6 +320,12 @@
                             <span class="fw-semibold small text-nowrap">{{ e.total|floatformat:"2g" }} €</span>
                         </div>
                         {% endfor %}
+                        {% if expenses_rest %}
+                        <div class="d-flex justify-content-between align-items-center gap-2 mb-1" data-st-expenses-rest>
+                            <span class="text-muted small text-truncate">Resto ({{ expenses_rest.count }} tipo{{ expenses_rest.count|pluralize }} más)</span>
+                            <span class="fw-semibold small text-nowrap">{{ expenses_rest.total|floatformat:"2g" }} €</span>
+                        </div>
+                        {% endif %}
                     </div>
                     {% else %}
                     <div class="hm-empty"><span class="hm-empty-icon"><i class="fa fa-receipt" aria-hidden="true"></i></span><b>Sin gastos</b><span>{% if panel_filter_count %}Con los filtros actuales no hay ninguno.{% else %}Los gastos que registres aparecerán aquí.{% endif %}</span></div>

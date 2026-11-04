@@ -969,12 +969,13 @@ button.tl-tab { border: 0; background: transparent; }
    Activo: verde del proyecto con texto blanco (5,1:1) y ✓ delante. Inactivo: blanco, borde discontinuo y texto
    --tl-muted (5,9:1), sin ✓. El estado real lo lleva la casilla (.btn-check); treatment-calendar.js solo lee las casillas. */
 .cal-chip { display: inline-flex; align-items: center; gap: 0; }
-.cal-chip-check { display: none; margin-right: .4rem; font-size: .8em; }
+/* El ✓ ocupa siempre su hueco (oculto si inactivo) para que el chip no cambie de ancho al marcar/desmarcar */
+.cal-chip-check { display: inline-block; width: 1em; margin-right: .4rem; font-size: .8em; text-align: center; visibility: hidden; }
 .cal-chips .btn-check:not(:checked) + .btn { background: #fff; border: 1px dashed #7B8794; color: var(--tl-muted); }
 .cal-chips .btn-check:not(:checked) + .btn:hover { background: var(--tl-2-bg); border-color: var(--tl-ink); color: var(--tl-ink); }
 .cal-chips .btn-check:checked + .btn { background: var(--bs-primary); border: 1px solid var(--bs-primary); color: #fff; }
 .cal-chips .btn-check:checked + .btn:hover { background: #005005; border-color: #005005; color: #fff; }
-.cal-chips .btn-check:checked + .btn .cal-chip-check { display: inline-block; }
+.cal-chips .btn-check:checked + .btn .cal-chip-check { visibility: visible; }
 .cal-chips .btn-check:focus-visible + .btn { outline: 2px solid var(--bs-primary); outline-offset: 2px; box-shadow: 0 0 0 2px #fff; }
 /* El punto de estado sobre el verde: aro blanco para que se distinga (el verde de «Completado» incluido) */
 .cal-chips .btn-check:checked + .btn .cal-dot { box-shadow: 0 0 0 2px #fff; }
