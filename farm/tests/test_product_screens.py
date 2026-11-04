@@ -197,7 +197,7 @@ class TestProductList:
         # Tipos y comparativa ya no son entradas del menú
         assert 'productosMenu' not in html
         assert 'href="/productos/tipos/"' not in html
-        assert 'nav-submenu' in html  # el submenú de Gastos sigue existiendo
+        assert 'nav-submenu' not in html  # Gastos ya no es submenú: entradas directas
 
     def test_filter_links_keep_other_params(self, setup):
         client, org = setup
