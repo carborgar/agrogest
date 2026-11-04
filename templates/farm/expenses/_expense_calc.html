@@ -1,0 +1,2 @@
+{# Detalle de cómo se calculó el importe de un gasto (localizado; Expense.calculation_details no lo está) #}
+{% if expense.calculation_mode == 'quantity_price' %}{{ expense.quantity|floatformat:"-2g" }} × {{ expense.unit_price|floatformat:"2g" }} €{% elif expense.calculation_mode == 'price_per_ha' %}{{ expense.price_per_ha|floatformat:"2g" }} €/ha × {{ expense.field_area_snapshot|default:expense.field.area|floatformat:"-2g" }} ha{% else %}Importe directo{% endif %}

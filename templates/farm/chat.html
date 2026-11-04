@@ -4,324 +4,107 @@
 {% block title %}Asistente IA — AgroGest{% endblock %}
 
 {% block header %}Asistente IA{% endblock %}
-{% block sub_header %}Pregúntame lo que quieras sobre tus productos, parcelas y tratamientos{% endblock %}
-
-{% block actions %}
-    <button class="btn btn-outline-secondary btn-sm" id="btnClearChat" title="Nueva conversación">
-        <i class="fa fa-rotate-right me-1"></i>Nueva conversación
-    </button>
-{% endblock %}
-
-{% block extra_head %}
-<style>
-/* ── Chat container ─────────────────────────────────────────────────────── */
-.chat-wrapper {
-    display: flex;
-    flex-direction: column;
-    height: calc(100vh - 220px);
-    min-height: 400px;
-}
-
-.chat-messages {
-    flex: 1;
-    overflow-y: auto;
-    padding: 1rem 0.5rem;
-    scroll-behavior: smooth;
-}
-
-/* ── Bubbles ─────────────────────────────────────────────────────────────── */
-.bubble-row {
-    display: flex;
-    margin-bottom: 0.75rem;
-    align-items: flex-end;
-    gap: 0.5rem;
-}
-.bubble-row.user {
-    flex-direction: row-reverse;
-}
-
-.bubble-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.85rem;
-    flex-shrink: 0;
-}
-.bubble-avatar.ai  { background: #198754; color: #fff; }
-.bubble-avatar.usr { background: #0d6efd; color: #fff; }
-
-.bubble {
-    max-width: 78%;
-    padding: 0.65rem 0.9rem;
-    border-radius: 1rem;
-    line-height: 1.55;
-    font-size: 0.92rem;
-    word-break: break-word;
-}
-.bubble.ai {
-    background: #f1f3f5;
-    border-bottom-left-radius: 0.2rem;
-    color: #212529;
-}
-.bubble.user {
-    background: #0d6efd;
-    color: #fff;
-    border-bottom-right-radius: 0.2rem;
-}
-.bubble.error {
-    background: #fff3cd;
-    color: #664d03;
-    border: 1px solid #ffe083;
-}
-
-/* ── Markdown inside AI bubbles ─────────────────────────────────────────── */
-
-/* Paragraphs */
-.bubble.ai p { margin-bottom: 0.5rem; }
-.bubble.ai p:last-child { margin-bottom: 0; }
-
-/* Headings — achicados para caber en el chat */
-.bubble.ai h1, .bubble.ai h2 { font-size: 1rem;   font-weight: 700; margin: 0.75rem 0 0.35rem; border-bottom: 1px solid #dee2e6; padding-bottom: 0.2rem; }
-.bubble.ai h3                 { font-size: 0.95rem; font-weight: 700; margin: 0.65rem 0 0.3rem; }
-.bubble.ai h4, .bubble.ai h5  { font-size: 0.9rem;  font-weight: 600; margin: 0.5rem 0 0.25rem; }
-.bubble.ai :is(h1,h2,h3,h4,h5):first-child { margin-top: 0; }
-
-/* Lists */
-.bubble.ai ul, .bubble.ai ol { padding-left: 1.4rem; margin: 0.25rem 0 0.5rem; }
-.bubble.ai li { margin-bottom: 0.2rem; }
-.bubble.ai li:last-child { margin-bottom: 0; }
-.bubble.ai li > ul, .bubble.ai li > ol { margin: 0.15rem 0 0.15rem 0.5rem; }
-
-/* Bold / italic */
-.bubble.ai strong { font-weight: 700; }
-.bubble.ai em { font-style: italic; }
-
-/* Inline code */
-.bubble.ai code {
-    background: #e3e8ef;
-    border-radius: 0.25rem;
-    padding: 0.1rem 0.35rem;
-    font-size: 0.83rem;
-    font-family: ui-monospace, "Cascadia Code", monospace;
-    color: #c7254e;
-}
-
-/* Code blocks */
-.bubble.ai pre {
-    background: #1e2533;
-    color: #e2e8f0;
-    border-radius: 0.5rem;
-    padding: 0.75rem 1rem;
-    font-size: 0.82rem;
-    overflow-x: auto;
-    margin: 0.5rem 0;
-}
-.bubble.ai pre code {
-    background: none;
-    color: inherit;
-    padding: 0;
-    font-size: inherit;
-}
-
-/* Blockquotes — usado para las "fichas" de entidades */
-.bubble.ai blockquote {
-    border-left: 3px solid #198754;
-    background: #f8fffe;
-    margin: 0.5rem 0;
-    padding: 0.4rem 0.75rem;
-    border-radius: 0 0.4rem 0.4rem 0;
-    color: #2d3748;
-}
-.bubble.ai blockquote p { margin-bottom: 0.2rem; }
-.bubble.ai blockquote p:last-child { margin-bottom: 0; }
-.bubble.ai blockquote ul { margin: 0.2rem 0 0; }
-
-/* Tables */
-.bubble.ai table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.85rem;
-    margin: 0.5rem 0;
-    border-radius: 0.4rem;
-    overflow: hidden;
-}
-.bubble.ai thead tr { background: #198754; color: #fff; }
-.bubble.ai thead th { padding: 0.4rem 0.65rem; text-align: left; font-weight: 600; white-space: nowrap; }
-.bubble.ai tbody tr:nth-child(even) { background: #f0faf4; }
-.bubble.ai tbody tr:nth-child(odd)  { background: #fff; }
-.bubble.ai tbody td { padding: 0.35rem 0.65rem; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
-.bubble.ai tbody tr:last-child td { border-bottom: none; }
-
-/* Horizontal rule */
-.bubble.ai hr { border: none; border-top: 1px solid #dee2e6; margin: 0.6rem 0; }
-
-/* Links */
-.bubble.ai a { color: #0a6db5; text-decoration: underline; text-underline-offset: 2px; }
-.bubble.ai a:hover { color: #084f86; }
-
-/* Error bubble tweaks */
-.bubble.error a { color: #664d03; }
-
-/* ── Typing indicator ─────────────────────────────────────────────────── */
-.typing-indicator {
-    display: none;
-    align-items: center;
-    gap: 4px;
-    padding: 0.5rem 0.9rem;
-}
-.typing-indicator span {
-    width: 7px;
-    height: 7px;
-    background: #adb5bd;
-    border-radius: 50%;
-    animation: bounce 1.2s infinite ease-in-out;
-}
-.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes bounce {
-    0%, 60%, 100% { transform: translateY(0); }
-    30%           { transform: translateY(-6px); }
-}
-
-/* ── Input bar ────────────────────────────────────────────────────────── */
-.chat-input-bar {
-    border-top: 1px solid #dee2e6;
-    padding: 0.75rem 0.5rem 0.5rem;
-    background: #fff;
-}
-.chat-input-bar textarea {
-    resize: none;
-    border-radius: 1.5rem;
-    padding: 0.55rem 1rem;
-    line-height: 1.5;
-    font-size: 0.93rem;
-}
-.chat-input-bar .btn-send {
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* ── Suggestion pills ────────────────────────────────────────────────── */
-.suggestions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    padding: 0.5rem 0.5rem 0;
-}
-.suggestion-pill {
-    font-size: 0.8rem;
-    cursor: pointer;
-    border-radius: 2rem;
-    padding: 0.25rem 0.75rem;
-    background: #e8f4fd;
-    border: 1px solid #b6d9f7;
-    color: #0a6db5;
-    transition: background 0.15s;
-}
-.suggestion-pill:hover { background: #cfe2ff; }
-
-/* ── Quota banner ────────────────────────────────────────────────────── */
-.quota-banner {
-    display: none;
-    background: #fff3cd;
-    border: 1px solid #ffe083;
-    border-radius: 0.5rem;
-    padding: 0.5rem 1rem;
-    font-size: 0.87rem;
-    color: #664d03;
-    margin: 0 0.5rem 0.5rem;
-}
-</style>
-{% endblock %}
+{% block sub_header %}<span class="d-none d-md-inline">Pregúntame lo que quieras sobre tus productos, parcelas y tratamientos</span>{% endblock %}
 
 {% block content %}
-<div class="chat-wrapper card shadow-sm">
+<script>document.body.classList.add('as-page');</script>
 
-    <!-- Sugerencias iniciales (solo si el chat está vacío) -->
-    {% if not chat_messages %}
-    <div class="suggestions" id="suggestionsBar">
-        <span class="suggestion-pill" data-msg="¿Cuánto de Brotomax tengo que echar en una máquina de 2000L?">💧 Dosis en máquina 2000L</span>
-        <span class="suggestion-pill" data-msg="Si voy a hacer 4 ha con Confidor a 800L/ha, ¿cuánto tengo que comprar?">🛒 Calcular compra</span>
-        <span class="suggestion-pill" data-msg="¿Cuál fue la última vez que traté con fungicida?">📋 Último tratamiento con fungicida</span>
-        <span class="suggestion-pill" data-msg="Dime qué productos tengo registrados y sus dosis.">📦 Ver mis productos</span>
-        <span class="suggestion-pill" data-msg="¿Qué parcela tiene más tratamientos este año?">🌿 Resumen de parcelas</span>
+<div class="card card-flat as-chat">
+
+    {# Cabecera de la conversación + menú ⋮ (nueva conversación) #}
+    <div class="dt-card-head as-head">
+        <div class="d-flex align-items-center gap-2">
+            <span class="as-avatar" aria-hidden="true"><i class="fa fa-robot"></i></span>
+            <div class="lh-sm">
+                <b>Asistente de AgroGest</b>
+                <span class="d-none d-md-block small text-muted">Responde con tus parcelas, productos y tratamientos</span>
+            </div>
+        </div>
+        <div class="dropdown">
+            <button class="tl-icon-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                    aria-label="Más acciones" title="Más acciones">
+                <i class="fa fa-ellipsis-vertical"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end dropdown-sheet shadow-sm small">
+                <li>
+                    <button class="dropdown-item" type="button" id="btnClearChat">
+                        <i class="fa fa-rotate-right me-2"></i>Nueva conversación
+                    </button>
+                </li>
+            </ul>
+        </div>
     </div>
-    {% endif %}
 
-    <!-- Mensajes -->
-    <div class="chat-messages" id="chatMessages">
+    {# Mensajes #}
+    <div class="as-messages" id="chatMessages" role="log" aria-live="polite" aria-label="Conversación con el asistente">
 
         {% if not chat_messages %}
-        <!-- Welcome message -->
-        <div class="bubble-row" id="welcomeMsg">
-            <div class="bubble-avatar ai"><i class="fa fa-robot"></i></div>
-            <div class="bubble ai">
-                👋 ¡Hola! Soy tu asistente de AgroGest.<br>
-                Puedo ayudarte con <strong>cálculos de dosis</strong>, consultar el <strong>historial de tratamientos</strong>
-                de tus parcelas, o responder cualquier duda sobre tus productos. ¡Pregúntame lo que necesites!
+        {# Estado vacío: bienvenida + sugerencias tocables (se ocultan al enviar el primer mensaje) #}
+        <div class="hm-empty as-welcome" id="welcomeMsg">
+            <span class="hm-empty-icon" aria-hidden="true"><i class="fa fa-robot"></i></span>
+            <b>¿En qué te ayudo?</b>
+            <span>Calculo dosis y compras, y consulto el historial de tus tratamientos.</span>
+            <div class="as-sugs" id="suggestionsBar">
+                <button type="button" class="as-sug" data-msg="¿Cuánto de Brotomax tengo que echar en una máquina de 2000L?">
+                    <i class="fa fa-droplet" aria-hidden="true"></i>Dosis en una máquina de 2000 L
+                </button>
+                <button type="button" class="as-sug" data-msg="Si voy a hacer 4 ha con Confidor a 800L/ha, ¿cuánto tengo que comprar?">
+                    <i class="fa fa-cart-shopping" aria-hidden="true"></i>Calcular lo que tengo que comprar
+                </button>
+                <button type="button" class="as-sug" data-msg="¿Cuál fue la última vez que traté con fungicida?">
+                    <i class="fa fa-clock-rotate-left" aria-hidden="true"></i>Último tratamiento con fungicida
+                </button>
+                <button type="button" class="as-sug" data-msg="¿Qué parcela tiene más tratamientos este año?">
+                    <i class="fa fa-seedling" aria-hidden="true"></i>Parcela con más tratamientos
+                </button>
             </div>
         </div>
         {% else %}
         {% for msg in chat_messages %}
-        <div class="bubble-row {% if msg.role == 'user' %}user{% endif %}">
-            {% if msg.role == 'assistant' %}
-            <div class="bubble-avatar ai"><i class="fa fa-robot"></i></div>
-            <div class="bubble ai" data-markdown="{{ msg.content|escape }}"></div>
-            {% else %}
-            <div class="bubble user">{{ msg.content }}</div>
-            <div class="bubble-avatar usr"><i class="fa fa-user"></i></div>
-            {% endif %}
+        {% if msg.role == 'assistant' %}
+        <div class="as-row">
+            <span class="as-avatar" aria-hidden="true"><i class="fa fa-robot"></i></span>
+            <div class="as-bubble as-bubble--ai" data-markdown="{{ msg.content|escape }}"></div>
         </div>
+        {% else %}
+        <div class="as-row as-row--user">
+            <div class="as-bubble as-bubble--user">{{ msg.content }}</div>
+        </div>
+        {% endif %}
         {% endfor %}
         {% endif %}
 
-        <!-- Typing indicator -->
-        <div class="bubble-row" id="typingRow" style="display:none;">
-            <div class="bubble-avatar ai"><i class="fa fa-robot"></i></div>
-            <div class="bubble ai" style="padding: 0.5rem 0.9rem;">
-                <div class="typing-indicator" style="display:flex;">
-                    <span></span><span></span><span></span>
-                </div>
+        {# Escribiendo… #}
+        <div class="as-row" id="typingRow" role="status" hidden>
+            <span class="as-avatar" aria-hidden="true"><i class="fa fa-robot"></i></span>
+            <div class="as-bubble as-bubble--ai as-typing">
+                <span class="as-dots" aria-hidden="true"><span></span><span></span><span></span></span>
+                Escribiendo…
             </div>
         </div>
     </div>
 
-    <!-- Input bar -->
-    <div class="chat-input-bar">
-        <div class="d-flex gap-2 align-items-end">
-            <textarea
-                id="chatInput"
-                class="form-control"
-                rows="1"
-                placeholder="Escribe tu pregunta aquí…"
-                maxlength="2000"
-                style="max-height: 140px; overflow-y: auto;"
-            ></textarea>
-            <button class="btn btn-primary btn-send" id="btnSend" title="Enviar">
-                <i class="fa fa-paper-plane"></i>
-            </button>
-        </div>
+    {# Aviso de límite (se muestra al superar la cuota) #}
+    <div class="as-quota" id="quotaBanner" role="alert" hidden></div>
+
+    {# Entrada fija abajo #}
+    <div class="as-input">
+        <label class="visually-hidden" for="chatInput">Escribe tu pregunta</label>
+        <textarea id="chatInput" class="form-control as-field" rows="1" maxlength="2000"
+                  placeholder="Escribe tu pregunta aquí…" enterkeyhint="send"></textarea>
+        <button class="btn btn-primary as-send" id="btnSend" type="button" aria-label="Enviar" title="Enviar">
+            <i class="fa fa-paper-plane" aria-hidden="true"></i>
+        </button>
     </div>
 
 </div>
-
-<!-- Quota / error banner (shown when limit exceeded) -->
-<div class="quota-banner" id="quotaBanner"></div>
-
 {% endblock %}
 
 {% block base_extra_js %}
 {{ block.super }}
 <!-- Marked.js para renderizar Markdown en las respuestas de la IA -->
 <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
+<script src="{% static 'js/chat-markdown.js' %}"></script>
 
 <script>
 (function () {
@@ -337,33 +120,39 @@
     const quotaBanner  = document.getElementById('quotaBanner');
     const suggestionsBar = document.getElementById('suggestionsBar');
 
-    // Configure marked
-    marked.setOptions({ breaks: true, gfm: true });
-
-    /**
-     * Convierte secuencias \uXXXX literales en sus caracteres reales.
-     * Necesario cuando el modelo devuelve escape sequences como texto plano.
-     */
-    function decodeUnicodeEscapes(str) {
-        return str.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) =>
-            String.fromCharCode(parseInt(hex, 16))
-        );
-    }
-
-    function renderMarkdown(raw) {
-        return marked.parse(decodeUnicodeEscapes(raw));
-    }
+    // Render seguro (static/js/chat-markdown.js): escapa HTML, filtra enlaces y quita imágenes.
+    // Sin conexión al CDN (mala cobertura en el campo) el chat sigue usándose: texto plano con saltos de línea
+    const { escapeHtml } = window.AgroChatMarkdown;
+    const renderMarkdown = window.AgroChatMarkdown.createRenderer(typeof marked !== 'undefined' ? marked : null);
 
     // ── Render stored messages (Markdown) ─────────────────────────────────
-    document.querySelectorAll('.bubble.ai[data-markdown]').forEach(el => {
+    document.querySelectorAll('.as-bubble--ai[data-markdown]').forEach(el => {
         el.innerHTML = renderMarkdown(el.dataset.markdown);
     });
 
     // ── Auto-scroll ───────────────────────────────────────────────────────
+    // El desplazamiento suave solo se activa tras enviar: al cargar debe ir directo al final
     function scrollBottom() {
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
     scrollBottom();
+
+    // ── Teclado en móvil: la ventana visible se acorta y la entrada se queda sobre el teclado ──
+    const vv = window.visualViewport;
+    if (vv) {
+        const fitViewport = () => {
+            const keyboard = window.innerHeight - vv.height > 120;
+            document.body.classList.toggle('as-kb', keyboard);
+            if (keyboard) {
+                document.documentElement.style.setProperty('--as-vh', vv.height + 'px');
+                window.scrollTo(0, 0);
+            } else {
+                document.documentElement.style.removeProperty('--as-vh');
+            }
+            scrollBottom();
+        };
+        vv.addEventListener('resize', fitViewport);
+    }
 
     // ── Auto-resize textarea ──────────────────────────────────────────────
     chatInput.addEventListener('input', () => {
@@ -371,10 +160,10 @@
         chatInput.style.height = Math.min(chatInput.scrollHeight, 140) + 'px';
     });
 
-    // ── Suggestion pills ─────────────────────────────────────────────────
-    document.querySelectorAll('.suggestion-pill').forEach(pill => {
-        pill.addEventListener('click', () => {
-            chatInput.value = pill.dataset.msg;
+    // ── Suggestions ──────────────────────────────────────────────────────
+    document.querySelectorAll('.as-sug').forEach(btn => {
+        btn.addEventListener('click', () => {
+            chatInput.value = btn.dataset.msg;
             chatInput.dispatchEvent(new Event('input'));
             sendMessage();
         });
@@ -383,18 +172,17 @@
     // ── Append a bubble ───────────────────────────────────────────────────
     function appendBubble(role, content, isError = false) {
         const row = document.createElement('div');
-        row.className = 'bubble-row' + (role === 'user' ? ' user' : '');
+        row.className = 'as-row' + (role === 'user' ? ' as-row--user' : '');
 
         if (role === 'assistant') {
+            // Los errores del servidor llevan un ❌ delante: el color ya lo indica
+            const html = isError ? escapeHtml(content.replace(/^❌\s*/, '')) : renderMarkdown(content);
             row.innerHTML = `
-                <div class="bubble-avatar ai"><i class="fa fa-robot"></i></div>
-                <div class="bubble ${isError ? 'error' : 'ai'}">${isError ? content : renderMarkdown(content)}</div>
+                <span class="as-avatar" aria-hidden="true"><i class="fa fa-robot"></i></span>
+                <div class="as-bubble ${isError ? 'as-bubble--error' : 'as-bubble--ai'}">${html}</div>
             `;
         } else {
-            row.innerHTML = `
-                <div class="bubble user">${escapeHtml(content)}</div>
-                <div class="bubble-avatar usr"><i class="fa fa-user"></i></div>
-            `;
+            row.innerHTML = `<div class="as-bubble as-bubble--user">${escapeHtml(content)}</div>`;
         }
 
         // Insert before typingRow
@@ -402,31 +190,30 @@
         scrollBottom();
     }
 
-    function escapeHtml(text) {
-        return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
-
     // ── Send message ──────────────────────────────────────────────────────
+    let sending = false;   // evita envíos dobles (Enter repetido, doble toque en una sugerencia)
     async function sendMessage() {
         const text = chatInput.value.trim();
-        if (!text) return;
+        if (!text || sending) return;
+        sending = true;
+        chatMessages.classList.add('as-smooth');
 
         // Hide suggestions on first message
-        if (suggestionsBar) suggestionsBar.style.display = 'none';
+        if (suggestionsBar) suggestionsBar.hidden = true;
         const welcomeMsg = document.getElementById('welcomeMsg');
-        if (welcomeMsg) welcomeMsg.style.display = 'none';
+        if (welcomeMsg) welcomeMsg.hidden = true;
 
         // Reset input
         chatInput.value = '';
         chatInput.style.height = 'auto';
         btnSend.disabled = true;
-        quotaBanner.style.display = 'none';
+        quotaBanner.hidden = true;
 
         // Show user bubble
         appendBubble('user', text);
 
         // Show typing indicator
-        typingRow.style.display = 'flex';
+        typingRow.hidden = false;
         scrollBottom();
 
         try {
@@ -439,7 +226,7 @@
                 body: JSON.stringify({ message: text }),
             });
 
-            typingRow.style.display = 'none';
+            typingRow.hidden = true;
 
             const data = await res.json();
 
@@ -448,16 +235,17 @@
                 appendBubble('assistant', data.error, true);
                 // If quota error, also show persistent banner
                 if (data.error.includes('Límite') || data.error.includes('límite')) {
-                    quotaBanner.innerHTML = data.error;
-                    quotaBanner.style.display = 'block';
+                    quotaBanner.textContent = data.error.replace(/^❌\s*/, '');
+                    quotaBanner.hidden = false;
                 }
             } else if (data.response) {
                 appendBubble('assistant', data.response);
             }
         } catch (err) {
-            typingRow.style.display = 'none';
-            appendBubble('assistant', '❌ Error de conexión. Inténtalo de nuevo.', true);
+            typingRow.hidden = true;
+            appendBubble('assistant', 'Error de conexión. Inténtalo de nuevo.', true);
         } finally {
+            sending = false;
             btnSend.disabled = false;
             chatInput.focus();
         }
@@ -467,7 +255,7 @@
     btnSend.addEventListener('click', sendMessage);
 
     chatInput.addEventListener('keydown', e => {
-        if (e.key === 'Enter' && !e.shiftKey) {
+        if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
             e.preventDefault();
             sendMessage();
         }
@@ -487,14 +275,24 @@
         });
         if (!confirmed.isConfirmed) return;
 
-        await fetch(CHAT_URL, {
-            method: 'DELETE',
-            headers: { 'X-CSRFToken': CSRF_TOKEN },
-        });
-        location.reload();
+        try {
+            const res = await fetch(CHAT_URL, {
+                method: 'DELETE',
+                headers: { 'X-CSRFToken': CSRF_TOKEN },
+            });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            location.reload();
+        } catch (err) {
+            Swal.fire({
+                title: 'No se pudo borrar el historial',
+                text: 'Inténtalo de nuevo en unos segundos.',
+                icon: 'error',
+                confirmButtonText: 'Entendido',
+                heightAuto: false,
+            });
+        }
     });
 
 })();
 </script>
 {% endblock %}
-

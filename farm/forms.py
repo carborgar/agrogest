@@ -1,4 +1,6 @@
 import datetime
+import json
+import math
 from datetime import date as Datetime
 from decimal import Decimal, ROUND_HALF_EVEN, ROUND_UP
 
@@ -10,6 +12,10 @@ from django.forms import inlineformset_factory
 from core.forms import NoPlaceholderModelForm
 from .timeutils import local_today
 from .models import Treatment, TreatmentProduct, Expense, Product, Harvest, ProductType, Field, Machine, StoragePoint
+
+# Clases de los campos con el estilo de los formularios tf-*
+TF_SELECT = 'form-select tf-inp'
+TF_NUM = 'tf-inp tf-num'
 
 
 class TreatmentForm(forms.ModelForm):
@@ -317,16 +323,18 @@ class ExpenseForm(forms.ModelForm):
             'field', 'expense_type', 'description', 'payment_date',
             'calculation_mode', 'quantity', 'unit_price', 'price_per_ha', 'amount'
         ]
+        # Clases del formulario de tratamiento (tf-*): el mismo aspecto en todos los formularios
         widgets = {
-            'field': forms.Select(attrs={'class': 'form-select'}),
-            'expense_type': forms.Select(attrs={'class': 'form-select'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'payment_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'calculation_mode': forms.Select(attrs={'class': 'form-select', 'id': 'id_calculation_mode'}),
-            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
-            'unit_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
-            'price_per_ha': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
-            'amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'field': forms.Select(attrs={'class': TF_SELECT}),
+            'expense_type': forms.Select(attrs={'class': TF_SELECT}),
+            'description': forms.Textarea(attrs={'class': 'tf-inp', 'rows': 2,
+                                                 'placeholder': 'Ej. Poda de enero, 3 jornales'}),
+            'payment_date': forms.DateInput(attrs={'type': 'date', 'class': 'tf-inp'}),
+            'calculation_mode': forms.HiddenInput(),
+            'quantity': forms.NumberInput(attrs={'class': TF_NUM, 'step': '0.01', 'min': '0', 'inputmode': 'decimal'}),
+            'unit_price': forms.NumberInput(attrs={'class': TF_NUM, 'step': '0.01', 'min': '0', 'inputmode': 'decimal'}),
+            'price_per_ha': forms.NumberInput(attrs={'class': TF_NUM, 'step': '0.01', 'min': '0', 'inputmode': 'decimal'}),
+            'amount': forms.NumberInput(attrs={'class': TF_NUM, 'step': '0.01', 'min': '0', 'inputmode': 'decimal'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -337,6 +345,9 @@ class ExpenseForm(forms.ModelForm):
         # Formatear correctamente la fecha para el widget HTML5 date input cuando se edita
         elif self.instance.payment_date:
             self.initial['payment_date'] = self.instance.payment_date.strftime('%Y-%m-%d')
+
+        self.fields['expense_type'].empty_label = 'Elige un tipo…'
+        self.fields['field'].empty_label = 'Elige una parcela…'
 
         # Hacer que los campos condicionales no sean obligatorios inicialmente
         self.fields['quantity'].required = False
@@ -390,6 +401,13 @@ class ExpenseForm(forms.ModelForm):
             cleaned_data['unit_price'] = None
             cleaned_data['price_per_ha'] = None
 
+        # Los campos de los otros modos se ignoran: un valor inválido en un panel oculto no debe bloquear el guardado
+        mode_fields = {'total': {'amount'}, 'quantity_price': {'quantity', 'unit_price'}, 'price_per_ha': {'price_per_ha'}}
+        for name in {'amount', 'quantity', 'unit_price', 'price_per_ha'} - mode_fields.get(calculation_mode, set()):
+            self.errors.pop(name, None)
+            if name != 'amount':
+                cleaned_data[name] = None
+
         return cleaned_data
 
     def clean_quantity(self):
@@ -429,8 +447,8 @@ class ProductTypeForm(NoPlaceholderModelForm):
             'description': 'Opcional. Breve descripción de los productos que incluye esta categoría.',
         }
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'name': forms.TextInput(attrs={'class': 'tf-inp'}),
+            'description': forms.Textarea(attrs={'class': 'tf-inp', 'rows': 2}),
         }
 
     def clean_name(self):
@@ -470,24 +488,27 @@ class ProductForm(NoPlaceholderModelForm):
             'spraying_dose': 'Cantidad recomendada para pulverización',
             'fertigation_dose': 'Cantidad recomendada para fertirrigación',
         }
+        # Clases del formulario de tratamiento (tf-*): el mismo aspecto en todos los formularios
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'product_type': forms.Select(attrs={'class': 'form-select'}),
-            'comments': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
-            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
-            'spraying_dose': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001', 'min': '0'}),
-            'spraying_dose_type': forms.Select(attrs={'class': 'form-select'}),
-            'fertigation_dose': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001', 'min': '0'}),
-            'fertigation_dose_type': forms.Select(attrs={'class': 'form-select'}),
+            'name': forms.TextInput(attrs={'class': 'tf-inp'}),
+            'product_type': forms.Select(attrs={'class': TF_SELECT}),
+            'comments': forms.Textarea(attrs={'class': 'tf-inp', 'rows': 2}),
+            'price': forms.NumberInput(attrs={'class': TF_NUM, 'step': '0.01', 'min': '0', 'inputmode': 'decimal'}),
+            # Casilla real, oculta: la enseña el interruptor de la plantilla (tf-switch)
+            'is_active': forms.CheckboxInput(attrs={'class': 'tf-sr', 'tabindex': '-1', 'aria-hidden': 'true'}),
+            'spraying_dose': forms.NumberInput(attrs={'class': TF_NUM, 'step': '0.001', 'min': '0', 'inputmode': 'decimal'}),
+            'spraying_dose_type': forms.Select(attrs={'class': TF_SELECT}),
+            'fertigation_dose': forms.NumberInput(attrs={'class': TF_NUM, 'step': '0.001', 'min': '0', 'inputmode': 'decimal'}),
+            'fertigation_dose_type': forms.Select(attrs={'class': TF_SELECT}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         # Configurar choices para los tipos de dosis
-        self.fields['spraying_dose_type'].choices = [('', '---------')] + Product.SPRAYING_DOSE_TYPE_CHOICES
-        self.fields['fertigation_dose_type'].choices = [('', '---------')] + Product.FERTIGATION_DOSE_TYPE_CHOICES
+        self.fields['spraying_dose_type'].choices = [('', 'Elige…')] + Product.SPRAYING_DOSE_TYPE_CHOICES
+        self.fields['fertigation_dose_type'].choices = [('', 'Elige…')] + Product.FERTIGATION_DOSE_TYPE_CHOICES
+        self.fields['product_type'].empty_label = 'Elige un tipo…'
 
         # Hacer campos condicionales opcionales inicialmente
         self.fields['spraying_dose'].required = False
@@ -567,17 +588,19 @@ class HarvestForm(NoPlaceholderModelForm):
             'price_pending': 'Precio aún no conocido',
             'notes': 'Notas',
         }
+        # Clases del formulario de tratamiento (tf-*): el mismo aspecto en todos los formularios
         widgets = {
-            'field': forms.Select(attrs={'class': 'form-select'}),
-            'date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '1', 'min': '0'}),
-            'sale_price_per_kg': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
-            'price_pending': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'field': forms.Select(attrs={'class': TF_SELECT}),
+            'date': forms.DateInput(attrs={'type': 'date', 'class': 'tf-inp'}),
+            'amount': forms.NumberInput(attrs={'class': TF_NUM, 'step': '1', 'min': '0', 'inputmode': 'numeric'}),
+            'sale_price_per_kg': forms.NumberInput(attrs={'class': TF_NUM, 'step': '0.01', 'min': '0', 'inputmode': 'decimal'}),
+            'price_pending': forms.CheckboxInput(),
+            'notes': forms.Textarea(attrs={'class': 'tf-inp', 'rows': 2}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['field'].empty_label = 'Elige una parcela…'
         if not self.instance.pk:
             self.fields['date'].initial = Datetime.today().strftime('%Y-%m-%d')
         elif self.instance.date:
@@ -613,8 +636,23 @@ class HarvestForm(NoPlaceholderModelForm):
         return obj
 
 
-_current_year = datetime.datetime.now().year
-_year_choices = [(y, y) for y in range(_current_year, _current_year - 10, -1)]
+PLANTING_YEAR_MIN = 1900
+
+
+def _valid_coordinates(coords, depth):
+    """Anidado GeoJSON: Polygon = lista de anillos (depth 2); MultiPolygon = lista de polígonos (depth 3)."""
+    if not isinstance(coords, list) or not coords:
+        return False
+    if depth > 1:
+        return all(_valid_coordinates(c, depth - 1) for c in coords)
+    # Anillo: al menos 4 posiciones [lng, lat] numéricas
+    if len(coords) < 4:
+        return False
+    for pos in coords:
+        if not (isinstance(pos, list) and len(pos) >= 2
+                and all(isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) for v in pos[:2])):
+            return False
+    return True
 
 
 class FieldForm(NoPlaceholderModelForm):
@@ -624,30 +662,33 @@ class FieldForm(NoPlaceholderModelForm):
         labels = {
             'name': 'Nombre',
             'crop': 'Cultivo',
-            'planting_year': 'Año de siembra',
+            'planting_year': 'Año de plantación',
             'area': 'Superficie (ha)',
-            'storage_point': 'Casetilla de riego',
+            'storage_point': 'Casetilla',
             'geometry': 'Geometría',
         }
         help_texts = {
-            'area': 'Se usa para cálculos de costos y tratamientos.',
+            'area': 'Se usa para calcular el producto y los costes. Si dibujas el contorno, se rellena sola.',
             'storage_point': 'Opcional. Si la dejas vacía, la parcela es independiente: el producto se deja en ella.',
         }
+        # Clases del formulario de tratamiento (tf-*): el mismo aspecto en todos los formularios.
+        # El año es un número y no una lista: un olivar suele ser de hace más de diez años.
         widgets = {
-            'planting_year': forms.Select(choices=_year_choices),
-            'storage_point': forms.Select(attrs={'class': 'form-select'}),
+            'name': forms.TextInput(attrs={'class': 'tf-inp', 'maxlength': 100, 'autocomplete': 'off'}),
+            'crop': forms.TextInput(attrs={'class': 'tf-inp', 'maxlength': 100, 'autocomplete': 'off'}),
+            'area': forms.NumberInput(attrs={'class': TF_NUM, 'step': 'any', 'min': '0', 'inputmode': 'decimal'}),
+            'planting_year': forms.NumberInput(attrs={'class': TF_NUM, 'inputmode': 'numeric', 'min': PLANTING_YEAR_MIN}),
+            'storage_point': forms.Select(attrs={'class': TF_SELECT}),
             'geometry': forms.HiddenInput(),
         }
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-        for field in self.fields.values():
-            field.widget.attrs.update({'class': 'form-control'})
         self.fields['geometry'].required = False
-        self.fields['area'].widget.attrs['id'] = 'id_area'
+        self.fields['planting_year'].widget.attrs['max'] = datetime.date.today().year
         self.fields['storage_point'].required = False
-        self.fields['storage_point'].widget.attrs['class'] = 'form-select'
+        self.fields['storage_point'].empty_label = 'Ninguna (parcela independiente)'
 
         if user and getattr(user, 'organization', None):
             self.fields['storage_point'].queryset = StoragePoint.objects.filter(
@@ -655,6 +696,35 @@ class FieldForm(NoPlaceholderModelForm):
             ).order_by('name')
         else:
             self.fields['storage_point'].queryset = StoragePoint.objects.none()
+
+    def clean_geometry(self):
+        raw = (self.cleaned_data.get('geometry') or '').strip()
+        if not raw:
+            return ''
+        error = ValidationError('El contorno no es válido. Dibújalo de nuevo en el mapa.')
+        try:
+            data = json.loads(raw)
+        except ValueError:
+            raise error
+        if isinstance(data, dict) and data.get('type') == 'Feature':
+            data = data.get('geometry')
+        if not isinstance(data, dict) or data.get('type') not in ('Polygon', 'MultiPolygon'):
+            raise error
+        if not _valid_coordinates(data.get('coordinates'), 2 if data['type'] == 'Polygon' else 3):
+            raise error
+        return raw
+
+    def clean_area(self):
+        area = self.cleaned_data['area']
+        if area <= 0:
+            raise ValidationError('La superficie debe ser mayor que 0.')
+        return area
+
+    def clean_planting_year(self):
+        year = self.cleaned_data['planting_year']
+        if not PLANTING_YEAR_MIN <= year <= datetime.date.today().year:
+            raise ValidationError(f'Indica un año entre {PLANTING_YEAR_MIN} y {datetime.date.today().year}.')
+        return year
 
 
 class StoragePointForm(NoPlaceholderModelForm):
@@ -670,9 +740,15 @@ class StoragePointForm(NoPlaceholderModelForm):
             'notes': 'Opcional. Referencias útiles para el operario.',
         }
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'name': forms.TextInput(attrs={'class': 'tf-inp'}),
+            'notes': forms.Textarea(attrs={'class': 'tf-inp', 'rows': 3}),
         }
+
+    def full_clean(self):
+        super().full_clean()
+        for name in self.errors:
+            if name in self.fields:
+                self.fields[name].widget.attrs['aria-invalid'] = 'true'
 
     def clean_name(self):
         # La restricción única (organización, nombre) no la valida Django porque
@@ -690,11 +766,11 @@ class StoragePointForm(NoPlaceholderModelForm):
 class TreatmentCostRangeForm(forms.Form):
     start_date = forms.DateField(
         label='Desde',
-        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'tf-inp'}),
     )
     end_date = forms.DateField(
         label='Hasta',
-        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'tf-inp'}),
     )
 
     def clean(self):
@@ -710,7 +786,7 @@ class TreatmentCostProductForm(forms.Form):
     product = forms.ModelChoiceField(
         queryset=Product.objects.none(),
         label='Producto',
-        widget=forms.Select(attrs={'class': 'form-select'}),
+        widget=forms.Select(attrs={'class': TF_SELECT}),
     )
 
     def __init__(self, *args, **kwargs):

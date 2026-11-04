@@ -162,3 +162,48 @@ def test_preview_range_does_not_validate_product_form(client):
     assert response.context['product_form'].errors == {}
 
 
+
+
+@pytest.mark.django_db
+def test_boton_ejecutar_producto_deshabilitado_sin_lineas(client):
+    organization = Organization.objects.create(name='Org Sin Lineas')
+    user = User.objects.create_user(username='sin-lineas', password='pass', organization=organization)
+    client.force_login(user)
+    product_type = ProductType.objects.create(name='Herbicida', organization=organization)
+    product = Product.objects.create(
+        organization=organization, name='Producto sin uso', product_type=product_type,
+        price=Decimal('20.00'), spraying_dose=Decimal('2.0'), spraying_dose_type='l_per_1000l',
+    )
+
+    response = client.get(reverse('treatment-cost-admin'), {'preview': 'product', 'product': product.id})
+
+    assert response.status_code == 200
+    html = response.content.decode()
+    assert 'Ejecutar recálculo por producto</button>' in html
+    assert 'disabled>Ejecutar recálculo por producto' in html
+
+
+@pytest.mark.django_db
+def test_boton_ejecutar_producto_habilitado_con_lineas(client):
+    organization = Organization.objects.create(name='Org Con Lineas')
+    user = User.objects.create_user(username='con-lineas', password='pass', organization=organization)
+    client.force_login(user)
+    field = Field.objects.create(organization=organization, name='Parcela', area=4.0, crop='Olivo', planting_year=2020)
+    product_type = ProductType.objects.create(name='Herbicida', organization=organization)
+    product = Product.objects.create(
+        organization=organization, name='Producto usado', product_type=product_type,
+        price=Decimal('20.00'), spraying_dose=Decimal('2.0'), spraying_dose_type='l_per_1000l',
+    )
+    treatment = Treatment.objects.create(
+        organization=organization, name='T', type='spraying', date=date.today(), field=field, water_per_ha=400,
+    )
+    TreatmentProduct.objects.create(
+        organization=organization, treatment=treatment, product=product, dose=Decimal('2.0'),
+        dose_type='l_per_1000l', total_dose=Decimal('3.2'), total_dose_unit='L', unit_price=Decimal('10.00'),
+    )
+
+    response = client.get(reverse('treatment-cost-admin'), {'preview': 'product', 'product': product.id})
+
+    html = response.content.decode()
+    assert 'Ejecutar recálculo por producto</button>' in html
+    assert 'disabled>Ejecutar recálculo por producto' not in html

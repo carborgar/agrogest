@@ -1,27 +1,22 @@
-// Página «El Tiempo»: una tarjeta por municipio con la semana, el detalle por horas y sus parcelas.
+// Página «El Tiempo»: una tarjeta por municipio con selector de día, resumen del día y previsión por horas.
+// Mismo lenguaje que el resto de pantallas: veredicto y cifras en dt-summary, horas en columnas wx-h y colores de estado --tl-0…3.
 // Necesita weather.js (AgroWeather) y en la página: #wov-grid (con data-url), #wov-skeletons,
 // #wov-subtitle y el JSON de parcelas en #wov-fields.
 (function () {
-    const SUN_ICON = '<i class="fa fa-sun" style="color:#ffc107"></i>';
-    const MOON_ICON = '<i class="fa fa-moon" style="color:#7c9bcc"></i>';
-    const SUN_MARKS = [['sunrise', SUN_ICON], ['sunset', MOON_ICON]];
-    const WIND_COLORS = ['#43a047', '#f9a825', '#fd7e14', '#dc3545'];
+    // Nivel del servidor → tono de la paleta (3 verde, 1 ámbar, 0 rojo)
     const TREATMENT = {
-        ok: { cls: 'muni-treatment-ok', icon: 'fa-check', label: 'Apto tratar', color: '#198754' },
-        bad: { cls: 'muni-treatment-bad', icon: 'fa-xmark', label: 'Adverso', color: '#dc3545' },
-        warn: { cls: 'muni-treatment-warn', icon: 'fa-exclamation', label: 'Precaución', color: '#cc8800' },
+        ok: { key: 'ok', tone: 3, label: 'Apto para tratar' },
+        warn: { key: 'warn', tone: 1, label: 'Precaución' },
+        bad: { key: 'bad', tone: 0, label: 'Adverso' },
     };
-    // Color de la probabilidad de lluvia en el resumen: sin lluvia, posible, probable (≥ 50 %)
-    const SUMMARY_RAIN_STYLE = { none: 'opacity:.35;font-weight:400', low: 'color:#0d6efd;font-weight:600', high: 'color:#dc3545;font-weight:600' };
-    const HOURLY_LEGEND = `<div class="muni-hourly-legend">
-        <span><i class="fa fa-wind" style="color:#43a047"></i> ≤10</span>
-        <span><i class="fa fa-wind" style="color:#f9a825"></i> 11–15</span>
-        <span><i class="fa fa-wind" style="color:#fd7e14"></i> 16–20</span>
-        <span><i class="fa fa-wind" style="color:#dc3545"></i> &gt;20 km/h</span>
-        <span class="leg-sep">│</span>
-        <span><i class="fa fa-cloud-rain" style="color:#0d6efd;opacity:.7"></i> % · L/m²</span>
-        <span style="margin-left:auto;opacity:.6"><i class="fa fa-satellite-dish me-1"></i>Fuente: AEMET</span>
-    </div>`;
+    const HOUR_LEVEL = { ok: 'buena', warn: 'dudosa', bad: 'mala' };
+    // La probabilidad de lluvia ≥ 50 % se pinta en rojo: es solo presentación, la decisión de tratar la trae `level`
+    const RAIN_HIGH = 50;
+    // ≥ 20 % ya es ámbar, como en la rejilla (la hora deja de ser «buena» con OK_RAIN_PROB = 20)
+    const RAIN_WARN = 20;
+    // Viento máximo del día (nivel 0-3 del servidor: ≤10, ≤15, <20, ≥20 km/h) → color de texto
+    const WIND_CLASS = ['dt-fg-3', 'dt-fg-1', 'dt-fg-1', 'dt-fg-0'];
+    let retryBound = false;
 
     const cards = {};   // cardId → municipio (con sus días)
     let cardCounter = 0;
@@ -35,264 +30,262 @@
         return `${n} ${word}${n === 1 ? '' : 's'}`;
     }
 
-    function fmtTemp(t, fallback = '—') {
-        return t == null ? fallback : `${Math.round(t)}°`;
+    function fmtTemp(t) {
+        return t == null ? '—' : `${Math.round(t)}°`;
     }
 
-    function rainTone(prob) {
-        if (prob === 0) return 'none';
-        return prob >= 50 ? 'high' : 'low';
+    function fmtDecimal(n) {
+        return String(n).replace('.', ',');
+    }
+
+    function fmtLitres(mm) {
+        return `${fmtDecimal(mm)} L/m²`;
+    }
+
+    function hh(hour) {
+        return `${String(hour).padStart(2, '0')}:00`;
     }
 
     function treatmentOf(level) {
         return TREATMENT[level] || TREATMENT.warn;
     }
 
-    function timeToMinutes(t) {
-        if (!t) return 0;
-        const [hours, minutes] = t.split(':');
-        return Number.parseInt(hours, 10) * 60 + (Number.parseInt(minutes, 10) || 0);
+    // Icono de cielo: el servidor manda una clase Font Awesome; solo se pintan las conocidas (el resto, nube)
+    const SKY = {
+        'fa-sun': 'sun', 'fa-cloud-sun': 'sun', 'fa-cloud': 'cloud', 'fa-smog': 'fog',
+        'fa-cloud-rain': 'rain', 'fa-cloud-sun-rain': 'rain', 'fa-cloud-showers-heavy': 'rain',
+        'fa-bolt': 'storm', 'fa-snowflake': 'snow',
+    };
+    function skyIcon(icon) {
+        const kind = SKY[icon] || (icon === 'fa-cloud-drizzle' ? 'rain' : 'cloud');
+        const fa = SKY[icon] ? icon : (kind === 'rain' ? 'fa-cloud-rain' : 'fa-cloud');
+        return `<i class="fa ${fa} wx-sky wx-sky--${kind}" aria-hidden="true"></i>`;
     }
 
-    function skyClass(icon) {
-        if (!icon) return 'sky-default';
-        if (icon.includes('bolt') || icon.includes('storm')) return 'sky-storm';
-        if (icon.includes('snow')) return 'sky-snow';
-        if (icon.includes('rain') || icon.includes('drizzle') || icon.includes('showers')) return 'sky-rain';
-        if (icon.includes('smog') || icon.includes('fog')) return 'sky-fog';
-        if (icon === 'fa-cloud-sun') return 'sky-clear';
-        if (icon.includes('cloud')) return 'sky-cloudy';
-        if (icon.includes('sun')) return 'sky-clear';
-        return 'sky-default';
+    const VERDICT_ICON = { ok: 'fa-circle-check', warn: 'fa-triangle-exclamation', bad: 'fa-circle-xmark' };
+
+    // Hoy, sin las horas pasadas (si no queda ninguna, se muestra el día entero).
+    // Si de hoy quedan pocas, se completan con las primeras del día siguiente cuando AEMET las trae.
+    const MIN_HOURS = 8;
+    function displayHours(day, nextDay) {
+        const upcoming = AgroWeather.upcomingHours(day);
+        if (!upcoming.length) return day.hours || [];
+        const missing = MIN_HOURS - upcoming.length;
+        if (missing > 0 && day.date === AgroWeather.localDate() && nextDay?.hours?.length) {
+            return upcoming.concat(nextDay.hours.slice(0, missing));
+        }
+        return upcoming;
     }
 
-    // «<icono> 08:12 <icono> 18:41» con lo que traiga el día
-    function sunTimes(day, separator = '') {
-        return SUN_MARKS.filter(([key]) => day[key])
-            .map(([key, icon]) => '<span>' + icon + separator + esc(day[key]) + '</span>')
-            .join('');
+    // Color del texto de la lluvia: ámbar desde RAIN_WARN, rojo desde RAIN_HIGH, apagado si no llueve
+    function rainTone(prob) {
+        if (prob === 0) return 'dt-fg-2';
+        if (prob >= RAIN_HIGH) return 'dt-fg-0';
+        if (prob >= RAIN_WARN) return 'dt-fg-1';
+        return '';
     }
 
-    // ── Cabecera de la tarjeta (cambia con el día elegido) ─────────
-    function treatmentBadge(day) {
-        if (!day) return '';
-        const t = treatmentOf(day.level);
-        return `<span class="muni-treatment-badge ${t.cls}"><i class="fa ${t.icon} me-1"></i>${t.label}</span>`;
-    }
-
-    function updatedLine(muni) {
-        const note = AgroWeather.updatedNote(muni);
-        if (!note) return '';
-        const content = muni.stale
-            ? '<span class="badge text-bg-warning text-wrap text-start"><i class="fa fa-triangle-exclamation me-1"></i>' + esc(note) + '</span>'
-            : esc(note);
-        return `<div class="muni-fields-label">${content}</div>`;
-    }
-
-    function dayPills(day) {
-        if (!day) return '';
-        return `<span class="muni-pill"><i class="fa fa-wind"></i>${day.max_wind_speed ?? '—'} km/h</span>`
-            + `<span class="muni-pill"><i class="fa fa-droplet"></i>${day.max_precipitation_probability ?? 0}%</span>`;
-    }
-
-    function heroHtml(muni, day) {
-        const icon = day ? day.icon : '';
-        const minT = day ? fmtTemp(day.min_temp, '') : '';
-        const minHtml = minT ? `<span class="muni-temp-min">${minT}</span>` : '';
-        return `<div class="muni-hero ${skyClass(icon)}">
-            <div class="muni-hero-bg-icon"><i class="fa ${icon || 'fa-cloud'}"></i></div>
-            <div class="muni-name"><i class="fa fa-location-dot me-1" style="opacity:.7"></i>${esc(muni.name)}</div>
-            <div class="muni-fields-label">${plural(muni.fields.length, 'parcela')}</div>
-            ${updatedLine(muni)}
-            <div class="muni-temp-row">
-                <span class="muni-temp-max">${day ? fmtTemp(day.max_temp) : '—'}</span>
-                ${minHtml}
-            </div>
-            <div class="muni-condition">${esc(day ? day.label_weather : '')}</div>
-            <div class="muni-badge-row">${dayPills(day)}</div>
-            ${treatmentBadge(day)}
+    // ── Resumen del día ────────────────────────────────────────────
+    function summaryCell(label, value, sub, { cls = '', valueCls = '', subTitle = '', icon = '' } = {}) {
+        const title = subTitle ? ` title="${esc(subTitle)}"` : '';
+        const ic = icon ? `<i class="fa ${icon}" aria-hidden="true"></i>` : '';
+        return `<div class="dt-cell ${cls}">
+            <div class="dt-label">${ic}${label}</div>
+            <div class="dt-value ${valueCls}">${value}</div>
+            <div class="dt-sub"${title}>${sub}</div>
         </div>`;
     }
 
-    // ── Semana ─────────────────────────────────────────────────────
-    function weekDayTemp(d) {
-        // Sin mínima, AEMET no ha dado temperaturas fiables para ese día
-        if (d.min_temp == null) return '<div class="muni-week-day-temp">—</div>';
-        return `<div class="muni-week-day-temp">${fmtTemp(d.max_temp)} <span style="opacity:.6">${fmtTemp(d.min_temp)}</span></div>`;
+    function windowsText(hours) {
+        if (!hours.length) return 'Sin detalle por horas';
+        const windows = AgroWeather.okWindows(hours);
+        return windows.length ? `Mejor franja: ${windows.map(w => `${hh(w.from)}–${hh(w.to)}`).join(' · ')}` : 'Sin horas buenas';
     }
 
-    function weekDayRain(d) {
-        const prob = d.max_precipitation_probability || 0;
-        const probHtml = `<div class="muni-week-day-prob rain-${rainTone(prob)}">`
-            + `<i class="fa fa-droplet" style="font-size:.58rem;margin-right:.1rem"></i>${prob}%</div>`;
-        if (prob === 0) return probHtml;
-        // Los L/m² solo vienen en la previsión horaria (~48 h); para días lejanos, «—»
-        const mmHtml = d.total_precipitation > 0
-            ? `<div class="muni-week-day-mm">${d.total_precipitation} L/m²</div>`
-            : '<div class="muni-week-day-mm unknown">— L/m²</div>';
-        return probHtml + mmHtml;
-    }
-
-    function weekHtml(daily, cardId) {
-        if (!daily.length) return '';
-        const days = daily.slice(0, 7).map((d, i) => `
-            <div class="muni-week-day${i === 0 ? ' active' : ''}" data-day-idx="${i}" data-card-id="${cardId}">
-                <div class="muni-week-day-name">${esc(d.label.split(' ')[0])}</div>
-                <div class="muni-week-day-icon"><i class="fa ${d.icon}"></i></div>
-                ${weekDayTemp(d)}
-                ${weekDayRain(d)}
-            </div>`);
-        return `<div class="muni-week">${days.join('')}</div>`;
-    }
-
-    // ── Detalle por horas ──────────────────────────────────────────
-    function summaryTemps(day, hours) {
+    function tempRange(day, hours) {
         const temps = hours.map(h => h.temperature).filter(t => t != null);
-        const maxT = day.max_temp ?? (temps.length ? Math.max(...temps) : null);
-        const minT = day.min_temp ?? (temps.length ? Math.min(...temps) : null);
-        return `<span><i class="fa fa-thermometer-half" style="opacity:.5"></i> ${fmtTemp(maxT)} / <span style="opacity:.6">${fmtTemp(minT)}</span></span>`;
+        const max = day.max_temp ?? (temps.length ? Math.max(...temps) : null);
+        const min = day.min_temp ?? (temps.length ? Math.min(...temps) : null);
+        return min == null ? fmtTemp(max) : `${fmtTemp(min)} – ${fmtTemp(max)}`;
     }
 
-    function summaryRain(day) {
+    function rainCell(day) {
         const prob = day.max_precipitation_probability || 0;
-        let mmHtml = '';
+        let sub = 'Sin lluvia';
+        let subTitle = '';
         if (prob > 0 && day.total_precipitation > 0) {
-            mmHtml = ` <span style="opacity:.55">·</span> <span style="color:#0d6efd;font-size:.68rem">${day.total_precipitation} L/m²</span>`;
+            sub = fmtLitres(day.total_precipitation);
         } else if (prob > 0) {
-            mmHtml = ' <span style="opacity:.55">·</span> <span style="opacity:.35;font-size:.68rem" title="AEMET no da los litros para más allá de 48 h">— L/m²</span>';
+            sub = 'Sin dato de litros';
+            subTitle = 'AEMET no da los litros para más allá de 48 h';
         }
-        return `<span title="Probabilidad de lluvia · Litros esperados"><i class="fa fa-droplet" style="color:#0d6efd;opacity:.8"></i> `
-            + `<span style="${SUMMARY_RAIN_STYLE[rainTone(prob)]}">${prob}%</span>${mmHtml}</span>`;
+        return summaryCell('Lluvia', `${prob} <small>%</small>`, sub, { valueCls: rainTone(prob), subTitle, icon: 'fa-droplet' });
     }
 
+    // Primero lo que decide si se puede tratar: veredicto, viento y lluvia; después la temperatura
     function summaryHtml(day, hours) {
         const t = treatmentOf(day.level);
-        const sun = day.sunrise || day.sunset
-            ? `<span style="margin-left:auto;opacity:.7">${sunTimes(day, ' ')}</span>`
-            : '';
-        return `<div class="muni-hourly-summary">
-            ${summaryTemps(day, hours)}
-            <span><i class="fa fa-wind" style="color:${WIND_COLORS[day.wind_level ?? 0]}"></i> ${day.max_wind_speed ?? 0} <small style="opacity:.6">km/h</small></span>
-            ${summaryRain(day)}
-            <span style="color:${t.color};font-weight:700"><i class="fa ${t.icon}-circle me-1"></i>${t.label}</span>
-            ${sun}
+        const windClass = WIND_CLASS[day.wind_level] || WIND_CLASS[0];
+        const verdict = `<i class="fa ${VERDICT_ICON[t.key]}" aria-hidden="true"></i> ${esc(t.label)}`;
+        const own = hours.filter(h => !h.date || h.date === day.date);   // las horas de mañana que completan hoy no son franja de hoy
+        return `<div class="dt-summary wx-summary">
+            ${summaryCell('Tratamiento', verdict, esc(windowsText(own)), { cls: `wx-verdict dt-tone-${t.tone}` })}
+            ${summaryCell('Viento máx.', `${fmtDecimal(day.max_wind_speed ?? 0)} <small>km/h</small>`, 'Máximo del día', { valueCls: windClass, icon: 'fa-wind' })}
+            ${rainCell(day)}
+            ${summaryCell('Temperatura', tempRange(day, hours), `${skyIcon(day.icon)} ${esc(day.label_weather)}`, { icon: 'fa-temperature-half' })}
         </div>`;
     }
 
-    function sunCard(icon, time) {
-        return `<div class="hr-card hr-card-sun"><span class="hr-sun-icon">${icon}</span><span class="hr-sun-lbl">${esc(time)}</span></div>`;
-    }
-
-    function hourCard(h) {
-        const prob = h.precipitation_probability || 0;
-        const probCls = prob >= 50 ? ' high' : '';
-        const probEmpty = prob === 0 ? ' empty' : '';
-        const tempCls = h.temperature == null ? ' no-data' : '';
-        return `<div class="hr-card">
-            <div class="hr-treat-dot ${h.level}"></div>
-            <div class="hr-card-time">${h.hour}</div>
-            <div class="hr-card-icon"><i class="fa ${h.icon}"></i></div>
-            <div class="hr-card-temp${tempCls}">${fmtTemp(h.temperature)}</div>
-            <div class="hr-rain-wrap">
-                <div class="hr-rain-prob${probCls}${probEmpty}">${prob}%</div>
-                <div class="hr-rain-bar-bg"><div class="hr-rain-bar-fill${probCls}" style="width:${Math.min(100, prob)}%"></div></div>
-                <div class="hr-rain-mm">${h.precipitation > 0 ? h.precipitation + 'L' : ''}</div>
-            </div>
-            <div class="hr-card-wind">
-                <i class="fa fa-wind hr-wind-icon lvl${h.wind_level ?? 0}"></i>
-                <span>${h.wind_speed}<span class="hr-wind-kmh">km/h</span></span>
-            </div>
+    // ── Previsión por horas: una columna por hora, repartidas a todo el ancho ──
+    // `dayDate`: las horas de otro día (las que completan hoy) se marcan como «mañ.»
+    function hourCell(h, dayDate) {
+        const hr = AgroWeather.hourOf(h);
+        const wind = Math.round(h.wind_speed);
+        const rain = h.precipitation_probability || 0;
+        const level = HOUR_LEVEL[h.level] ? h.level : 'warn';
+        const next = Boolean(dayDate && h.date && h.date !== dayDate);
+        const litres = h.precipitation > 0 ? ` · ${fmtLitres(h.precipitation)}` : '';
+        const when = next ? 'mañana ' : '';
+        const tag = dayDate ? `<small class="wx-row-day">${next ? 'mañ.' : 'hoy'}</small>` : '';
+        return `<div class="wx-h wx-h--${level}${next ? ' wx-h--next' : ''}" title="${when}${hh(hr)} · hora ${HOUR_LEVEL[level]} · ${fmtTemp(h.temperature)} · viento ${wind} km/h · lluvia ${rain} %${litres}">
+            ${tag}<span class="wx-row-hr">${hr}h</span>${skyIcon(h.icon)}<em class="wx-row-temp">${fmtTemp(h.temperature)}</em><b class="wx-row-wind">${wind}</b><i class="wx-row-rain">${rain}</i>
         </div>`;
     }
 
-    // Tarjetas de cada hora con el amanecer y el atardecer intercalados en su sitio
-    function hourCards(day, hours) {
-        const marks = SUN_MARKS.filter(([key]) => day[key])
-            .map(([key, icon]) => ({ icon, time: day[key], minutes: timeToMinutes(day[key]), done: false }));
-        const html = [];
-        for (const h of hours) {
-            const minutes = timeToMinutes(h.hour);
-            marks.filter(m => !m.done && minutes >= m.minutes).forEach(m => {
-                html.push(sunCard(m.icon, m.time));
-                m.done = true;
-            });
-            html.push(hourCard(h));
+    function hourAria(day, hours) {
+        return `Hora a hora, ${day.label}: ` + hours.map(h =>
+            `${h.date && h.date !== day.date ? 'mañana ' : ''}${hh(AgroWeather.hourOf(h))} ${fmtTemp(h.temperature)}, viento ${Math.round(h.wind_speed)} km/h, lluvia ${h.precipitation_probability || 0} %`).join('; ');
+    }
+
+    function sunLine(day) {
+        const parts = [];
+        if (day.sunrise) parts.push(`<i class="fa fa-sun wx-sky wx-sky--sun" aria-hidden="true"></i> Amanece ${esc(day.sunrise)}`);
+        if (day.sunset) parts.push(`<i class="fa fa-moon wx-sky wx-sky--cloud" aria-hidden="true"></i> Anochece ${esc(day.sunset)}`);
+        return parts.join(' · ');
+    }
+
+    function hoursHtml(day, hours) {
+        const head = `<div class="hm-wx-day-head"><b>Hora a hora</b><span class="dt-muted">${sunLine(day)}</span></div>`;
+        if (!hours.length) {
+            return `<div class="hm-wx-day">${head}<div class="dt-muted">AEMET solo da la previsión por horas de los próximos dos días.</div></div>`;
         }
-        marks.filter(m => !m.done).forEach(m => html.push(sunCard(m.icon, m.time)));
-        return html.join('');
-    }
-
-    function hourlyBodyHtml(day) {
-        const all = day.hours || [];
-        if (!all.length) return '<p class="text-center text-muted small py-3">Sin datos horarios para este día.</p>';
-        // Hoy, sin las horas pasadas (si no queda ninguna, se muestra el día entero)
-        const upcoming = AgroWeather.upcomingHours(day);
-        const hours = upcoming.length ? upcoming : all;
-        return `${summaryHtml(day, hours)}
-            <div class="muni-hourly-carousel">${hourCards(day, hours)}</div>
-            ${HOURLY_LEGEND}`;
-    }
-
-    function hourlyPanelHtml(day) {
-        if (!day) return '';
-        return `<div class="muni-hourly-header">
-                <span><i class="fa fa-clock me-1"></i>Previsión horaria — <span class="muni-hourly-day-label">${esc(day.label)}</span></span>
-                <div class="muni-sun-info">${sunTimes(day)}</div>
+        const mixed = hours.some(h => h.date && h.date !== day.date);
+        const dayLabel = mixed ? '<span class="wx-row-day"><i class="fa fa-calendar-day"></i>Día</span>' : '';
+        return `<div class="hm-wx-day">
+            ${head}
+            <div class="wx-hours" role="region" tabindex="0" aria-label="${esc(hourAria(day, hours))}">
+                <div class="wx-h-labels" aria-hidden="true">
+                    ${dayLabel}
+                    <span class="wx-row-hr"><i class="fa fa-clock"></i>Hora</span>
+                    <span class="wx-row-sky"><i class="fa fa-cloud-sun"></i>Cielo</span>
+                    <span class="wx-row-temp"><i class="fa fa-temperature-half"></i>Temp.</span>
+                    <span class="wx-row-wind"><i class="fa fa-wind"></i>Viento km/h</span>
+                    <span class="wx-row-rain"><i class="fa fa-droplet"></i>Lluvia %</span>
+                </div>
+                ${hours.map(h => hourCell(h, mixed ? day.date : '')).join('')}
             </div>
-            <div class="muni-hourly-body">${hourlyBodyHtml(day)}</div>`;
+        </div>`;
+    }
+
+    function dayBodyHtml(day, nextDay) {
+        if (!day) return '';
+        const hours = displayHours(day, nextDay);
+        return summaryHtml(day, hours) + hoursHtml(day, hours);
+    }
+
+    // ── Selector de día ────────────────────────────────────────────
+    function dayName(day, today) {
+        return day.date === today ? 'Hoy' : day.label.split(' ')[0];
+    }
+
+    function tabsHtml(muni, activeIdx) {
+        const today = AgroWeather.localDate();
+        const first = muni.startIdx;
+        return muni.daily.slice(first, first + 7).map((d, n) => {
+            const i = first + n;
+            const t = treatmentOf(d.level);
+            const prob = d.max_precipitation_probability || 0;
+            const active = i === activeIdx;
+            const aria = `${d.label}: máxima ${fmtTemp(d.max_temp)}, lluvia ${prob} %, ${t.label}`;
+            return `<button type="button" class="wx-tab wx-tab--${t.key}${active ? ' active' : ''}" data-day-idx="${i}" aria-label="${esc(aria)}" aria-pressed="${active}">
+                <span class="wx-tab-name">${esc(dayName(d, today))}</span>
+                ${skyIcon(d.icon)}
+                <b>${fmtTemp(d.max_temp)}</b>
+                <small>${fmtTemp(d.min_temp)}</small>
+                <em class="${rainTone(prob)}"><i class="fa fa-droplet" aria-hidden="true"></i>${prob}%</em>
+            </button>`;
+        }).join('');
     }
 
     // ── Tarjeta del municipio ──────────────────────────────────────
+    function updatedHtml(muni) {
+        const note = AgroWeather.updatedNote(muni);
+        if (!note) return '';
+        return muni.stale
+            ? `<div class="mt-1"><span class="dt-status dt-tone-1"><i class="fa fa-triangle-exclamation me-1" aria-hidden="true"></i>${esc(note)}</span></div>`
+            : ` · ${esc(note)}`;
+    }
+
     function chipsHtml(fields) {
-        return fields.map(f => `<a class="muni-field-chip" href="/parcelas/${f.id}/" title="${esc(f.crop)} · ${esc(f.area)} ha">
-                <i class="fa fa-seedling me-1"></i>${esc(f.name)}
+        return fields.map(f => `<a class="pl-chip" href="/parcelas/${esc(f.id)}/" title="${esc(f.crop)} · ${esc(f.area)} ha">
+                <i class="fa fa-seedling" aria-hidden="true"></i>${esc(f.name)}
             </a>`).join('');
     }
+
+    const LEGEND_HTML = `<div class="hm-legend" aria-hidden="true">
+        <span><i class="hm-sw hm-sw--ok"></i>Buena: viento ≤ 20 km/h y lluvia &lt; 20 %</span>
+        <span><i class="hm-sw hm-sw--warn"></i>Dudosa</span>
+        <span><i class="hm-sw hm-sw--bad"></i>Mala: viento &gt; 25 km/h o lluvia ≥ 50 %</span>
+        <span class="ms-md-auto">Fuente: AEMET</span>
+    </div>`;
+
+    // Todos los días guardados son pasados (datos antiguos): no se presenta ninguno como hoy
+    const PAST_HTML = `<div class="hm-empty" role="status">
+        <span class="hm-empty-icon hm-empty-icon--warn"><i aria-hidden="true" class="fa fa-clock-rotate-left"></i></span>
+        <b>Previsión caducada</b>
+        <span>Los datos guardados son de días ya pasados. Se actualizarán cuando AEMET vuelva a responder.</span>
+    </div>`;
 
     function buildCard(muni) {
         const cardId = ++cardCounter;
         cards[cardId] = muni;
-        return `<div class="muni-card" data-card-id="${cardId}">
-            ${heroHtml(muni, muni.today)}
-            ${weekHtml(muni.daily, cardId)}
-            <div class="muni-hourly-toggle-bar">
-                <button type="button" class="muni-hourly-toggle" data-card-id="${cardId}">
-                    <i class="fa fa-clock"></i> Ver previsión por horas <i class="fa fa-chevron-down ms-1 toggle-arrow"></i>
-                </button>
+        const stale = muni.stale ? updatedHtml(muni) : '';
+        const fresh = muni.stale ? '' : updatedHtml(muni);
+        return `<section class="card card-flat" data-card-id="${cardId}" aria-label="Tiempo en ${esc(muni.name)}">
+            <div class="dt-card-head">
+                <div>
+                    <h2 class="dt-card-title">${esc(muni.name)}</h2>
+                    <div class="dt-muted">${plural(muni.fields.length, 'parcela')}${fresh}</div>
+                    ${stale}
+                </div>
             </div>
-            <div class="muni-hourly-panel">${hourlyPanelHtml(muni.daily[0])}</div>
-            <div class="muni-fields">${chipsHtml(muni.fields)}</div>
-        </div>`;
+            ${muni.allPast ? PAST_HTML : `<div class="wx-days-wrap">
+                <div class="wx-days" role="group" aria-label="Día de la previsión">${tabsHtml(muni, muni.startIdx)}</div>
+            </div>
+            <div data-wx-body aria-live="polite">${dayBodyHtml(muni.daily[muni.startIdx], muni.daily[muni.startIdx + 1])}</div>`}
+            ${LEGEND_HTML}
+            <div class="wx-parcels">${chipsHtml(muni.fields)}</div>
+        </section>`;
     }
 
-    function setHourlyOpen(card, open) {
-        card.querySelector('.muni-hourly-panel').classList.toggle('open', open);
-        const arrow = card.querySelector('.toggle-arrow');
-        arrow.classList.toggle('fa-chevron-down', !open);
-        arrow.classList.toggle('fa-chevron-up', open);
-    }
-
-    function toggleHourly(card) {
-        setHourlyOpen(card, !card.querySelector('.muni-hourly-panel').classList.contains('open'));
-    }
-
-    // Al elegir un día: cabecera y detalle por horas de ese día, con el detalle abierto
+    // Al elegir un día: pestaña activa y resumen + horas de ese día
     function selectDay(card, dayEl) {
-        card.querySelectorAll('.muni-week-day').forEach(d => d.classList.toggle('active', d === dayEl));
         const muni = cards[card.dataset.cardId];
-        const day = muni?.daily[Number.parseInt(dayEl.dataset.dayIdx, 10)];
+        const idx = Number.parseInt(dayEl.dataset.dayIdx, 10);
+        const day = muni?.daily[idx];
         if (!day) return;
-        card.querySelector('.muni-hero').outerHTML = heroHtml(muni, day);
-        card.querySelector('.muni-hourly-panel').innerHTML = hourlyPanelHtml(day);
-        setHourlyOpen(card, true);
+        card.querySelectorAll('[data-day-idx]').forEach(tab => {
+            const active = tab === dayEl;
+            tab.classList.toggle('active', active);
+            tab.setAttribute('aria-pressed', String(active));
+        });
+        card.querySelector('[data-wx-body]').innerHTML = dayBodyHtml(day, muni.daily[idx + 1]);
     }
 
     function onGridClick(event) {
-        const card = event.target.closest('.muni-card');
-        if (!card) return;
-        const dayEl = event.target.closest('.muni-week-day');
-        if (dayEl) selectDay(card, dayEl);
-        else if (event.target.closest('.muni-hourly-toggle')) toggleHourly(card);
+        const dayEl = event.target.closest('[data-day-idx]');
+        const card = dayEl?.closest('[data-card-id]');
+        if (card) selectDay(card, dayEl);
     }
 
     // ── Carga y errores ────────────────────────────────────────────
@@ -302,72 +295,85 @@
         return 'No se ha podido cargar la previsión. Inténtalo en unos minutos.';
     }
 
-    function errorsAlertHtml(errors, allFailed) {
+    function errorItemsHtml(errors) {
         const grouped = {};
         errors.forEach(({ name, reason }) => {
             if (!grouped[reason]) grouped[reason] = [];
             grouped[reason].push(name);
         });
-        const items = Object.entries(grouped)
+        return Object.entries(grouped)
             .map(([reason, names]) => `<li><strong>${esc(names.join(', '))}</strong> — ${esc(reason)}</li>`)
             .join('');
-        const which = errors.length === 1 ? 'esta parcela' : 'algunas parcelas';
-        const title = allFailed
-            ? 'No se pudo obtener la previsión del tiempo en este momento.'
-            : `No se pudo cargar la previsión de ${which}:`;
-        const retry = allFailed
-            ? `<div class="mt-2 text-center">
-                   <button type="button" class="btn btn-sm btn-outline-warning wov-retry"><i class="fa fa-rotate-right me-1"></i>Reintentar</button>
-               </div>`
-            : '';
-        return `<div class="col-12">
-            <div class="alert alert-warning d-flex gap-3 align-items-start mb-0">
-                <i class="fa fa-cloud-slash fa-lg flex-shrink-0 mt-1 text-warning"></i>
-                <div class="w-100">
-                    <div class="fw-semibold mb-1">${title}</div>
-                    <ul class="mb-1 ps-3 small">${items}</ul>
-                    ${retry}
-                </div>
+    }
+
+    // Mismo patrón que Inicio cuando no hay previsión: aviso con icono ámbar dentro de la tarjeta
+    function emptyCardHtml(title, text, extra = '') {
+        return `<section class="card card-flat" aria-label="El tiempo" role="status">
+            <div class="hm-empty">
+                <span class="hm-empty-icon hm-empty-icon--warn"><i aria-hidden="true" class="fa fa-cloud-sun"></i></span>
+                <b>${title}</b>
+                <span>${text}</span>
+                ${extra}
             </div>
+        </section>`;
+    }
+
+    function failedCardHtml(errors) {
+        const retry = '<button type="button" class="btn btn-outline-secondary mt-2 wov-retry"><i class="fa fa-rotate-right me-1" aria-hidden="true"></i>Reintentar</button>';
+        return emptyCardHtml('Sin previsión por ahora', 'No se pudo obtener la previsión del tiempo en este momento.',
+            `<ul class="mb-0 ps-3 small text-start">${errorItemsHtml(errors)}</ul>${retry}`);
+    }
+
+    function partialErrorsHtml(errors) {
+        const which = errors.length === 1 ? 'esta parcela' : 'algunas parcelas';
+        return `<div class="dt-tone-1 rounded-3 px-3 py-2 small" role="status">
+            <div class="fw-semibold"><i class="fa fa-triangle-exclamation me-1" aria-hidden="true"></i>No se pudo cargar la previsión de ${which}:</div>
+            <ul class="mb-0 ps-3">${errorItemsHtml(errors)}</ul>
         </div>`;
     }
 
-    const EMPTY_HTML = `<div class="col-12">
-        <div class="alert alert-secondary mb-0">
-            <i class="fa fa-triangle-exclamation me-2"></i>
-            No se obtuvieron datos de ninguna parcela. Comprueba que las parcelas tienen contorno definido en el mapa.
-        </div>
-    </div>`;
+    const EMPTY_HTML = emptyCardHtml('Sin datos de tus parcelas',
+        'No se obtuvieron datos de ninguna parcela. Comprueba que las parcelas tienen contorno definido en el mapa.');
 
-    const RENDER_ERROR_HTML = `<div class="col-12">
-        <div class="alert alert-danger mb-0">
-            <i class="fa fa-bug me-2"></i>No se ha podido mostrar la previsión. Recarga la página y, si sigue, avisa al administrador.
-        </div>
+    const RENDER_ERROR_HTML = `<div class="dt-tone-0 rounded-3 px-3 py-2" role="alert">
+        <i class="fa fa-bug me-1" aria-hidden="true"></i>No se ha podido mostrar la previsión. Recarga la página y, si sigue, avisa al administrador.
     </div>`;
 
     function render(grid, munis, errors) {
-        document.getElementById('wov-skeletons').classList.add('d-none');
+        hideSkeleton();
         if (!munis.length && !errors.length) {
             grid.innerHTML = EMPTY_HTML;
+        } else if (!munis.length) {
+            grid.innerHTML = failedCardHtml(errors);
         } else {
-            grid.innerHTML = munis.map(m => `<div class="col-12 col-sm-6 col-xl-4">${buildCard(m)}</div>`).join('')
-                + (errors.length ? errorsAlertHtml(errors, !munis.length) : '');
+            grid.innerHTML = munis.map(buildCard).join('') + (errors.length ? partialErrorsHtml(errors) : '');
         }
         document.getElementById('wov-subtitle').textContent = munis.length
             ? `${plural(munis.length, 'municipio')} · AEMET`
             : 'Sin datos disponibles';
     }
 
-    // El servidor agrupa las parcelas por municipio y guarda la previsión en caché: una sola llamada
+    function hideSkeleton() {
+        const skeleton = document.getElementById('wov-skeletons');
+        skeleton.classList.add('d-none');
+        skeleton.setAttribute('aria-busy', 'false');
+    }
+
+    // El servidor agrupa las parcelas por municipio y guarda la previsión en caché: una sola llamada.
+    // `startIdx`: el día que se enseña al abrir (hoy; si no hay, el primero que traiga)
     function toMunicipalities(data, fields) {
         const fieldById = Object.fromEntries(fields.map(f => [f.id, f]));
         const today = AgroWeather.localDate();
         return (data.municipalities || [])
-            .map(m => ({
-                ...m,
-                fields: m.fields.map(f => fieldById[f.id] || f),
-                today: m.daily.find(d => d.date >= today) || m.daily[0] || null,
-            }))
+            .map(m => {
+                const idx = m.daily.findIndex(d => d.date >= today);
+                return {
+                    ...m,
+                    fields: m.fields.map(f => fieldById[f.id] || f),
+                    startIdx: Math.max(idx, 0),
+                    allPast: idx < 0,
+                };
+            })
             .sort((a, b) => a.name.localeCompare(b.name));
     }
 
@@ -381,8 +387,14 @@
         const fieldsEl = document.getElementById('wov-fields');
         if (!grid || !fieldsEl) return Promise.resolve();
         const fields = JSON.parse(fieldsEl.textContent);
-        grid.addEventListener('click', onGridClick);
-        document.addEventListener('click', e => { if (e.target.closest('.wov-retry')) globalThis.location.reload(); });
+        if (!grid.dataset.wovBound) {   // start() puede llamarse más de una vez: un solo listener
+            grid.dataset.wovBound = '1';
+            grid.addEventListener('click', onGridClick);
+        }
+        if (!retryBound) {
+            retryBound = true;
+            document.addEventListener('click', e => { if (e.target.closest('.wov-retry')) globalThis.location.reload(); });
+        }
         // then(ok, fallo) y no catch: un error al pintar no debe disfrazarse de fallo de AEMET
         return AgroWeather.load(grid.dataset.url).then(
             data => render(grid, toMunicipalities(data, fields), errorsFrom(data)),
@@ -392,11 +404,11 @@
             })
             .catch(err => {   // fallo nuestro al pintar: se ve en consola y el usuario no se queda con la carga
                 console.error(err);
-                document.getElementById('wov-skeletons').classList.add('d-none');
+                hideSkeleton();
                 grid.innerHTML = RENDER_ERROR_HTML;
             });
     }
 
-    globalThis.AgroWeatherOverview = { start, skyClass, timeToMinutes, hourCards };
+    globalThis.AgroWeatherOverview = { start, hourCell, displayHours };
     start();
 })();

@@ -260,6 +260,10 @@ if not DEBUG:
         # Add data like request headers and IP for users,
         # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
         send_default_pii=True,
+        # No enviar variables locales de los frames: logger.exception en el
+        # asistente expondría api_key, system_prompt (datos de la finca) y
+        # user_message. Fijado por farm/tests/test_ai_errores_genericos.py.
+        include_local_variables=False,
         # Enable sending logs to Sentry
         enable_logs=True,
         # Set traces_sample_rate to 1.0 to capture 100%

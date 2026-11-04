@@ -6,8 +6,10 @@
 
 {% block header %}Calendario de tratamientos{% endblock %}
 
+{% block sub_header %}<span class="d-none d-md-inline">Arrastra un tratamiento para cambiar su fecha.</span>{% endblock %}
+
 {% block actions %}
-<a class="btn btn-primary" href="{% url 'treatment-create' %}">
+<a class="btn btn-primary d-none d-md-inline-block" href="{% url 'treatment-create' %}">
     <i class="fa fa-plus me-1"></i>Nuevo tratamiento
 </a>
 {% endblock %}

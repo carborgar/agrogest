@@ -1,112 +1,143 @@
 {% extends "base.html" %}
-{% load django_bootstrap5 %}
 
+{% block title %}{% if form.instance.pk %}Editar{% else %}Nueva{% endif %} parcela{% endblock %}
 {% block header %}{% if form.instance.pk %}Editar parcela{% else %}Nueva parcela{% endif %}{% endblock %}
 {% block sub_header %}{% if form.instance.pk %}{{ form.instance.name }}{% else %}Rellena los datos básicos de tu parcela{% endif %}{% endblock %}
 
+{% block actions %}
+<a class="btn btn-outline-secondary btn-sm d-lg-none" href="{% if form.instance.pk %}{% url 'field-detail' form.instance.pk %}{% else %}{% url 'field-list' %}{% endif %}">Cancelar</a>
+{% endblock %}
+
 {% block extra_head %}
-<link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet"/>
-<link href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" rel="stylesheet"/>
-<style>
-    #map-draw {
-        height: 420px;
-        border-radius: 0.375rem;
-        border: 1px solid #dee2e6;
-    }
-    @media (max-width: 991px) {
-        #map-draw { height: 320px; }
-    }
-    .map-instructions { font-size: 0.8rem; }
-    .area-calculated {
-        background: #d1e7dd;
-        border-color: #a3cfbb;
-    }
-</style>
+<link crossorigin="anonymous" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" rel="stylesheet"/>
+<link crossorigin="anonymous" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" integrity="sha256-XzD3RpaHPv7lzX9qt+2n1j5cWj48O24KsgaGYpKN8x8=" rel="stylesheet"/>
 {% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-12">
-        <form id="fieldForm" method="post">
-            {% csrf_token %}
-            {{ form.geometry }}
-            {% bootstrap_form_errors form %}
+{# Como en el formulario de tratamiento: la barra de guardar sustituye a la barra de navegación inferior #}
+<script>document.body.classList.add('tf-page');</script>
 
-            <div class="row g-4 align-items-start">
-
-                <!-- Columna izquierda: datos -->
-                <div class="col-lg-4">
-                    <div class="card h-100">
-                        <div class="card-header">
-                            <i class="fa fa-tag me-2 text-primary"></i>Datos de la parcela
-                        </div>
-                        <div class="card-body d-flex flex-column gap-3">
-                            {% bootstrap_field form.name wrapper_class="col-12" %}
-                            <div class="row">
-                                {% bootstrap_field form.crop wrapper_class="col-6" %}
-                                {% bootstrap_field form.planting_year wrapper_class="col-6" %}
-                            </div>
-                            {% bootstrap_field form.storage_point wrapper_class="col-12" %}
-
-
-                            <div class="row g-3">
-                                <div class="col-12">
-                                    {% bootstrap_field form.area wrapper_class="" %}
-                                    <div class="form-text text-muted small" id="map-area-feedback">
-                                        Dibuja el contorno para calcular.
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card-footer bg-transparent d-flex justify-content-between">
-                            <a class="btn btn-secondary btn-sm"
-                               href="{% if form.instance.pk %}{% url 'field-detail' form.instance.pk %}{% else %}{% url 'field-list' %}{% endif %}">
-                                <i class="fa fa-arrow-left me-1"></i>Volver
-                            </a>
-                            <button class="btn btn-primary btn-sm" type="submit">
-                                <i class="fa fa-save me-1"></i>{{ submit_text|default:"Guardar" }}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Columna derecha: mapa -->
-                <div class="col-lg-8">
-                    <div class="card">
-                        <div class="card-header d-flex align-items-center justify-content-between">
-                            <span><i class="fa fa-map me-2 text-primary"></i>Contorno de la parcela</span>
-                            <span class="badge bg-secondary fw-normal">Opcional</span>
-                        </div>
-                        <div class="card-body pb-2">
-                            <div class="alert alert-info map-instructions py-2 mb-3">
-                                <i class="fa fa-circle-info me-1"></i>
-                                Dibuja el contorno. Al cerrar el polígono, el área se calcula automáticamente.
-                                Usa <strong>Satélite</strong> o <strong>Catastro</strong> para identificarla.
-                            </div>
-                            <div id="map-draw"></div>
-                        </div>
-                        <div class="card-footer bg-transparent d-flex gap-2">
-                            <button class="btn btn-sm btn-outline-secondary" id="btnMyLocation" type="button">
-                                <i class="fa fa-location-crosshairs me-1"></i>Mi ubicación
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger" id="btnClearMap" type="button">
-                                <i class="fa fa-trash me-1"></i>Limpiar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </form>
+<div class="tf">
+    {% if form.errors %}
+    <div class="alert alert-danger tf-banner" role="alert" id="fmBanner" tabindex="-1">
+        {% for e in form.non_field_errors %}{{ e }}<br>{% endfor %}Revisa los campos marcados.
     </div>
+    {% endif %}
+
+    <form id="fieldForm" method="post" novalidate autocomplete="off">
+        {% csrf_token %}
+        {{ form.geometry }}
+
+        <div class="tf-layout">
+            <div class="tf-main">
+
+                {# ── Datos ── #}
+                <section class="tf-card">
+                    <h2 class="tf-h2">Datos de la parcela</h2>
+                    <label class="tf-label-col" for="{{ form.name.id_for_label }}">Nombre
+                        {{ form.name }}
+                        {% include "farm/_tf_errors.html" with errors=form.name.errors %}
+                    </label>
+                    <div class="tf-grid-2">
+                        <label class="tf-label-col" for="{{ form.crop.id_for_label }}">Cultivo
+                            {{ form.crop }}
+                            {% include "farm/_tf_errors.html" with errors=form.crop.errors %}
+                        </label>
+                        <label class="tf-label-col" for="{{ form.planting_year.id_for_label }}">Año de plantación
+                            {{ form.planting_year }}
+                            {% include "farm/_tf_errors.html" with errors=form.planting_year.errors %}
+                        </label>
+                    </div>
+                    <div class="tf-grid-2">
+                        <div class="tf-group">
+                            <label class="tf-label-col" for="{{ form.area.id_for_label }}">Superficie
+                                <span class="tf-inline">{{ form.area }}<span class="tf-unit">ha</span></span>
+                            </label>
+                            <span class="tf-hint" id="map-area-feedback">Dibuja el contorno para calcular la superficie automáticamente.</span>
+                            {% include "farm/_tf_errors.html" with errors=form.area.errors %}
+                        </div>
+                        <div class="tf-group">
+                            <label class="tf-label-col" for="{{ form.storage_point.id_for_label }}">Casetilla
+                                {{ form.storage_point }}
+                            </label>
+                            <span class="tf-hint">{{ form.storage_point.help_text }}</span>
+                            {% include "farm/_tf_errors.html" with errors=form.storage_point.errors %}
+                        </div>
+                    </div>
+                </section>
+
+                {# ── Mapa ── #}
+                <section class="tf-card" aria-labelledby="fmMapTitle">
+                    <div class="tf-head">
+                        <h2 class="tf-h2" id="fmMapTitle">Contorno en el mapa</h2>
+                        <span class="tf-hint">Opcional</span>
+                    </div>
+                    <p class="tf-note">Dibuja el contorno: al cerrar el polígono, la superficie se calcula sola. Usa <b>Satélite</b> o <b>Catastro</b> para identificar la parcela.</p>
+                    {% include "farm/_tf_errors.html" with errors=form.geometry.errors %}
+                    <div id="map-draw" class="fm-map" role="application" aria-label="Mapa para dibujar el contorno de la parcela"></div>
+                    <div class="d-flex flex-wrap gap-2" id="mapButtons">
+                        <button class="tf-btn tf-btn--sec" id="btnMyLocation" type="button"><i class="fa fa-location-crosshairs" aria-hidden="true"></i>Mi ubicación</button>
+                        <button class="tf-btn tf-btn--sec" id="btnClearMap" type="button"><i class="fa fa-trash" aria-hidden="true"></i>Limpiar contorno</button>
+                    </div>
+                </section>
+            </div>
+
+            {# ── Resumen: barra fija abajo (móvil) / tarjeta lateral (escritorio) ── #}
+            <aside class="tf-summary" aria-label="Resumen de la parcela">
+                <div class="tf-sum-top">
+                    <span class="tf-lbl tf-sum-label">Superficie</span>
+                    <div class="tf-sum-main-wrap">
+                        <span class="tf-sum-main" id="fmSumMain" aria-live="polite">0 ha</span>
+                        <span class="tf-sum-sub" id="fmSumSub"></span>
+                    </div>
+                </div>
+                <div class="tf-sum-actions">
+                    <button type="submit" class="tf-btn tf-btn--primary">{% if form.instance.pk %}Guardar{% else %}Crear parcela{% endif %}</button>
+                    <a class="tf-btn tf-btn--sec tf-sum-cancel" href="{% if form.instance.pk %}{% url 'field-detail' form.instance.pk %}{% else %}{% url 'field-list' %}{% endif %}">Cancelar</a>
+                </div>
+            </aside>
+        </div>
+    </form>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+{# Resumen y errores no dependen del mapa: sin cobertura el CDN de Leaflet puede no cargar y el formulario debe seguir funcionando #}
 <script>
     (function () {
+        var form = document.getElementById('fieldForm');
+        var fmt = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 2 });
+        function updateSummary() {
+            var area = parseFloat(String(document.getElementById('id_area').value).replace(',', '.'));
+            document.getElementById('fmSumMain').textContent = (isFinite(area) && area > 0 ? fmt.format(area) : '0') + ' ha';
+            var name = document.getElementById('id_name').value.trim();
+            var crop = document.getElementById('id_crop').value.trim();
+            document.getElementById('fmSumSub').textContent = [name || 'Sin nombre', crop].filter(Boolean).join(' · ');
+        }
+        window.fmUpdateSummary = updateSummary;
+        form.addEventListener('input', updateSummary);
+        updateSummary();
+
+        // Con errores: marca los campos y lleva al primero (en móvil la barra fija tapa parte de la pantalla)
+        form.querySelectorAll('.tf-err').forEach(function (err) {
+            if (!err.textContent.trim()) return;
+            var input = err.closest('label, .tf-group').querySelector('input, select, textarea');
+            if (input) input.setAttribute('aria-invalid', 'true');
+        });
+        var firstBad = form.querySelector('[aria-invalid="true"]');
+        if (firstBad) { firstBad.scrollIntoView({ block: 'center' }); firstBad.focus({ preventScroll: true }); }
+    })();
+</script>
+<script crossorigin="anonymous" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script crossorigin="anonymous" integrity="sha256-siofc4Uwjlra3YWkwthOn8Uj69cNN4aMug/iOHNiRgs=" src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+<script>
+    (function () {
+        if (typeof L === 'undefined' || !L.Control || !L.Control.Draw) {
+            var mapButtons = document.getElementById('mapButtons');
+            if (mapButtons) mapButtons.hidden = true;  // sin mapa, estos botones no hacen nada
+            document.getElementById('map-draw').outerHTML = '<p class="tf-note tf-note--warn">No se ha podido cargar el mapa. Puedes escribir la superficie a mano y dibujar el contorno más tarde.</p>';
+            return;
+        }
 
         // ── Traducción completa de Leaflet.draw al español ───────────────────────
         // IMPORTANTE: todas las claves deben estar presentes o Leaflet.draw
@@ -219,14 +250,14 @@
         var drawControl = new L.Control.Draw({
             draw: {
                 polygon: {
-                    shapeOptions: { color: '#198754', fillColor: '#198754', fillOpacity: 0.25, weight: 2 },
+                    shapeOptions: { color: '#1F5F24', fillColor: '#2E7D32', fillOpacity: 0.25, weight: 2 },
                     showArea: true,
                     allowIntersection: false,
                     metric: true,
                 },
                 polyline: false, circle: false, circlemarker: false,
                 rectangle: {
-                    shapeOptions: { color: '#198754', fillColor: '#198754', fillOpacity: 0.25, weight: 2 },
+                    shapeOptions: { color: '#1F5F24', fillColor: '#2E7D32', fillOpacity: 0.25, weight: 2 },
                     metric: true,
                 },
                 marker: false,
@@ -247,7 +278,7 @@
             try {
                 var geojson = JSON.parse(val);
                 var layer = L.geoJSON(geojson, {
-                    style: { color: '#198754', fillColor: '#198754', fillOpacity: 0.25, weight: 2 }
+                    style: { color: '#1F5F24', fillColor: '#2E7D32', fillOpacity: 0.25, weight: 2 }
                 });
                 layer.eachLayer(function(l) { drawnItems.addLayer(l); });
                 map.fitBounds(drawnItems.getBounds(), { padding: [20, 20] });
@@ -269,13 +300,10 @@
 
         function setAreaFeedback(ha) {
             if (!areaFeedback) return;
-            if (ha !== null) {
-                areaFeedback.textContent = ha + ' ha calculadas desde el mapa';
-                areaFeedback.className = 'form-text text-success fw-semibold';
-            } else {
-                areaFeedback.textContent = 'Dibuja un contorno para calcular el área automáticamente.';
-                areaFeedback.className = 'form-text text-muted';
-            }
+            areaFeedback.textContent = ha !== null
+                ? ha + ' ha calculadas desde el mapa'
+                : 'Dibuja el contorno para calcular la superficie automáticamente.';
+            areaFeedback.classList.toggle('fm-ok', ha !== null);
         }
 
         function updateFromLayer(layer) {
@@ -286,8 +314,8 @@
             if (latlngs && areaInput) {
                 var areaHa = (geodesicArea(latlngs) / 10000).toFixed(2);
                 areaInput.value = areaHa;
-                areaInput.classList.add('area-calculated');
                 setAreaFeedback(areaHa);
+                if (window.fmUpdateSummary) window.fmUpdateSummary();
             }
         }
 
@@ -301,7 +329,6 @@
         });
         map.on('draw:deleted', function () {
             if (geometryInput) geometryInput.value = '';
-            if (areaInput) areaInput.classList.remove('area-calculated');
             setAreaFeedback(null);
         });
 
@@ -309,7 +336,7 @@
         document.getElementById('btnMyLocation').addEventListener('click', function () {
             var btn = this;
             btn.disabled = true;
-            btn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i>Localizando…';
+            btn.innerHTML = '<i class="fa fa-spinner fa-spin me-1" aria-hidden="true"></i>Localizando…';
             if (!navigator.geolocation) {
                 alert('Tu navegador no soporta geolocalización');
                 btn.disabled = false;
@@ -332,7 +359,6 @@
             if (!drawnItems.getLayers().length) return;
             drawnItems.clearLayers();
             if (geometryInput) geometryInput.value = '';
-            if (areaInput) areaInput.classList.remove('area-calculated');
             setAreaFeedback(null);
         });
 

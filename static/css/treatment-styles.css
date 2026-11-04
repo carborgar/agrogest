@@ -1,15 +1,5 @@
 
 
-.treatment-icon {
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-}
-
 .treatment-title {
     font-size: 0.95rem;
     font-weight: 600;
@@ -780,3 +770,563 @@ td.dt-col-last.dt-qty { color: var(--tl-1-fg); }
     .dropdown:has(> .dropdown-sheet.show), .dt-actions:has(.dropdown-sheet.show), .tl-item:has(.dropdown-sheet.show), .pl-item:has(.dropdown-sheet.show),
     .pl-group:has(.dropdown-sheet.show), .pl-field:has(.dropdown-sheet.show) { z-index: 1050 !important; }
 }
+
+/* ═══════════════════════════════════════════════
+   GASTOS (ex-*): reutiliza la fila del listado de tratamientos (tl-*) con sus propias columnas.
+   El importe se alinea a la derecha; la fecha va en gris porque un gasto no tiene urgencia.
+═══════════════════════════════════════════════ */
+.ex-list { --tl-cols: 3rem minmax(0, 1fr) 13rem 7.5rem 2.25rem; }
+.ext-list { --tl-cols: minmax(0, 1fr) 8rem 7.5rem 2.25rem; }
+.ex-month { display: flex; justify-content: space-between; gap: 1rem; padding-right: calc(.75rem + 34px + .75rem); }
+.ex-list .tl-meta > .tl-field { flex-shrink: 0; max-width: 60%; overflow: hidden; text-overflow: ellipsis; }
+.ex-list .tl-meta, .ext-list .tl-meta { flex-wrap: nowrap; white-space: nowrap; }
+.tl-meta > .ex-desc { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.ex-calc { font-size: .85rem; color: var(--tl-muted); }
+.ex-amount { flex: none; text-align: right; font-size: .95rem; line-height: 1.25; }
+.ex-amount > span { display: block; font-size: .72rem; color: var(--tl-muted); }
+
+@media (min-width: 768px) {
+    /* El total del mes, alineado con la columna de importe (deja el hueco del menú ⋮) */
+    .ex-month { padding-right: calc(1rem + 2.25rem + 1rem); }
+}
+
+/* ═══ COSECHAS (hv-*) ═══
+   Registros: reutiliza la fila del listado de tratamientos (tl-*) con sus propias columnas.
+   El desglose por parcela usa dt-list. Un precio pendiente va en ámbar (tl-rel--1). */
+.hv-list { --tl-cols: 3rem minmax(0, 1fr) 5.5rem 5rem 6rem 2.25rem; }
+.hv-list .tl-meta { flex-wrap: nowrap; white-space: nowrap; }
+.tl-meta > .hv-notes { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.hv-list .tl-cost b { font-size: .95rem; }
+
+/* Formularios tf-* con controles nativos (select y textarea) */
+.tf-inp.form-select { padding-right: 2.25rem; background-image: var(--bs-form-select-bg-img), var(--bs-form-select-bg-icon, none); background-repeat: no-repeat; background-position: right .75rem center; background-size: 16px 12px; }
+textarea.tf-inp { height: auto; min-height: 48px; padding: 10px 12px; resize: vertical; }
+
+/* ═══════════════════════════════════════════════
+   PARCELAS (fd-* detalle · fm-* formulario · cs-* resumen de gastos)
+   El detalle usa dt-* y tl-*; el formulario, tf-*; aquí solo lo propio de cada pantalla.
+═══════════════════════════════════════════════ */
+/* Colores de los gráficos de costes (validados con la paleta de datos: ΔE entre vecinos ≥ 12 en visión normal y con daltonismo).
+   Orden fijo; con más de 6 tipos, los demás se agrupan en «Resto» (--cs-other). */
+:root { --cs-1: #008300; --cs-2: #EDA100; --cs-3: #6250D6; --cs-4: #EB6834; --cs-5: #2A78D6; --cs-6: #E87BA4; --cs-other: #7A8577; }
+
+/* Detalle: mapa */
+.fd-map-wrap { position: relative; }
+.fd-map { height: 260px; transition: height .3s ease; }
+.fd-map.is-expanded { height: 420px; }
+.fd-map-btn { position: absolute; right: .5rem; bottom: .5rem; z-index: 1000; width: 44px; height: 44px; padding: 0; }
+
+/* Formulario: mapa de dibujo */
+.fm-map { height: 320px; border: 1px solid var(--bs-border-color); border-radius: 10px; }
+.fm-ok { color: var(--tl-3-fg); font-weight: 600; }
+@media (min-width: 992px) { .fm-map { height: 420px; } }
+
+/* Resumen de gastos: en móvil las pestañas de periodo comparten fila con el botón de filtros */
+@media (max-width: 767.98px) { .cs-toolbar .tl-tabs { flex: 1 1 0; min-width: 0; } }
+
+/* Resumen de gastos: rankings de barras horizontales (HTML y CSS). Una fila por tipo o por parcela en una
+   línea: color, nombre, barra proporcional al mayor, importe y %. Escalan mejor que una rosquilla (con más
+   de 6 tipos no se lee y obliga a una leyenda larga) y las cards quedan con su altura natural, sin huecos.
+   En móvil (< 576 px) la barra baja a una segunda línea para que nombre e importe no se aprieten. */
+.cs-rank, .cs-perha, .cs-ftypes, .cs-prods { list-style: none; margin: 0; padding: 0; }
+.cs-rank { padding: .25rem 0; }
+.cs-rank-item + .cs-rank-item, .cs-ft + .cs-ft { border-top: 1px solid var(--tl-line); }
+.cs-rank-row { display: grid; grid-template-columns: .7rem minmax(8rem, 1.4fr) minmax(3rem, 1fr) minmax(6.5rem, auto) 3.4rem 1rem;
+    grid-template-areas: "dot name bar val pct chev"; align-items: center; column-gap: .75rem; width: 100%; min-height: 44px;
+    padding: .3rem 1rem; border: 0; background: none; color: var(--tl-ink); font: inherit; text-align: left; }
+button.cs-rank-row { cursor: pointer; }
+button.cs-rank-row:hover { background: var(--tl-soft); }
+.cs-rank-row:focus-visible, .cs-more-btn:focus-visible, .cs-sort:focus-visible, .cs-f-btn:focus-visible { outline: 2px solid var(--bs-primary); outline-offset: -2px; }
+.cs-dot { grid-area: dot; display: inline-block; width: .7rem; height: .7rem; border-radius: 3px; }
+/* Nombre en una línea; el nº de productos va al lado solo si cabe (si no, baja a una 2.ª línea que se recorta) */
+.cs-rank-name { grid-area: name; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: .35rem; min-width: 0; height: 1.5em; overflow: hidden; font-weight: 600; }
+.cs-rank-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cs-rank-name small { font-size: .75rem; font-weight: 400; color: var(--tl-muted); white-space: nowrap; }
+.cs-rank-item--rest > .cs-rank-row .cs-rank-name { color: var(--tl-muted); }
+.cs-rank-bar { grid-area: bar; display: block; height: .6rem; overflow: hidden; border-radius: 99px; background: var(--tl-line); }
+.cs-rank-bar > i { display: block; height: 100%; border-radius: 99px; background: var(--bs-primary); }
+.cs-rank-bar--empty { background: none; }
+.cs-rank-val { grid-area: val; font-weight: 700; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cs-rank-pct { grid-area: pct; font-size: .8rem; text-align: right; white-space: nowrap; color: var(--tl-muted); font-variant-numeric: tabular-nums; }
+.cs-chev { grid-area: chev; font-size: .75rem; color: var(--tl-muted); transition: transform .18s ease; }
+[aria-expanded="true"] > .cs-chev, .cs-f.is-open > .cs-f-row .cs-chev { transform: rotate(180deg); }
+/* Tipos del «Resto» desplegados: agrupados bajo su fila, con sangría y un gris distinto cada uno */
+.cs-rank--rest { padding: 0; border-top: 1px solid var(--tl-line); background: var(--tl-soft); }
+.cs-rank--rest .cs-rank-row { padding-left: 2rem; font-size: .92rem; }
+/* Productos de un tipo (tercer nivel): letra más pequeña, importe sin negrita y «% del tipo» en gris */
+.cs-prods { padding: .15rem 2.75rem .4rem 2.45rem; border-top: 1px solid var(--tl-line); background: var(--tl-soft); }
+.cs-prod { display: flex; align-items: baseline; gap: .75rem; padding: .3rem 0; font-size: .85rem; }
+.cs-prod + .cs-prod { border-top: 1px solid var(--tl-line); }
+.cs-prod-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.cs-prod-val { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cs-prod-pct { min-width: 5.5rem; font-size: .75rem; text-align: right; white-space: nowrap; color: var(--tl-muted); }
+.cs-more-btn { display: block; width: 100%; min-height: 44px; border: 0; border-top: 1px solid var(--tl-line); background: none; color: var(--bs-primary); font-size: .875rem; font-weight: 600; }
+.cs-more-btn:hover { background: var(--tl-soft); }
+/* Coste por hectárea: filas de altura fija, solo lectura (el detalle está en «Por parcela») */
+.cs-perha { padding: .35rem 0; }
+.cs-perha-row { display: grid; grid-template-columns: minmax(5rem, 9rem) minmax(3rem, 1fr) auto; grid-template-areas: "name bar val"; align-items: center; column-gap: .75rem; height: 38px; padding: 0 1rem; font-size: .9rem; }
+.cs-perha-name { grid-area: name; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cs-perha-val { grid-area: val; font-weight: 600; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+@media (max-width: 575.98px) {
+    .cs-rank-row { grid-template-columns: .7rem minmax(0, 1fr) auto auto 1rem; grid-template-areas: "dot name val pct chev" ". bar bar bar ."; row-gap: .3rem; padding-top: .5rem; padding-bottom: .5rem; }
+    .cs-rank-bar--empty { display: none; }
+    .cs-prods { padding-right: 1rem; }
+    .cs-perha-row { grid-template-columns: minmax(0, 7.5rem) minmax(2rem, 1fr) auto; }
+}
+
+/* Por parcela: tabla con una fila por parcela (plegada). Al abrirla, sus tipos (2.º nivel, plegados) y, al abrir
+   un tipo, sus productos (3.º nivel): sangría y letra decrecientes. En móvil, superficie y barra van bajo el nombre. */
+.cs-table { width: 100%; border-collapse: collapse; }
+.cs-table thead th { padding: 0 .75rem; height: 44px; border-bottom: 1px solid var(--tl-line); font-size: .75rem; font-weight: 600; color: var(--tl-muted); white-space: nowrap; }
+.cs-table th:first-child, .cs-table td:first-child { padding-left: 1rem; }
+.cs-sort { display: inline-flex; align-items: center; gap: .35rem; min-height: 44px; padding: 0; border: 0; background: none; color: inherit; font: inherit; }
+.cs-sort i { display: none; font-size: .7rem; }
+[aria-sort="descending"] > .cs-sort { color: var(--tl-ink); }
+[aria-sort="descending"] > .cs-sort i { display: inline; }
+.cs-f + .cs-f > tr:first-child > * { border-top: 1px solid var(--tl-line); }
+.cs-f-row { cursor: pointer; }
+.cs-f-row > * { height: 52px; padding: .45rem .75rem; vertical-align: middle; font-weight: 400; }
+.cs-f-row:hover, .cs-f.is-open > .cs-f-row { background: var(--tl-soft); }
+.cs-f-btn { display: block; max-width: 100%; padding: 0; border: 0; background: none; color: var(--tl-ink); font: inherit; font-weight: 700; text-align: left; overflow-wrap: anywhere; }
+.cs-f-sub { display: block; font-size: .75rem; color: var(--tl-muted); }
+.cs-f-area { width: 6.5rem; color: var(--tl-muted); text-align: right; white-space: nowrap; }
+.cs-f-bar { width: 32%; min-width: 8rem; }
+.cs-f-val, .cs-f-perha { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cs-f-val { font-weight: 700 !important; }
+/* Modo cantidades: «12 L + 3 kg + …» puede no caber a 390 px; se parte solo tras « + » (cada cantidad va
+   unida a su unidad con espacio duro). La clase la pone field-costs.js en #costsBody según el modo. */
+.cs--qty .cs-f-val, .cs--qty .cs-rank-val { white-space: normal; }
+/* En el ranking la columna del importe es «auto» y crecería hasta su ancho entero a costa del nombre: se acota */
+.cs--qty .cs-rank-val { max-width: 12rem; }
+.cs-rank-note { margin: .5rem 0 0; padding: 0 1rem; font-size: .75rem; color: var(--tl-muted); }
+.cs-f-chev { width: 2.5rem; text-align: center; }
+.cs-table .cs-f-chev { padding-left: 0; padding-right: 1rem; }
+/* Barra apilada: un tramo por tipo con los colores del ranking; el % va en su aria-label y al abrir la fila */
+.cs-bar { display: flex; height: .5rem; overflow: hidden; border-radius: 99px; background: var(--tl-line); }
+.cs-f-name .cs-bar { margin-top: .4rem; }
+.cs-bar > i { display: block; height: 100%; min-width: 2px; }
+.cs-bar > i + i { box-shadow: inset 1px 0 0 #fff; }
+.cs-f-detail > td { padding: 0 !important; border-top: 1px solid var(--tl-line); background: var(--tl-soft); }
+.cs-ftypes { max-width: 60rem; padding: .2rem 0; }
+.cs-rank-row--sub { padding-left: 2rem; font-size: .9rem; }
+.cs-rank-row--sub .cs-rank-name { font-weight: 500; }
+.cs-ft .cs-prods { padding-left: 3.45rem; background: var(--bs-body-bg); }
+.cs-ft-empty { margin: 0; padding: .75rem 1rem .75rem 2rem; font-size: .9rem; color: var(--tl-muted); }
+@media (max-width: 767.98px) {
+    .cs-table thead th, .cs-f-row > * { padding-left: .5rem; padding-right: .5rem; }
+    .cs-f-row > * { font-size: .9rem; }
+    .cs-f-perha { font-size: .8rem; }
+    .cs-rank-row--sub { padding-left: 1.5rem; }
+    .cs-ft .cs-prods { padding-left: 2.95rem; }
+}
+
+/* Cifras clave: el componente .dt-summary con los números grandes de Estadísticas (.st-key).
+   Móvil: 2 × 2. Las cifras no se parten (la unidad va pegada con espacio duro); los nombres (tipo, parcela) van algo más
+   pequeños y cortan en 2 líneas para no descuadrar la fila. */
+.cs-key .dt-value { font-size: 1.15rem; line-height: 1.2; white-space: nowrap; }
+.cs-key .dt-value.cs-key-name { font-size: 1rem; white-space: normal; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+@media (min-width: 768px) {
+    .cs-key .dt-cell { padding: .8rem 1rem; }
+    .cs-key .dt-value { font-size: 1.5rem; }
+    .cs-key .dt-value.cs-key-name { font-size: 1.1rem; }
+}
+
+/* Aviso de productos sin precio */
+.cs-warn { border: 1px solid #F0D9A6; border-radius: var(--bs-border-radius-lg); background: var(--tl-1-bg); color: var(--tl-1-fg); font-size: .9rem; }
+.cs-warn > summary { display: flex; align-items: center; gap: .75rem; min-height: 48px; padding: .5rem 1rem; list-style: none; cursor: pointer; }
+.cs-warn > summary::-webkit-details-marker { display: none; }
+.cs-warn > summary > span { flex: 1; min-width: 0; }
+.cs-warn[open] .cs-chev { transform: rotate(180deg); }
+.cs-warn-body { padding: 0 1rem .75rem 2.75rem; }
+.cs-warn-body ul { margin: 0 0 .5rem; padding-left: 1.1rem; }
+.cs-warn-body a { color: inherit; }
+
+/* ═══ CASETILLAS (sp-*) ═══
+   Asignar parcelas: filas con casilla sobre tl-head/tl-item. La fila entera es el <label>, así el objetivo táctil es toda la fila. */
+.sp-list { --tl-cols: 1.5rem minmax(0, 1fr) 9rem 6rem 10rem; }
+.sp-row { display: grid; grid-template-columns: 1.5rem minmax(0, 1fr) auto; align-items: center; gap: .75rem; min-height: 60px; margin: 0; padding: .5rem 1rem; cursor: pointer; }
+.sp-row:hover { background: var(--tl-soft); }
+.sp-row:has(input:checked) { background: var(--tl-3-bg); }
+.sp-row .form-check-input { width: 1.5rem; height: 1.5rem; margin: 0; }
+.sp-where { display: inline-block; padding: .15rem .5rem; border-radius: 6px; background: var(--tl-2-bg); color: var(--tl-2-fg); font-size: .75rem; font-weight: 600; white-space: nowrap; }
+.sp-where--other { background: var(--tl-1-bg); color: var(--tl-1-fg); }
+.sp-move, .sp-row:has(input:checked) .sp-now { display: none; }
+.sp-row:has(input:checked) .sp-move { display: inline; }
+.sp-ha { text-align: right; font-weight: 700; white-space: nowrap; }
+.sp-ha small { font-weight: 500; color: var(--tl-muted); }
+@media (min-width: 768px) {
+    .sp-row { grid-template-columns: var(--tl-cols); gap: 1rem; }
+}
+
+/* ═══════════════════════════════════════════════
+   TRATAMIENTOS SECUNDARIOS (rp-*, op-*): clonar, repetir e instrucciones del operador.
+   Clonar y repetir usan los bloques tf-* del formulario; aquí solo lo propio.
+   La hoja del operador (op-*) se exporta a imagen/PDF y se imprime: sin menú ni dependencias.
+═══════════════════════════════════════════════ */
+.tf-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Clonar: casilla nativa (oculta) + fila táctil tf-opt; nombre y fecha aparecen al marcarla */
+.rp-field { position: relative; }
+.rp-check:checked + .tf-opt { border-color: var(--bs-primary); background: #F3F8F3; }
+.rp-check:checked + .tf-opt .tf-opt-box { background: var(--bs-primary); border-color: var(--bs-primary); }
+.rp-check:focus-visible + .tf-opt { outline: 2px solid var(--bs-primary); outline-offset: 2px; }
+.rp-extra { display: none; margin: .65rem 0 .25rem 36px; }
+.rp-check:checked ~ .rp-extra { display: grid; }
+
+/* Repetir: calendario de un mes (7 columnas) y lista de fechas elegidas */
+.rp-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; text-align: center; }
+.rp-wd { padding: .25rem 0; font-size: .72rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--tl-muted); }
+.rp-day { min-height: 44px; padding: 0; border: 0; border-radius: 10px; background: transparent; color: var(--tl-ink); font-size: .95rem; font-weight: 600; }
+.rp-day:hover:not(:disabled) { background: var(--tl-2-bg); }
+.rp-day:focus-visible { outline: 2px solid var(--bs-primary); outline-offset: -2px; }
+.rp-day:disabled { color: #B3B9AF; cursor: not-allowed; }
+.rp-day--today { box-shadow: inset 0 0 0 1.5px var(--tl-head-line); }
+.rp-day--origin:disabled { background: var(--tl-2-bg); color: var(--tl-2-fg); }
+.rp-day[aria-pressed="true"], .rp-day[aria-pressed="true"]:hover { background: var(--bs-primary); color: #fff; }
+.rp-dates { max-height: 320px; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.rp-date { display: flex; align-items: center; gap: .5rem; border-top: 1px solid var(--tl-line); }
+.rp-date:first-child { border-top: 0; }
+.rp-date-main { flex: 1; min-width: 0; font-weight: 700; }
+.rp-date-main span { display: block; font-size: .78rem; font-weight: 500; color: var(--tl-muted); }
+
+/* Instrucciones del operador: hoja compacta; en móvil la parcela ocupa la fila entera si hay tres celdas */
+.op-wrap { max-width: 640px; margin: 0 auto; padding: 1rem .75rem 2rem; }
+.op-wide { grid-column: 1 / -1; }
+@media (min-width: 768px) { .op-wide { grid-column: auto; } }
+@media print {
+    .op-wrap { max-width: none; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
+/* ═══ PRODUCTOS · FORMULARIOS (pf-*) ═══ */
+/* Formulario de producto y de tipo: tf-* + histórico de precios (dt-list) con gráfica SVG propia */
+.pf .tf-switch::after { content: ''; position: absolute; inset: -6px 0; }
+@media (min-width: 992px) { .pf .tf-switch::after { inset: -9px 0; } }  /* 26 px + 18 = zona táctil de 44 px en escritorio */
+.pf .tf-inp[aria-invalid="true"] { border-color: var(--tl-0-fg); }
+.pf .tf-sum-main { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-spark-wrap { padding: .75rem 1rem 0; }
+.pf-spark { display: block; width: 100%; height: 72px; }
+.pf-spark-line { fill: none; stroke: var(--tl-3-fg); stroke-width: 2; stroke-linejoin: round; }
+.pf-spark-dot { fill: #fff; stroke: var(--tl-3-fg); stroke-width: 2; }
+.pf-spark-dot--now { fill: var(--tl-3-fg); }
+.pf-spark-axis { display: flex; justify-content: space-between; margin-top: .25rem; font-size: .75rem; color: var(--tl-muted); }
+@media (min-width: 992px) {
+    .pf .tf-sum-main { font-size: 1.25rem; white-space: normal; overflow-wrap: anywhere; }
+}
+
+/* ═══ CALENDARIO (cal-*, cm-*) ═══
+   Las sobrescrituras de FullCalendar están en calendar.css. Los tonos .cal-tN son el color intenso de --tl-N
+   (0 atrasado, 1 próximo, 2 neutro, 3 hecho) para puntos y barras, donde un fondo claro no se vería. */
+.cal-t0 { background: var(--tl-0-fg); }
+.cal-t1 { background: var(--tl-1-fg); }
+.cal-t2 { background: var(--tl-2-fg); }
+.cal-t3 { background: var(--tl-3-fg); }
+.cal-dot { flex: none; display: inline-block; width: 10px; height: 10px; margin-right: .4rem; border-radius: 50%; }
+.cal-row > .cal-dot { margin-right: 0; }
+.cal-nav { min-width: 44px; height: 44px; padding: 0 .75rem; }
+.cal-top .tl-tabs { flex: 1 1 0; }
+button.tl-tab { border: 0; background: transparent; }
+/* Chips de filtro (Tipo, Estado), patrón «filter chip»: píldora en tonos suaves para no confundirse con los
+   botones de acción. Activo: verde claro --tl-3-bg, borde verde y texto --tl-3-fg (6,6:1) con ✓ delante.
+   Inactivo: blanco, borde gris #8A9386 (3,2:1, mínimo de 3:1 para componentes) y texto --tl-muted (5,9:1). El estado no depende solo del color (✓).
+   El estado real lo lleva la casilla (.btn-check); treatment-calendar.js solo lee las casillas. */
+.cal-chips { gap: .5rem; }
+.cal-chips .cal-chip { position: relative; display: inline-flex; align-items: center; min-height: 32px; margin: 0; padding: .25rem .9rem .25rem .7rem; border: 1px solid #8A9386; border-radius: 999px; background: #fff; color: var(--tl-muted); font-size: .875rem; font-weight: 500; line-height: 1.2; white-space: nowrap; cursor: pointer; user-select: none; transition: background-color .15s ease, border-color .15s ease, color .15s ease; }
+/* El ✓ ocupa siempre su hueco (oculto si inactivo) para que el chip no cambie de ancho al marcar/desmarcar */
+.cal-chip-check { display: inline-block; width: .9em; margin-right: .3rem; font-size: .75em; text-align: center; visibility: hidden; }
+.cal-chip-icon { margin-right: .4rem; font-size: .85em; }
+.cal-chips .cal-chip .cal-dot { width: 8px; height: 8px; }
+.cal-chips .btn-check:checked + .cal-chip { background: var(--tl-3-bg); border-color: var(--bs-primary); color: var(--tl-3-fg); }
+.cal-chips .btn-check:checked + .cal-chip .cal-chip-check { visibility: visible; }
+.cal-chips .btn-check:focus-visible + .cal-chip { outline: 2px solid var(--bs-primary); outline-offset: 2px; }
+/* Hover solo con ratón: en táctil se quedaría «pegado» tras tocar el chip */
+@media (hover: hover) {
+    .cal-chips .cal-chip:hover { background: var(--tl-soft); border-color: var(--tl-muted); color: var(--tl-ink); }
+    .cal-chips .btn-check:checked + .cal-chip:hover { background: #D3E8D5; border-color: var(--bs-primary); color: var(--tl-3-fg); }
+}
+@media (prefers-reduced-motion: reduce) { .cal-chips .cal-chip { transition: none; } }
+/* Móvil: chip de 36 px y zona táctil de 44 px con ::after (el hueco de 8 px entre filas evita solapes) */
+@media (max-width: 767.98px) {
+    .cal-chips .cal-chip { min-height: 36px; }
+    .cal-chips .cal-chip::after { content: ""; position: absolute; inset: -4px 0; }
+}
+/* Fila de lista (día, agenda): una caja con filas separadas por línea */
+.cal-row { display: flex; align-items: center; gap: .75rem; width: 100%; min-height: 56px; padding: .6rem 1rem; border: 0; border-top: 1px solid var(--tl-line); background: #fff; color: var(--tl-ink); text-align: left; }
+.cal-row:first-child { border-top: 0; }
+button.cal-row:hover { background: var(--tl-soft); }
+.cal-overdue { min-height: 44px; padding: .6rem 1rem; border: 1px solid var(--tl-0-fg); border-radius: var(--bs-border-radius-lg); background: var(--tl-0-bg); color: var(--tl-0-fg); font-weight: 600; }
+
+/* Modal con dos paneles (día / detalle): el cambio es una transición, no un cierre y apertura */
+#treatment-detail .modal-content { --bs-modal-bg: #fff; }
+#treatment-detail .modal-header, #treatment-detail .modal-footer { border-color: var(--tl-head-line); }
+#treatment-detail .modal-footer .btn, #day-new { min-height: 44px; }
+.modal .dt-summary { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.dt-cell--wide { grid-column: 1 / -1; }
+.cal-pane { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+.cal-pane.cal-in-forward { animation: cal-in-forward .2s ease-out; }
+.cal-pane.cal-in-back { animation: cal-in-back .2s ease-out; }
+@keyframes cal-in-forward { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+@keyframes cal-in-back { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .cal-pane.cal-in-forward, .cal-pane.cal-in-back { animation: none; } }
+
+/* Móvil: tira semanal / mes en puntos + agenda */
+.cm-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+.cm-wd { font-size: .7rem; color: var(--tl-muted); }
+.cm-day { border: 0; background: none; color: inherit; border-radius: .75rem; padding: .35rem 0; min-height: 3.2rem; display: flex; flex-direction: column; align-items: center; gap: .15rem; }
+.cm-week .cm-day { min-height: 4.2rem; }
+.cm-out { background: var(--tl-soft); color: var(--tl-muted); }
+.swal2-confirm.cal-swal-confirm { background-color: var(--tl-3-fg); }
+.cm-today .cm-num { color: var(--bs-primary); font-weight: 700; }
+.cm-sel { background: var(--bs-primary); color: #fff; }
+.cm-sel .cm-num { color: #fff; }
+.cm-dots { display: flex; gap: 2px; min-height: 6px; }
+.cm-dot { width: 6px; height: 6px; border-radius: 50%; }
+.cm-sel .cm-dot { box-shadow: 0 0 0 1px #fff; }
+.cm-more { font-size: .6rem; line-height: 1; }
+.cm-bar { width: 4px; align-self: stretch; border-radius: 2px; flex-shrink: 0; }
+
+/* El detalle se abre como hoja inferior en móvil */
+@media (max-width: 767.98px) {
+    #treatment-detail .modal-dialog { margin: 0; max-width: none; height: 100%; display: flex; align-items: flex-end; }
+    #treatment-detail.modal.fade .modal-dialog { transform: translateY(100%); }
+    #treatment-detail.modal.show .modal-dialog { transform: none; }
+    #treatment-detail .modal-content { max-height: 88%; border-radius: 16px 16px 0 0; border: 0; }
+}
+
+/* ═══ ESTADÍSTICAS (st-*) ═══
+   Cifras clave grandes sobre .dt-summary y gráficas Chart.js (static/js/stats-charts.js) dentro de .card-flat.
+   El lienzo vive en un contenedor con altura fija (maintainAspectRatio:false); «Ver datos» es la alternativa en tabla.
+   Rankings, barras de cosecha y curiosidades conservan los colores de la pantalla original, sin sombras ni degradados. */
+.st-toolbar .tl-tabs { flex: 1 1 0; }
+@media (min-width: 768px) { .st-toolbar .tl-tabs { flex: 0 0 auto; } }
+.st-key .dt-value { font-size: 1.25rem; }
+@media (min-width: 768px) { .st-key .dt-value { font-size: 1.5rem; } }
+.st-chart { position: relative; height: 15rem; padding: 1rem; }
+.st-chart--tall { height: 21rem; }
+@media (min-width: 992px) { .st-chart { height: 18rem; } .st-chart--tall { height: 23rem; } }
+.st-data { border-top: 1px solid var(--tl-line); }
+.st-data > summary { display: flex; align-items: center; min-height: 44px; padding: .5rem 1rem; list-style: none; cursor: pointer; font-size: .85rem; font-weight: 600; color: var(--tl-muted); }
+.st-data > summary::-webkit-details-marker { display: none; }
+.st-data > summary::after { content: "\25BE"; margin-left: .4rem; }
+.st-data[open] > summary::after { content: "\25B4"; }
+.st-data > .table-responsive { border-top: 1px solid var(--tl-line); }
+
+.st-rank { display: flex; flex-direction: column; gap: .5rem; margin: 0; padding: 1rem; list-style: none; }
+.st-rank li { display: flex; align-items: center; gap: .75rem; padding: .5rem .75rem; border-radius: 10px; background: rgba(0, 0, 0, .025); }
+.st-rank-num { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: #E9ECEF; color: #495057; font-size: .8rem; font-weight: 700; }
+.st-rank-num--1 { background: #FFD700; color: #7F4F24; }
+.st-rank-num--2 { background: #C0C0C0; color: #3D3D3D; }
+.st-rank-num--3 { background: #CD7F32; color: #fff; }
+.st-rank-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.st-rank-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .85rem; font-weight: 600; }
+.st-bars { padding: 1rem 1rem .25rem; }
+.st-bars .progress { height: 5px; }
+.st-insight { display: flex; align-items: center; gap: .85rem; height: 100%; padding: .85rem 1rem; border-radius: 12px; background: var(--si-bg); }
+.st-insight-icon { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 42px; height: 42px; border-radius: 10px; background: var(--si-ic); color: var(--si-fg); font-size: 1.3rem; }
+.st-insight-value { font-size: .95rem; font-weight: 700; overflow-wrap: anywhere; }
+.st-insight--green { --si-bg: #D8F3DC; --si-ic: #B7E4C7; --si-fg: #1B4332; }
+.st-insight--blue { --si-bg: #DBEAFE; --si-ic: #BFDBFE; --si-fg: #1D3557; }
+.st-insight--orange { --si-bg: #FDE8D8; --si-ic: #FED7AA; --si-fg: #7F4F24; }
+.st-insight--gray { --si-bg: #F3F4F6; --si-ic: #E5E7EB; --si-fg: #4B5563; }
+.st-insight--purple { --si-bg: #EDE9FE; --si-ic: #DDD6FE; --si-fg: #3C096C; }
+.st-insight--teal { --si-bg: #CCFBF1; --si-ic: #99F6E4; --si-fg: #134E4A; }
+.st-insight--gold { --si-bg: #FEF9C3; --si-ic: #FEF08A; --si-fg: #713F12; }
+
+/* ═══════════════════════════════════════════════
+   EL TIEMPO (wx-*)
+   Reutiliza el resumen del tratamiento (dt-summary, dt-tone-*) y los estados vacíos de Inicio (hm-empty).
+   Propio de esta pantalla: selector de día a todo el ancho, iconos de cielo con color y horas en columnas.
+═══════════════════════════════════════════════ */
+/* Colores del cielo: los de las gráficas (--cs-*) y el gris azulado de las nubes. Solo decoran: el dato va siempre en texto */
+:root { --wx-sun: var(--cs-2); --wx-rain: var(--cs-5); --wx-storm: var(--cs-3); --wx-cloud: #6B7C8C; --wx-snow: #4F8FB8; }
+.wx-sky--sun { color: var(--wx-sun); }
+.wx-sky--cloud, .wx-sky--fog { color: var(--wx-cloud); }
+.wx-sky--rain { color: var(--wx-rain); }
+.wx-sky--storm { color: var(--wx-storm); }
+.wx-sky--snow { color: var(--wx-snow); }
+
+/* Selector de día: 7 celdas iguales; en móvil, desplazamiento horizontal con celdas de ancho cómodo */
+.wx-days-wrap { padding: .75rem 1rem; border-bottom: 1px solid var(--tl-line); }
+.wx-days { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(4.5rem, 1fr); gap: .4rem; overflow-x: auto; padding-bottom: 2px; }
+.wx-tab { --t-bg: var(--tl-2-bg); --t-fg: var(--tl-2-fg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .15rem; min-height: 6.5rem; padding: .5rem .25rem .6rem; border: 1px solid var(--bs-border-color); border-bottom: 4px solid var(--t-fg); border-radius: 10px; background: #fff; color: var(--tl-ink); font-size: .8rem; line-height: 1.2; }
+.wx-tab--ok { --t-bg: var(--tl-3-bg); --t-fg: var(--tl-3-fg); }
+.wx-tab--warn { --t-bg: var(--tl-1-bg); --t-fg: var(--tl-1-fg); }
+.wx-tab--bad { --t-bg: var(--tl-0-bg); --t-fg: var(--tl-0-fg); }
+.wx-tab:hover { background: var(--tl-soft); }
+.wx-tab.active, .wx-tab.active:hover { background: var(--t-bg); border-color: var(--t-fg); }
+.wx-tab:focus-visible, .wx-hours:focus-visible { outline: 2px solid var(--bs-primary); outline-offset: 2px; }
+.wx-tab-name { font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: .72rem; color: var(--tl-muted); }
+.wx-tab.active .wx-tab-name { color: var(--t-fg); }
+.wx-tab .wx-sky { font-size: 1.5rem; margin: .1rem 0; }
+.wx-tab b { font-size: 1.2rem; line-height: 1; }
+.wx-tab small { font-size: .8rem; color: var(--tl-muted); }
+.wx-tab em { display: inline-flex; align-items: center; gap: .2rem; font-style: normal; font-size: .78rem; font-weight: 700; color: var(--tl-muted); }
+.wx-tab em i { font-size: .7rem; }
+
+/* Resumen: veredicto grande y, al lado, las cifras que deciden; arriba va el veredicto a todo el ancho */
+.wx-summary { border-bottom: 1px solid var(--tl-line); }
+.dt-summary.wx-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-flow: row; }
+.wx-summary .dt-cell { display: flex; flex-direction: column; justify-content: center; padding: .85rem .9rem; }
+.wx-summary .dt-label i { margin-right: .35rem; }
+@media (max-width: 767.98px) {
+    .wx-summary .dt-cell { padding: .7rem .6rem; }
+    .wx-summary .dt-label { white-space: nowrap; }
+    .wx-summary .dt-label i { display: none; }
+    .wx-verdict .dt-label i { display: inline; }
+}
+.wx-summary .dt-value { font-size: 1.35rem; line-height: 1.15; }
+.wx-summary .dt-value small { font-size: .8rem; font-weight: 600; color: var(--tl-muted); }
+.wx-summary .dt-fg-0 small, .wx-summary .dt-fg-1 small { color: inherit; }
+.wx-summary .dt-sub .wx-sky { margin-right: .15rem; }
+.wx-verdict { grid-column: 1 / -1; }
+.wx-verdict .dt-label, .wx-verdict .dt-sub { color: inherit; }
+.wx-verdict .dt-value { color: inherit; font-size: 1.6rem; }
+.wx-verdict .dt-sub { font-size: .9rem; }
+@media (min-width: 768px) {
+    .dt-summary.wx-summary { grid-template-columns: 1.7fr repeat(3, minmax(0, 1fr)); }
+    .wx-verdict { grid-column: auto; padding: 1rem 1.25rem; }
+    .wx-summary .dt-value { font-size: 1.7rem; }
+    .wx-verdict .dt-value { font-size: 1.9rem; }
+}
+
+/* Horas: una columna por hora que se reparte el ancho; con muchas, desplazamiento horizontal y cabeceras fijas */
+.wx-hours { display: grid; grid-template-columns: 6.6rem; grid-auto-flow: column; grid-auto-columns: minmax(3.4rem, 1fr); gap: 4px; overflow-x: auto; padding-bottom: 6px; }
+.wx-h-labels { position: sticky; left: 0; z-index: 1; display: flex; flex-direction: column; padding: .3rem .4rem .3rem 0; background: #fff; font-size: .75rem; font-weight: 600; color: var(--tl-muted); }
+.wx-h { display: flex; flex-direction: column; align-items: center; padding: .3rem 0; border-radius: 8px; font-size: .8rem; }
+.wx-h-labels > *, .wx-h > * { display: flex; align-items: center; margin: 0; }
+.wx-h > * { justify-content: center; }
+.wx-h-labels i { width: 1.2rem; font-size: .75rem; }
+.wx-row-day { height: 1.3rem; font-size: .7rem; }
+.wx-row-hr { height: 1.8rem; }
+.wx-row-sky { height: 2.2rem; }
+.wx-row-temp { height: 2rem; }
+.wx-row-wind, .wx-row-rain { height: 1.7rem; }
+.wx-h .wx-row-hr { font-weight: 700; font-size: .85rem; }
+.wx-h .wx-sky { height: 2.2rem; font-size: 1.15rem; }
+.wx-h .wx-row-temp { font-style: normal; font-weight: 700; font-size: 1.05rem; }
+.wx-h .wx-row-wind { font-weight: 700; }
+.wx-h .wx-row-rain { font-style: normal; }
+.wx-h .wx-row-day { font-weight: 600; opacity: .8; }
+.wx-h--next { box-shadow: inset 2px 0 0 var(--tl-head-line); }
+.wx-h--ok { background: var(--tl-3-bg); color: var(--tl-3-fg); }
+.wx-h--warn { background: var(--tl-1-bg); color: var(--tl-1-fg); }
+.wx-h--bad { background: var(--tl-0-bg); color: var(--tl-0-fg); }
+.wx-h-labels { border-radius: 0; }
+
+.hm-empty .btn { min-height: 44px; }
+/* Pie de la tarjeta: leyenda y parcelas con el mismo margen lateral que el resto */
+.wx-parcels { display: flex; flex-wrap: wrap; gap: .5rem; padding: .75rem 1rem; border-top: 1px solid var(--tl-line); }
+@media (max-width: 767.98px) {
+    .wx-parcels .pl-chip { height: 44px; }
+}
+
+/* ═══ ASISTENTE (as-*) ═══
+   Pantalla de app: sin pie, la página no se desplaza y solo lo hace la lista de mensajes. La entrada es el último
+   elemento de la tarjeta, así que en móvil queda sobre la barra inferior (el padding la reserva) sin position: fixed.
+   --as-vh lo pone el JS con el teclado abierto (visualViewport); sin teclado vale 100dvh. */
+.as-page .footer { display: none; }
+.as-page .main-content { display: flex; flex-direction: column; height: var(--as-vh, 100dvh); }
+.as-page .page-content { display: flex; flex: 1; flex-direction: column; min-height: 0; }
+.as-chat { display: flex; flex: 1; flex-direction: column; min-height: 0; width: 100%; max-width: 56rem; margin: 0 auto; background: #fff; overflow: hidden; }
+.as-head { flex-wrap: nowrap; }
+.as-head > :first-child { min-width: 0; }
+.as-head .tl-icon-btn { width: 44px; height: 44px; margin: -.35rem -.5rem -.35rem 0; }
+.as-messages { display: flex; flex: 1; flex-direction: column; gap: .75rem; min-height: 0; padding: 1rem; overflow-y: auto; overscroll-behavior: contain; }
+.as-messages.as-smooth { scroll-behavior: smooth; }
+.as-welcome { flex: none; margin: auto 0; padding: 1rem 0; }
+.as-sugs { display: flex; flex-direction: column; gap: .5rem; width: 100%; max-width: 26rem; margin-top: .75rem; }
+.as-sug { display: flex; align-items: center; gap: .6rem; min-height: 44px; padding: .5rem .85rem; border: 1px solid var(--tl-head-line); border-radius: 10px; background: #fff; color: var(--tl-ink); font-size: .9rem; font-weight: 600; text-align: left; }
+.as-sug i { flex: none; width: 1.1rem; color: var(--tl-3-fg); text-align: center; }
+.as-sug:hover, .as-sug:focus-visible { background: var(--tl-3-bg); border-color: var(--tl-3-fg); }
+
+.as-row { display: flex; align-items: flex-end; gap: .5rem; }
+.as-row--user { justify-content: flex-end; }
+.as-avatar { flex: none; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background: var(--tl-3-bg); color: var(--tl-3-fg); font-size: .85rem; }
+.as-bubble { max-width: min(85%, 42rem); padding: .6rem .85rem; border-radius: 14px; font-size: .95rem; line-height: 1.5; word-break: break-word; }
+.as-bubble--user { background: var(--tl-3-bg); color: var(--tl-ink); border-bottom-right-radius: 4px; white-space: pre-line; }
+.as-bubble--ai { background: #fff; border: 1px solid var(--tl-head-line); border-bottom-left-radius: 4px; color: var(--tl-ink); overflow-x: auto; }
+.as-bubble--error { background: var(--tl-0-bg); border: 1px solid var(--tl-0-fg); border-bottom-left-radius: 4px; color: var(--tl-0-fg); }
+.as-typing { display: flex; align-items: center; gap: .5rem; color: var(--tl-muted); font-size: .85rem; }
+.as-dots { display: flex; gap: 4px; }
+.as-dots span { width: 7px; height: 7px; border-radius: 50%; background: var(--tl-muted); animation: as-bounce 1.2s infinite ease-in-out; }
+.as-dots span:nth-child(2) { animation-delay: .2s; }
+.as-dots span:nth-child(3) { animation-delay: .4s; }
+@keyframes as-bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-5px); } }
+@media (prefers-reduced-motion: reduce) { .as-dots span { animation: none; } .as-messages.as-smooth { scroll-behavior: auto; } }
+
+/* Markdown de las respuestas */
+.as-bubble--ai > :last-child { margin-bottom: 0; }
+.as-bubble--ai p { margin-bottom: .5rem; }
+.as-bubble--ai :is(h1, h2, h3, h4, h5) { margin: .75rem 0 .35rem; font-size: 1rem; font-weight: 700; }
+.as-bubble--ai :is(h1, h2):not(:first-child) { padding-top: .6rem; border-top: 1px solid var(--tl-line); }
+.as-bubble--ai > :first-child { margin-top: 0; }
+.as-bubble--ai :is(ul, ol) { margin: .25rem 0 .5rem; padding-left: 1.3rem; }
+.as-bubble--ai li { margin-bottom: .2rem; }
+.as-bubble--ai code { padding: .1rem .3rem; border-radius: 4px; background: var(--tl-2-bg); color: var(--tl-ink); font-size: .85em; }
+.as-bubble--ai pre { margin: .5rem 0; padding: .7rem .9rem; border-radius: 8px; background: var(--tl-ink); color: var(--tl-3-bg); font-size: .82rem; overflow-x: auto; }
+.as-bubble--ai pre code { padding: 0; background: none; color: inherit; }
+.as-bubble--ai blockquote { margin: .5rem 0; padding: .4rem .75rem; border-left: 3px solid var(--bs-primary); border-radius: 0 8px 8px 0; background: var(--tl-3-bg); color: var(--tl-3-fg); }
+.as-bubble--ai blockquote p { margin-bottom: .2rem; }
+.as-bubble--ai table { width: 100%; margin: .5rem 0; font-size: .85rem; border-collapse: collapse; }
+.as-bubble--ai :is(th, td) { padding: .4rem .6rem; border-bottom: 1px solid var(--tl-line); text-align: left; vertical-align: top; word-break: normal; }
+.as-bubble--ai th { border-bottom-color: var(--tl-head-line); background: var(--tl-head-bg); font-size: .72rem; letter-spacing: .04em; text-transform: uppercase; color: var(--tl-muted); }
+.as-bubble--ai hr { margin: .6rem 0; border-color: var(--tl-head-line); opacity: 1; }
+.as-bubble--ai a { color: var(--bs-primary); text-decoration: underline; text-underline-offset: 2px; }
+
+/* Aviso de límite y entrada */
+.as-quota { padding: .55rem 1rem; border-top: 1px solid var(--tl-1-fg); background: var(--tl-1-bg); color: var(--tl-1-fg); font-size: .85rem; }
+.as-input { display: flex; align-items: flex-end; gap: .5rem; padding: .75rem 1rem; border-top: 1px solid var(--tl-head-line); background: #fff; }
+.as-field { flex: 1; min-height: 44px; max-height: 140px; padding: .55rem .9rem; border-radius: 22px; line-height: 1.4; resize: none; overflow-y: auto; }
+.as-send { flex: none; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border-radius: 50%; }
+@media (max-width: 767.98px) {
+    .as-page .main-content { padding-bottom: calc(58px + env(safe-area-inset-bottom) + 8px); }
+    .as-bubble { max-width: 88%; }
+    .as-avatar { width: 28px; height: 28px; font-size: .75rem; }
+    .as-messages { padding: .75rem; }
+    .as-bubble--ai :is(th, td) { padding: .35rem .4rem; }
+    /* Con el teclado abierto no hay barra inferior ni cabecera: toda la altura es para la conversación */
+    .as-kb .bottom-tab-bar, .as-kb .page-header { display: none; }
+    .as-kb .main-content { padding-bottom: 8px; padding-top: 8px; }
+}
+
+/* ═══ CUENTA (au-*, nt-*) ═══ */
+/* Pantallas públicas (portada, login, recuperar contraseña, 404/500): marca arriba y una columna centrada con card-flat */
+.au { display: flex; align-items: center; justify-content: center; min-height: 100vh; min-height: 100dvh; padding: 1.5rem 1rem; }
+.au-box { width: 100%; max-width: 26rem; }
+.au-brand { display: flex; align-items: center; justify-content: center; gap: .6rem; margin-bottom: 1.25rem; font-size: 1.4rem; font-weight: 700; color: var(--tl-ink); text-decoration: none; }
+.au-brand:hover { color: var(--tl-ink); }
+.au-link { display: inline-flex; align-items: center; min-height: 44px; font-size: .875rem; font-weight: 600; text-decoration: none; }
+.au-link:hover { text-decoration: underline; }
+.au-check { display: flex; align-items: center; gap: .6rem; min-height: 44px; margin: 0; font-size: .95rem; cursor: pointer; }
+.au-check .form-check-input { flex: none; width: 1.25rem; height: 1.25rem; margin: 0; }
+.au-pass { position: relative; }
+.au-pass .tf-inp { padding-right: 3rem; }
+.au-eye { position: absolute; top: 0; right: 0; bottom: 0; width: 44px; padding: 0; border: 0; border-radius: 0 10px 10px 0; background: transparent; color: var(--tl-muted); }
+.au-eye:hover, .au-eye:focus-visible { color: var(--tl-ink); }
+
+/* Notificaciones: filas del listado tl-*; las nuevas llevan fondo suave, punto sobre el icono y título en negrita */
+.nt { max-width: 56rem; }
+.nt-list { --tl-cols: 3rem minmax(0, 1fr) 7.5rem; }
+.nt-list > .tl-item:first-child { border-top: 0; border-radius: 12px 12px 0 0; }
+.nt-list .tl-row { align-items: flex-start; padding-block: .75rem; }
+.nt-list .tl-date { position: relative; }
+.nt-list .tl-name { overflow: visible; font-weight: 600; white-space: normal; }
+.nt-list .tl-meta { display: block; margin-top: .1rem; white-space: normal; }
+.nt-new { background: #F1F8F2; }
+.nt-new .tl-name { font-weight: 700; }
+.nt-dot { position: absolute; top: -3px; right: -3px; width: 12px; height: 12px; border: 2px solid #fff; border-radius: 50%; background: var(--tl-3-fg); }
+.nt-when { font-size: .78rem; color: var(--tl-muted); text-align: right; }
+.nt-go { margin-top: .15rem; font-size: .8rem; font-weight: 600; color: var(--tl-3-fg); }
+@media (max-width: 767.98px) { .nt-when { flex: none; max-width: 5.5rem; } }
+
+/* Preferencias: el selector segmentado tf-seg con radios (el escrito para botones usa aria-pressed) */
+.tf-seg > .tf-sr + .tf-seg-btn { display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.tf-seg > .tf-sr:checked + .tf-seg-btn { background: #fff; color: var(--primary-dark); font-weight: 600; box-shadow: 0 1px 3px rgba(0, 0, 0, .12); }
+.tf-seg > .tf-sr:focus-visible + .tf-seg-btn { outline: 2px solid var(--bs-primary); outline-offset: 1px; }
+
+/* Acción destructiva de las herramientas de administración */
+.tf-btn--danger { background: var(--tl-0-fg); color: #fff; }
+.tf-btn--danger:hover, .tf-btn--danger:focus-visible { background: #8E1B11; color: #fff; }
+.tf-btn--danger:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Títulos y frases cortas centradas: reparte las líneas sin dejar una palabra sola */
+.text-balance { text-wrap: balance; }

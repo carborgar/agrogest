@@ -1,0 +1,23 @@
+{% load custom_filters %}
+{% comment %}
+Tratamiento de origen en Repetir y Clonar: fecha en la pastilla de su tono (como en el listado), nombre, parcela y productos.
+Variable: treatment (con field y treatmentproduct_set__product ya cargados).
+{% endcomment %}
+<section class="tf-card flex-row align-items-center gap-3" aria-label="Tratamiento original">
+    {% with d=treatment.finish_date|default:treatment.date %}
+    <div class="tl-date tl-date--{{ treatment|treatment_tone }}" title="{{ d|date:'d/m/Y' }}">
+        <span class="tl-day">{{ d|date:"j" }}</span>
+        <span class="tl-month">{{ d|date:"b" }}</span>
+    </div>
+    {% endwith %}
+    <div class="tl-main">
+        <div class="tl-name">{{ treatment.name }}</div>
+        <div class="tl-meta">
+            <i class="fa fa-{{ treatment|treatment_type_icon }}" aria-hidden="true"></i>
+            <span>{{ treatment.get_type_display }} ·</span>
+            <span class="tl-field">{{ treatment.field.name }}</span>
+            <span>{{ treatment.effective_area }} ha</span>
+        </div>
+        <div class="dt-muted text-truncate">{% for tp in treatment.treatmentproduct_set.all %}{{ tp.product.name }}{% if not forloop.last %} · {% endif %}{% empty %}Sin productos{% endfor %}</div>
+    </div>
+</section>

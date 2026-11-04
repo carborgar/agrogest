@@ -1,0 +1,34 @@
+{% extends 'base_no_menu.html' %}
+{% load static %}
+
+{# Marco de las pantallas públicas de cuenta (login, recuperar contraseña) y de los errores 404/500: marca arriba y una sola columna centrada #}
+
+{% block base_content %}
+<main class="au">
+    <div class="au-box">
+        <a class="au-brand" href="{% url 'home' %}" aria-label="AgroGest, ir a la página principal">
+            <img alt="" height="36" src="{% static 'img/favicon.svg' %}" width="36">
+            <span>AgroGest</span>
+        </a>
+        {% block auth_content %}{% endblock %}
+    </div>
+</main>
+{% endblock %}
+
+{% block base_extra_js %}
+<script>
+    // Mostrar/ocultar contraseña: cualquier botón con data-pass-toggle="<id del input>"
+    document.addEventListener('click', function (event) {
+        const btn = event.target.closest('[data-pass-toggle]');
+        if (!btn) return;
+        const input = document.getElementById(btn.dataset.passToggle);
+        if (!input) return;
+        const show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        btn.setAttribute('aria-pressed', show ? 'true' : 'false');
+        btn.setAttribute('aria-label', show ? 'Ocultar contraseña' : 'Mostrar contraseña');
+        const icon = btn.querySelector('i');
+        if (icon) icon.className = show ? 'fa fa-eye-slash' : 'fa fa-eye';
+    });
+</script>
+{% endblock %}

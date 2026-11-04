@@ -1,668 +1,422 @@
 {% extends 'base.html' %}
-{% load static %}
-{% load humanize %}
+{% load humanize static %}
 
 {% block title %}Estadísticas {{ selected_year }}{% endblock %}
 
-{% block header %}
-    <i class="fa fa-chart-line me-2 text-success"></i>Tu año en AgroGest
-{% endblock %}
+{% block header %}Estadísticas{% endblock %}
 
-{% block sub_header %}
-    Resumen de lo que has hecho en {{ selected_year }}
-{% endblock %}
+{% block sub_header %}<span class="d-none d-md-inline">Gastos, ingresos y actividad de {{ selected_year }}.</span>{% endblock %}
 
 {% block actions %}
-<div class="d-flex gap-2 align-items-center flex-wrap">
-    <form method="get" class="d-flex align-items-center gap-2 mb-0">
-        <label class="form-label mb-0 fw-semibold text-muted small">Año:</label>
-        <select name="year" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
-            {% for y in available_years %}
-            <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
-            {% endfor %}
-        </select>
-    </form>
-
-    <a href="{% url 'treatment-export-excel' %}?year={{ selected_year }}{% for t in selected_types %}&type={{ t }}{% endfor %}{% for f in selected_fields %}&field={{ f }}{% endfor %}" class="btn btn-outline-success btn-sm" title="Exportar a Excel">
-        <i class="fa fa-file-excel me-1"></i>Exportar
-    </a>
-</div>
+<a href="{% url 'treatment-export-excel' %}?year={{ selected_year }}{% for t in selected_types %}&type={{ t }}{% endfor %}{% for f in selected_fields %}&field={{ f }}{% endfor %}"
+   class="btn btn-outline-secondary">
+    <i class="fa fa-file-excel me-1" aria-hidden="true"></i>Exportar
+</a>
 {% endblock %}
 
 {% block content %}
 
-{# ── HERO BANNER ──────────────────────────────────────────────────────────── #}
-<div class="stats-hero mb-4">
-    <div class="stats-hero-bg"></div>
-    <div class="stats-hero-content">
-        <div class="stats-hero-year">{{ selected_year }}</div>
-        <div class="stats-hero-headline">
-            {% if total_treatments == 0 %}
-                Sin tratamientos completados este año todavía.
-            {% elif total_treatments == 1 %}
-                ¡1 tratamiento completado este año!
-            {% else %}
-                ¡<strong>{{ total_treatments }}</strong> tratamientos completados!
-            {% endif %}
-        </div>
-        <div class="stats-hero-sub">
-            {{ distinct_products_count }} producto{{ distinct_products_count|pluralize }} distinto{{ distinct_products_count|pluralize }} ·
-            {{ total_ha_treated }} ha tratadas ·
-            {{ total_spraying }} pulverizaci{{ total_spraying|pluralize:"ón,ones" }} · {{ total_fertigation }} fertirrigaci{{ total_fertigation|pluralize:"ón,ones" }}
-        </div>
+<form method="get" id="filterForm" class="mb-3">
+    {# ── Año (pestañas que conservan los filtros) + botón de filtros en móvil ── #}
+    <div class="tl-toolbar st-toolbar">
+        <nav class="tl-tabs" aria-label="Año">
+            {% for tab in year_tabs %}
+            <a class="tl-tab{% if tab.active %} active{% endif %}" href="{{ tab.url }}"
+               {% if tab.active %}aria-current="page"{% endif %}>{{ tab.label }}</a>
+            {% endfor %}
+        </nav>
+        <button class="btn btn-outline-secondary tl-filters-btn d-md-none ms-auto" type="button"
+                data-bs-toggle="offcanvas" data-bs-target="#filtersPanel" aria-controls="filtersPanel"
+                aria-label="Filtros{% if panel_filter_count %} ({{ panel_filter_count }} activos){% endif %}">
+            <i class="fa fa-sliders" aria-hidden="true"></i>
+            {% if panel_filter_count %}<span class="tl-filters-badge">{{ panel_filter_count }}</span>{% endif %}
+        </button>
     </div>
-</div>
 
-{# ── BARRA DE FILTROS ──────────────────────────────────────────────────── #}
-<div class="card shadow-sm border-0 mb-4">
-    <div class="card-body py-3">
-        <form method="GET" id="filterForm" class="d-flex gap-2 align-items-end flex-wrap">
-            {# Preservar el año en los filtros #}
-            <input type="hidden" name="year" value="{{ selected_year }}">
-
-            {# Parcelas — dropdown + checkboxes #}
-            <div class="flex-grow-1" style="min-width: 250px;">
-                <label class="form-label small fw-semibold text-muted mb-1">
-                    <i class="fa fa-map me-1"></i>Parcelas
-                </label>
-                <div class="dropdown filter-check-dropdown w-100">
-                    <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start filter-dd-btn{% if selected_fields %} filter-dd-btn--active{% endif %}"
-                            type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
-                        <span class="filter-dd-label">
-                            {% if selected_fields %}{{ selected_fields|length }} parcela{{ selected_fields|length|pluralize }}{% else %}Todas las parcelas…{% endif %}
-                        </span>
-                        {% if selected_fields %}<span class="badge bg-primary">{{ selected_fields|length }}</span>{% endif %}
-                    </button>
-                    <div class="dropdown-menu filter-dd-menu p-2">
-                        {% for field in fields %}
-                        <div class="form-check mb-1">
-                            <input class="form-check-input" type="checkbox" name="field"
-                                   value="{{ field.id }}" id="field-{{ field.id }}"
-                                   {% if field.id|stringformat:"s" in selected_fields %}checked{% endif %}>
-                            <label class="form-check-label small" for="field-{{ field.id }}">{{ field.name }}</label>
-                        </div>
+    {# ── Filtros: en línea en escritorio, panel inferior en móvil ── #}
+    <div class="offcanvas-md offcanvas-bottom tl-filters" tabindex="-1" id="filtersPanel" aria-labelledby="filtersPanelLabel">
+        <div class="offcanvas-header d-md-none">
+            <h5 class="offcanvas-title" id="filtersPanelLabel">Filtros</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#filtersPanel" aria-label="Cerrar"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div class="row g-2 align-items-end w-100 m-0">
+                {% if older_years %}
+                <div class="col-12 col-md-4 col-xl-2">
+                    <label class="form-label small fw-semibold text-muted mb-1" for="yearSelect"><i class="fa fa-calendar me-1" aria-hidden="true"></i>Año</label>
+                    <select class="form-select" name="year" id="yearSelect">
+                        {% for y in available_years reversed %}
+                        <option value="{{ y }}"{% if y == selected_year %} selected{% endif %}>{{ y }}</option>
                         {% endfor %}
+                    </select>
+                </div>
+                {% else %}
+                <input type="hidden" name="year" value="{{ selected_year }}">
+                {% endif %}
+
+                <div class="col-12 col-md-6 col-xl-4">
+                    <label class="form-label small fw-semibold text-muted mb-1"><i class="fa fa-map me-1" aria-hidden="true"></i>Parcelas</label>
+                    <div class="dropdown filter-check-dropdown w-100">
+                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start filter-dd-btn{% if selected_fields %} filter-dd-btn--active{% endif %}"
+                                type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                            <span class="filter-dd-label">{% if selected_fields %}{{ selected_fields|length }} parcela{{ selected_fields|length|pluralize }}{% else %}Todas las parcelas…{% endif %}</span>
+                            {% if selected_fields %}<span class="badge bg-primary flex-shrink-0">{{ selected_fields|length }}</span>{% endif %}
+                        </button>
+                        <div class="dropdown-menu filter-dd-menu p-2">
+                            {% for field in fields %}
+                            <div class="form-check mb-1">
+                                <input class="form-check-input" type="checkbox" name="field" value="{{ field.id }}" id="field-{{ field.id }}"
+                                       {% if field.id|stringformat:"s" in selected_fields %}checked{% endif %}>
+                                <label class="form-check-label small" for="field-{{ field.id }}">{{ field.name }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {# Tipo — dropdown + checkboxes #}
-            <div class="flex-grow-1" style="min-width: 200px;">
-                <label class="form-label small fw-semibold text-muted mb-1">
-                    <i class="fa fa-droplet me-1"></i>Tipo
-                </label>
-                <div class="dropdown filter-check-dropdown w-100">
-                    <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start filter-dd-btn{% if selected_types %} filter-dd-btn--active{% endif %}"
-                            type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
-                        <span class="filter-dd-label">
-                            {% if selected_types %}{{ selected_types|length }} tipo{{ selected_types|length|pluralize }}{% else %}Todos…{% endif %}
-                        </span>
-                        {% if selected_types %}<span class="badge bg-primary">{{ selected_types|length }}</span>{% endif %}
-                    </button>
-                    <div class="dropdown-menu filter-dd-menu p-2">
-                        {% for key, value in type_choices %}
-                        <div class="form-check mb-1">
-                            <input class="form-check-input" type="checkbox" name="type"
-                                   value="{{ key }}" id="type-{{ key }}"
-                                   {% if key in selected_types %}checked{% endif %}>
-                            <label class="form-check-label small" for="type-{{ key }}">{{ value }}</label>
+                <div class="col-12 col-md-6 col-xl-3">
+                    <label class="form-label small fw-semibold text-muted mb-1"><i class="fa fa-droplet me-1" aria-hidden="true"></i>Tipo de tratamiento</label>
+                    <div class="dropdown filter-check-dropdown w-100">
+                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start filter-dd-btn{% if selected_types %} filter-dd-btn--active{% endif %}"
+                                type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                            <span class="filter-dd-label">{% if selected_types %}{{ selected_types|length }} tipo{{ selected_types|length|pluralize }}{% else %}Todos…{% endif %}</span>
+                            {% if selected_types %}<span class="badge bg-primary flex-shrink-0">{{ selected_types|length }}</span>{% endif %}
+                        </button>
+                        <div class="dropdown-menu filter-dd-menu p-2">
+                            {% for key, value in type_choices %}
+                            <div class="form-check mb-1">
+                                <input class="form-check-input" type="checkbox" name="type" value="{{ key }}" id="type-{{ key }}"
+                                       {% if key in selected_types %}checked{% endif %}>
+                                <label class="form-check-label small" for="type-{{ key }}">{{ value }}</label>
+                            </div>
+                            {% endfor %}
                         </div>
-                        {% endfor %}
                     </div>
                 </div>
-            </div>
 
-            {# Botón de filtrar #}
-            <button type="submit" class="btn btn-primary">
-                <i class="fa fa-filter me-1"></i>Filtrar
-            </button>
-
-            {# Botón de limpiar (si hay filtros activos) #}
-            {% if selected_types or selected_fields %}
-            <a href="?year={{ selected_year }}" class="btn btn-secondary">
-                <i class="fa fa-times me-1"></i>Limpiar
-            </a>
-            {% endif %}
-        </form>
-    </div>
-</div>
-
-{# ── KPI CARDS ─────────────────────────────────────────────────────────────── #}
-<div class="row g-3 mb-4">
-    <div class="col-6 col-md-4 col-xl-2">
-        <div class="stat-kpi-card stat-kpi--green">
-            <div class="stat-kpi-icon"><i class="fa fa-spray-can-sparkles"></i></div>
-            <div class="stat-kpi-value">{{ total_treatments }}</div>
-            <div class="stat-kpi-label">Tratamientos</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-4 col-xl-2">
-        <div class="stat-kpi-card stat-kpi--blue">
-            <div class="stat-kpi-icon"><i class="fa fa-flask"></i></div>
-            <div class="stat-kpi-value">{{ distinct_products_count }}</div>
-            <div class="stat-kpi-label">Productos usados</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-4 col-xl-2">
-        <div class="stat-kpi-card stat-kpi--teal">
-            <div class="stat-kpi-icon"><i class="fa fa-map"></i></div>
-            <div class="stat-kpi-value">{{ total_ha_treated }}</div>
-            <div class="stat-kpi-label">Ha tratadas</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-4 col-xl-2">
-        <div class="stat-kpi-card stat-kpi--orange">
-            <div class="stat-kpi-icon"><i class="fa fa-euro-sign"></i></div>
-            <div class="stat-kpi-value">{{ total_products_cost|floatformat:0 }}€</div>
-            <div class="stat-kpi-label">Coste productos</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-4 col-xl-2">
-        <div class="stat-kpi-card stat-kpi--purple">
-            <div class="stat-kpi-icon"><i class="fa fa-wheat-awn"></i></div>
-            <div class="stat-kpi-value">{{ total_harvest_kg|intcomma }} kg</div>
-            <div class="stat-kpi-label">Cosechado</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-4 col-xl-2">
-        <div class="stat-kpi-card stat-kpi--gold">
-            <div class="stat-kpi-icon"><i class="fa fa-coins"></i></div>
-            <div class="stat-kpi-value">{{ total_harvest_income|floatformat:0 }}€</div>
-            <div class="stat-kpi-label">Ingresos cosecha</div>
-        </div>
-    </div>
-</div>
-
-{# ── CHARTS ROW ────────────────────────────────────────────────────────────── #}
-<div class="row g-3 mb-4">
-
-    {# Tratamientos por mes #}
-    <div class="col-12 col-lg-8">
-        <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body">
-                <h6 class="card-title fw-bold mb-3">
-                    <i class="fa fa-calendar-days text-success me-2"></i>Tratamientos por mes
-                    {% if busiest_month %}
-                    <span class="badge bg-success-subtle text-success ms-2 fw-normal small">
-                        Mes más activo: {{ busiest_month }} ({{ busiest_month_count }})
-                    </span>
+                <div class="col-12 col-xl-auto d-flex gap-2 align-items-end">
+                    <button class="btn btn-primary flex-fill px-xl-4" type="submit"><i class="fa fa-filter me-1" aria-hidden="true"></i>Filtrar</button>
+                    {% if panel_filter_count %}
+                    <a class="btn btn-outline-secondary" href="{{ clear_url }}" title="Limpiar filtros" aria-label="Limpiar filtros">
+                        <i class="fa fa-rotate-left" aria-hidden="true"></i>
+                    </a>
                     {% endif %}
-                </h6>
-                <canvas id="monthlyChart" height="90"></canvas>
+                </div>
             </div>
         </div>
     </div>
+</form>
 
-    {# Tipos de producto #}
-    <div class="col-12 col-lg-4">
-        <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body">
-                <h6 class="card-title fw-bold mb-3">
-                    <i class="fa fa-tags text-success me-2"></i>Por tipo de producto
-                </h6>
-                {% if product_type_labels %}
-                <canvas id="productTypeChart" height="180"></canvas>
-                {% else %}
-                <div class="text-center text-muted py-5"><i class="fa fa-chart-pie fa-2x mb-2 d-block"></i>Sin datos</div>
-                {% endif %}
-            </div>
-        </div>
+{% if not total_treatments and not total_harvest_kg and not total_expenses %}
+{# ── Estado vacío ──────────────────────────────────────────────────────── #}
+<div class="card card-flat">
+    <div class="hm-empty">
+        <span class="hm-empty-icon"><i class="fa fa-chart-line" aria-hidden="true"></i></span>
+        {% if panel_filter_count %}
+        <b>No hay datos con estos filtros en {{ selected_year }}</b>
+        <span>Prueba a cambiar o quitar los filtros.</span>
+        <a class="btn btn-outline-secondary btn-sm mt-2" href="{{ clear_url }}"><i class="fa fa-times me-1" aria-hidden="true"></i>Quitar filtros</a>
+        {% else %}
+        <b>Todavía no hay actividad en {{ selected_year }}</b>
+        <span>Aquí verás gastos, ingresos y tratamientos completados cuando los registres.</span>
+        <a class="btn btn-primary btn-sm mt-2" href="{% url 'treatment-list' %}"><i class="fa fa-spray-can-sparkles me-1" aria-hidden="true"></i>Ir a tratamientos</a>
+        {% endif %}
     </div>
 </div>
+{% else %}
 
-{# ── RANKINGS & DETAILS ROW ────────────────────────────────────────────────── #}
-<div class="row g-3 mb-4">
-
-    {# Top productos más usados #}
-    <div class="col-12 col-md-6 col-xl-4">
-        <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body">
-                <h6 class="card-title fw-bold mb-3">
-                    <i class="fa fa-trophy text-warning me-2"></i>Productos más usados
-                </h6>
-                {% if top_products %}
-                <div class="stat-ranking-list">
-                    {% for p in top_products %}
-                    <div class="stat-ranking-item">
-                        <div class="stat-rank-num {% if forloop.counter == 1 %}stat-rank--gold{% elif forloop.counter == 2 %}stat-rank--silver{% elif forloop.counter == 3 %}stat-rank--bronze{% endif %}">
-                            {{ forloop.counter }}
-                        </div>
-                        <div class="stat-rank-info">
-                            <div class="stat-rank-name">{{ p.product__name }}</div>
-                            <div class="stat-rank-sub">{{ p.product__product_type__name|default:"Sin tipo" }}</div>
-                        </div>
-                        <div class="stat-rank-badge">
-                            <span class="badge bg-success-subtle text-success">{{ p.times_used }}×</span>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="text-center text-muted py-4"><i class="fa fa-flask fa-2x mb-2 d-block"></i>Sin datos</div>
-                {% endif %}
-            </div>
+{# ── Cifras clave: lo primero que se mira ──────────────────────────────── #}
+<div class="dt-summary st-key card card-flat mb-2">
+    <div class="dt-cell">
+        <div class="dt-label">Gasto total</div>
+        <div class="dt-value">{{ total_cost_all|floatformat:"0g" }} €</div>
+        <div class="dt-sub">{{ total_products_cost|floatformat:"0g" }} € en productos</div>
+    </div>
+    <div class="dt-cell">
+        <div class="dt-label">Ingresos</div>
+        <div class="dt-value">{{ total_harvest_income|floatformat:"0g" }} €</div>
+        <div class="dt-sub">{{ total_harvest_kg|intcomma }} kg cosechados</div>
+        {% if harvests_without_price %}<div class="dt-sub">* {{ harvests_without_price }} cosecha{{ harvests_without_price|pluralize }} sin precio</div>{% endif %}
+    </div>
+    <div class="dt-cell">
+        <div class="dt-label">Resultado</div>
+        {% if result is None %}
+        <div class="dt-value">—</div>
+        {% else %}
+        <div class="dt-value {% if result < 0 %}dt-fg-0{% elif result > 0 %}dt-fg-3{% endif %}">
+            {% if result > 0 %}<i class="fa fa-arrow-trend-up me-1" aria-hidden="true"></i>+{% elif result < 0 %}<i class="fa fa-arrow-trend-down me-1" aria-hidden="true"></i>{% endif %}{{ result|floatformat:"0g" }} €
         </div>
+        {% endif %}
+        <div class="dt-sub">Ingresos − gasto{% if harvests_without_price and result is not None %} *{% endif %}</div>
+    </div>
+    <div class="dt-cell">
+        <div class="dt-label">Gasto por ha</div>
+        <div class="dt-value">{% if cost_per_ha is not None %}{{ cost_per_ha|floatformat:"0g" }} €/ha{% else %}—{% endif %}</div>
+        <div class="dt-sub">sobre {{ total_ha_farm|floatformat:"-2" }} ha</div>
+    </div>
+</div>
+{% if selected_types %}<p class="pl-count mb-2">El tipo solo filtra tratamientos y coste de productos; gastos e ingresos no cambian.</p>{% endif %}
+<p class="pl-count mb-3">
+    <b class="text-body">{{ total_treatments }}</b> tratamiento{{ total_treatments|pluralize }}
+    ({{ total_spraying }} pulverizaci{{ total_spraying|pluralize:"ón,ones" }} · {{ total_fertigation }} fertirrigaci{{ total_fertigation|pluralize:"ón,ones" }})
+    · {{ distinct_products_count }} producto{{ distinct_products_count|pluralize }}
+    · {{ total_ha_treated|floatformat:"-2" }} ha tratadas
+    {% if avg_cost_per_treatment %}· {{ avg_cost_per_treatment|floatformat:"2g" }} € por tratamiento{% endif %}
+</p>
+
+<div class="row g-3 mb-3">
+
+    {# ── Tratamientos por mes ── #}
+    <div class="col-12 col-lg-8">
+        <section class="card card-flat h-100">
+            <div class="dt-card-head">
+                <h2 class="dt-card-title"><i class="fa fa-calendar-days text-success me-2" aria-hidden="true"></i>Tratamientos por mes</h2>
+                {% if busiest_month %}<span class="dt-card-hint">Mes más activo: {{ busiest_month }} ({{ busiest_month_count }})</span>{% endif %}
+            </div>
+            {% if total_treatments %}
+            <div class="st-chart">
+                <canvas data-st-chart="months" role="img"
+                        aria-label="Gráfica de barras: tratamientos completados por mes en {{ selected_year }}.{% if busiest_month %} Mes más activo: {{ busiest_month }}, con {{ busiest_month_count }}.{% endif %} El detalle está en la tabla «Ver datos»."></canvas>
+            </div>
+            <details class="st-data" data-st-data>
+                <summary>Ver datos</summary>
+                <div class="table-responsive">
+                    <table class="table dt-table mb-0 text-center">
+                        <caption class="visually-hidden">Tratamientos completados por mes</caption>
+                        <thead><tr>{% for b in monthly_bars %}<th scope="col">{{ b.label }}</th>{% endfor %}</tr></thead>
+                        <tbody><tr>{% for b in monthly_bars %}<td{% if b.is_max %} class="fw-bold"{% endif %}>{{ b.count }}</td>{% endfor %}</tr></tbody>
+                    </table>
+                </div>
+            </details>
+            {% else %}
+            <div class="hm-empty"><b>Sin tratamientos completados</b><span>Aparecerán por mes al completar tratamientos.</span></div>
+            {% endif %}
+        </section>
     </div>
 
-    {# Parcelas más activas #}
-    <div class="col-12 col-md-6 col-xl-4">
-        <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body">
-                <h6 class="card-title fw-bold mb-3">
-                    <i class="fa fa-map-location-dot text-primary me-2"></i>Parcelas más activas
-                </h6>
-                {% if most_active_fields %}
-                <div class="stat-ranking-list">
-                    {% for f in most_active_fields %}
-                    <div class="stat-ranking-item">
-                        <div class="stat-rank-num {% if forloop.counter == 1 %}stat-rank--gold{% elif forloop.counter == 2 %}stat-rank--silver{% elif forloop.counter == 3 %}stat-rank--bronze{% endif %}">
-                            {{ forloop.counter }}
-                        </div>
-                        <div class="stat-rank-info">
-                            <div class="stat-rank-name">{{ f.field__name }}</div>
-                            <div class="stat-rank-sub">{{ f.total_cost|default:0|floatformat:2 }} € en productos</div>
-                        </div>
-                        <div class="stat-rank-badge">
-                            <span class="badge bg-primary-subtle text-primary">{{ f.treatments_count }} trat.</span>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="text-center text-muted py-4"><i class="fa fa-map fa-2x mb-2 d-block"></i>Sin datos</div>
-                {% endif %}
+    {# ── Por tipo de producto ── #}
+    <div class="col-12 col-lg-4">
+        <section class="card card-flat h-100">
+            <div class="dt-card-head">
+                <h2 class="dt-card-title"><i class="fa fa-tags text-success me-2" aria-hidden="true"></i>Por tipo de producto</h2>
             </div>
-        </div>
+            {% if by_product_type %}
+            <div class="st-chart st-chart--tall">
+                <canvas data-st-chart="types" role="img"
+                        aria-label="Gráfica de rosquilla: usos de productos en {{ selected_year }} por tipo de producto. El detalle está en la tabla «Ver datos»."></canvas>
+            </div>
+            <details class="st-data" data-st-data>
+                <summary>Ver datos</summary>
+                <div class="table-responsive">
+                    <table class="table dt-table mb-0">
+                        <thead><tr><th scope="col">Tipo</th><th scope="col" class="text-end">Usos</th><th scope="col" class="text-end">Coste</th></tr></thead>
+                        <tbody>
+                            {% for r in by_product_type %}
+                            <tr>
+                                <td>{{ r.product__product_type__name|default:"Sin tipo" }}</td>
+                                <td class="text-end">{{ r.times_used }}</td>
+                                <td class="text-end text-nowrap">{{ r.total_cost|default:0|floatformat:"2g" }} €</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+            {% else %}
+            <div class="hm-empty"><b>Sin datos</b><span>Aparecerán al completar tratamientos con productos.</span></div>
+            {% endif %}
+        </section>
     </div>
 
-    {# Cosechas y gastos #}
+    {# ── Productos más usados ── #}
+    <div class="col-12 col-md-6 col-xl-4">
+        <section class="card card-flat h-100">
+            <div class="dt-card-head">
+                <h2 class="dt-card-title"><i class="fa fa-trophy text-warning me-2" aria-hidden="true"></i>Productos más usados</h2>
+            </div>
+            {% if top_products %}
+            <ol class="st-rank">
+                {% for p in top_products %}
+                <li>
+                    <span class="st-rank-num{% if forloop.counter <= 3 %} st-rank-num--{{ forloop.counter }}{% endif %}">{{ forloop.counter }}</span>
+                    <span class="st-rank-info">
+                        <span class="st-rank-name">{{ p.product__name }}</span>
+                        <span class="dt-muted">{{ p.product__product_type__name|default:"Sin tipo" }}</span>
+                    </span>
+                    <span class="badge bg-success-subtle text-success">{{ p.times_used }}×</span>
+                </li>
+                {% endfor %}
+            </ol>
+            {% else %}
+            <div class="hm-empty"><span class="hm-empty-icon"><i class="fa fa-flask" aria-hidden="true"></i></span><b>Sin datos</b><span>Aparecerán al completar tratamientos con productos.</span></div>
+            {% endif %}
+        </section>
+    </div>
+
+    {# ── Parcelas más activas ── #}
+    <div class="col-12 col-md-6 col-xl-4">
+        <section class="card card-flat h-100">
+            <div class="dt-card-head">
+                <h2 class="dt-card-title"><i class="fa fa-map-location-dot text-primary me-2" aria-hidden="true"></i>Parcelas más activas</h2>
+            </div>
+            {% if most_active_fields %}
+            <ol class="st-rank">
+                {% for f in most_active_fields %}
+                <li>
+                    <span class="st-rank-num{% if forloop.counter <= 3 %} st-rank-num--{{ forloop.counter }}{% endif %}">{{ forloop.counter }}</span>
+                    <span class="st-rank-info">
+                        <span class="st-rank-name">{{ f.field__name }}</span>
+                        <span class="dt-muted">{{ f.total_cost|default:0|floatformat:"2g" }} € en productos</span>
+                    </span>
+                    <span class="badge bg-primary-subtle text-primary">{{ f.treatments_count }} trat.</span>
+                </li>
+                {% endfor %}
+            </ol>
+            {% else %}
+            <div class="hm-empty"><span class="hm-empty-icon"><i class="fa fa-map" aria-hidden="true"></i></span><b>Sin datos</b><span>Aparecerán las parcelas con más actividad.</span></div>
+            {% endif %}
+        </section>
+    </div>
+
+    {# ── Cosechas y otros gastos ── #}
     <div class="col-12 col-xl-4">
         <div class="row g-3 h-100">
 
-            {# Cosechas por parcela #}
             <div class="col-12 col-md-6 col-xl-12">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body">
-                        <h6 class="card-title fw-bold mb-3">
-                            <i class="fa fa-apple-whole text-success me-2"></i>Cosechas por parcela
-                        </h6>
-                        {% if harvests_by_field %}
+                <section class="card card-flat h-100">
+                    <div class="dt-card-head">
+                        <h2 class="dt-card-title"><i class="fa fa-apple-whole text-success me-2" aria-hidden="true"></i>Cosechas por parcela</h2>
+                    </div>
+                    {% if harvests_by_field %}
+                    <div class="st-bars">
                         {% for h in harvests_by_field %}
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="text-muted small text-truncate" style="max-width:60%">{{ h.field__name }}</span>
-                            <span class="fw-semibold small">{{ h.total_kg|intcomma }} kg</span>
+                        <div class="d-flex justify-content-between align-items-center gap-2 mb-1">
+                            <span class="text-muted small text-truncate">{{ h.field__name }}</span>
+                            <span class="fw-semibold small text-nowrap">{{ h.total_kg|intcomma }} kg</span>
                         </div>
-                        <div class="progress mb-2" style="height:5px;">
-                            <div class="progress-bar bg-success" style="width:{% widthratio h.total_kg harvests_by_field.0.total_kg 100 %}%"></div>
-                        </div>
+                        <div class="progress mb-3" aria-hidden="true"><div class="progress-bar bg-success" style="width:{% widthratio h.total_kg harvests_by_field.0.total_kg 100 %}%"></div></div>
                         {% endfor %}
-                        {% else %}
-                        <div class="text-center text-muted py-3"><i class="fa fa-wheat-awn fa-2x mb-2 d-block"></i>Sin cosechas</div>
-                        {% endif %}
                     </div>
-                </div>
+                    {% if harvests_without_price %}
+                    <p class="dt-note">{{ harvests_without_price }} cosecha{{ harvests_without_price|pluralize }} sin precio de venta: no suma{{ harvests_without_price|pluralize:"n," }} en los ingresos.</p>
+                    {% endif %}
+                    {% else %}
+                    <div class="hm-empty"><span class="hm-empty-icon"><i class="fa fa-wheat-awn" aria-hidden="true"></i></span><b>Sin cosechas</b><span>{% if panel_filter_count %}Con los filtros actuales no hay ninguna.{% else %}Las cosechas que registres aparecerán aquí.{% endif %}</span></div>
+                    {% endif %}
+                </section>
             </div>
 
-            {# Gastos por tipo #}
             <div class="col-12 col-md-6 col-xl-12">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body">
-                        <h6 class="card-title fw-bold mb-3">
-                            <i class="fa fa-receipt text-warning me-2"></i>Otros gastos
-                            <span class="fw-normal text-muted small ms-1">{{ total_expenses|floatformat:2 }} €</span>
-                        </h6>
-                        {% if expenses_by_type %}
+                <section class="card card-flat h-100">
+                    <div class="dt-card-head">
+                        <h2 class="dt-card-title"><i class="fa fa-receipt text-warning me-2" aria-hidden="true"></i>Otros gastos</h2>
+                        <span class="dt-card-hint">{{ total_expenses|floatformat:"2g" }} €</span>
+                    </div>
+                    {% if expenses_by_type %}
+                    <div class="st-bars">
                         {% for e in expenses_by_type %}
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="text-muted small text-truncate" style="max-width:65%">{{ e.expense_type__name }}</span>
-                            <span class="fw-semibold small">{{ e.total|floatformat:2 }} €</span>
+                        <div class="d-flex justify-content-between align-items-center gap-2 mb-1">
+                            <span class="text-muted small text-truncate">{{ e.expense_type__name }}</span>
+                            <span class="fw-semibold small text-nowrap">{{ e.total|floatformat:"2g" }} €</span>
                         </div>
                         {% endfor %}
-                        {% else %}
-                        <div class="text-center text-muted py-3"><i class="fa fa-receipt fa-2x mb-2 d-block"></i>Sin gastos</div>
+                        {% if expenses_rest %}
+                        <div class="d-flex justify-content-between align-items-center gap-2 mb-1" data-st-expenses-rest>
+                            <span class="text-muted small text-truncate">Resto ({{ expenses_rest.count }} tipo{{ expenses_rest.count|pluralize }} más)</span>
+                            <span class="fw-semibold small text-nowrap">{{ expenses_rest.total|floatformat:"2g" }} €</span>
+                        </div>
                         {% endif %}
                     </div>
-                </div>
+                    {% else %}
+                    <div class="hm-empty"><span class="hm-empty-icon"><i class="fa fa-receipt" aria-hidden="true"></i></span><b>Sin gastos</b><span>{% if panel_filter_count %}Con los filtros actuales no hay ninguno.{% else %}Los gastos que registres aparecerán aquí.{% endif %}</span></div>
+                    {% endif %}
+                </section>
             </div>
 
         </div>
     </div>
+
 </div>
 
-{# ── CURIOSIDADES / INSIGHTS ────────────────────────────────────────────────── #}
-<div class="row g-3 mb-4">
-    <div class="col-12">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body">
-                <h6 class="card-title fw-bold mb-3">
-                    <i class="fa fa-lightbulb text-warning me-2"></i>Curiosidades de {{ selected_year }}
-                </h6>
-                <div class="row g-3">
-
-                    {% if busiest_month %}
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <div class="insight-card insight-card--green">
-                            <div class="insight-icon"><i class="fa fa-fire"></i></div>
-                            <div>
-                                <div class="insight-value">{{ busiest_month }}</div>
-                                <div class="insight-label">Mes más activo ({{ busiest_month_count }} tratamientos)</div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    {% if avg_cost_per_treatment %}
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <div class="insight-card insight-card--blue">
-                            <div class="insight-icon"><i class="fa fa-calculator"></i></div>
-                            <div>
-                                <div class="insight-value">{{ avg_cost_per_treatment }}€</div>
-                                <div class="insight-label">Coste medio por tratamiento</div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    {% if total_cost_all %}
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <div class="insight-card insight-card--orange">
-                            <div class="insight-icon"><i class="fa fa-wallet"></i></div>
-                            <div>
-                                <div class="insight-value">{{ total_cost_all|floatformat:0 }}€</div>
-                                <div class="insight-label">Gasto total (productos + otros)</div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    {% if quiet_months %}
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <div class="insight-card insight-card--gray">
-                            <div class="insight-icon"><i class="fa fa-moon"></i></div>
-                            <div>
-                                <div class="insight-value">{{ quiet_months|join:", " }}</div>
-                                <div class="insight-label">Mes{{ quiet_months|length|pluralize:"es" }} sin actividad</div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    {% if top_products %}
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <div class="insight-card insight-card--purple">
-                            <div class="insight-icon"><i class="fa fa-star"></i></div>
-                            <div>
-                                <div class="insight-value">{{ top_products.0.product__name }}</div>
-                                <div class="insight-label">Producto estrella ({{ top_products.0.times_used }} usos)</div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    {% if most_active_fields %}
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <div class="insight-card insight-card--teal">
-                            <div class="insight-icon"><i class="fa fa-seedling"></i></div>
-                            <div>
-                                <div class="insight-value">{{ most_active_fields.0.field__name }}</div>
-                                <div class="insight-label">Parcela más trabajada ({{ most_active_fields.0.treatments_count }} tratamientos)</div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    {% if total_harvest_kg > 0 and total_ha_treated > 0 %}
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <div class="insight-card insight-card--gold">
-                            <div class="insight-icon"><i class="fa fa-scale-balanced"></i></div>
-                            <div>
-                                <div class="insight-value">{% widthratio total_harvest_kg total_ha_treated 1 %} kg/ha</div>
-                                <div class="insight-label">Rendimiento medio de cosecha</div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    {% if total_treatments == 0 %}
-                    <div class="col-12">
-                        <div class="text-center text-muted py-4">
-                            <i class="fa fa-seedling fa-3x mb-3 d-block text-success opacity-50"></i>
-                            <p class="mb-0">Todavía no hay tratamientos completados en {{ selected_year }}.<br>
-                                <a href="{% url 'treatment-list' %}" class="text-success">¡Empieza a registrar tus tratamientos!</a>
-                            </p>
-                        </div>
-                    </div>
-                    {% endif %}
-
+{# ── Curiosidades ── #}
+<section class="card card-flat mb-3">
+    <div class="dt-card-head">
+        <h2 class="dt-card-title"><i class="fa fa-lightbulb text-warning me-2" aria-hidden="true"></i>Curiosidades de {{ selected_year }}</h2>
+    </div>
+    <div class="p-3">
+        <div class="row g-3">
+            {% if busiest_month %}
+            <div class="col-12 col-sm-6 col-lg-3">
+                <div class="st-insight st-insight--green">
+                    <span class="st-insight-icon"><i class="fa fa-fire" aria-hidden="true"></i></span>
+                    <div><div class="st-insight-value">{{ busiest_month }}</div><div class="dt-muted">Mes más activo ({{ busiest_month_count }} tratamientos)</div></div>
                 </div>
             </div>
+            {% endif %}
+            {% if avg_cost_per_treatment %}
+            <div class="col-12 col-sm-6 col-lg-3">
+                <div class="st-insight st-insight--blue">
+                    <span class="st-insight-icon"><i class="fa fa-calculator" aria-hidden="true"></i></span>
+                    <div><div class="st-insight-value">{{ avg_cost_per_treatment|floatformat:"2g" }} €</div><div class="dt-muted">Coste medio por tratamiento</div></div>
+                </div>
+            </div>
+            {% endif %}
+            {% if total_cost_all %}
+            <div class="col-12 col-sm-6 col-lg-3">
+                <div class="st-insight st-insight--orange">
+                    <span class="st-insight-icon"><i class="fa fa-wallet" aria-hidden="true"></i></span>
+                    <div><div class="st-insight-value">{{ total_cost_all|floatformat:"0g" }} €</div><div class="dt-muted">Gasto total (productos + otros)</div></div>
+                </div>
+            </div>
+            {% endif %}
+            {% if quiet_months and total_treatments %}
+            <div class="col-12 col-sm-6 col-lg-3">
+                <div class="st-insight st-insight--gray">
+                    <span class="st-insight-icon"><i class="fa fa-moon" aria-hidden="true"></i></span>
+                    <div><div class="st-insight-value">{{ quiet_months|join:", " }}</div><div class="dt-muted">Mes{{ quiet_months|length|pluralize:"es" }} sin actividad</div></div>
+                </div>
+            </div>
+            {% endif %}
+            {% if top_products %}
+            <div class="col-12 col-sm-6 col-lg-3">
+                <div class="st-insight st-insight--purple">
+                    <span class="st-insight-icon"><i class="fa fa-star" aria-hidden="true"></i></span>
+                    <div><div class="st-insight-value">{{ top_products.0.product__name }}</div><div class="dt-muted">Producto estrella ({{ top_products.0.times_used }} usos)</div></div>
+                </div>
+            </div>
+            {% endif %}
+            {% if most_active_fields %}
+            <div class="col-12 col-sm-6 col-lg-3">
+                <div class="st-insight st-insight--teal">
+                    <span class="st-insight-icon"><i class="fa fa-seedling" aria-hidden="true"></i></span>
+                    <div><div class="st-insight-value">{{ most_active_fields.0.field__name }}</div><div class="dt-muted">Parcela más trabajada ({{ most_active_fields.0.treatments_count }} tratamientos)</div></div>
+                </div>
+            </div>
+            {% endif %}
+            {% if total_harvest_kg > 0 and total_ha_farm > 0 %}
+            <div class="col-12 col-sm-6 col-lg-3">
+                <div class="st-insight st-insight--gold">
+                    <span class="st-insight-icon"><i class="fa fa-scale-balanced" aria-hidden="true"></i></span>
+                    <div><div class="st-insight-value">{% widthratio total_harvest_kg total_ha_farm 1 %} kg/ha</div><div class="dt-muted">Rendimiento medio de cosecha</div></div>
+                </div>
+            </div>
+            {% endif %}
         </div>
+        {% if not total_treatments %}
+        <p class="text-center text-muted mt-3 mb-0">Todavía no hay tratamientos completados en {{ selected_year }}.
+            <a class="text-success" href="{% url 'treatment-list' %}">¡Empieza a registrar tus tratamientos!</a></p>
+        {% endif %}
     </div>
-</div>
+</section>
+
+{{ stats_charts|json_script:"stats-charts-data" }}
+
+{% endif %}
 
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-
-    // ── Paleta verde‑campo ────────────────────────────────────────────
-    const GREEN   = '#2D6A4F';
-    const TEAL    = '#40916C';
-    const LIME    = '#74C69D';
-    const LIGHT   = '#B7E4C7';
-    const ACCENT  = '#D4A017';
-    const BLUE    = '#3A86FF';
-    const PURPLE  = '#8338EC';
-    const ORANGE  = '#FB5607';
-    const DOUGHNUT_PALETTE = [GREEN, TEAL, LIME, ACCENT, BLUE, PURPLE, ORANGE, '#FF006E', '#FFBE0B', '#8ECAE6'];
-
-    Chart.defaults.font.family = "'Inter', 'Segoe UI', sans-serif";
-    Chart.defaults.color = '#6c757d';
-
-    // ── Tratamientos por mes ──────────────────────────────────────────
-    const monthCtx = document.getElementById('monthlyChart');
-    if (monthCtx) {
-        new Chart(monthCtx, {
-            type: 'bar',
-            data: {
-                labels: {{ month_labels|safe }},
-                datasets: [{
-                    label: 'Tratamientos',
-                    data: {{ monthly_data|safe }},
-                    backgroundColor: (ctx) => {
-                        const max = Math.max(...{{ monthly_data|safe }});
-                        return ctx.raw === max ? ACCENT : LIME;
-                    },
-                    borderRadius: 6,
-                    borderSkipped: false,
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: (ctx) => ` ${ctx.raw} tratamiento${ctx.raw !== 1 ? 's' : ''}`
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: { precision: 0 },
-                        grid: { color: 'rgba(0,0,0,0.05)' }
-                    },
-                    x: { grid: { display: false } }
-                }
-            }
-        });
-    }
-
-    // ── Tipos de producto (doughnut) ─────────────────────────────────
-    const ptCtx = document.getElementById('productTypeChart');
-    if (ptCtx) {
-        const ptLabels = {{ product_type_labels|safe }};
-        const ptData   = {{ product_type_data|safe }};
-        if (ptData.length > 0) {
-            new Chart(ptCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ptLabels,
-                    datasets: [{
-                        data: ptData,
-                        backgroundColor: DOUGHNUT_PALETTE.slice(0, ptData.length),
-                        borderWidth: 2,
-                        borderColor: '#fff',
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    cutout: '60%',
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { boxWidth: 12, padding: 10, font: { size: 11 } }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: (ctx) => ` ${ctx.label}: ${ctx.raw} uso${ctx.raw !== 1 ? 's' : ''}`
-                            }
-                        }
-                    }
-                }
-            });
-        }
-    }
-});
-</script>
-
-<style>
-/* ── Hero ─────────────────────────────────────────────────────────── */
-.stats-hero {
-    position: relative;
-    border-radius: 16px;
-    overflow: hidden;
-    padding: 2.5rem 2rem;
-    color: #fff;
-    min-height: 130px;
-}
-.stats-hero-bg {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, #1b4332 0%, #2d6a4f 50%, #40916c 100%);
-    z-index: 0;
-}
-.stats-hero-bg::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-}
-.stats-hero-content {
-    position: relative;
-    z-index: 1;
-}
-.stats-hero-year {
-    font-size: 4rem;
-    font-weight: 800;
-    line-height: 1;
-    opacity: 0.15;
-    position: absolute;
-    right: 1.5rem;
-    top: 50%;
-    transform: translateY(-50%);
-    pointer-events: none;
-}
-.stats-hero-headline {
-    font-size: 1.6rem;
-    font-weight: 700;
-    margin-bottom: .4rem;
-}
-.stats-hero-sub {
-    font-size: .9rem;
-    opacity: .85;
-}
-
-/* ── KPI cards ────────────────────────────────────────────────────── */
-.stat-kpi-card {
-    border-radius: 14px;
-    padding: 1.1rem 1rem;
-    color: #fff;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: .3rem;
-    height: 100%;
-    transition: transform .15s ease, box-shadow .15s ease;
-}
-.stat-kpi-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.15); }
-.stat-kpi-icon { font-size: 1.5rem; opacity: .85; }
-.stat-kpi-value { font-size: 1.3rem; font-weight: 800; line-height: 1.1; }
-.stat-kpi-label { font-size: .7rem; opacity: .85; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; }
-.stat-kpi--green  { background: linear-gradient(135deg, #1b4332, #40916c); }
-.stat-kpi--blue   { background: linear-gradient(135deg, #1d3557, #3a86ff); }
-.stat-kpi--teal   { background: linear-gradient(135deg, #006d77, #83c5be); }
-.stat-kpi--orange { background: linear-gradient(135deg, #7f4f24, #fb5607); }
-.stat-kpi--purple { background: linear-gradient(135deg, #3c096c, #9d4edd); }
-.stat-kpi--gold   { background: linear-gradient(135deg, #7f4f24, #d4a017); }
-
-/* ── Ranking list ─────────────────────────────────────────────────── */
-.stat-ranking-list { display: flex; flex-direction: column; gap: .6rem; }
-.stat-ranking-item {
-    display: flex;
-    align-items: center;
-    gap: .75rem;
-    padding: .5rem .75rem;
-    border-radius: 10px;
-    background: rgba(0,0,0,.02);
-    transition: background .12s;
-}
-.stat-ranking-item:hover { background: rgba(45,106,79,.06); }
-.stat-rank-num {
-    width: 28px; height: 28px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 700; font-size: .8rem;
-    flex-shrink: 0;
-    background: #e9ecef; color: #6c757d;
-}
-.stat-rank--gold   { background: #ffd700; color: #7f4f24; }
-.stat-rank--silver { background: #c0c0c0; color: #3d3d3d; }
-.stat-rank--bronze { background: #cd7f32; color: #fff; }
-.stat-rank-info { flex: 1; min-width: 0; }
-.stat-rank-name { font-weight: 600; font-size: .85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.stat-rank-sub  { font-size: .72rem; color: #6c757d; }
-.stat-rank-badge { flex-shrink: 0; }
-
-/* ── Insight cards ────────────────────────────────────────────────── */
-.insight-card {
-    display: flex;
-    align-items: center;
-    gap: .85rem;
-    padding: .85rem 1rem;
-    border-radius: 12px;
-    height: 100%;
-}
-.insight-icon {
-    font-size: 1.4rem;
-    width: 42px; height: 42px;
-    border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-}
-.insight-value { font-weight: 700; font-size: .95rem; }
-.insight-label { font-size: .72rem; color: #6c757d; }
-.insight-card--green  { background: #d8f3dc; } .insight-card--green .insight-icon { background: #b7e4c7; color: #1b4332; }
-.insight-card--blue   { background: #dbeafe; } .insight-card--blue .insight-icon  { background: #bfdbfe; color: #1d3557; }
-.insight-card--orange { background: #fde8d8; } .insight-card--orange .insight-icon{ background: #fed7aa; color: #7f4f24; }
-.insight-card--gray   { background: #f3f4f6; } .insight-card--gray .insight-icon  { background: #e5e7eb; color: #4b5563; }
-.insight-card--purple { background: #ede9fe; } .insight-card--purple .insight-icon{ background: #ddd6fe; color: #3c096c; }
-.insight-card--teal   { background: #ccfbf1; } .insight-card--teal .insight-icon  { background: #99f6e4; color: #134e4a; }
-.insight-card--gold   { background: #fef9c3; } .insight-card--gold .insight-icon  { background: #fef08a; color: #713f12; }
-</style>
+{# Chart.js versionado en el repositorio (sin CDN: funciona sin conexión). Solo se carga en esta pantalla. #}
+<script src="{% static 'js/vendor/chart.umd.min.js' %}"></script>
+<script src="{% static 'js/stats-charts.js' %}"></script>
 {% endblock %}
-

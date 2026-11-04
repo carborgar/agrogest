@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Case, Count, DateField, ExpressionWrapper, F, IntegerField, Q, Value, When
 from django.db.models.functions import Coalesce
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -433,7 +433,8 @@ class TreatmentCalendarView(BaseSecureViewMixin, TemplateView):
 @method_decorator(require_POST, name='dispatch')
 class FinishTreatmentView(BaseSecureViewMixin, View):
     def post(self, request, pk):
-        treatment = get_object_or_404(Treatment, pk=pk)
+        treatment = get_object_or_404(
+            Treatment.ownership_objects.get_queryset_for_user(request.user), pk=pk)
         finish_date = request.POST.get('finish_date')
         real_water_used = request.POST.get('real_water_used')
 
@@ -479,7 +480,8 @@ class FinishTreatmentView(BaseSecureViewMixin, View):
 @method_decorator(require_POST, name='dispatch')
 class DeleteTreatmentView(BaseSecureViewMixin, View):
     def post(self, request, pk):
-        treatment = get_object_or_404(Treatment, pk=pk)
+        treatment = get_object_or_404(
+            Treatment.ownership_objects.get_queryset_for_user(request.user), pk=pk)
         treatment.delete()
         messages.success(request, f'Tratamiento "{treatment.name}" eliminado')
         return redirect('treatment-list')
@@ -489,7 +491,13 @@ class CloneTreatmentView(BaseSecureViewMixin, View):
     template_name = 'farm/treatments/treatment_clone.html'
 
     def get_treatment(self, pk):
-        return get_object_or_404(Treatment, pk=pk)
+        # Solo tratamientos de la organización del usuario (sin este filtro se podía clonar el de otra)
+        queryset = (
+            Treatment.ownership_objects.get_queryset_for_user(self.request.user)
+            .select_related('field')
+            .prefetch_related('treatmentproduct_set__product')
+        )
+        return get_object_or_404(queryset, pk=pk)
 
     def get(self, request, pk):
         treatment = self.get_treatment(pk)
@@ -515,7 +523,10 @@ class CloneTreatmentView(BaseSecureViewMixin, View):
 
         cloned = []
         for field_id in field_ids:
-            target_field = get_object_or_404(Field, pk=field_id, organization=request.user.organization)
+            if not (field_id.isascii() and field_id.isdigit()):
+                raise Http404('Parcela no válida.')
+            target_field = get_object_or_404(
+                Field.ownership_objects.get_queryset_for_user(request.user), pk=field_id)
             new_name = request.POST.get(f'name_{field_id}', '').strip() or None
             per_field_date = request.POST.get(f'date_{field_id}', '').strip()
             try:
@@ -544,7 +555,12 @@ class RepeatTreatmentView(BaseSecureViewMixin, View):
     template_name = 'farm/treatments/treatment_repeat.html'
 
     def get_treatment(self, pk):
-        return get_object_or_404(Treatment, pk=pk, organization=self.request.user.organization)
+        queryset = (
+            Treatment.ownership_objects.get_queryset_for_user(self.request.user)
+            .select_related('field')
+            .prefetch_related('treatmentproduct_set__product')
+        )
+        return get_object_or_404(queryset, pk=pk)
 
     def get(self, request, pk):
         treatment = self.get_treatment(pk)
