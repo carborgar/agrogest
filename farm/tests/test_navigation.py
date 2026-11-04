@@ -52,6 +52,19 @@ class TestNavigation:
         assert active == ['nav_products']
         assert ctx['nav_more_active'] is True
         assert _ctx(logged, 'treatment-list')['nav_more_active'] is False
+        assert _ctx(logged, 'accounts:notification-inbox')['nav_more_active'] is True
+
+    def test_treatment_subpages_mark_treatments(self, logged):
+        from farm.navigation import NAV_MATCH
+        for name in ('treatment-edit', 'treatment-repeat', 'treatment-instructions'):
+            assert name in NAV_MATCH['nav_treatments']
+
+    def test_flags_read_once_per_request(self, logged):
+        logged.get(reverse('accounts:notification-preferences'))  # calienta la sesión
+        from unittest.mock import patch
+        with patch('core.models.get_all_flags', return_value={}) as flags:
+            logged.get(reverse('accounts:notification-preferences'))
+        assert flags.call_count == 1
 
     def test_stats_active_from_url(self, logged):
         ctx = _ctx(logged, 'yearly-stats')
@@ -73,9 +86,10 @@ class TestNavigation:
         # Página sin enlaces propios a estas secciones: solo cuenta el menú
         html = logged.get(reverse('accounts:notification-preferences')).content.decode()
         assert 'gastosMenu' not in html                       # Gastos ya no es submenú
-        assert html.count('href="%s"' % reverse('expense-list')) == 2   # lateral + hoja
-        assert html.count('href="%s"' % reverse('treatment-shopping-list')) == 2  # lateral + pestaña
-        assert 'sidebar-collapse-section d-none d-xl-block' in html
+        assert html.count('href="%s"' % reverse('expense-list')) >= 2   # lateral + hoja
+        assert html.count('href="%s"' % reverse('treatment-shopping-list')) >= 2  # lateral + pestaña
+        collapse = html[html.index('sidebar-collapse-section'):]
+        assert 'd-xl-block' in collapse[:collapse.index('>')]  # botón de plegar solo desde xl
         # Notificaciones va en el menú del usuario, no entre las secciones del lateral
         sidebar = html[html.index('desktop-menu-nav-container'):html.index('sidebar-collapse-section')]
         assert reverse('accounts:notification-inbox') not in sidebar

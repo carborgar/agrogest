@@ -13,7 +13,7 @@
         <li class="nav-item">
             <a class="nav-link {% if item.active %}active{% endif %}" href="{{ item.url }}"
                data-label="{{ item.label }}" {% if item.active %}aria-current="page"{% endif %}>
-                <i class="{{ item.icon }}"></i>
+                <i aria-hidden="true" class="{{ item.icon }}"></i>
                 <span class="nav-link-text">{{ item.label }}</span>
             </a>
         </li>

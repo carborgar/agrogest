@@ -5,8 +5,8 @@ def feature_flags(request):
     sin necesidad de redesplegar.
     Cada flag WEATHER → feature_weather, HARVESTS → feature_harvests, etc.
     """
-    from core.models import get_all_flags
-    flags = get_all_flags()
+    from farm.navigation import request_flags
+    flags = request_flags(request)
     return {f'feature_{k.lower()}': v for k, v in flags.items()}
 
 
@@ -30,37 +30,13 @@ def unread_notifications(request):
     count = Notification.objects.filter(user=request.user, read=False).count()
     return {'unread_notifications_count': count}
 
-# Mapeo: clave de contexto → lista de url_names que activan ese ítem
-_NAV_GROUPS = {
-    'nav_home':         {'field_list'},
-    # Las casetillas se gestionan dentro de Parcelas
-    'nav_fields':       {'field-list', 'field-create', 'field-detail', 'field-edit',
-                         'storage-point-list', 'storage-point-create', 'storage-point-detail', 'storage-point-edit'},
-    'nav_treatments':   {'treatment-list', 'treatment-create', 'treatment-detail'},
-    'nav_calendar':     {'treatment-calendar'},
-    'nav_costs':        {'field-costs'},
-    'nav_expenses':     {'expense-list', 'expense-create', 'expense-edit'},
-    'nav_shopping':     {'treatment-shopping-list'},
-    'nav_harvests':     {'harvest-summary', 'harvest-create', 'harvest-edit'},
-    'nav_expense_types':{'expense-type-list', 'expense-type-create', 'expense-type-edit'},
-    # Tipos de producto y comparativa se gestionan dentro de Productos
-    'nav_products':     {'product-list', 'product-create', 'product-edit',
-                         'product-type-create', 'product-type-edit', 'product-comparison'},
-    'nav_treatment_cost_admin': {'treatment-cost-admin'},
-    'nav_stats':        {'yearly-stats'},
-    'nav_weather':      {'weather-overview'},
-    'nav_chat':         {'chat'},
-}
-
-
 def active_nav(request):
     """
-    Inyecta en el contexto un booleano por cada grupo de navegación
-    (nav_home, nav_treatments…) y el menú ya montado (ver farm/navigation.py).
+    Inyecta en el contexto un booleano por cada ítem del menú
+    (nav_home, nav_treatments…) y el menú ya montado. Todo sale de farm/navigation.py.
     """
-    from farm.navigation import build_navigation
-    url_name = getattr(request.resolver_match, 'url_name', '') or ''
-    ctx = {key: url_name in names for key, names in _NAV_GROUPS.items()}
+    from farm.navigation import active_flags, build_navigation
+    ctx = active_flags(request)
     if not request.user.is_authenticated:
         return ctx
     ctx.update(build_navigation(request, ctx))
