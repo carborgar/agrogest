@@ -219,6 +219,7 @@ if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded
         const login = $('costsLogin');
         if (login) { login.hidden = !expired; login.href = states.error.dataset.loginUrl || '#'; }
         $('costsRetry').hidden = expired;
+        renderNoPriceWarning([]);  // el aviso del periodo anterior no vale para lo que no se ha podido cargar
         show('error');
         $('costSummary').textContent = $('costsErrorTitle').textContent;
     }
@@ -235,6 +236,7 @@ if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded
         }
         selectedFieldIds().forEach(id => params.append('field_ids', id));
         syncUi();
+        renderNoPriceWarning([]);  // mientras carga no se deja el aviso del periodo anterior
         show('loading');
 
         fetch(`${API_URLS.fieldCosts}?${params.toString()}`)
@@ -281,6 +283,11 @@ if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded
             return;
         }
         show('body');
+        body.classList.toggle('cs--qty', !isCost());  // en cantidades el importe puede partirse en varias líneas
+        // El top-6 y «Resto» se ordenan por € también en cantidades: litros y kilos no se pueden sumar
+        // para ordenar por cantidad. La nota «Ordenado por gasto» lo dice en ese modo.
+        const sortNote = $('typesSortNote');
+        if (sortNote) sortNote.hidden = isCost();
         ranked = FC.rankTypes(data.product_breakdown, FC.MAX_TYPES);
         colors = FC.typeColorMap(ranked.top, SERIES);
         const shades = FC.restShades(ranked.rest.length);
@@ -321,10 +328,11 @@ if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded
     }
 
     // ── Cantidades: cada unidad por separado (no se suman litros con kilos) ────
+    // Espacio duro entre cifra y unidad: en pantallas estrechas la línea solo se parte tras « + »
     function qtyLabel(products) {
         const byUnit = {};
         (products || []).forEach(p => { byUnit[p.unit || ''] = (byUnit[p.unit || ''] || 0) + p.quantity; });
-        return Object.entries(byUnit).map(([unit, q]) => `${num(q)} ${esc(unit)}`.trim()).join(' + ') || '—';
+        return Object.entries(byUnit).map(([unit, q]) => unit ? `${num(q)}\u00a0${esc(unit)}` : num(q)).join(' + ') || '—';
     }
     const isCost = () => viewMode === 'cost';
     const typeValue = (t) => isCost() ? eur(t.total) : qtyLabel(t.products);
@@ -583,7 +591,8 @@ if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded
     // ── Aviso de productos sin precio ──────────────────────────────────────────
     function renderNoPriceWarning(products) {
         const container = $('noPriceWarning');
-        if (!products || !products.length) { container.innerHTML = ''; return; }
+        container.hidden = !products || !products.length;
+        if (container.hidden) { container.innerHTML = ''; return; }
         const totalTreatments = products.reduce((sum, p) => sum + p.treatment_count, 0);
         const rows = products.map(p => `
             <li><b>${esc(p.name)}</b> <span class="text-muted">· ${p.treatment_count} ${p.treatment_count === 1 ? 'tratamiento' : 'tratamientos'} en ${esc(p.fields.join(', '))}</span></li>`).join('');

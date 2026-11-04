@@ -893,6 +893,12 @@ button.cs-rank-row:hover { background: var(--tl-soft); }
 .cs-f-bar { width: 32%; min-width: 8rem; }
 .cs-f-val, .cs-f-perha { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .cs-f-val { font-weight: 700 !important; }
+/* Modo cantidades: «12 L + 3 kg + …» puede no caber a 390 px; se parte solo tras « + » (cada cantidad va
+   unida a su unidad con espacio duro). La clase la pone field-costs.js en #costsBody según el modo. */
+.cs--qty .cs-f-val, .cs--qty .cs-rank-val { white-space: normal; }
+/* En el ranking la columna del importe es «auto» y crecería hasta su ancho entero a costa del nombre: se acota */
+.cs--qty .cs-rank-val { max-width: 12rem; }
+.cs-rank-note { margin: .5rem 0 0; padding: 0 1rem; font-size: .75rem; color: var(--tl-muted); }
 .cs-f-chev { width: 2.5rem; text-align: center; }
 .cs-table .cs-f-chev { padding-left: 0; padding-right: 1rem; }
 /* Barra apilada: un tramo por tipo con los colores del ranking; el % va en su aria-label y al abrir la fila */
@@ -1020,28 +1026,28 @@ button.cs-rank-row:hover { background: var(--tl-soft); }
 .cal-top .tl-tabs { flex: 1 1 0; }
 button.tl-tab { border: 0; background: transparent; }
 /* Chips de filtro (Tipo, Estado), patrón «filter chip»: píldora en tonos suaves para no confundirse con los
-   botones de acción. Activo: verde claro --tl-3-bg, borde verde y texto --tl-3-fg (6,9:1) con ✓ delante.
-   Inactivo: blanco, borde gris sólido y texto --tl-muted (5,9:1). El estado no depende solo del color (✓).
+   botones de acción. Activo: verde claro --tl-3-bg, borde verde y texto --tl-3-fg (6,6:1) con ✓ delante.
+   Inactivo: blanco, borde gris #8A9386 (3,2:1, mínimo de 3:1 para componentes) y texto --tl-muted (5,9:1). El estado no depende solo del color (✓).
    El estado real lo lleva la casilla (.btn-check); treatment-calendar.js solo lee las casillas. */
 .cal-chips { gap: .5rem; }
-.cal-chip { position: relative; display: inline-flex; align-items: center; min-height: 32px; margin: 0; padding: .25rem .9rem .25rem .7rem; border: 1px solid var(--tl-head-line); border-radius: 999px; background: #fff; color: var(--tl-muted); font-size: .875rem; font-weight: 500; line-height: 1.2; white-space: nowrap; cursor: pointer; user-select: none; transition: background-color .15s ease, border-color .15s ease, color .15s ease; }
+.cal-chips .cal-chip { position: relative; display: inline-flex; align-items: center; min-height: 32px; margin: 0; padding: .25rem .9rem .25rem .7rem; border: 1px solid #8A9386; border-radius: 999px; background: #fff; color: var(--tl-muted); font-size: .875rem; font-weight: 500; line-height: 1.2; white-space: nowrap; cursor: pointer; user-select: none; transition: background-color .15s ease, border-color .15s ease, color .15s ease; }
 /* El ✓ ocupa siempre su hueco (oculto si inactivo) para que el chip no cambie de ancho al marcar/desmarcar */
 .cal-chip-check { display: inline-block; width: .9em; margin-right: .3rem; font-size: .75em; text-align: center; visibility: hidden; }
 .cal-chip-icon { margin-right: .4rem; font-size: .85em; }
-.cal-chip .cal-dot { width: 8px; height: 8px; }
+.cal-chips .cal-chip .cal-dot { width: 8px; height: 8px; }
 .cal-chips .btn-check:checked + .cal-chip { background: var(--tl-3-bg); border-color: var(--bs-primary); color: var(--tl-3-fg); }
 .cal-chips .btn-check:checked + .cal-chip .cal-chip-check { visibility: visible; }
 .cal-chips .btn-check:focus-visible + .cal-chip { outline: 2px solid var(--bs-primary); outline-offset: 2px; }
 /* Hover solo con ratón: en táctil se quedaría «pegado» tras tocar el chip */
 @media (hover: hover) {
-    .cal-chip:hover { background: var(--tl-soft); border-color: #B7BEB2; color: var(--tl-ink); }
+    .cal-chips .cal-chip:hover { background: var(--tl-soft); border-color: var(--tl-muted); color: var(--tl-ink); }
     .cal-chips .btn-check:checked + .cal-chip:hover { background: #D3E8D5; border-color: var(--bs-primary); color: var(--tl-3-fg); }
 }
-@media (prefers-reduced-motion: reduce) { .cal-chip { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .cal-chips .cal-chip { transition: none; } }
 /* Móvil: chip de 36 px y zona táctil de 44 px con ::after (el hueco de 8 px entre filas evita solapes) */
 @media (max-width: 767.98px) {
-    .cal-chip { min-height: 36px; }
-    .cal-chip::after { content: ""; position: absolute; inset: -4px 0; }
+    .cal-chips .cal-chip { min-height: 36px; }
+    .cal-chips .cal-chip::after { content: ""; position: absolute; inset: -4px 0; }
 }
 /* Fila de lista (día, agenda): una caja con filas separadas por línea */
 .cal-row { display: flex; align-items: center; gap: .75rem; width: 100%; min-height: 56px; padding: .6rem 1rem; border: 0; border-top: 1px solid var(--tl-line); background: #fff; color: var(--tl-ink); text-align: left; }
