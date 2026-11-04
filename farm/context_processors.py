@@ -16,13 +16,6 @@ def sidebar_state(request):
     }
 
 
-def ai_configured(request):
-    from django.conf import settings
-    return {
-        'gemini_configured': bool(getattr(settings, 'GEMINI_API_KEY', ''))
-    }
-
-
 def unread_notifications(request):
     if not request.user.is_authenticated:
         return {'unread_notifications_count': 0}
@@ -47,7 +40,6 @@ _NAV_GROUPS = {
     'nav_products':     {'product-list', 'product-create', 'product-edit',
                          'product-type-create', 'product-type-edit', 'product-comparison'},
     'nav_treatment_cost_admin': {'treatment-cost-admin'},
-    'nav_chat':         {'chat'},
 }
 
 
