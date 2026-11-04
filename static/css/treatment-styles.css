@@ -863,6 +863,15 @@ textarea.tf-inp { height: auto; min-height: 48px; padding: 10px 12px; resize: ve
 }
 
 /* Aviso de productos sin precio */
+/* Cifras clave: el componente .dt-summary con los números grandes de Estadísticas (.st-key).
+   Móvil: 2 × 2. Los nombres (tipo, parcela) van algo más pequeños y cortan en 2 líneas para no descuadrar la fila. */
+.cs-key .dt-value { font-size: 1.25rem; line-height: 1.2; overflow-wrap: anywhere; }
+.cs-key .dt-value.cs-key-name { font-size: 1rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+@media (min-width: 768px) {
+    .cs-key .dt-cell { padding: .8rem 1rem; }
+    .cs-key .dt-value { font-size: 1.5rem; }
+    .cs-key .dt-value.cs-key-name { font-size: 1.1rem; }
+}
 .cs-warn { border: 1px solid #F0D9A6; border-radius: var(--bs-border-radius-lg); background: var(--tl-1-bg); color: var(--tl-1-fg); font-size: .9rem; }
 .cs-warn > summary { display: flex; align-items: center; gap: .75rem; min-height: 48px; padding: .5rem 1rem; list-style: none; cursor: pointer; }
 .cs-warn > summary::-webkit-details-marker { display: none; }

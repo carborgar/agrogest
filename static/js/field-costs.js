@@ -91,6 +91,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function show(name) {
         Object.entries(states).forEach(([k, el]) => { if (el) el.hidden = k !== name; });
+        // Las cifras clave solo acompañan a los datos: así nunca quedan las de una carga anterior
+        const key = $('costKey');
+        if (key) key.hidden = name !== 'body';
+        if (name === 'loading') $('costSummary').textContent = 'Cargando…';
     }
 
     // ── Carga ──────────────────────────────────────────────────────────────────
@@ -101,8 +105,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const login = $('costsLogin');
         if (login) { login.hidden = !expired; login.href = states.error.dataset.loginUrl || '#'; }
         $('costsRetry').hidden = expired;
-        $('costSummary').textContent = '';
         show('error');
+        $('costSummary').textContent = $('costsErrorTitle').textContent;
     }
 
     function loadFieldCostsData() {
@@ -144,7 +148,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const hasData = viewMode === 'quantity'
             ? data.product_breakdown.some(t => (t.products || []).some(p => p.quantity > 0))
             : data.fields.some(f => f.total_cost > 0);
-        renderSummary(data);
         if (!hasData) {
             const all = activePeriod() === 'all' && !selectedFieldIds().length;
             $('costsEmptyTitle').textContent = all ? 'Todavía no hay costes' : 'No hay costes con estos filtros';
@@ -153,20 +156,42 @@ document.addEventListener('DOMContentLoaded', function () {
                 : 'Prueba con otro periodo u otras parcelas.';
             $('costsEmptyAll').hidden = all;
             show('empty');
+            $('costSummary').textContent = $('costsEmptyTitle').textContent;
             return;
         }
         show('body');
+        renderSummary(data);
         renderTypes(data.product_breakdown);
         renderFields(data.fields);
         updateCharts(data);
     }
 
-    // ── Totales: una línea ─────────────────────────────────────────────────────
+    // ── Cifras clave ───────────────────────────────────────────────────────────
+    // Siempre en euros, también en modo cantidades: litros y kilos no se pueden sumar en una cifra, y el gasto
+    // total y por hectárea es lo que se consulta primero (igual que los gráficos, que también van en euros).
+    const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+    function setText(id, text) { const el = $(id); if (el) el.textContent = text; }
+
     function renderSummary(data) {
         const n = data.fields.length;
-        $('costSummary').innerHTML =
-            `${n} parcela${n === 1 ? '' : 's'} · ${nf(0, 2).format(data.total_area)} ha · ` +
-            `<b class="text-body">${eur(data.total_cost)}</b> · ${eur(data.cost_per_ha)}/ha`;
+        const area = nf(0, 2).format(data.total_area);
+        setText('costKeyTotal', eur(data.total_cost));
+        setText('costKeyTotalSub', plural(n, 'parcela', 'parcelas'));
+        setText('costKeyPerHa', `${eur(data.cost_per_ha)}/ha`);
+        setText('costKeyPerHaSub', `sobre ${area} ha`);
+
+        // Tipo y parcela que más pesan: los mismos datos de las listas, sin cálculos nuevos
+        const topType = (data.product_breakdown || []).filter(t => t.total > 0)
+            .reduce((best, t) => (!best || t.total > best.total ? t : best), null);
+        setText('costKeyType', topType ? topType.type_name : '—');
+        setText('costKeyTypeSub', topType ? `${eur(topType.total)} · ${pct(topType.percentage)}` : 'sin precio');
+        const topField = data.fields.filter(f => f.total_cost > 0)
+            .reduce((best, f) => (!best || f.cost_per_ha > best.cost_per_ha ? f : best), null);
+        setText('costKeyField', topField ? topField.name : '—');
+        setText('costKeyFieldSub', topField ? `${eur(topField.cost_per_ha)}/ha` : 'sin precio');
+
+        setText('costSummary', `Gasto total ${eur(data.total_cost)} en ${plural(n, 'parcela', 'parcelas')}; ` +
+            `${eur(data.cost_per_ha)} por hectárea sobre ${area} ha.`);
     }
 
     // ── Cantidades: cada unidad por separado (no se suman litros con kilos) ────

@@ -88,8 +88,32 @@
     </div>
 </div>
 
-{# Totales en una línea (rellena field-costs.js) #}
-<p class="pl-count" id="costSummary" aria-live="polite">Cargando…</p>
+{% comment %}Cifras clave (rellena field-costs.js). Solo se ven con datos: al cargar, sin datos o con error se ocultan
+para no dejar cifras de otro periodo. El resumen para lectores de pantalla va en una región viva aparte,
+porque una región que pasa de oculta a visible no siempre se anuncia.{% endcomment %}
+<div class="dt-summary cs-key card card-flat mb-3" id="costKey" hidden>
+    <div class="dt-cell">
+        <div class="dt-label">Gasto total</div>
+        <div class="dt-value" id="costKeyTotal"></div>
+        <div class="dt-sub" id="costKeyTotalSub"></div>
+    </div>
+    <div class="dt-cell">
+        <div class="dt-label">Gasto por ha</div>
+        <div class="dt-value" id="costKeyPerHa"></div>
+        <div class="dt-sub" id="costKeyPerHaSub"></div>
+    </div>
+    <div class="dt-cell">
+        <div class="dt-label">Tipo con más gasto</div>
+        <div class="dt-value cs-key-name" id="costKeyType"></div>
+        <div class="dt-sub" id="costKeyTypeSub"></div>
+    </div>
+    <div class="dt-cell">
+        <div class="dt-label">Parcela con más €/ha</div>
+        <div class="dt-value cs-key-name" id="costKeyField"></div>
+        <div class="dt-sub" id="costKeyFieldSub"></div>
+    </div>
+</div>
+<p class="visually-hidden" id="costSummary" aria-live="polite" aria-atomic="true"></p>
 
 {# Aviso de productos sin precio (rellena field-costs.js) #}
 <div class="mb-3" id="noPriceWarning"></div>

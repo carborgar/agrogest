@@ -242,6 +242,14 @@ class FieldCostsTest(_Base):
                          ['all', str(self.today.year), str(self.today.year - 1), str(self.today.year - 2)])
         self.assertContains(r, 'data-period="all"')
 
+    def test_cifras_clave_en_franja_oculta_hasta_tener_datos(self):
+        html = self.client.get(reverse('field-costs')).content.decode()
+        self.assertIn('id="costKey" hidden', html)
+        self.assertIn('dt-summary cs-key', html)
+        for marker in ('costKeyTotal', 'costKeyPerHa', 'costKeyType', 'costKeyField'):
+            self.assertIn(f'id="{marker}"', html)
+        self.assertIn('id="costSummary" aria-live="polite"', html)
+
     def test_sin_parcelas_muestra_estado_vacio(self):
         other = User.objects.create_user(username="vacio", email="v@example.com", password="x",
                                          organization=Organization.objects.create(name="Vacía"))
