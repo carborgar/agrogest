@@ -4,6 +4,7 @@ from decimal import ROUND_HALF_EVEN, Decimal
 from django.db import models, transaction
 from django.utils.timezone import now
 
+from . import dosing
 from .managers import OwnershipManager
 
 
@@ -260,13 +261,8 @@ class Product(OrganizationOwnedModel):
         if not dose or not dose_type or not self.price or self.price <= 0:
             return None
         water = Decimal(water_per_ha if water_per_ha is not None else self.REFERENCE_WATER_PER_HA)
-        if dose_type in ('kg_per_ha', 'l_per_ha'):
-            amount = dose
-        elif dose_type in ('kg_per_1000l', 'l_per_1000l'):
-            amount = dose * water / 1000
-        elif dose_type == 'pct':
-            amount = dose / Decimal(100) * water
-        else:
+        amount = dosing.amount_per_ha(dose, dose_type, water)
+        if amount is None:
             return None
         return round(amount * self.price, 2)
 
@@ -501,47 +497,18 @@ class Treatment(OrganizationOwnedModel):
         if not self.machine or not self.actual_water_per_ha() or self.type != 'spraying':
             return None
 
-        field_area = self.effective_area
-        water_per_ha = self.actual_water_per_ha()
-        machine_capacity = self.machine.capacity
-
-        # Total de agua necesaria
-        total_water = int(round(field_area * water_per_ha, 0))
-
-        # Número de máquinas completas
-        full_loads = int(total_water // machine_capacity)
-
-        # Información sobre carga parcial
-        partial_water = int(total_water % machine_capacity)
-
-        partial_load = partial_water > 50  # consideramos carga parcial si queda más de 50L
-
-        return {
-            'total_water': total_water,
-            'full_loads': full_loads,
-            'partial_load': partial_load,
-            'partial_water': partial_water,
-        }
+        total_water = int(round(self.effective_area * self.actual_water_per_ha(), 0))
+        return dosing.machine_loads(total_water, self.machine.capacity)
 
     def calculate_product_for_partial_load(self, product_item):
         load_info = self.calculate_machine_loads()
         if not load_info or not load_info['partial_load']:
             return 0
 
-        partial_water = Decimal(load_info['partial_water'])
-        dose_type = product_item.dose_type
-        dose = _d(product_item.dose)
-
         # Aritmética decimal exacta y un único redondeo final (4 decimales, mitad al par)
-        if 'ha' in dose_type:
-            result = dose * partial_water / _d(self.actual_water_per_ha())
-        elif '1000l' in dose_type:
-            result = dose * partial_water / 1000
-        elif '2000l' in dose_type:
-            result = dose * partial_water / 2000
-        elif 'pct' in dose_type:
-            result = dose * partial_water / 100
-        else:
+        result = dosing.amount_for_water(product_item.dose, product_item.dose_type,
+                                         load_info['partial_water'], self.actual_water_per_ha())
+        if result is None:
             return 0
 
         # float como antes (plantillas, API y tests lo esperan así): float(Decimal) es exacto al redondear a 4 decimales
@@ -738,19 +705,9 @@ class TreatmentProduct(OrganizationOwnedModel):
         if not machine or not water_per_ha or not self.dose or not self.dose_type:
             return None
 
-        capacity = Decimal(machine.capacity)
-        dose = _d(self.dose)
-
         # Aritmética decimal exacta y un único redondeo final (4 decimales, mitad al par)
-        if 'ha' in self.dose_type:
-            value = dose * capacity / _d(water_per_ha)
-        elif '1000l' in self.dose_type:
-            value = dose * capacity / 1000
-        elif '2000l' in self.dose_type:
-            value = dose * capacity / 2000
-        elif 'pct' in self.dose_type:
-            value = dose * capacity / 100
-        else:
+        value = dosing.amount_for_water(self.dose, self.dose_type, machine.capacity, water_per_ha)
+        if value is None:
             return None
 
         return float(_round(value, 4))
@@ -788,21 +745,8 @@ class TreatmentProduct(OrganizationOwnedModel):
 
     def calculate_total_dose(self):
         """Calcula la dosis total basada en el tipo de dosis y los parámetros del tratamiento"""
-        field_area = _d(self.treatment.effective_area)
-        water_per_ha = _d(self.treatment.actual_water_per_ha())
-        dose = _d(self.dose)
-
-        if self.dose_type in ['kg_per_1000l', 'l_per_1000l']:
-            total_water = water_per_ha * field_area
-            result = (dose * total_water) / 1000
-        elif self.dose_type in ['kg_per_ha', 'l_per_ha']:
-            result = dose * field_area
-        elif self.dose_type == 'pct':
-            total_water = water_per_ha * field_area
-            result = (dose / Decimal(100)) * total_water
-        else:
-            result = Decimal(0)
-
+        per_ha = dosing.amount_per_ha(self.dose, self.dose_type, self.treatment.actual_water_per_ha())
+        result = per_ha * _d(self.treatment.effective_area) if per_ha is not None else Decimal(0)
         self.total_dose = _round(result, 4)
 
     def calculate_dose_from_total(self):

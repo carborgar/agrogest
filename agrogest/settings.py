@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'accounts',
     'farm',
     'weather',
+    'assistant',
     'django_filters',
     'django_bootstrap5',
     'widget_tweaks',
@@ -215,6 +216,26 @@ CACHES = {
 }
 
 AEMET_API_KEY = os.environ.get("AEMET_API_KEY", "")
+
+# ── Asistente IA ─────────────────────────────────────────────────────────────
+# Cualquier proveedor compatible con OpenAI (/chat/completions con herramientas).
+# Usar una clave de un proyecto SIN facturación: al agotar la cuota gratuita responde 429, nunca cobra.
+# Los modelos y límites gratuitos cambian: revisarlos en la documentación del proveedor.
+ASSISTANT_API_KEY = os.environ.get("ASSISTANT_API_KEY", "")
+ASSISTANT_BASE_URL = os.environ.get("ASSISTANT_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/")
+# Lista separada por comas, en orden de preferencia: cuando uno agota su cupo diario (o el proveedor lo retira),
+# se pasa al siguiente. En el nivel gratuito de Gemini cada modelo tiene su propio cupo.
+ASSISTANT_MODEL = os.environ.get("ASSISTANT_MODEL", "gemini-3.1-flash-lite,gemini-3.5-flash-lite")
+# Modelos que razonan: el razonamiento cuenta dentro de max_tokens. Gemini 3.x acepta «low»; «none» solo la familia 2.5.
+# Vacío = no se envía.
+ASSISTANT_REASONING_EFFORT = os.environ.get("ASSISTANT_REASONING_EFFORT", "low")
+# Cupo diario de toda la instancia (la clave es única): preguntas para el usuario, llamadas para el proveedor.
+# Llamadas ≈ 80 % de la suma de las peticiones/día gratuitas de los modelos de la lista (500 + 500 en Gemini Flash Lite 3.x);
+# preguntas ≈ un tercio (cada una gasta hasta 3 llamadas).
+ASSISTANT_DAILY_QUESTIONS = int(os.environ.get("ASSISTANT_DAILY_QUESTIONS", "260"))
+ASSISTANT_DAILY_CALLS = int(os.environ.get("ASSISTANT_DAILY_CALLS", "800"))
+# Plazo total por pregunta (s), por debajo del timeout del servidor (gunicorn: 30 s por defecto).
+ASSISTANT_TIMEOUT = int(os.environ.get("ASSISTANT_TIMEOUT", "25"))
 
 LOGGING = {
     "version": 1,

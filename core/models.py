@@ -10,7 +10,12 @@ _CACHE_TTL = 60  # segundos — máximo que tarda en propagarse un cambio
 # los que no existan (con enabled=True), sin tocar los que ya estén configurados.
 KNOWN_FLAGS: dict[str, str] = {
     'WEATHER': 'Módulo del tiempo (AEMET). Desactívalo si la API de AEMAT no responde.',
+    # Lo crea apagado la migración assistant/0002 (y sync_feature_flags, ver DISABLED_BY_DEFAULT).
+    'ASSISTANT': 'Asistente IA. Necesita ASSISTANT_API_KEY; consume la cuota gratuita del proveedor.',
 }
+
+# Flags que nacen apagados al crearlos (los demás, encendidos).
+DISABLED_BY_DEFAULT = frozenset({'ASSISTANT'})
 
 
 class FeatureFlag(models.Model):

@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}Asistente – AgroGest{% endblock %}
+
+{% block header %}Asistente{% endblock %}
+{% block sub_header %}
+    <span class="badge rounded-pill {% if remaining %}text-bg-success-subtle text-success-emphasis{% else %}text-bg-warning-subtle text-warning-emphasis{% endif %}">
+        Quedan {{ remaining }} de {{ daily }} hoy
+    </span>
+{% endblock %}
+
+{% block actions %}
+    {% if turns %}
+    <form method="post" data-no-guard>
+        {% csrf_token %}
+        <button class="btn btn-outline-secondary btn-sm" name="clear" type="submit" value="1">
+            <i aria-hidden="true" class="fa fa-rotate-left me-1"></i>Nueva conversación
+        </button>
+    </form>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="mx-auto vstack gap-3" style="max-width: 48rem">
+
+    {% if not turns %}
+    <section class="vstack gap-2" aria-labelledby="as-intro">
+        <h2 class="h5 fw-bold mb-0" id="as-intro">Pregunta sobre tus tratamientos, costes y productos</h2>
+        <p class="text-body-secondary mb-2">
+            Respondo con los datos de AgroGest. Solo consulto: para crear o editar, usa los formularios.
+            «A la máquina» son siempre 2.000 L.
+        </p>
+        <span class="small fw-semibold text-uppercase text-body-secondary">Prueba con</span>
+        <form class="vstack gap-2" method="post">
+            {% csrf_token %}
+            {% for icon, text in suggestions %}
+            <button class="btn btn-light border text-start d-flex align-items-center gap-2 py-2" name="q"
+                    type="submit" value="{{ text }}" {% if not remaining %}disabled{% endif %}>
+                <i aria-hidden="true" class="{{ icon }} fa-fw text-success"></i>{{ text }}
+            </button>
+            {% endfor %}
+        </form>
+    </section>
+    {% endif %}
+
+    <div aria-live="polite" class="vstack gap-3">
+    {% for turn in turns %}
+        <div class="align-self-end bg-success text-white px-3 py-2 rounded-4" style="max-width: 85%">{{ turn.question }}</div>
+
+        <div class="vstack gap-2" {% if forloop.last %}id="ultima"{% endif %}>
+            {% if turn.understood %}
+            <div class="d-flex flex-wrap align-items-center gap-1 small">
+                <span class="text-body-secondary fw-medium">He entendido:</span>
+                {% for item in turn.understood %}
+                <span class="badge rounded-pill bg-body border text-body fw-normal">{{ item }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="card card-flat {% if turn.error %}border-warning{% endif %}">
+                <div class="card-body vstack gap-3">
+                    <p class="mb-0">{{ turn.answer|linebreaksbr }}</p>
+
+                    {% for table in turn.tables %}
+                    <div class="vstack gap-1">
+                        <div class="small fw-semibold">{{ table.title }}</div>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead>
+                                <tr class="small text-body-secondary">
+                                    {% for col in table.columns %}
+                                    <th class="fw-medium {% if forloop.counter0 in table.numeric %}text-end{% endif %}" scope="col">{{ col }}</th>
+                                    {% endfor %}
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {% for row in table.rows %}
+                                <tr>
+                                    {% for cell in row %}
+                                    <td class="{% if forloop.counter0 in table.numeric %}text-end text-nowrap{% endif %}{% if forloop.first %} fw-semibold{% endif %}">{{ cell }}</td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% if table.notes %}
+                        <ul class="small text-body-secondary bg-body-tertiary rounded-3 mb-0 py-2 pe-2 ps-4">
+                            {% for note in table.notes %}<li>{{ note }}</li>{% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+
+                    {% if turn.candidates and forloop.last %}
+                    <form class="d-flex flex-wrap gap-2" method="post">
+                        {% csrf_token %}
+                        {% for c in turn.candidates %}
+                        <button class="btn btn-outline-success rounded-pill" name="q" type="submit" value="{{ c }}"
+                                {% if not remaining %}disabled{% endif %}>{{ c }}</button>
+                        {% endfor %}
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+    </div>
+
+    {% if remaining %}
+    <form class="d-flex align-items-end gap-2" id="pregunta" method="post">
+        {% csrf_token %}
+        <label class="visually-hidden" for="as-q">Tu pregunta</label>
+        <textarea class="form-control rounded-4" id="as-q" maxlength="{{ max_chars }}" name="q"
+                  placeholder="Escribe tu pregunta…" required rows="2"></textarea>
+        <button class="btn btn-success rounded-pill px-3" type="submit">
+            <i aria-hidden="true" class="fa fa-arrow-up"></i><span class="visually-hidden">Enviar</span>
+        </button>
+    </form>
+    {% else %}
+    <div class="alert alert-warning d-flex gap-2 align-items-center mb-0" id="pregunta" role="status">
+        <i aria-hidden="true" class="fa fa-clock"></i>
+        Has usado las {{ daily }} preguntas de hoy. El asistente vuelve mañana; el resto de AgroGest sigue funcionando.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Enviar con Intro (Mayús+Intro = salto de línea) y dejar a la vista la última respuesta.
+    (function () {
+        const q = document.getElementById('as-q');
+        if (q) {
+            q.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+                    e.preventDefault();
+                    if (q.value.trim()) q.form.requestSubmit();
+                }
+            });
+        }
+        const last = document.getElementById('ultima');
+        if (last) last.scrollIntoView({block: 'start'});
+    })();
+</script>
+{% endblock %}

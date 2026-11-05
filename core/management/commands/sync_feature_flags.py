@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 
-from core.models import KNOWN_FLAGS, FeatureFlag
+from core.models import DISABLED_BY_DEFAULT, KNOWN_FLAGS, FeatureFlag
 
 
 class Command(BaseCommand):
@@ -14,7 +14,7 @@ class Command(BaseCommand):
         for name, description in KNOWN_FLAGS.items():
             flag, created = FeatureFlag.objects.get_or_create(
                 name=name,
-                defaults={'enabled': True, 'description': description},
+                defaults={'enabled': name not in DISABLED_BY_DEFAULT, 'description': description},
             )
             if created:
                 self.stdout.write(self.style.SUCCESS(f"  ✅ Creado: {name}"))
