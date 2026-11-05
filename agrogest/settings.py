@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'accounts',
     'farm',
     'weather',
+    'assistant',
     'django_filters',
     'django_bootstrap5',
     'widget_tweaks',
@@ -215,6 +216,22 @@ CACHES = {
 }
 
 AEMET_API_KEY = os.environ.get("AEMET_API_KEY", "")
+
+# ── Asistente IA ─────────────────────────────────────────────────────────────
+# Cualquier proveedor compatible con OpenAI (/chat/completions con herramientas).
+# Usar una clave de un proyecto SIN facturación: al agotar la cuota gratuita responde 429, nunca cobra.
+# Los modelos y límites gratuitos cambian: revisarlos en la documentación del proveedor.
+ASSISTANT_API_KEY = os.environ.get("ASSISTANT_API_KEY", "")
+ASSISTANT_BASE_URL = os.environ.get("ASSISTANT_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/")
+ASSISTANT_MODEL = os.environ.get("ASSISTANT_MODEL", "gemini-2.5-flash")
+# Modelos que razonan: el razonamiento cuenta dentro de max_tokens. «none» lo apaga en Gemini 2.5 Flash/Flash-Lite;
+# otros modelos pueden no aceptarlo (error 400): con ellos, poner «low» o dejarlo vacío (= no se envía).
+ASSISTANT_REASONING_EFFORT = os.environ.get("ASSISTANT_REASONING_EFFORT", "none")
+# Cupo diario de toda la instancia (la clave es única): preguntas para el usuario, llamadas para el proveedor.
+ASSISTANT_DAILY_QUESTIONS = int(os.environ.get("ASSISTANT_DAILY_QUESTIONS", "25"))
+ASSISTANT_DAILY_CALLS = int(os.environ.get("ASSISTANT_DAILY_CALLS", "75"))
+# Plazo total por pregunta (s), por debajo del timeout del servidor (gunicorn: 30 s por defecto).
+ASSISTANT_TIMEOUT = int(os.environ.get("ASSISTANT_TIMEOUT", "25"))
 
 LOGGING = {
     "version": 1,

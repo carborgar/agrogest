@@ -456,7 +456,7 @@ def build_treatment_form_data(user, treatment=None, recent_days=90):
     return data
 
 
-def get_shopping_list(user, field_ids=None, treatment_ids=None):
+def get_shopping_list(user, field_ids=None, treatment_ids=None, organization=None):
     """
     Devuelve un listado agregado de productos necesarios para los
     tratamientos pendientes/atrasados del usuario.
@@ -466,6 +466,8 @@ def get_shopping_list(user, field_ids=None, treatment_ids=None):
     user           : usuario autenticado
     field_ids      : lista de IDs de parcela para filtrar (None = todas)
     treatment_ids  : lista de IDs de tratamiento para filtrar (None = todos)
+    organization   : si se indica, filtra por ella en vez de por el usuario
+                     (un superusuario vería todas las organizaciones; el asistente la pasa siempre)
 
     Devuelve
     --------
@@ -476,9 +478,13 @@ def get_shopping_list(user, field_ids=None, treatment_ids=None):
         distribution_groups: list[{name, is_manual, group_total, unit, fields}]
     """
 
+    base = (
+        TreatmentProduct.objects.filter(organization=organization)
+        if organization is not None
+        else TreatmentProduct.ownership_objects.get_queryset_for_user(user)
+    )
     queryset = (
-        TreatmentProduct.ownership_objects
-        .get_queryset_for_user(user)
+        base
         .filter(treatment__status__in=['pending', 'delayed'])
         .select_related('product', 'product__product_type', 'treatment', 'treatment__field', 'treatment__field__storage_point')
         .order_by('treatment__field__name', 'treatment__date')

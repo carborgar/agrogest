@@ -1,6 +1,6 @@
 # Asistente IA (`assistant`)
 
-> **Estado:** diseño. Todavía no hay código. Este documento fija la arquitectura, los casos de uso y los límites antes de implementar.
+> **Estado:** implementado, apagado por defecto. Para activarlo: configurar `ASSISTANT_API_KEY` y encender el flag `ASSISTANT` en el admin. Este documento recoge la arquitectura, los casos de uso y los límites.
 
 Asistente de **solo lectura** que responde en lenguaje natural sobre los datos de la organización: tratamientos, costes, productos, tiempo y cálculo de compras.
 
@@ -102,13 +102,14 @@ erDiagram
     Organization ||--o{ AssistantUsage : tiene
     AssistantUsage {
         date date "único con organization"
-        int calls "llamadas al modelo, no preguntas"
+        int questions "preguntas: el cupo que ve el usuario"
+        int calls "llamadas al modelo"
         int input_tokens
         int output_tokens
     }
 ```
 
-`calls` cuenta **llamadas al modelo** (hasta 3 por pregunta), porque es lo que cuenta el proveedor. Se incrementa con `get_or_create` + `F()` para que dos peticiones simultáneas no se pisen.
+`questions` es el cupo que ve el usuario («Quedan N de 25 hoy»). `calls` cuenta **llamadas al modelo** (hasta 3 por pregunta), porque es lo que cuenta el proveedor. Se incrementa con `get_or_create` + `F()` para que dos peticiones simultáneas no se pisen.
 
 ### Detalles del bucle (`service.py`)
 
@@ -325,13 +326,14 @@ Estimación orientativa: **2.000–6.000 tokens por pregunta**, porque en cada v
 
 1. **Clave de un proyecto sin facturación.** Si no hay tarjeta asociada, el proveedor no puede cobrar: al agotar la cuota responde `429`. Esta es la garantía real.
 2. **Cupo propio** (`AssistantUsage`), comprobado **antes de cada llamada** al modelo, no solo al empezar la pregunta:
-   - `ASSISTANT_DAILY_LIMIT`: llamadas por organización y día.
-   - `ASSISTANT_GLOBAL_DAILY_LIMIT`: total de la instancia, porque la clave es única y la comparten todas las organizaciones. Va con margen por debajo del límite gratuito.
+   - `ASSISTANT_DAILY_QUESTIONS` (25): preguntas al día de toda la instancia. Es lo que ve el usuario.
+   - `ASSISTANT_DAILY_CALLS` (75): llamadas al modelo al día de toda la instancia. Va con margen por debajo del límite gratuito del proveedor.
+   - Los dos son globales porque la clave es única y hoy hay una sola organización. El uso ya se guarda por organización, para poner un límite propio a cada una cuando haya usuarios externos.
 3. **Feature flag `ASSISTANT` creado apagado** con una migración de datos. `core.models.is_enabled` devuelve `True` si el flag no existe, así que sin esa migración el módulo aparecería encendido. Además, la vista y el menú comprueban que exista `ASSISTANT_API_KEY`, porque `FeatureFlagMixin` no lo hace.
 4. **Sin reintentos automáticos** ante `429` o timeout, porque reintentar gasta cupo. El usuario ve «El asistente ha llegado al límite de hoy». El `429` también puede venir del límite por minuto del proveedor; el mensaje distingue «inténtalo en un minuto».
 5. **Plazo global por pregunta** (unos 25 s), por debajo del timeout de gunicorn (ver §2).
 
-Variables de entorno: `ASSISTANT_API_KEY`, `ASSISTANT_BASE_URL`, `ASSISTANT_MODEL`, `ASSISTANT_DAILY_LIMIT`, `ASSISTANT_GLOBAL_DAILY_LIMIT`.
+Variables de entorno (valores por defecto en `agrogest/settings.py`): `ASSISTANT_API_KEY`, `ASSISTANT_BASE_URL`, `ASSISTANT_MODEL`, `ASSISTANT_REASONING_EFFORT`, `ASSISTANT_DAILY_QUESTIONS`, `ASSISTANT_DAILY_CALLS`, `ASSISTANT_TIMEOUT`.
 
 **Proveedor inicial:** Gemini (Google AI Studio) a través de su endpoint compatible con OpenAI. Las alternativas con el mismo cliente son Groq y los modelos `:free` de OpenRouter. En Cloudflare Workers AI no todos los modelos admiten herramientas. Los límites gratuitos cambian a menudo: hay que revisarlos en la documentación oficial al implementar, igual que el soporte de herramientas del modelo elegido.
 
@@ -379,3 +381,14 @@ Las frases de §4, con sus parámetros esperados, forman el conjunto de prueba d
 - Se ejecuta **a mano** contra el modelo real (por ejemplo, `manage.py assistant_eval`), nunca en CI, para no gastar cupo.
 - Compara las llamadas a herramientas y sus parámetros, no el texto de la respuesta.
 - Cada pregunta real que falle se añade al conjunto.
+
+---
+
+## 11. Notas de implementación
+
+- **Las tablas no pasan por el modelo.** Cada herramienta devuelve el texto que lee el modelo y, aparte, los chips «He entendido», la tabla y los candidatos, que la plantilla pinta directamente. Así las cifras que ve el usuario salen del código, y el modelo solo escribe una conclusión de 1–3 frases.
+- **Interfaz:** formulario normal con POST y redirección (sin JavaScript para preguntar). El historial vive en la sesión: se muestran los 6 últimos turnos y al modelo solo van los 4 últimos. Los candidatos salen como botones que envían su nombre como siguiente pregunta. El cuadro de pregunta va al final de la conversación, no fijo sobre la barra inferior: así no choca con el menú del móvil.
+- **Despliegue:** en Vercel cada petición es una invocación aparte, así que la espera no bloquea a otros usuarios. Lo que limita es la duración máxima de la función, que tiene que ser mayor que `ASSISTANT_TIMEOUT`. En Docker, `entrypoint.sh` arranca gunicorn con 2 workers, 4 hilos y timeout de 40 s.
+- **Topes por pregunta:** como mucho 5 herramientas por respuesta del modelo (a las demás se les contesta con un error) y 4 tablas por turno, para que la sesión no crezca. `ventana_tratamiento` no arranca si no quedan al menos 17 s del plazo (AEMET puede tardar 12).
+- **429 del proveedor:** se distingue el cupo diario agotado («vuelve mañana») del límite por minuto («espera un minuto») leyendo el cuerpo del error.
+- **Pendiente:** registro de preguntas sin respuesta (§4.8) y conjunto de prueba contra el modelo real (§10).

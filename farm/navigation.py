@@ -28,6 +28,13 @@ def request_flags(request) -> dict:
     return request._feature_flags
 
 
+def _assistant(request) -> bool:
+    """Asistente: flag ASSISTANT encendido y clave del proveedor configurada."""
+    from django.conf import settings
+    return bool(request_flags(request).get('ASSISTANT', False) and settings.ASSISTANT_API_KEY
+                and getattr(request.user, 'organization', None))
+
+
 def _feature(name: str) -> Callable:
     """Visible solo si el feature flag existe y está activo (igual que antes en la plantilla)."""
     def check(request) -> bool:
@@ -64,6 +71,7 @@ NAV = (
         NavItem('nav_calendar', 'Calendario', 'fas fa-calendar-days', 'treatment-calendar', tab_label='Calendario'),
         NavItem('nav_shopping', 'Preparar productos', 'fa fa-boxes-packing', 'treatment-shopping-list', tab_label='Preparar'),
         NavItem('nav_weather', 'El Tiempo', 'fa fa-cloud-sun', 'weather-overview', visible=_feature('WEATHER')),
+        NavItem('nav_assistant', 'Asistente IA', 'fa fa-comments', 'assistant', visible=_assistant),
     )),
     NavGroup('Explotación', (
         # Las casetillas se gestionan dentro de Parcelas
