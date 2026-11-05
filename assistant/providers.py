@@ -12,9 +12,12 @@ import ssl
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 import certifi
 from django.conf import settings
+from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +35,10 @@ class RateLimited(ProviderError):
 
 class DailyLimit(RateLimited):
     user_message = 'El proveedor ha agotado su cupo gratuito de hoy. El asistente vuelve mañana.'
+
+
+class ModelUnavailable(ProviderError):
+    """El modelo no existe o se ha retirado (404): se salta igual que uno agotado."""
 
 
 class ProviderTimeout(ProviderError):
@@ -84,6 +91,8 @@ class OpenAICompatibleProvider:
             if exc.code == 429:
                 # Gemini indica qué cuota se ha agotado (p. ej. «…PerDay…») en el cuerpo del error
                 raise (DailyLimit() if 'perday' in detail.lower().replace(' ', '') else RateLimited()) from exc
+            if exc.code == 404:
+                raise ModelUnavailable() from exc
             raise ProviderError() from exc
         except (TimeoutError, socket.timeout) as exc:
             raise ProviderTimeout() from exc
@@ -124,11 +133,48 @@ class OpenAICompatibleProvider:
 
 
 def is_configured():
-    return bool(settings.ASSISTANT_API_KEY)
+    return bool(settings.ASSISTANT_API_KEY and configured_models())
 
 
-def get_provider():
+def get_provider(model):
     return OpenAICompatibleProvider(
-        settings.ASSISTANT_API_KEY, settings.ASSISTANT_BASE_URL,
-        settings.ASSISTANT_MODEL, settings.ASSISTANT_REASONING_EFFORT,
+        settings.ASSISTANT_API_KEY, settings.ASSISTANT_BASE_URL, model, settings.ASSISTANT_REASONING_EFFORT,
     )
+
+
+# ── Varios modelos: cuando uno se agota, el siguiente ─────────────────────────
+# El cupo diario de Gemini se renueva a medianoche de California.
+QUOTA_RESET_TZ = ZoneInfo('America/Los_Angeles')
+
+
+def configured_models():
+    return [m.strip() for m in settings.ASSISTANT_MODEL.split(',') if m.strip()]
+
+
+def _exhausted_key(model):
+    return f'assistant:exhausted:{model}'
+
+
+# Un 404 puede ser un nombre mal escrito o un fallo puntual: se vuelve a probar antes que un cupo agotado.
+UNAVAILABLE_TTL = 3600
+RESET_MARGIN = 60  # no volver a probar justo en el segundo del reset
+
+
+def seconds_until_reset(now=None):
+    """Segundos hasta la próxima medianoche de California (en UTC, para que los cambios de hora no descuadren)."""
+    now = now or datetime.now(QUOTA_RESET_TZ)
+    midnight = (now.astimezone(QUOTA_RESET_TZ) + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    delta = midnight.astimezone(timezone.utc) - now.astimezone(timezone.utc)
+    return max(60, int(delta.total_seconds()) + RESET_MARGIN)
+
+
+def mark_exhausted(model, reason='cupo diario agotado'):
+    """Apunta el modelo para no volver a probarlo: hasta el reset del cupo, o una hora si no existe (404)."""
+    unavailable = reason != 'cupo diario agotado'
+    logger.warning('Asistente: modelo %s: %s; se pasa al siguiente.', model, reason)
+    cache.set(_exhausted_key(model), True, UNAVAILABLE_TTL if unavailable else seconds_until_reset())
+
+
+def available_models():
+    """Modelos de la lista que no están apuntados como agotados, en orden."""
+    return [m for m in configured_models() if not cache.get(_exhausted_key(m))]

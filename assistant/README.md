@@ -326,8 +326,8 @@ Estimación orientativa: **2.000–6.000 tokens por pregunta**, porque en cada v
 
 1. **Clave de un proyecto sin facturación.** Si no hay tarjeta asociada, el proveedor no puede cobrar: al agotar la cuota responde `429`. Esta es la garantía real.
 2. **Cupo propio** (`AssistantUsage`), comprobado **antes de cada llamada** al modelo, no solo al empezar la pregunta:
-   - `ASSISTANT_DAILY_QUESTIONS` (25): preguntas al día de toda la instancia. Es lo que ve el usuario.
-   - `ASSISTANT_DAILY_CALLS` (75): llamadas al modelo al día de toda la instancia. Va con margen por debajo del límite gratuito del proveedor.
+   - `ASSISTANT_DAILY_QUESTIONS` (260): preguntas al día de toda la instancia. Es lo que ve el usuario; un tercio de las llamadas, porque cada pregunta gasta hasta 3.
+   - `ASSISTANT_DAILY_CALLS` (800): llamadas al modelo al día de toda la instancia. Es el 80 % de la suma de las peticiones/día gratuitas de los modelos de la lista.
    - Los dos son globales porque la clave es única y hoy hay una sola organización. El uso ya se guarda por organización, para poner un límite propio a cada una cuando haya usuarios externos.
 3. **Feature flag `ASSISTANT` creado apagado** con una migración de datos. `core.models.is_enabled` devuelve `True` si el flag no existe, así que sin esa migración el módulo aparecería encendido. Además, la vista y el menú comprueban que exista `ASSISTANT_API_KEY`, porque `FeatureFlagMixin` no lo hace.
 4. **Sin reintentos automáticos** ante `429` o timeout, porque reintentar gasta cupo. El usuario ve «El asistente ha llegado al límite de hoy». El `429` también puede venir del límite por minuto del proveedor; el mensaje distingue «inténtalo en un minuto».
@@ -335,7 +335,17 @@ Estimación orientativa: **2.000–6.000 tokens por pregunta**, porque en cada v
 
 Variables de entorno (valores por defecto en `agrogest/settings.py`): `ASSISTANT_API_KEY`, `ASSISTANT_BASE_URL`, `ASSISTANT_MODEL`, `ASSISTANT_REASONING_EFFORT`, `ASSISTANT_DAILY_QUESTIONS`, `ASSISTANT_DAILY_CALLS`, `ASSISTANT_TIMEOUT`.
 
-**Proveedor inicial:** Gemini (Google AI Studio) a través de su endpoint compatible con OpenAI. Las alternativas con el mismo cliente son Groq y los modelos `:free` de OpenRouter. En Cloudflare Workers AI no todos los modelos admiten herramientas. Los límites gratuitos cambian a menudo: hay que revisarlos en la documentación oficial al implementar, igual que el soporte de herramientas del modelo elegido.
+**Proveedor inicial:** Gemini (Google AI Studio) a través de su endpoint compatible con OpenAI, con **varios modelos en cadena**: `ASSISTANT_MODEL=gemini-3.1-flash-lite,gemini-3.5-flash-lite`. En el nivel gratuito cada modelo tiene su propio cupo (en noviembre de 2026, 15 peticiones/min y 500/día cada uno; 2.5 Flash y 3 Flash solo 20/día). Se consultan en AI Studio → «Límite de frecuencia», con «Todos los modelos» activado.
+
+- Si un modelo devuelve el 429 de cupo diario, o un 404 porque se ha retirado, se apunta como agotado en la caché hasta medianoche de California (cuando Google renueva el cupo). La pregunta se repite desde el principio con el siguiente modelo. Desde el principio porque los modelos 3.x firman sus llamadas a herramientas y otro modelo podría rechazar esa firma.
+- Las preguntas siguientes ya no prueban el modelo agotado.
+- El 429 por minuto no cambia de modelo: el usuario ve «espera un minuto».
+- Con todos agotados, el asistente avisa de que vuelve mañana sin llamar al proveedor.
+- Un 404 solo aparta el modelo una hora (puede ser un nombre mal escrito o un fallo puntual) y queda en el log con el motivo.
+- El reintento con otro modelo comparte el plazo de la pregunta: si el primero tardó mucho en fallar, puede no dar tiempo y habrá que repetir la pregunta (el modelo agotado ya no se prueba).
+- `ASSISTANT_REASONING_EFFORT` se aplica a todos los modelos de la lista: tienen que ser de la misma familia.
+
+Alternativas con el mismo cliente: Groq y los modelos `:free` de OpenRouter. En Cloudflare Workers AI no todos los modelos admiten herramientas. Los límites gratuitos cambian a menudo: hay que revisarlos en la documentación oficial al implementar, igual que el soporte de herramientas del modelo elegido.
 
 **Aviso:** en el plan gratuito de Gemini, Google puede usar los datos enviados para mejorar sus productos. Con uso familiar es aceptable; si entran usuarios externos, hay que avisarlo en la pantalla del chat o pasar a Groq por defecto.
 

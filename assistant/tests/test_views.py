@@ -40,7 +40,8 @@ def test_empty_page_shows_suggestions_and_quota(client, user, enabled):
 
 
 def test_post_answers_and_redirects(client, user, enabled, monkeypatch):
-    monkeypatch.setattr(service, 'get_provider', lambda: FakeProvider(text_reply('Hola <b>Carlos</b>')))
+    from assistant import providers
+    monkeypatch.setattr(providers, 'get_provider', lambda model: FakeProvider(text_reply('Hola <b>Carlos</b>')))
     client.force_login(user)
     response = client.post(reverse('assistant'), {'q': '¿qué tal?'})
     assert response.status_code == 302

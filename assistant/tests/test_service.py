@@ -133,3 +133,137 @@ def test_too_many_tools_in_one_round(user, settings_assistant):
     assert len(tool_msgs) == 8
     assert sum('demasiadas' in m['content'] for m in tool_msgs) == 3
     assert len(turn.tables) == service.MAX_TABLES_PER_TURN
+
+
+class ModelProviders:
+    """Un FakeProvider por modelo, para probar el cambio de modelo."""
+
+    def __init__(self, **by_model):
+        self.by_model = by_model
+        self.used = []
+
+    def __call__(self, model):
+        self.used.append(model)
+        return self.by_model[model]
+
+
+@pytest.fixture
+def fresh_cache():
+    from django.core.cache import cache
+    cache.clear()
+    yield
+    cache.clear()
+
+
+def test_exhausted_model_restarts_question_with_next(user, org, settings_assistant, monkeypatch, fresh_cache):
+    from assistant import providers
+    from assistant.providers import DailyLimit
+    FieldFactory(organization=org, name='Vegueta')
+    factory = ModelProviders(**{
+        'modelo-a': FakeProvider(tool_reply('historial_tratamientos', parcelas=['vegueta']), DailyLimit()),
+        'modelo-b': FakeProvider(tool_reply('historial_tratamientos', parcelas=['vegueta']), text_reply('Con B.')),
+    })
+    monkeypatch.setattr(providers, 'get_provider', factory)
+    turn = service.ask('¿y la vegueta?', [], user)
+    assert turn.answer == 'Con B.'
+    assert len(turn.tables) == 1          # la pasada fallida no deja tablas repetidas
+    assert providers.available_models() == ['modelo-b']
+
+    # La siguiente pregunta ya no prueba el agotado
+    factory.by_model['modelo-b'] = FakeProvider(text_reply('Otra vez B.'))
+    factory.used.clear()
+    assert service.ask('hola', [], user).answer == 'Otra vez B.'
+    assert factory.used == ['modelo-b']
+
+
+def test_missing_model_is_skipped(user, settings_assistant, monkeypatch, fresh_cache):
+    from assistant import providers
+    from assistant.providers import ModelUnavailable
+    factory = ModelProviders(**{'modelo-a': FakeProvider(ModelUnavailable()),
+                                'modelo-b': FakeProvider(text_reply('ok'))})
+    monkeypatch.setattr(providers, 'get_provider', factory)
+    assert service.ask('hola', [], user).answer == 'ok'
+
+
+def test_all_models_exhausted(user, settings_assistant, monkeypatch, fresh_cache):
+    from assistant import providers
+    from assistant.providers import DailyLimit
+    factory = ModelProviders(**{'modelo-a': FakeProvider(DailyLimit()), 'modelo-b': FakeProvider(DailyLimit())})
+    monkeypatch.setattr(providers, 'get_provider', factory)
+    turn = service.ask('hola', [], user)
+    assert turn.error and 'cupo gratuito de hoy' in turn.answer
+    # Y sin modelos disponibles ni se llama al proveedor
+    factory.used.clear()
+    assert 'cupo gratuito de hoy' in service.ask('otra', [], user).answer
+    assert factory.used == []
+
+
+def test_per_minute_limit_does_not_switch_model(user, settings_assistant, monkeypatch, fresh_cache):
+    from assistant import providers
+    factory = ModelProviders(**{'modelo-a': FakeProvider(RateLimited()), 'modelo-b': FakeProvider(text_reply('x'))})
+    monkeypatch.setattr(providers, 'get_provider', factory)
+    turn = service.ask('hola', [], user)
+    assert 'Espera un minuto' in turn.answer
+    assert providers.available_models() == ['modelo-a', 'modelo-b']
+
+
+def test_seconds_until_reset_normal_day():
+    from datetime import datetime
+
+    from assistant.providers import QUOTA_RESET_TZ, seconds_until_reset
+    from assistant.providers import RESET_MARGIN
+    assert seconds_until_reset(datetime(2026, 11, 5, 23, 0, tzinfo=QUOTA_RESET_TZ)) == 3600 + RESET_MARGIN
+    assert seconds_until_reset(datetime(2026, 11, 5, 23, 59, 50, tzinfo=QUOTA_RESET_TZ)) == 70
+
+
+def test_model_list_from_settings(settings):
+    from assistant.providers import configured_models
+    settings.ASSISTANT_MODEL = ' a , b,, '
+    assert configured_models() == ['a', 'b']
+
+
+def test_404_raises_model_unavailable():
+    import io
+    import urllib.error
+    from unittest import mock
+
+    from assistant.providers import ModelUnavailable, OpenAICompatibleProvider
+    err = urllib.error.HTTPError('u', 404, 'Not Found', {}, io.BytesIO(b'{}'))
+    with mock.patch('urllib.request.urlopen', side_effect=err):
+        with pytest.raises(ModelUnavailable):
+            OpenAICompatibleProvider('k', 'https://x', 'm').complete([], [], timeout=5)
+
+
+def test_reset_is_dst_safe():
+    from datetime import datetime
+
+    from assistant.providers import QUOTA_RESET_TZ, RESET_MARGIN, seconds_until_reset
+    # 1 nov 2026 en California dura 25 h (cambio de hora)
+    assert seconds_until_reset(datetime(2026, 11, 1, 0, 0, tzinfo=QUOTA_RESET_TZ)) == 25 * 3600 + RESET_MARGIN
+
+
+def test_404_marks_model_for_one_hour_only(settings_assistant, monkeypatch):
+    from assistant import providers
+    seen = {}
+    monkeypatch.setattr(providers.cache, 'set', lambda key, value, ttl: seen.update({key: ttl}))
+    providers.mark_exhausted('modelo-a', 'no existe (404)')
+    assert seen == {'assistant:exhausted:modelo-a': providers.UNAVAILABLE_TTL}
+
+
+def test_empty_model_list_is_not_configured(user, settings_assistant, fresh_cache):
+    from assistant import providers
+    settings_assistant.ASSISTANT_MODEL = ' , '
+    assert not providers.is_configured()
+    turn = service.ask('hola', [], user, provider=FakeProvider())
+    assert turn.error and 'cupo' not in turn.answer
+
+
+def test_quota_counts_both_passes_once_per_question(user, org, settings_assistant, monkeypatch, fresh_cache):
+    from assistant import providers
+    from assistant.providers import DailyLimit
+    factory = ModelProviders(**{'modelo-a': FakeProvider(tool_reply('costes'), DailyLimit()),
+                                'modelo-b': FakeProvider(text_reply('ok'))})
+    monkeypatch.setattr(providers, 'get_provider', factory)
+    service.ask('gasto', [], user)
+    usage = AssistantUsage.objects.get(organization=org)
+    assert (usage.questions, usage.calls) == (1, 3)

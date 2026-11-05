@@ -28,4 +28,5 @@ def settings_assistant(settings):
     settings.ASSISTANT_DAILY_QUESTIONS = 5
     settings.ASSISTANT_DAILY_CALLS = 10
     settings.ASSISTANT_TIMEOUT = 25
+    settings.ASSISTANT_MODEL = 'modelo-a,modelo-b'
     return settings
