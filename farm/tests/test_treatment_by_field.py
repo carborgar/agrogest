@@ -157,3 +157,76 @@ class TestTreatmentByField:
         assert 'hace 3 d' in html
         active = [i['key'] for g in resp.context['nav_groups'] for i in g['items'] if i['active']]
         assert active == ['nav_by_field']
+
+
+@pytest.mark.django_db
+class TestTreatmentByFieldFilters:
+
+    def _setup(self, org):
+        from farm.tests.factories import ProductTypeFactory, SprayingProductFactory, SprayingTreatmentProductFactory
+        acaricida = ProductTypeFactory(organization=org, name='Acaricida')
+        cobre_t = ProductTypeFactory(organization=org, name='Fungicida')
+        flash = SprayingProductFactory(organization=org, name='FLASH', product_type=acaricida)
+        cupro = SprayingProductFactory(organization=org, name='CUPROCOL', product_type=cobre_t)
+        a = FieldFactory(organization=org, name='Atalaya')
+        b = FieldFactory(organization=org, name='Borboli')
+        for field, name, ago, prod in [(a, 'ARAÑA', 40, flash), (a, 'COBRE', 10, cupro),
+                                       (b, 'COBRE', 12, cupro), (b, 'ARAÑA', 300, flash)]:
+            t = _done(org, field, name, ago)
+            SprayingTreatmentProductFactory(treatment=t, product=prod)
+        _done(org, a, 'Abonado', 2, factory=FertigationTreatmentFactory)
+        return a, b, acaricida, flash
+
+    def test_product_type_filter_keeps_fields_without_matches(self, setup):
+        client, org = setup
+        a, b, acaricida, _ = self._setup(org)
+        rows = client.get(URL, {'product_types': acaricida.id}).context['rows']
+        assert [_names(r) for r in rows] == [['ARAÑA'], ['ARAÑA']]
+
+    def test_product_filter(self, setup):
+        client, org = setup
+        _, _, _, flash = self._setup(org)
+        rows = client.get(URL, {'products': flash.id}).context['rows']
+        assert [_names(r) for r in rows] == [['ARAÑA'], ['ARAÑA']]
+
+    def test_type_filter(self, setup):
+        client, org = setup
+        self._setup(org)
+        rows = client.get(URL, {'type': 'fertigation'}).context['rows']
+        assert [_names(r) for r in rows] == [['Abonado'], []]
+        assert 'Ninguno con estos filtros' in client.get(URL, {'type': 'fertigation'}).content.decode()
+
+    def test_field_filter_limits_rows(self, setup):
+        client, org = setup
+        a, b, _, _ = self._setup(org)
+        rows = client.get(URL, {'field': b.id}).context['rows']
+        assert [r['field'].name for r in rows] == ['Borboli']
+
+    def test_period_on_finish_date_and_last_n_inside(self, setup):
+        client, org = setup
+        self._setup(org)
+        ctx = client.get(URL, {'date_from': _ago(50).isoformat(), 'date_to': _ago(5).isoformat(), 'n': 3}).context
+        assert [_names(r) for r in ctx['rows']] == [['COBRE', 'ARAÑA'], ['COBRE']]
+        assert ctx['panel_filter_count'] == 1
+
+    def test_invalid_params_are_ignored(self, setup):
+        client, org = setup
+        self._setup(org)
+        resp = client.get(URL, {'date_from': 'ayer', 'field': 'x', 'type': 'otro', 'products': '-1'})
+        assert resp.status_code == 200 and resp.context['panel_filter_count'] == 0
+
+    def test_limit_links_keep_filters(self, setup):
+        client, org = setup
+        _, _, acaricida, _ = self._setup(org)
+        html = client.get(URL, {'product_types': acaricida.id, 'n': 3}).content.decode()
+        assert f'?n=10&product_types={acaricida.id}"' in html
+
+    def test_similar_treatments_share_color(self, setup):
+        client, org = setup
+        self._setup(org)
+        ctx = client.get(URL).context
+        colors = {t.name: t.similar_color for r in ctx['rows'] for t in r['treatments']}
+        cobres = [t.similar_color for r in ctx['rows'] for t in r['treatments'] if t.name == 'COBRE']
+        assert cobres[0] is not None and cobres[0] == cobres[1]
+        assert colors['Abonado'] is None
+        assert {g['label'] for g in ctx['groups']} >= {'COBRE'}

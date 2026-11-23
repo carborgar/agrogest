@@ -1,0 +1,26 @@
+{% comment %}
+Desplegable de casillas para filtros (mismo marcado que los del listado; el JS global de base.html
+actualiza la etiqueta y el contador). Variables:
+  name, label, icon, options [(valor, texto)], selected [valores en texto], all_label, searchable
+{% endcomment %}
+<label class="form-label small fw-semibold text-muted mb-1"><i class="fa fa-{{ icon }} me-1" aria-hidden="true"></i>{{ label }}</label>
+<div class="dropdown filter-check-dropdown w-100">
+    <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start filter-dd-btn{% if selected %} filter-dd-btn--active{% endif %}"
+            type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" data-default-label="{{ all_label }}">
+        <span class="filter-dd-label">{% if selected %}{{ selected|length }} seleccionado{{ selected|length|pluralize }}{% else %}{{ all_label }}{% endif %}</span>
+        {% if selected %}<span class="badge bg-primary flex-shrink-0">{{ selected|length }}</span>{% endif %}
+    </button>
+    <div class="dropdown-menu filter-dd-menu p-2">
+        {% if searchable %}<input type="text" class="form-control form-control-sm mb-2 filter-dd-search" placeholder="Buscar…" autocomplete="off" aria-label="Buscar en {{ label|lower }}">{% endif %}
+        <div class="filter-dd-options">
+            {% for value, text in options %}
+            <div class="form-check mb-1">
+                <input class="form-check-input" type="checkbox" name="{{ name }}" value="{{ value }}" id="{{ name }}-{{ value }}"{% if value in selected %} checked{% endif %}>
+                <label class="form-check-label small" for="{{ name }}-{{ value }}">{{ text }}</label>
+            </div>
+            {% empty %}
+            <span class="small text-muted">Nada que elegir</span>
+            {% endfor %}
+        </div>
+    </div>
+</div>
