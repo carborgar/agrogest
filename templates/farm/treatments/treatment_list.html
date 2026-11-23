@@ -20,16 +20,7 @@
 
     {# ── Barra superior: pestañas de estado + búsqueda (+ botón de filtros en móvil) ── #}
     <div class="tl-toolbar">
-        <nav class="tl-tabs" aria-label="Estado">
-            <a class="tl-tab{% if status_tab == 'todo' %} active{% endif %}" href="{{ todo_url }}"
-               {% if status_tab == 'todo' %}aria-current="page"{% endif %}>
-                Por hacer <span class="tl-tab-count">{{ todo_count }}</span>
-            </a>
-            <a class="tl-tab{% if status_tab == 'done' %} active{% endif %}" href="{{ done_url }}"
-               {% if status_tab == 'done' %}aria-current="page"{% endif %}>
-                Completados
-            </a>
-        </nav>
+        {% include "farm/treatments/_treatment_tabs.html" %}
         <div class="tl-search">
             <i class="fa fa-search" aria-hidden="true"></i>
             <input type="search" name="q" value="{{ search_query|default:'' }}" class="form-control"
