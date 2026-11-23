@@ -173,6 +173,8 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
         context['date_to_is_default'] = date_to_is_default
         context['product_types'] = ProductType.ownership_objects.get_queryset_for_user(self.request.user)
         context['selected_product_types'] = selected_product_types
+        # Contador de «Filtrar por producto» (en la plantilla, length|add con listas daba siempre 0)
+        context['advanced_filter_count'] = len(selected_product_types) + len(selected_products)
         context['total_count'] = self.object_list.count()
         context['show_groups'] = (sort == 'urgency')
         # Conteo por grupo sobre el total filtrado (no sobre la página), en una sola consulta

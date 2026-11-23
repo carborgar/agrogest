@@ -441,3 +441,14 @@ class TestTabsAndHome:
             for j in range(4):
                 _done(org, field, f'T{i}{j}', j + 1)
         assert count() == one
+
+
+@pytest.mark.django_db
+def test_list_uses_same_product_filter_toggle_with_count(setup):
+    from farm.tests.factories import ProductTypeFactory, SprayingProductFactory
+    client, org = setup
+    pt = ProductTypeFactory(organization=org)
+    prod = SprayingProductFactory(organization=org)
+    html = client.get(reverse('treatment-list'), {'product_types': pt.id, 'products': prod.id}).content.decode()
+    assert 'Filtrar por producto' in html and 'Más filtros' not in html and 'Menos filtros' not in html
+    assert '<span class="badge bg-primary ms-1">2</span>' in html

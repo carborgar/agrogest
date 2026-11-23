@@ -133,7 +133,7 @@
                         <i class="fa fa-sliders me-1" aria-hidden="true"></i>Filtrar por producto
                         <i class="fa fa-chevron-down ms-1 advanced-toggle-icon" aria-hidden="true"></i>
                         {% if selected_product_types or selected_products %}
-                        <span class="badge bg-primary ms-1">{{ selected_product_types|length|add:selected_products|length }}</span>
+                        <span class="badge bg-primary ms-1">{{ advanced_filter_count }}</span>
                         {% endif %}
                     </button>
                     <div class="collapse tl-advanced {% if selected_product_types or selected_products %}show{% endif %}" id="advancedFilters">
