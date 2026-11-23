@@ -2,7 +2,7 @@
 {% comment %}
 Tabla «por parcela»: una fila por parcela y una tarjeta por tratamiento hecho (1 = el último), con los
 parecidos del mismo color y una leyenda que destaca un grupo. Las columnas son iguales y ocupan todo el
-ancho; si no caben se desplaza en horizontal con la parcela fija. Contexto de `farm.field_history`
+ancho; en escritorio siempre caben y en móvil y tableta se desplaza en horizontal con la parcela fija. Contexto de `farm.field_history`
 (rows, groups, limit, columns) y, opcionales, panel_filter_count y compact (columnas estrechas, Inicio).
 La usan «Por parcela» e Inicio. Todo va dentro de .bf-wrap y el script actúa en cada uno por separado.
 El enlace de la parcela lleva date_from/date_to vacíos para que el listado no se limite al año en curso.
@@ -22,7 +22,7 @@ El enlace de la parcela lleva date_from/date_to vacíos para que el listado no s
 {% endif %}
 
 <div class="table-responsive">
-        <table class="table table-sm align-top mb-0 bf-table{% if compact %} bf-table--compact{% endif %}" style="--bf-cols: {{ limit }}">
+        <table class="table table-sm align-top mb-0 bf-table{% if compact %} bf-table--compact{% endif %}{% if limit >= 10 %} bf-table--dense{% endif %}" style="--bf-cols: {{ limit }}">
             <caption class="visually-hidden">Últimos {{ limit }} tratamientos hechos por parcela, del más reciente al más antiguo</caption>
             <thead>
             <tr>
