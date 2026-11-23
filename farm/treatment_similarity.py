@@ -8,14 +8,19 @@ No clasifica tandas (la app no sabe qué es «la de la araña»): solo compara c
     aunque una sea el principio de la otra o tenga una errata.
 y junta los que se parecen de media por encima de un umbral (enlace medio: evita que un
 tratamiento mixto, p. ej. fungicida + insecticida, encadene dos grupos distintos).
+
+Con la mezcla 50/50 y el umbral en 0,45 basta con que coincida del todo una de las dos cosas
+(mismo nombre con productos rotados, como se hace con los acaricidas, o la misma receta con
+otro nombre); si solo se parecen a medias, tienen que parecerse en ambas.
 """
 import math
 import re
 import unicodedata
 from collections import Counter
+from functools import lru_cache
 from difflib import SequenceMatcher
 
-THRESHOLD = 0.5          # parecido medio mínimo para juntar dos grupos
+THRESHOLD = 0.45         # parecido medio mínimo para juntar dos grupos (ver arriba)
 PRODUCT_WEIGHT = 0.5     # peso de los productos frente al nombre cuando hay ambos
 MIN_TOKEN = 3
 STOPWORDS = frozenset({'del', 'las', 'los', 'para', 'con', 'sin', 'por', 'solo', 'una', 'uno'})
@@ -35,6 +40,7 @@ def _words(text):
     return out
 
 
+@lru_cache(maxsize=4096)
 def _same_word(a, b):
     if a == b:
         return True
@@ -62,10 +68,8 @@ def product_similarity(a, b, weights):
     """Jaccard ponderado: los productos que van en casi todos los tratamientos casi no cuentan."""
     if not a or not b:
         return None
-    union = sum(weights[p] for p in a | b)
-    if union == 0:
-        return 1.0 if a == b else 0.0
-    return sum(weights[p] for p in a & b) / union
+    # Los pesos son siempre > 0 (idf suavizado), así que la unión nunca suma 0
+    return sum(weights[p] for p in a & b) / sum(weights[p] for p in a | b)
 
 
 def _combine(prod, name):
@@ -80,13 +84,15 @@ def _combine(prod, name):
 
 def group_similar(items, excluded_words=frozenset(), threshold=THRESHOLD):
     """
-    `items`: lista de (clave, nombre, conjunto de productos).
+    `items`: lista de (clave, nombre, conjunto de productos). `excluded_words`: textos (p. ej. nombres de
+    parcela) cuyas palabras no cuentan; la exclusión es aproximada, así que «Navelinos» también quita «navel».
     Devuelve [{'keys': [...], 'label': str}] con los grupos de 2 o más, del mayor al menor.
     """
     n = len(items)
     if n < 2:
         return []
-    excluded = frozenset(_strip_accents(w).lower() for w in excluded_words)
+    # Se trocean con la misma regla que los nombres («Las Pitas», «Cartuja-2»)
+    excluded = frozenset(w for text in excluded_words for w in _words(text))
     tokens = [name_tokens(name, excluded) for _, name, _ in items]
     products = [frozenset(p) for _, _, p in items]
 
@@ -101,21 +107,40 @@ def group_similar(items, excluded_words=frozenset(), threshold=THRESHOLD):
                          name_similarity(tokens[i], tokens[j]))
             sim[i][j] = sim[j][i] = s
 
-    # Clustering aglomerativo con enlace medio (n es pequeño: parcelas × N ≤ unos cientos)
-    clusters = [[i] for i in range(n)]
-    while True:
-        best, pair = threshold, None
-        for a in range(len(clusters)):
-            for b in range(a + 1, len(clusters)):
-                ca, cb = clusters[a], clusters[b]
-                avg = sum(sim[i][j] for i in ca for j in cb) / (len(ca) * len(cb))
-                if avg >= best:
-                    best, pair = avg, (a, b)
-        if pair is None:
+    # Clustering aglomerativo con enlace medio. Se guarda la similitud media entre grupos y,
+    # al fusionar a y b, se actualiza con Lance-Williams: s(k, a∪b) = (|a|·s(k,a) + |b|·s(k,b)) / (|a|+|b|).
+    clusters = {i: [i] for i in range(n)}
+    link = {i: {j: sim[i][j] for j in range(n) if j != i} for i in range(n)}
+
+    def nearest(k):
+        row = link[k]
+        if not row:
+            return (-1.0, None)
+        other = max(row, key=lambda j: (row[j], -j))
+        return (row[other], other)
+
+    best = {k: nearest(k) for k in link}  # vecino más parecido de cada grupo (evita recorrer todos los pares)
+    while len(clusters) > 1:
+        a = max(best, key=lambda k: (best[k][0], -k))
+        value, b = best[a]
+        if b is None or value < threshold:
             break
-        a, b = pair
-        clusters[a] = clusters[a] + clusters[b]
-        del clusters[b]
+        size_a, size_b = len(clusters[a]), len(clusters[b])
+        del link[a][b]
+        del link[b]
+        del best[b]
+        for k in link:
+            if k == a:
+                continue
+            merged = (size_a * link[a][k] + size_b * link[k].pop(b)) / (size_a + size_b)
+            link[a][k] = link[k][a] = merged
+        clusters[a] += clusters.pop(b)
+        for k in link:
+            if k == a or best[k][1] in (a, b):
+                best[k] = nearest(k)
+            elif link[k][a] > best[k][0]:
+                best[k] = (link[k][a], a)
+    clusters = list(clusters.values())
 
     groups = []
     for members in clusters:
@@ -133,36 +158,47 @@ def group_similar(items, excluded_words=frozenset(), threshold=THRESHOLD):
 
 
 def _disambiguate(groups):
-    """Si dos grupos se llaman igual («ARAÑA»), se añade la siguiente palabra que más se repite en cada uno
-    («ARAÑA LEANRI») y, si no hay, un número."""
+    """Etiquetas únicas y nunca vacías. Si dos grupos se llaman igual («ARAÑA»), se añade la siguiente
+    palabra de cada uno solo si la llevan al menos la mitad de sus tratamientos («ARAÑA LEANRI»);
+    si no, o si aún coinciden, un número."""
     by_label = {}
     for g in groups:
-        by_label.setdefault(g['label'], []).append(g)
+        by_label.setdefault(g['label'] or 'Grupo', []).append(g)
     for label, same in by_label.items():
-        if len(same) > 1:
-            base = _strip_accents(label).lower()
-            for n, g in enumerate(same, start=1):
-                counts, original = Counter(), {}
-                for toks in g['_tokens']:
-                    for w, orig in toks.items():
-                        if not _same_word(w, base) and w not in base.split():
-                            counts[w] += 1
-                            original.setdefault(w, orig)
-                extra = original[counts.most_common(1)[0][0]] if counts else str(n)
-                g['label'] = f'{label} {extra}'
+        if len(same) == 1:
+            same[0]['label'] = label
+            continue
+        base = _strip_accents(label).lower().split()
+        for g in same:
+            word, c, orig = _top_word(g['_tokens'], exclude=base)
+            g['label'] = f'{label} {orig}' if word and c * 2 >= len(g['_tokens']) else label
+    seen = Counter()
+    for g in groups:
+        seen[g['label']] += 1
+        if seen[g['label']] > 1 or sum(1 for o in groups if o['label'] == g['label']) > 1:
+            g['label'] = f"{g['label']} ({seen[g['label']]})"
     for g in groups:
         del g['_tokens']
 
 
-def _label(member_tokens, names):
-    """La palabra que más se repite en el grupo («ARAÑA»); si ninguna domina, el nombre más repetido."""
-    counts, original = Counter(), {}
+def _top_word(member_tokens, exclude=()):
+    """(palabra, en cuántos aparece, forma original más frecuente) de la palabra más repetida."""
+    counts, forms = Counter(), {}
     for toks in member_tokens:
         for w, orig in toks.items():
+            if any(_same_word(w, e) for e in exclude):
+                continue
             counts[w] += 1
-            original.setdefault(w, orig)
-    if counts:
-        word, c = counts.most_common(1)[0]
-        if c * 2 >= len(member_tokens):
-            return original[word]
-    return Counter(names).most_common(1)[0][0]
+            forms.setdefault(w, Counter())[orig] += 1
+    if not counts:
+        return None, 0, ''
+    word, c = counts.most_common(1)[0]
+    return word, c, forms[word].most_common(1)[0][0]
+
+
+def _label(member_tokens, names):
+    """La palabra que más se repite en el grupo («ARAÑA»); si ninguna domina, el nombre más repetido."""
+    word, c, orig = _top_word(member_tokens)
+    if word and c * 2 >= len(member_tokens):
+        return orig
+    return Counter(n.strip() for n in names).most_common(1)[0][0]

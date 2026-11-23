@@ -224,9 +224,45 @@ class TestTreatmentByFieldFilters:
     def test_similar_treatments_share_color(self, setup):
         client, org = setup
         self._setup(org)
-        ctx = client.get(URL).context
-        colors = {t.name: t.similar_color for r in ctx['rows'] for t in r['treatments']}
-        cobres = [t.similar_color for r in ctx['rows'] for t in r['treatments'] if t.name == 'COBRE']
-        assert cobres[0] is not None and cobres[0] == cobres[1]
-        assert colors['Abonado'] is None
-        assert {g['label'] for g in ctx['groups']} >= {'COBRE'}
+        resp = client.get(URL)
+        groups = {t.name: t.similar for r in resp.context['rows'] for t in r['treatments']}
+        cobres = [t.similar for r in resp.context['rows'] for t in r['treatments'] if t.name == 'COBRE']
+        assert cobres[0] is not None and cobres[0] is cobres[1]
+        assert groups['Abonado'] is None
+        assert 'parecido a «COBRE»' in resp.content.decode()
+
+    def test_unparseable_or_foreign_ids_are_ignored(self, setup):
+        client, org = setup
+        self._setup(org)
+        other = OrganizationFactory(name='Org Ajena')
+        foreign = FieldFactory(organization=other)
+        for params in ({'field': '²'}, {'products': '9' * 30}, {'n': '²'}, {'field': foreign.id},
+                       {'product_types': '999999'}):
+            resp = client.get(URL, params)
+            assert resp.status_code == 200, params
+            assert resp.context['panel_filter_count'] == 0 and len(resp.context['rows']) == 2
+
+    def test_reversed_period_is_swapped(self, setup):
+        client, org = setup
+        self._setup(org)
+        ctx = client.get(URL, {'date_from': _ago(5).isoformat(), 'date_to': _ago(50).isoformat()}).context
+        assert [_names(r) for r in ctx['rows']] == [['COBRE', 'ARAÑA'], ['COBRE']]
+        assert ctx['date_from'] == _ago(50).isoformat()
+
+
+@pytest.mark.django_db
+def test_more_groups_than_colors_repeat_with_dashed_border(setup):
+    from farm.views.treatment_views import TreatmentByFieldView
+    client, org = setup
+    a, b = FieldFactory(organization=org, name='Uno'), FieldFactory(organization=org, name='Dos')
+    names = ['Cobre', 'Cabrio', 'Mosca', 'Calibre', 'Potasio', 'Calcio', 'Hierro', 'Boro',
+             'Zinc', 'Abono', 'Raices', 'Rajado', 'Cotonet', 'Piojo']
+    for i, name in enumerate(names):
+        _done(org, a, name, i + 1)
+        _done(org, b, name, i + 1)
+    from unittest.mock import patch
+    with patch.object(TreatmentByFieldView, 'COLORS', 4):
+        groups = client.get(URL, {'n': 10}).context['groups']
+    assert len(groups) == 10  # uno por nombre, con los últimos 10 de cada parcela
+    assert [g['color'] for g in groups] == [0, 1, 2, 3] * 2 + [0, 1]
+    assert [g['dashed'] for g in groups] == [False] * 4 + [True] * 6

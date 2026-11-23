@@ -818,14 +818,20 @@ class TreatmentByFieldView(BaseSecureViewMixin, TemplateView):
     template_name = 'farm/treatments/treatment_by_field.html'
     LIMIT_CHOICES = (3, 5, 10)
     DEFAULT_LIMIT = 5
-    MAX_COLORS = 8  # tonos de .bf-c0…7 en treatment-styles.css
+    COLORS = 12  # tonos .bf-c0…11 en treatment-styles.css; a partir del 13.º grupo se repiten con borde discontinuo
+
+    @staticmethod
+    def _is_id(value):
+        # isdigit() acepta «²» y números enormes que no caben en un entero de la BD
+        return value.isascii() and value.isdigit() and len(value) <= 9
 
     def _limit(self):
         value = self.request.GET.get('n', '')
-        return int(value) if value.isdigit() and int(value) in self.LIMIT_CHOICES else self.DEFAULT_LIMIT
+        return int(value) if self._is_id(value) and int(value) in self.LIMIT_CHOICES else self.DEFAULT_LIMIT
 
-    def _ids(self, name):
-        return [v for v in self.request.GET.getlist(name) if v.isdigit()]
+    def _ids(self, name, valid):
+        """Ids del GET que existen en las opciones (de la organización), sin repetir."""
+        return [v for v in dict.fromkeys(self.request.GET.getlist(name)) if self._is_id(v) and v in valid]
 
     def _date(self, name):
         value = self.request.GET.get(name, '')
@@ -838,14 +844,22 @@ class TreatmentByFieldView(BaseSecureViewMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         limit = self._limit()
         user = self.request.user
-        valid_types = dict(Treatment.TYPE_CHOICES)
-        f = {
-            'field': self._ids('field'),
-            'type': [t for t in self.request.GET.getlist('type') if t in valid_types],
-            'product_types': self._ids('product_types'),
-            'products': self._ids('products'),
+        all_fields = list(Field.ownership_objects.get_queryset_for_user(user))
+        options = {
+            'field': [(str(x.id), x.name) for x in all_fields],
+            'type': list(Treatment.TYPE_CHOICES),
+            'product_types': [(str(x.id), x.name)
+                              for x in ProductType.ownership_objects.get_queryset_for_user(user)],
+            'products': [(str(x.id), x.name)
+                         for x in Product.ownership_objects.get_queryset_for_user(user).order_by('name')],
         }
+        f = {
+            name: self._ids(name, {v for v, _ in options[name]}) for name in ('field', 'product_types', 'products')
+        }
+        f['type'] = [t for t in dict.fromkeys(self.request.GET.getlist('type')) if t in dict(options['type'])]
         date_from, date_to = self._date('date_from'), self._date('date_to')
+        if date_from and date_to and date_from > date_to:  # puestas al revés: se entiende el rango igual
+            date_from, date_to = date_to, date_from
 
         treatments = (
             Treatment.ownership_objects.get_queryset_for_user(user)
@@ -864,10 +878,9 @@ class TreatmentByFieldView(BaseSecureViewMixin, TemplateView):
         if date_to:
             treatments = treatments.filter(finish_date__lte=date_to)
 
-        fields = Field.ownership_objects.get_queryset_for_user(user)
-        all_fields = list(fields)
+        fields = all_fields
         if f['field']:
-            fields = fields.filter(id__in=f['field'])
+            fields = [x for x in all_fields if str(x.id) in f['field']]
             treatments = treatments.filter(field_id__in=f['field'])
 
         # Una sola consulta: numera los hechos de cada parcela del más reciente al más antiguo
@@ -886,18 +899,20 @@ class TreatmentByFieldView(BaseSecureViewMixin, TemplateView):
         # Parecidos → color. Los nombres de parcela no cuentan como parecido («ARAÑA CARTUJA»).
         groups = group_similar(
             [(t.id, t.name, {tp.product_id for tp in t.treatmentproduct_set.all()}) for t in treatments],
-            excluded_words={w for fl in all_fields for w in fl.name.split()},
-        )[:self.MAX_COLORS]
-        color_of = {}
+            excluded_words={fl.name for fl in all_fields},
+        )
+        group_of = {}
         for index, group in enumerate(groups):
-            group['color'] = index
-            for key in group['keys']:
-                color_of[key] = index
+            group['index'] = index + 1  # para la leyenda (data-bf-group)
+            group['color'] = index % self.COLORS
+            group['dashed'] = index >= self.COLORS
             group['count'] = len(group['keys'])
+            for key in group['keys']:
+                group_of[key] = group
 
         by_field = {}
         for t in treatments:
-            t.similar_color = color_of.get(t.id)
+            t.similar = group_of.get(t.id)
             by_field.setdefault(t.field_id, []).append(t)
 
         rows = [
@@ -927,11 +942,6 @@ class TreatmentByFieldView(BaseSecureViewMixin, TemplateView):
             'selected': f,
             'date_from': date_from.isoformat() if date_from else '',
             'date_to': date_to.isoformat() if date_to else '',
-            'field_options': [(str(x.id), x.name) for x in all_fields],
-            'type_options': list(Treatment.TYPE_CHOICES),
-            'product_type_options': [
-                (str(x.id), x.name) for x in ProductType.ownership_objects.get_queryset_for_user(user)],
-            'product_options': [
-                (str(x.id), x.name) for x in Product.ownership_objects.get_queryset_for_user(user).order_by('name')],
+            'options': options,
         })
         return context

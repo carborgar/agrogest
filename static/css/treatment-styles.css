@@ -1265,7 +1265,7 @@ button.cal-row:hover { background: var(--tl-soft); }
 /* ═══════════════════════════════════════════════
    Por parcela (treatment_by_field.html). Cada tratamiento es una tarjeta de ancho fijo: el nombre se
    recorta y la tabla se desplaza en horizontal en móvil. La parcela queda fija con position-sticky.
-   bf-c0…7: un tono por grupo de tratamientos parecidos (borde y fondo suave), en celdas y leyenda.
+   bf-c0…11: un tono por grupo de tratamientos parecidos (borde y fondo suave), en celdas y leyenda.
 ═══════════════════════════════════════════════ */
 .bf-table th, .bf-table td { padding: .45rem .3rem; border-bottom-color: var(--tl-line); }
 .bf-table th:first-child { padding-left: .75rem; padding-right: .6rem; }
@@ -1290,7 +1290,14 @@ button.cal-row:hover { background: var(--tl-soft); }
 .bf-c5 { --bf: #A16207; --bf-bg: #FBF3DD; }
 .bf-c6 { --bf: #4338CA; --bf-bg: #ECEBFC; }
 .bf-c7 { --bf: #7A5236; --bf-bg: #F3ECE6; }
-.bf-card[data-bf-color] { border-left-color: var(--bf); background: var(--bf-bg); }
+.bf-c8 { --bf: #B91C1C; --bf-bg: #FCEAEA; }
+.bf-c9 { --bf: #4D7C0F; --bf-bg: #EEF5E1; }
+.bf-c10 { --bf: #475569; --bf-bg: #EDF0F4; }
+.bf-c11 { --bf: #0F766E; --bf-bg: #E2F4F1; }
+.bf-card.bf-grouped { border-left-color: var(--bf); background: var(--bf-bg); }
+/* A partir del 13.º grupo se repite el tono con borde discontinuo (y punto hueco en la leyenda) */
+.bf-card.bf-dashed { border-left-style: dashed; }
+.bf-key.bf-dashed .bf-dot { background: transparent; box-shadow: inset 0 0 0 2px var(--bf); }
 /* Móvil: dos columnas a la vista junto a la parcela */
 @media (max-width: 767.98px) {
     .bf-field > a { max-width: 6rem; }

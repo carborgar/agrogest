@@ -3,11 +3,12 @@ Desplegable de casillas para filtros (mismo marcado que los del listado; el JS g
 actualiza la etiqueta y el contador). Variables:
   name, label, icon, options [(valor, texto)], selected [valores en texto], all_label, searchable
 {% endcomment %}
-<label class="form-label small fw-semibold text-muted mb-1"><i class="fa fa-{{ icon }} me-1" aria-hidden="true"></i>{{ label }}</label>
+<label class="form-label small fw-semibold text-muted mb-1" id="{{ name }}-dd-label"><i class="fa fa-{{ icon }} me-1" aria-hidden="true"></i>{{ label }}</label>
 <div class="dropdown filter-check-dropdown w-100">
     <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start filter-dd-btn{% if selected %} filter-dd-btn--active{% endif %}"
-            type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" data-default-label="{{ all_label }}">
-        <span class="filter-dd-label">{% if selected %}{{ selected|length }} seleccionado{{ selected|length|pluralize }}{% else %}{{ all_label }}{% endif %}</span>
+            type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" data-default-label="{{ all_label }}"
+            aria-labelledby="{{ name }}-dd-label {{ name }}-dd-value">
+        <span class="filter-dd-label" id="{{ name }}-dd-value">{% if selected %}{{ selected|length }} seleccionado{{ selected|length|pluralize }}{% else %}{{ all_label }}{% endif %}</span>
         {% if selected %}<span class="badge bg-primary flex-shrink-0">{{ selected|length }}</span>{% endif %}
     </button>
     <div class="dropdown-menu filter-dd-menu p-2">
