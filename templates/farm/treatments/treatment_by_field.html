@@ -9,7 +9,8 @@
 {% comment %}
 Una fila por parcela y una columna por tratamiento hecho (1 = el último), para comparar parcelas
 y ver qué tanda va por delante. Los tratamientos parecidos (productos y nombre) llevan el mismo color;
-la leyenda permite destacar un grupo. En móvil la tabla se desplaza en horizontal con la parcela fija.
+la leyenda permite destacar un grupo. La tabla ocupa todo el ancho con columnas iguales; si no caben
+(móvil, o N=10 en pantallas pequeñas) se desplaza en horizontal con la parcela fija.
 El enlace de la parcela lleva date_from/date_to vacíos para que el listado no se limite al año en curso.
 {% endcomment %}
 {% if not has_fields %}
@@ -109,7 +110,7 @@ El enlace de la parcela lleva date_from/date_to vacíos para que el listado no s
 <div class="d-flex flex-nowrap flex-md-wrap overflow-x-auto align-items-center gap-1 mb-2 pb-1" id="bfLegend">
     <span class="small text-muted me-1 flex-shrink-0">Parecidos:</span>
     {% for g in groups %}
-    <button type="button" class="bf-key flex-shrink-0 text-nowrap bf-c{{ g.color }}{% if g.dashed %} bf-dashed{% endif %}" data-bf-group="{{ forloop.counter }}" aria-pressed="false"
+    <button type="button" class="bf-key flex-shrink-0 text-nowrap bf-c{{ g.color }}{% if g.dashed %} bf-dashed{% endif %}" data-bf-group="{{ g.index }}" aria-pressed="false"
             title="Destacar los {{ g.count }} parecidos a «{{ g.label }}»">
         <span class="bf-dot" aria-hidden="true"></span>{{ g.label }} <span class="text-muted">{{ g.count }}</span>
     </button>
@@ -152,7 +153,7 @@ El enlace de la parcela lleva date_from/date_to vacíos para que el listado no s
                     </a>
                 </td>
                 {% endfor %}
-                {% for _ in row.missing %}<td class="bf-cell"><span class="bf-none">—</span></td>{% endfor %}
+                {% for _ in row.missing %}<td class="bf-cell"><span class="bf-none" aria-hidden="true">—</span><span class="visually-hidden">Sin tratamiento</span></td>{% endfor %}
                 {% else %}
                 <td class="text-muted small align-middle" colspan="{{ limit }}">{% if panel_filter_count %}Ninguno con estos filtros{% else %}Sin tratamientos hechos{% endif %}</td>
                 {% endif %}

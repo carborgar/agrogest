@@ -264,8 +264,8 @@ def test_more_groups_than_colors_repeat_with_dashed_border(setup):
     with patch.object(TreatmentByFieldView, 'COLORS', 4):
         groups = client.get(URL, {'n': 10}).context['groups']
     assert len(groups) == 10  # uno por nombre, con los últimos 10 de cada parcela
-    assert [g['color'] for g in groups] == [0, 1, 2, 3] * 2 + [0, 1]
-    assert [g['dashed'] for g in groups] == [False] * 4 + [True] * 6
+    styles = sorted((g['color'], g['dashed']) for g in groups)
+    assert styles == sorted([(c, False) for c in range(4)] + [(c, True) for c in [0, 1, 2, 3, 0, 1]])
 
 
 @pytest.mark.django_db
@@ -286,4 +286,67 @@ def test_colors_do_not_change_with_n_or_filters(setup):
 
     full, short = colors({'n': 10}), colors({'n': 3})
     assert short['COBRE'] == full['COBRE'] and short['CABRIO'] == full['CABRIO']
-    assert colors({'n': 3, 'field': fields[0].id})['COBRE'] == full['COBRE']
+    assert colors({'n': 3, 'type': 'spraying'})['COBRE'] == full['COBRE']
+
+
+def _colors(client, params):
+    rows = client.get(URL, params).context['rows']
+    return {t.name: t.similar['color'] for r in rows for t in r['treatments'] if t.similar}
+
+
+@pytest.mark.django_db
+def test_equal_size_groups_keep_their_color_with_n(setup):
+    client, org = setup
+    a, b, c = (FieldFactory(organization=org, name=n) for n in ('Uno', 'Dos', 'Tres'))
+    for field in (a, b):  # AZUFRE en 4.º lugar: solo se ve con N≥5
+        _done(org, field, 'AZUFRE', 40)
+        for i in range(3):
+            _done(org, field, f'Suelto {field.name} {i}', 10 + i)
+    _done(org, c, 'COBRE', 1)
+    _done(org, c, 'COBRE', 2)
+    c3, c10 = _colors(client, {'n': 3}), _colors(client, {'n': 10})
+    assert c3['COBRE'] == c10['COBRE'], (c3, c10)
+
+
+@pytest.mark.django_db
+def test_old_period_colors_stable_with_n(setup):
+    client, org = setup
+    fields = [FieldFactory(organization=org, name=n) for n in ('Uno', 'Dos')]
+    for field in fields:
+        for i in range(4):
+            _done(org, field, 'ALTERNARIA', 500 + i)
+        _done(org, field, 'FENGIB', 420)
+        _done(org, field, 'SUELO', 410)
+        _done(org, field, 'RECIENTE', 1)
+    period = {'date_from': _ago(600).isoformat(), 'date_to': _ago(400).isoformat()}
+    short, full = _colors(client, {**period, 'n': 3}), _colors(client, {**period, 'n': 10})
+    assert short and short == {k: full[k] for k in short}
+
+
+@pytest.mark.django_db
+def test_group_with_single_visible_member_is_not_colored_and_label_uses_visible(setup):
+    client, org = setup
+    a, b = FieldFactory(organization=org, name='Uno'), FieldFactory(organization=org, name='Dos')
+    _done(org, a, 'RAICES', 1)
+    for i, name in enumerate(['COBRE', 'MOSCA', 'CALIBRE', 'HIERRO']):
+        _done(org, b, name, i + 1)
+    _done(org, b, 'RAICES', 30)  # solo con N≥5
+    resp = client.get(URL, {'n': 3})
+    assert resp.context['groups'] == []
+    assert 'parecido a' not in resp.content.decode()
+    resp = client.get(URL, {'n': 5})
+    assert [g['label'] for g in resp.context['groups']] == ['RAICES']
+
+
+@pytest.mark.django_db
+def test_legend_and_cards_share_group_index(setup):
+    import re
+    client, org = setup
+    a, b = FieldFactory(organization=org, name='Uno'), FieldFactory(organization=org, name='Dos')
+    for name in ('COBRE', 'CABRIO'):
+        _done(org, a, name, 3)
+        _done(org, b, name, 4)
+    html = client.get(URL).content.decode()
+    legend = set(re.findall(r'class="bf-key[^"]*" data-bf-group="(\d+)"', html))
+    cards = set(re.findall(r'bf-card bf-grouped[^"]*" data-bf-group="(\d+)"', html))
+    assert legend == cards == {'1', '2'}
