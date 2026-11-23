@@ -7,6 +7,7 @@
 
 {% block content %}
 {% comment %}
+El enlace de la parcela lleva date_from/date_to vacíos para que el listado no se limite al año en curso.
 Una fila por parcela y una columna por tratamiento hecho (1 = el último), para comparar parcelas
 y ver qué tanda va por delante. En móvil la tabla se desplaza en horizontal con la parcela fija.
 {% endcomment %}
@@ -35,19 +36,20 @@ y ver qué tanda va por delante. En móvil la tabla se desplaza en horizontal co
 <section class="card card-flat">
     <div class="table-responsive">
         <table class="table table-sm align-top mb-0 bf-table">
+            <caption class="visually-hidden">Últimos {{ limit }} tratamientos hechos por parcela, del más reciente al más antiguo</caption>
             <thead>
             <tr>
-                <th scope="col" class="position-sticky start-0 bg-body">Parcela</th>
+                <th scope="col" class="position-sticky start-0 bg-body border-end">Parcela</th>
                 {% for c in columns %}
-                <th scope="col" class="text-nowrap">{% if forloop.first %}Último{% else %}{{ c }}.º{% endif %}</th>
+                <th scope="col" class="text-nowrap">{% if forloop.first %}Último{% elif c == 2 %}Penúltimo{% else %}{{ c }}.º{% endif %}</th>
                 {% endfor %}
             </tr>
             </thead>
             <tbody>
             {% for row in rows %}
             <tr>
-                <th scope="row" class="position-sticky start-0 bg-body bf-field">
-                    <a class="d-block text-body text-decoration-none text-truncate" href="{% url 'treatment-list' %}?field={{ row.field.id }}&status=completed">{{ row.field.name }}</a>
+                <th scope="row" class="position-sticky start-0 bg-body border-end bf-field">
+                    <a class="d-block text-body text-decoration-none text-truncate" href="{% url 'treatment-list' %}?field={{ row.field.id }}&status=completed&date_from=&date_to=">{{ row.field.name }}</a>
                     <span class="small fw-normal text-muted">{{ row.field.area|floatformat:"-2" }} ha</span>
                 </th>
                 {% if row.treatments %}
