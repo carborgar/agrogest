@@ -100,15 +100,44 @@ class TestTreatmentByField:
         assert [r['field'].name for r in resp.context['rows']] == ['Mía']
         assert 'Ajeno' not in resp.content.decode()
 
-    def test_query_count_does_not_grow_with_fields(self, setup, django_assert_max_num_queries):
+    def test_query_count_does_not_grow_with_fields(self, setup):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
         client, org = setup
-        for f in range(6):
+
+        def count():
+            client.get(URL)  # calienta sesión y caché de flags
+            with CaptureQueriesContext(connection) as ctx:
+                client.get(URL)
+            return len(ctx)
+
+        def add_field(f):
             field = FieldFactory(organization=org)
             for i in range(6):
                 _done(org, field, f'T{f}-{i}', i)
-        client.get(URL)  # calienta sesión y flags
-        with django_assert_max_num_queries(15):
-            client.get(URL)
+
+        add_field(0)
+        one = count()
+        for f in range(1, 6):
+            add_field(f)
+        assert count() == one
+
+    def test_ties_on_finish_date_break_by_planned_date_then_id(self, setup):
+        client, org = setup
+        field = FieldFactory(organization=org)
+        hoy = _ago(2)
+        SprayingTreatmentFactory(organization=org, field=field, name='Previsto antes', date=_ago(9), finish_date=hoy)
+        SprayingTreatmentFactory(organization=org, field=field, name='Creado antes', date=_ago(3), finish_date=hoy)
+        SprayingTreatmentFactory(organization=org, field=field, name='Creado después', date=_ago(3), finish_date=hoy)
+        assert _names(client.get(URL).context['rows'][0]) == ['Creado después', 'Creado antes', 'Previsto antes']
+
+    def test_user_without_organization_sees_nothing(self, client):
+        org = OrganizationFactory()
+        _done(org, FieldFactory(organization=org), 'Ajeno', 1)
+        user = User.objects.create_user(username='sinorg', password='pass')
+        client.force_login(user)
+        resp = client.get(URL)
+        assert resp.status_code == 200 and resp.context['rows'] == []
 
     def test_empty_states(self, setup):
         client, org = setup
@@ -120,10 +149,11 @@ class TestTreatmentByField:
         client, org = setup
         field = FieldFactory(organization=org, name='Cartuja')
         t = _done(org, field, 'ARAÑA CARTUJA', 3)
-        html = client.get(URL).content.decode()
+        resp = client.get(URL)
+        html = resp.content.decode()
         assert reverse('treatment-detail', args=[t.id]) in html
-        assert f'?field={field.id}&status=completed' in html
+        # Sin rango de fechas: el listado no se limita al año en curso
+        assert f'?field={field.id}&status=completed&date_from=&date_to=' in html
         assert 'hace 3 d' in html
-        ctx = client.get(URL).context
-        active = [i['key'] for g in ctx['nav_groups'] for i in g['items'] if i['active']]
+        active = [i['key'] for g in resp.context['nav_groups'] for i in g['items'] if i['active']]
         assert active == ['nav_by_field']

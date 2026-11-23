@@ -800,8 +800,6 @@ class TreatmentExcelExportView(BaseSecureViewMixin, View):
         return response
 
 
-
-
 class TreatmentByFieldView(BaseSecureViewMixin, TemplateView):
     """Últimos tratamientos hechos de cada parcela, en filas para compararlas.
 
