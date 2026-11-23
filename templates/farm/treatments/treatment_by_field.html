@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% load custom_filters %}
+
+{% block title %}Por parcela{% endblock %}
+{% block header %}Por parcela{% endblock %}
+{% block sub_header %}<span class="d-none d-md-inline">Últimos tratamientos hechos en cada parcela, del más reciente al más antiguo</span>{% endblock %}
+
+{% block content %}
+{% comment %}
+Una fila por parcela y una columna por tratamiento hecho (1 = el último), para comparar parcelas
+y ver qué tanda va por delante. En móvil la tabla se desplaza en horizontal con la parcela fija.
+{% endcomment %}
+<div class="d-flex align-items-center gap-2 mb-3">
+    <span class="small fw-semibold text-muted">Últimos</span>
+    <nav class="tl-tabs" aria-label="Número de tratamientos por parcela">
+        {% for n in limit_choices %}
+        <a class="tl-tab{% if n == limit %} active{% endif %}" href="?n={{ n }}"{% if n == limit %} aria-current="page"{% endif %}>{{ n }}</a>
+        {% endfor %}
+    </nav>
+</div>
+
+{% if not rows %}
+<div class="card card-flat hm-empty">
+    <span class="hm-empty-icon"><i class="fa fa-map-location-dot" aria-hidden="true"></i></span>
+    <b>No hay parcelas</b>
+    <span>Cuando des de alta alguna, aquí verás sus últimos tratamientos.</span>
+</div>
+{% elif not has_treatments %}
+<div class="card card-flat hm-empty">
+    <span class="hm-empty-icon"><i class="fa fa-droplet" aria-hidden="true"></i></span>
+    <b>Todavía no hay tratamientos hechos</b>
+    <span>Cuando marques alguno como hecho, aparecerá aquí en su parcela.</span>
+</div>
+{% else %}
+<section class="card card-flat">
+    <div class="table-responsive">
+        <table class="table table-sm align-top mb-0 bf-table">
+            <thead>
+            <tr>
+                <th scope="col" class="position-sticky start-0 bg-body">Parcela</th>
+                {% for c in columns %}
+                <th scope="col" class="text-nowrap">{% if forloop.first %}Último{% else %}{{ c }}.º{% endif %}</th>
+                {% endfor %}
+            </tr>
+            </thead>
+            <tbody>
+            {% for row in rows %}
+            <tr>
+                <th scope="row" class="position-sticky start-0 bg-body bf-field">
+                    <a class="d-block text-body text-decoration-none text-truncate" href="{% url 'treatment-list' %}?field={{ row.field.id }}&status=completed">{{ row.field.name }}</a>
+                    <span class="small fw-normal text-muted">{{ row.field.area|floatformat:"-2" }} ha</span>
+                </th>
+                {% if row.treatments %}
+                {% for t in row.treatments %}
+                <td class="bf-cell">
+                    <a class="d-block text-body text-decoration-none" href="{% url 'treatment-detail' t.id %}" title="{{ t.name }} · {{ t.finish_date|date:'d/m/Y' }}">
+                        <span class="d-block small text-muted text-nowrap">
+                            <i class="fa fa-{{ t|treatment_type_icon }} me-1" aria-hidden="true"></i><span class="visually-hidden">{{ t.get_type_display }}: </span>{{ t.finish_date|date:"j b" }} · {{ t.finish_date|relative_days }}
+                        </span>
+                        <span class="d-block fw-semibold text-truncate">{{ t.name }}</span>
+                        <span class="d-none d-md-block small text-muted text-truncate">{% for tp in t.treatmentproduct_set.all %}{{ tp.product.name }}{% if not forloop.last %} · {% endif %}{% empty %}Sin productos{% endfor %}</span>
+                    </a>
+                </td>
+                {% endfor %}
+                {% for _ in row.missing %}<td class="bf-cell text-muted">—</td>{% endfor %}
+                {% else %}
+                <td class="text-muted small" colspan="{{ limit }}">Sin tratamientos hechos</td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endif %}
+{% endblock %}

@@ -1261,3 +1261,18 @@ button.cal-row:hover { background: var(--tl-soft); }
 
 /* Títulos y frases cortas centradas: reparte las líneas sin dejar una palabra sola */
 .text-balance { text-wrap: balance; }
+
+/* ═══════════════════════════════════════════════
+   Por parcela (treatment_by_field.html): ancho de las celdas para que el nombre se recorte
+   y la tabla se desplace en horizontal en móvil. La parcela queda fija con position-sticky.
+═══════════════════════════════════════════════ */
+.bf-table th, .bf-table td { padding: .55rem .5rem; }
+.bf-table th:first-child { padding-left: .75rem; }
+.bf-field > a { max-width: 7.5rem; }
+/* Ancho fijo: con 5 columnas cabe en un portátil junto al menú lateral */
+.bf-cell > a { width: 9.5rem; }
+/* Móvil: dos columnas a la vista junto a la parcela */
+@media (max-width: 767.98px) {
+    .bf-field > a { max-width: 6rem; }
+    .bf-cell > a { width: 8rem; }
+}
