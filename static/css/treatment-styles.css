@@ -1268,7 +1268,7 @@ button.cal-row:hover { background: var(--tl-soft); }
    (--bf-cols = N) y se desplaza en horizontal, con la parcela fija (position-sticky).
    bf-c0…11: un tono por grupo de tratamientos parecidos (borde y fondo suave), en celdas y leyenda.
 ═══════════════════════════════════════════════ */
-.bf-table { --bs-table-bg: #fff; table-layout: fixed; min-width: calc(9rem + var(--bf-cols, 5) * 10rem); }
+.bf-table { --bs-table-bg: #fff; table-layout: fixed; min-width: calc(9rem + var(--bf-cols, 5) * 8.5rem); }
 .bf-table th, .bf-table td { padding: .4rem .25rem; border-bottom-color: var(--tl-line); }
 .bf-table thead th { padding-top: .6rem; padding-bottom: .6rem; font-size: .8rem; font-weight: 600; color: var(--tl-muted); }
 .bf-table tbody tr:last-child > * { border-bottom: 0; }
@@ -1276,11 +1276,11 @@ button.cal-row:hover { background: var(--tl-soft); }
 .bf-table td:last-child { padding-right: .6rem; }
 .bf-card { display: flex; flex-direction: column; gap: 1px; width: 100%; min-width: 0; padding: .4rem .55rem; border: 1px solid var(--tl-line); border-left: 4px solid #D5D9D2; border-radius: 8px; background: #fff; color: var(--tl-ink); text-decoration: none; transition: opacity .15s, box-shadow .15s; }
 .bf-card:hover { border-color: #C9CEC5; color: var(--tl-ink); box-shadow: 0 1px 4px rgba(0, 0, 0, .1); }
-.bf-when { display: flex; align-items: center; gap: .25rem; font-size: .75rem; color: var(--tl-muted); white-space: nowrap; }
+.bf-when { display: flex; align-items: center; gap: .25rem; overflow: hidden; font-size: .75rem; color: var(--tl-muted); white-space: nowrap; text-overflow: ellipsis; }
 .bf-when b { color: var(--tl-ink); }
 .bf-name { overflow: hidden; font-size: .85rem; font-weight: 700; white-space: nowrap; text-overflow: ellipsis; }
 .bf-products { overflow: hidden; font-size: .72rem; color: var(--tl-muted); white-space: nowrap; text-overflow: ellipsis; }
-.bf-none { display: block; padding: .4rem .55rem; color: #C9CEC5; }
+.bf-none { display: block; padding: .4rem .55rem; color: #A3A99F; }
 .bf-dim { opacity: .25; }
 .bf-key { display: inline-flex; align-items: center; gap: .35rem; min-height: 32px; padding: .2rem .6rem; border: 1px solid var(--tl-line); border-radius: 16px; background: #fff; font-size: .8rem; font-weight: 600; color: var(--tl-ink); }
 .bf-key[aria-pressed="true"] { border-color: var(--bf); box-shadow: inset 0 0 0 1px var(--bf); }

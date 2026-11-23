@@ -142,19 +142,27 @@ def group_similar(items, excluded_words=frozenset(), threshold=THRESHOLD):
                 best[k] = (link[k][a], a)
     clusters = list(clusters.values())
 
-    groups = []
-    for members in clusters:
-        if len(members) < 2:
-            continue
-        member_tokens = [tokens[i] for i in members]
-        groups.append({
-            'keys': [items[i][0] for i in members],
-            'label': _label(member_tokens, [items[i][1] for i in members]),
-            '_tokens': member_tokens,
-        })
-    groups.sort(key=lambda g: -len(g['keys']))
-    _disambiguate(groups)
+    groups = [{'keys': [items[i][0] for i in members], '_names': [items[i][1] for i in members]}
+              for members in clusters if len(members) >= 2]
+    # Del mayor al menor; a igual tamaño, por la clave más baja, para que el orden (y el color que
+    # dependa de él) no cambie con el orden de entrada
+    groups.sort(key=lambda g: (-len(g['keys']), min(g['keys'])))
+    for group, label in zip(groups, label_groups([g.pop('_names') for g in groups], excluded_words)):
+        group['label'] = label
     return groups
+
+
+def label_groups(names_per_group, excluded_words=frozenset()):
+    """Etiqueta de cada grupo a partir de los nombres de sus tratamientos: la palabra que más se repite
+    («ARAÑA») o el nombre más repetido. Únicas y nunca vacías. Sirve también para reetiquetar un grupo
+    solo con los tratamientos que se ven."""
+    excluded = frozenset(w for text in excluded_words for w in _words(text))
+    groups = []
+    for names in names_per_group:
+        member_tokens = [name_tokens(n, excluded) for n in names]
+        groups.append({'label': _label(member_tokens, names), '_tokens': member_tokens})
+    _disambiguate(groups)
+    return [g['label'] for g in groups]
 
 
 def _disambiguate(groups):

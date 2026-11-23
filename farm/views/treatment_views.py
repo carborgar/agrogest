@@ -23,7 +23,7 @@ from farm.services import (
     build_treatment_form_data, clone_treatment, create_treatments_for_fields, save_treatment_with_products,
 )
 from farm.templatetags.custom_filters import treatment_tone
-from farm.treatment_similarity import group_similar
+from farm.treatment_similarity import group_similar, label_groups
 
 logger = logging.getLogger(__name__)
 
@@ -877,57 +877,64 @@ class TreatmentByFieldView(BaseSecureViewMixin, TemplateView):
         if date_from and date_to and date_from > date_to:  # puestas al revés: se entiende el rango igual
             date_from, date_to = date_to, date_from
 
-        treatments = (
-            Treatment.ownership_objects.get_queryset_for_user(user)
-            .filter(finish_date__isnull=False)
-        )
-        if f['type']:
-            treatments = treatments.filter(type__in=f['type'])
-        if f['product_types']:
-            treatments = treatments.filter(id__in=TreatmentProduct.objects.filter(
-                product__product_type_id__in=f['product_types']).values('treatment_id'))
-        if f['products']:
-            treatments = treatments.filter(id__in=TreatmentProduct.objects.filter(
-                product_id__in=f['products']).values('treatment_id'))
+
+        # Base para los colores: los últimos 10 de cada parcela dentro del periodo, sin el resto de
+        # filtros. Agrupando siempre sobre ella (más lo que se vea) un tratamiento no cambia de color
+        # al cambiar N, la parcela, el tipo o el producto.
+        done = Treatment.ownership_objects.get_queryset_for_user(user).filter(finish_date__isnull=False)
         if date_from:
-            treatments = treatments.filter(finish_date__gte=date_from)
+            done = done.filter(finish_date__gte=date_from)
         if date_to:
-            treatments = treatments.filter(finish_date__lte=date_to)
+            done = done.filter(finish_date__lte=date_to)
+        base = list(self._last_per_field(done, self.COLOR_BASE))
 
         fields = all_fields
         if f['field']:
             fields = [x for x in all_fields if str(x.id) in f['field']]
-            treatments = treatments.filter(field_id__in=f['field'])
+        if any(f.values()):
+            treatments = done
+            if f['field']:
+                treatments = treatments.filter(field_id__in=f['field'])
+            if f['type']:
+                treatments = treatments.filter(type__in=f['type'])
+            if f['product_types']:
+                treatments = treatments.filter(id__in=TreatmentProduct.objects.filter(
+                    product__product_type_id__in=f['product_types']).values('treatment_id'))
+            if f['products']:
+                treatments = treatments.filter(id__in=TreatmentProduct.objects.filter(
+                    product_id__in=f['products']).values('treatment_id'))
+            treatments = list(self._last_per_field(treatments, limit))
+        else:
+            treatments = [t for t in base if t.rank <= limit]  # sin filtros, lo visible sale de la base
 
-        treatments = list(self._last_per_field(treatments, limit))
-
-        # Parecidos → color. Se agrupa siempre sobre la misma base (los últimos de cada parcela sin
-        # filtros) más lo que se ve, para que un tratamiento no cambie de color al cambiar N o
-        # los filtros. Los nombres de parcela no cuentan como parecido («ARAÑA CARTUJA»).
-        shown_ids = {t.id for t in treatments}
-        pool = {t.id: t for t in treatments}
-        for t in self._last_per_field(
-                Treatment.ownership_objects.get_queryset_for_user(user).filter(finish_date__isnull=False),
-                self.COLOR_BASE):
+        # Parecidos → color. Los nombres de parcela no cuentan como parecido («ARAÑA CARTUJA»).
+        pool = {t.id: t for t in base}
+        for t in treatments:
             pool.setdefault(t.id, t)
+        shown = {t.id: t for t in treatments}
+        excluded = {fl.name for fl in all_fields}
         all_groups = group_similar(
-            [(t.id, t.name, {tp.product_id for tp in t.treatmentproduct_set.all()}) for t in pool.values()],
-            excluded_words={fl.name for fl in all_fields},
+            [(t.id, t.name, {tp.product_id for tp in t.treatmentproduct_set.all()})
+             for t in sorted(pool.values(), key=lambda t: t.id)],
+            excluded_words=excluded,
         )
-        groups, group_of = [], {}
+        groups = []
         for index, group in enumerate(all_groups):
-            group['color'] = index % self.COLORS
-            group['dashed'] = index >= self.COLORS
-            shown = [k for k in group['keys'] if k in shown_ids]
-            if not shown:
+            visible = [k for k in group['keys'] if k in shown]
+            if len(visible) < 2:  # «parecido» a algo que no se ve no aporta: sin color
                 continue
-            group['count'] = len(shown)
-            groups.append(group)
-            for key in shown:
-                group_of[key] = group
-        groups.sort(key=lambda g: -g['count'])  # leyenda: los que más se ven primero (el color no cambia)
+            groups.append({'color': index % self.COLORS, 'dashed': index >= self.COLORS,
+                           'count': len(visible), 'keys': visible})
+        # La etiqueta, con lo que se ve; la leyenda, por lo que más se ve (el color no cambia)
+        for group, label in zip(groups, label_groups([[shown[k].name for k in g['keys']] for g in groups],
+                                                     excluded)):
+            group['label'] = label
+        groups.sort(key=lambda g: (-g['count'], g['color'], g['dashed']))
+        group_of = {}
         for i, group in enumerate(groups, start=1):
             group['index'] = i  # data-bf-group de leyenda y tarjetas
+            for key in group['keys']:
+                group_of[key] = group
 
         by_field = {}
         for t in treatments:
