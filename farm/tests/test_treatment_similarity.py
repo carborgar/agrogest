@@ -69,3 +69,32 @@ def test_labels_use_shared_word_and_disambiguate_duplicates():
 def test_singletons_and_empty_input():
     assert group_similar([]) == []
     assert group_similar([('a', 'COBRE', {'c'})]) == []
+
+
+def test_same_name_with_rotated_products_groups():
+    # Rotar materias activas (p. ej. acaricidas) es habitual: el nombre basta
+    items = [('a', 'ARAÑA', {'flash'}), ('b', 'ARAÑA', {'apache'}), ('c', 'COBRE', {'cuprocol'})]
+    assert _groups(items) == [['a', 'b']]
+
+
+def test_empty_names_get_a_label_and_duplicates_are_numbered():
+    groups = group_similar([('a', '', {'x'}), ('b', '', {'x'}), ('c', '12', {'y'}), ('d', '12', {'y'})])
+    labels = sorted(g['label'] for g in groups)
+    assert all(labels) and len(set(labels)) == len(labels)
+
+
+def test_label_uses_most_frequent_spelling():
+    items = [('a', 'Materia', {'m'}), ('b', 'MATERIA', {'m'}), ('c', 'MATERIA', {'m'})]
+    assert group_similar(items)[0]['label'] == 'MATERIA'
+
+
+def test_scales_to_a_few_hundred_treatments():
+    import random
+    import time
+    rnd = random.Random(1)
+    words = ['arana', 'cobre', 'cabrio', 'mosca', 'potasio', 'calcio', 'abono', 'raices', 'phyto', 'calibre']
+    items = [(i, f'{rnd.choice(words)} {rnd.choice(["nador", "leanri", "navel"])}',
+              {rnd.randint(0, 40) for _ in range(3)}) for i in range(300)]
+    start = time.perf_counter()
+    group_similar(items)
+    assert time.perf_counter() - start < 3  # holgado: en local tarda ~0,2 s

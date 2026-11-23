@@ -47,10 +47,10 @@ El enlace de la parcela lleva date_from/date_to vacíos para que el listado no s
         <div class="offcanvas-body">
             <div class="row g-2 align-items-end w-100 m-0">
                 <div class="col-12 col-md-6 col-xl-3">
-                    {% include "farm/_filter_check_dropdown.html" with name="field" label="Parcelas" icon="map" options=field_options selected=selected.field all_label="Todas las parcelas…" %}
+                    {% include "farm/_filter_check_dropdown.html" with name="field" label="Parcelas" icon="map" options=options.field selected=selected.field all_label="Todas las parcelas…" %}
                 </div>
                 <div class="col-12 col-md-6 col-xl-2">
-                    {% include "farm/_filter_check_dropdown.html" with name="type" label="Tipo" icon="droplet" options=type_options selected=selected.type all_label="Todos…" %}
+                    {% include "farm/_filter_check_dropdown.html" with name="type" label="Tipo" icon="droplet" options=options.type selected=selected.type all_label="Todos…" %}
                 </div>
                 <div class="col-6 col-md-4 col-xl-2">
                     <label class="form-label small fw-semibold text-muted mb-1" for="bf_date_from"><i class="fa fa-calendar me-1" aria-hidden="true"></i>Hecho desde</label>
@@ -78,10 +78,10 @@ El enlace de la parcela lleva date_from/date_to vacíos para que el listado no s
                     <div class="collapse tl-advanced{% if advanced_count %} show{% endif %}" id="bfAdvanced">
                         <div class="row g-2 align-items-end pt-2">
                             <div class="col-12 col-md-6 col-xl-3">
-                                {% include "farm/_filter_check_dropdown.html" with name="product_types" label="Tipo de producto" icon="box" options=product_type_options selected=selected.product_types all_label="Todos los tipos…" searchable=True %}
+                                {% include "farm/_filter_check_dropdown.html" with name="product_types" label="Tipo de producto" icon="box" options=options.product_types selected=selected.product_types all_label="Todos los tipos…" searchable=True %}
                             </div>
                             <div class="col-12 col-md-6 col-xl-3">
-                                {% include "farm/_filter_check_dropdown.html" with name="products" label="Productos" icon="flask" options=product_options selected=selected.products all_label="Todos los productos…" searchable=True %}
+                                {% include "farm/_filter_check_dropdown.html" with name="products" label="Productos" icon="flask" options=options.products selected=selected.products all_label="Todos los productos…" searchable=True %}
                             </div>
                         </div>
                     </div>
@@ -109,7 +109,7 @@ El enlace de la parcela lleva date_from/date_to vacíos para que el listado no s
 <div class="d-flex flex-nowrap flex-md-wrap overflow-x-auto align-items-center gap-1 mb-2 pb-1" id="bfLegend">
     <span class="small text-muted me-1 flex-shrink-0">Parecidos:</span>
     {% for g in groups %}
-    <button type="button" class="bf-key flex-shrink-0 text-nowrap bf-c{{ g.color }}" data-bf-color="{{ g.color }}" aria-pressed="false"
+    <button type="button" class="bf-key flex-shrink-0 text-nowrap bf-c{{ g.color }}{% if g.dashed %} bf-dashed{% endif %}" data-bf-group="{{ forloop.counter }}" aria-pressed="false"
             title="Destacar los {{ g.count }} parecidos a «{{ g.label }}»">
         <span class="bf-dot" aria-hidden="true"></span>{{ g.label }} <span class="text-muted">{{ g.count }}</span>
     </button>
@@ -139,14 +139,15 @@ El enlace de la parcela lleva date_from/date_to vacíos para que el listado no s
                 {% if row.treatments %}
                 {% for t in row.treatments %}
                 <td class="bf-cell">
-                    <a class="bf-card{% if t.similar_color is not None %} bf-c{{ t.similar_color }}{% endif %}"{% if t.similar_color is not None %} data-bf-color="{{ t.similar_color }}"{% endif %}
-                       href="{% url 'treatment-detail' t.id %}">
+                    <a class="bf-card{% if t.similar %} bf-grouped bf-c{{ t.similar.color }}{% if t.similar.dashed %} bf-dashed{% endif %}{% endif %}"{% if t.similar %} data-bf-group="{{ t.similar.index }}"{% endif %}
+                       href="{% url 'treatment-detail' t.id %}" title="{{ t.name }} · {{ t.finish_date|date:'d/m/Y' }}{% if t.similar %} · parecido a «{{ t.similar.label }}»{% endif %}">
                         <span class="bf-when">
                             <b>{{ t.finish_date|date:"j b" }}</b> · {{ t.finish_date|relative_days }}
                             <i class="fa fa-{{ t|treatment_type_icon }} ms-auto" aria-hidden="true" title="{{ t.get_type_display }}"></i>
                             <span class="visually-hidden">, {{ t.get_type_display }}</span>
                         </span>
                         <span class="bf-name">{{ t.name }}</span>
+                        {% if t.similar %}<span class="visually-hidden">, parecido a «{{ t.similar.label }}»</span>{% endif %}
                         <span class="bf-products d-none d-md-block">{% for tp in t.treatmentproduct_set.all %}{{ tp.product.name }}{% if not forloop.last %} · {% endif %}{% empty %}Sin productos{% endfor %}</span>
                     </a>
                 </td>
@@ -176,7 +177,7 @@ El enlace de la parcela lleva date_from/date_to vacíos para que el listado no s
             const on = key.getAttribute('aria-pressed') !== 'true';
             keys.forEach(k => k.setAttribute('aria-pressed', 'false'));
             table.querySelectorAll('.bf-card').forEach(card => {
-                card.classList.toggle('bf-dim', on && card.dataset.bfColor !== key.dataset.bfColor);
+                card.classList.toggle('bf-dim', on && card.dataset.bfGroup !== key.dataset.bfGroup);
             });
             if (on) key.setAttribute('aria-pressed', 'true');
         }));
