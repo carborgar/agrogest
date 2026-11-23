@@ -1284,7 +1284,7 @@ button.cal-row:hover { background: var(--tl-soft); }
 @media (min-width: 992px) {
     .bf-table--dense .bf-rel, .bf-table--dense .bf-products, .bf-table--dense .bf-when .fa { display: none !important; }
     /* Parcela más estrecha y nombre en dos líneas: legible sin desplazar aunque las columnas sean estrechas */
-    .bf-table--dense .bf-field { width: 7rem; }
+    .bf-table.bf-table--dense .bf-field { width: 7rem; }  /* gana a .bf-table .bf-field (va después) */
     .bf-table--dense .bf-card { padding: .35rem .4rem; }
     .bf-table--dense .bf-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: .78rem; line-height: 1.2; white-space: normal; overflow-wrap: break-word; }
 }
