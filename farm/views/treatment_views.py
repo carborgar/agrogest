@@ -4,8 +4,8 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db.models import Case, Count, DateField, ExpressionWrapper, F, IntegerField, Q, Value, When
-from django.db.models.functions import Coalesce
+from django.db.models import Case, Count, DateField, ExpressionWrapper, F, IntegerField, Q, Value, When, Window
+from django.db.models.functions import Coalesce, RowNumber
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -800,3 +800,56 @@ class TreatmentExcelExportView(BaseSecureViewMixin, View):
         return response
 
 
+
+
+class TreatmentByFieldView(BaseSecureViewMixin, TemplateView):
+    """Últimos tratamientos hechos de cada parcela, en filas para compararlas.
+
+    Con varias parcelas los tratamientos van por tandas (araña, fungicida…): poniendo
+    las parcelas una debajo de otra se ve cuál va por delante o si se ha cambiado el orden.
+    No se agrupan por tandas: eso lo decide quien lleva la parcela. Solo cuentan los hechos
+    (con fecha de finalización, no por `status`, que puede estar desfasado), de cualquier tipo.
+    """
+    template_name = 'farm/treatments/treatment_by_field.html'
+    LIMIT_CHOICES = (3, 5, 10)
+    DEFAULT_LIMIT = 5
+
+    def _limit(self):
+        value = self.request.GET.get('n', '')
+        return int(value) if value.isdigit() and int(value) in self.LIMIT_CHOICES else self.DEFAULT_LIMIT
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        limit = self._limit()
+        user = self.request.user
+
+        # Una sola consulta: numera los hechos de cada parcela del más reciente al más antiguo
+        # y se queda con los N primeros (filtrar sobre Window necesita Django ≥ 4.2).
+        treatments = (
+            Treatment.ownership_objects.get_queryset_for_user(user)
+            .filter(finish_date__isnull=False)
+            .annotate(rank=Window(
+                RowNumber(), partition_by=F('field_id'),
+                order_by=[F('finish_date').desc(), F('date').desc(), F('id').desc()],
+            ))
+            .filter(rank__lte=limit)
+            .order_by('field_id', 'rank')
+            .prefetch_related('treatmentproduct_set__product')
+        )
+        by_field = {}
+        for t in treatments:
+            by_field.setdefault(t.field_id, []).append(t)
+
+        rows = []
+        for field in Field.ownership_objects.get_queryset_for_user(user):
+            done = by_field.get(field.id, [])
+            rows.append({'field': field, 'treatments': done, 'missing': range(limit - len(done))})
+
+        context.update({
+            'rows': rows,
+            'limit': limit,
+            'limit_choices': self.LIMIT_CHOICES,
+            'columns': range(1, limit + 1),
+            'has_treatments': bool(by_field),
+        })
+        return context
