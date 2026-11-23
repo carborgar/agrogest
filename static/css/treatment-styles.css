@@ -305,7 +305,8 @@ a.filter-active-chip:hover {
     font-size: 0.72rem;
 }
 
-.rotate-180 {
+/* «Filtrar por producto» (listado y Por parcela): la flecha gira con el estado del plegable, sin JS */
+.advanced-toggle[aria-expanded="true"] .advanced-toggle-icon {
     transform: rotate(180deg);
 }
 
@@ -1276,11 +1277,21 @@ button.cal-row:hover { background: var(--tl-soft); }
 .bf-wrap .table-responsive { overflow-y: hidden; }
 /* Móvil y tableta: ancho mínimo por columna y desplazamiento horizontal (táctil) */
 @media (max-width: 991.98px) {
-    .bf-table { min-width: calc(7rem + var(--bf-cols, 5) * 8.5rem); }
+    .bf-table { min-width: calc(9rem + var(--bf-cols, 5) * 8.5rem); }
+    .bf-table--compact { min-width: 0; }  /* Inicio: 3 columnas, caben siempre */
 }
 /* Con 10 columnas en escritorio todo cabe sin desplazar: fuera «hace N d», el icono de tipo y la línea de productos */
 @media (min-width: 992px) {
     .bf-table--dense .bf-rel, .bf-table--dense .bf-products, .bf-table--dense .bf-when .fa { display: none !important; }
+    /* Parcela más estrecha y nombre en dos líneas: legible sin desplazar aunque las columnas sean estrechas */
+    .bf-table--dense .bf-field { width: 7rem; }
+    .bf-table--dense .bf-card { padding: .35rem .4rem; }
+    .bf-table--dense .bf-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: .78rem; line-height: 1.2; white-space: normal; overflow-wrap: break-word; }
+}
+/* Leyenda: en móvil se desplaza en horizontal; en escritorio salta de línea. Nunca barra vertical. */
+.bf-legend { flex-wrap: wrap; overflow-y: hidden; }
+@media (max-width: 767.98px) {
+    .bf-legend { flex-wrap: nowrap; overflow-x: auto; }
 }
 .bf-table th, .bf-table td { padding: .4rem .25rem; border-bottom-color: var(--tl-line); }
 .bf-table thead th { padding-top: .6rem; padding-bottom: .6rem; font-size: .8rem; font-weight: 600; color: var(--tl-muted); }
@@ -1316,6 +1327,7 @@ button.cal-row:hover { background: var(--tl-soft); }
 .bf-key.bf-dashed .bf-dot { background: transparent; box-shadow: inset 0 0 0 2px var(--bf); }
 /* Móvil: parcela más estrecha y dos columnas a la vista */
 @media (max-width: 767.98px) {
+    .bf-table { min-width: calc(7rem + var(--bf-cols, 5) * 8.5rem); }
     .bf-table .bf-field { width: 7rem; padding-left: .6rem; }
     /* Inicio: las 3 columnas a la vista a 360 px (sin «hace N d»: con la fecha basta) */
     .bf-table--compact { min-width: 0; }
