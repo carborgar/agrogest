@@ -71,12 +71,13 @@ Pestaña «Por parcela» de Tratamientos: selector de N y filtros; la tabla es e
                     {% endif %}
                 </div>
 
-                {# Productos: plegados en desktop, siempre visibles en el panel móvil #}
+                {# Filtrar por producto: plegado en desktop, siempre visible en el panel móvil (igual que el listado) #}
                 <div class="col-12">
-                    <button class="btn btn-link btn-sm text-muted p-0 text-decoration-none d-none d-md-inline-block" type="button"
+                    <button class="btn btn-link btn-sm text-muted p-0 text-decoration-none d-none d-md-inline-block advanced-toggle" type="button"
                             data-bs-toggle="collapse" data-bs-target="#bfAdvanced" aria-controls="bfAdvanced"
                             aria-expanded="{% if advanced_count %}true{% else %}false{% endif %}">
                         <i class="fa fa-sliders me-1" aria-hidden="true"></i>Filtrar por producto
+                        <i class="fa fa-chevron-down ms-1 advanced-toggle-icon" aria-hidden="true"></i>
                         {% if advanced_count %}<span class="badge bg-primary ms-1">{{ advanced_count }}</span>{% endif %}
                     </button>
                     <div class="collapse tl-advanced{% if advanced_count %} show{% endif %}" id="bfAdvanced">

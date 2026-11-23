@@ -2,7 +2,8 @@
 {% comment %}
 Tabla «por parcela»: una fila por parcela y una tarjeta por tratamiento hecho (1 = el último), con los
 parecidos del mismo color y una leyenda que destaca un grupo. Las columnas son iguales y ocupan todo el
-ancho; en escritorio siempre caben y en móvil y tableta se desplaza en horizontal con la parcela fija. Contexto de `farm.field_history`
+ancho. En escritorio caben siempre (con 10, en modo denso); en móvil y tableta
+se desplaza en horizontal con la parcela fija. Contexto de `farm.field_history`
 (rows, groups, limit, columns) y, opcionales, panel_filter_count y compact (columnas estrechas, Inicio).
 La usan «Por parcela» e Inicio. Todo va dentro de .bf-wrap y el script actúa en cada uno por separado.
 El enlace de la parcela lleva date_from/date_to vacíos para que el listado no se limite al año en curso.
@@ -10,7 +11,7 @@ El enlace de la parcela lleva date_from/date_to vacíos para que el listado no s
 <div class="bf-wrap">
 {% if groups %}
 {# Leyenda: el mismo color = tratamientos parecidos. Pulsar uno destaca su grupo. #}
-<div class="d-flex flex-nowrap flex-md-wrap overflow-x-auto align-items-center gap-1 px-3 py-2 border-bottom">
+<div class="d-flex align-items-center gap-1 px-3 py-2 border-bottom bf-legend">
     <span class="small text-muted me-1 flex-shrink-0">Parecidos:</span>
     {% for g in groups %}
     <button type="button" class="bf-key flex-shrink-0 text-nowrap bf-c{{ g.color }}{% if g.dashed %} bf-dashed{% endif %}" data-bf-group="{{ g.index }}" aria-pressed="false"
@@ -43,7 +44,7 @@ El enlace de la parcela lleva date_from/date_to vacíos para que el listado no s
                 {% for t in row.treatments %}
                 <td class="bf-cell">
                     <a class="bf-card{% if t.similar %} bf-grouped bf-c{{ t.similar.color }}{% if t.similar.dashed %} bf-dashed{% endif %}{% endif %}"{% if t.similar %} data-bf-group="{{ t.similar.index }}"{% endif %}
-                       href="{% url 'treatment-detail' t.id %}" title="{{ t.name }} · {{ t.finish_date|date:'d/m/Y' }}{% if t.similar %} · parecido a «{{ t.similar.label }}»{% endif %}">
+                       href="{% url 'treatment-detail' t.id %}" title="{{ t.name }} · {{ t.finish_date|date:'d/m/Y' }}{% if t.similar %} · parecido a «{{ t.similar.label }}»{% endif %}{% for tp in t.treatmentproduct_set.all %}{% if forloop.first %} · {% else %}, {% endif %}{{ tp.product.name }}{% endfor %}">
                         <span class="bf-when">
                             <b>{{ t.finish_date|date:"j b" }}</b><span class="bf-rel"> · {{ t.finish_date|relative_days }}</span>
                             <i class="fa fa-{{ t|treatment_type_icon }} ms-auto d-none d-md-inline" aria-hidden="true" title="{{ t.get_type_display }}"></i>
