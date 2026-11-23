@@ -138,7 +138,8 @@ class FieldDashboardView(BaseSecureViewMixin, ListView):
         context['products_hidden'] = max(len(products) - self.products_preview, 0)
 
         # ── Cómo van las parcelas: los últimos hechos de cada una, con los parecidos en color ──
-        context['field_history'] = field_history(self.request.user, list(fields), self.history_preview)
+        context['field_history'] = field_history(self.request.user, list(fields), self.history_preview,
+                                                 color_base=self.history_preview)
         context['field_history_url'] = reverse('treatment-by-field')
 
         # ── Tiempo: si el módulo está activo y alguna parcela tiene coordenadas ──

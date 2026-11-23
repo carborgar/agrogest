@@ -3,7 +3,7 @@
 
 {% block title %}Tratamientos por parcela{% endblock %}
 {% block header %}Tratamientos{% endblock %}
-{% block sub_header %}<span class="d-none d-md-inline">Últimos tratamientos hechos en cada parcela, del más reciente al más antiguo</span>{% endblock %}
+{% block sub_header %}<span class="d-none d-md-inline">Gestión y seguimiento de todos los tratamientos</span>{% endblock %}
 
 {% block actions %}
 <a class="btn btn-primary d-none d-md-inline-block" href="{% url 'treatment-create' %}">
@@ -13,11 +13,7 @@
 
 {% block content %}
 {% comment %}
-Una fila por parcela y una columna por tratamiento hecho (1 = el último), para comparar parcelas
-y ver qué tanda va por delante. Los tratamientos parecidos (productos y nombre) llevan el mismo color;
-la leyenda permite destacar un grupo. La tabla ocupa todo el ancho con columnas iguales; si no caben
-(móvil, o N=10 en pantallas pequeñas) se desplaza en horizontal con la parcela fija.
-El enlace de la parcela lleva date_from/date_to vacíos para que el listado no se limite al año en curso.
+Pestaña «Por parcela» de Tratamientos: selector de N y filtros; la tabla es el parcial _by_field_table.html.
 {% endcomment %}
 {% if not has_fields %}
 <div class="card card-flat hm-empty">
@@ -117,4 +113,10 @@ El enlace de la parcela lleva date_from/date_to vacíos para que el listado no s
 </section>
 {% endif %}
 {% endif %}
+
+{# Móvil: «Nuevo tratamiento» como botón flotante, igual que en las otras pestañas #}
+<div class="tl-fab-spacer d-md-none"></div>
+<a class="tl-fab d-md-none" href="{% url 'treatment-create' %}" aria-label="Nuevo tratamiento" title="Nuevo tratamiento">
+    <i class="fa fa-plus" aria-hidden="true"></i>
+</a>
 {% endblock %}

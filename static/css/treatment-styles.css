@@ -183,6 +183,8 @@ a.filter-active-chip:hover {
 @media (max-width: 767.98px) {
     .tl-tabs { flex: 1 1 100%; }
     .tl-tab { flex: 1; }
+    /* Tres pestañas de Tratamientos (Por hacer · Completados · Por parcela): caben a 360 px */
+    .tl-tabs--3 .tl-tab { padding: 0 .45rem; font-size: .85rem; }
     .tl-filters.offcanvas-bottom { --bs-offcanvas-height: auto; border-radius: 16px 16px 0 0; }
     .tl-filters .offcanvas-body { overflow-y: visible; padding-bottom: 1.5rem; }
     /* En el panel móvil los filtros avanzados se ven siempre */
@@ -1303,7 +1305,11 @@ button.cal-row:hover { background: var(--tl-soft); }
 .bf-key.bf-dashed .bf-dot { background: transparent; box-shadow: inset 0 0 0 2px var(--bf); }
 /* Móvil: parcela más estrecha y dos columnas a la vista */
 @media (max-width: 767.98px) {
-    .tl-tabs--3 .tl-tab { padding: 0 .45rem; font-size: .85rem; }
     .bf-table { min-width: calc(7rem + var(--bf-cols, 5) * 8.5rem); }
     .bf-table .bf-field { width: 7rem; padding-left: .6rem; }
+    /* Inicio: las 3 columnas a la vista a 360 px (sin «hace N d»: con la fecha basta) */
+    .bf-table--compact { min-width: 0; }
+    .bf-table--compact .bf-field { width: 5.5rem; }
+    .bf-table--compact .bf-card { padding: .35rem .4rem; }
+    .bf-table--compact .bf-rel { display: none; }
 }

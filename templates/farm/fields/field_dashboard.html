@@ -151,7 +151,7 @@
         <a class="small fw-semibold text-decoration-none" href="{{ field_history_url }}">Ver por parcela</a>
     </div>
     {% if field_history.has_treatments %}
-    {% include "farm/treatments/_by_field_table.html" with rows=field_history.rows groups=field_history.groups limit=field_history.limit columns=field_history.columns %}
+    {% include "farm/treatments/_by_field_table.html" with rows=field_history.rows groups=field_history.groups limit=field_history.limit columns=field_history.columns compact=True %}
     {% else %}
     <div class="hm-group-empty">Cuando marques tratamientos como hechos, aquí verás cómo va cada parcela.</div>
     {% endif %}

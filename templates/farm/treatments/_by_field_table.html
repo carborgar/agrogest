@@ -3,12 +3,14 @@
 Tabla «por parcela»: una fila por parcela y una tarjeta por tratamiento hecho (1 = el último), con los
 parecidos del mismo color y una leyenda que destaca un grupo. Las columnas son iguales y ocupan todo el
 ancho; si no caben se desplaza en horizontal con la parcela fija. Contexto de `farm.field_history`
-(rows, groups, limit, columns) y, opcional, panel_filter_count. La usan «Por parcela» e Inicio.
+(rows, groups, limit, columns) y, opcionales, panel_filter_count y compact (columnas estrechas, Inicio).
+La usan «Por parcela» e Inicio. Todo va dentro de .bf-wrap y el script actúa en cada uno por separado.
 El enlace de la parcela lleva date_from/date_to vacíos para que el listado no se limite al año en curso.
 {% endcomment %}
+<div class="bf-wrap">
 {% if groups %}
 {# Leyenda: el mismo color = tratamientos parecidos. Pulsar uno destaca su grupo. #}
-<div class="d-flex flex-nowrap flex-md-wrap overflow-x-auto align-items-center gap-1 px-3 py-2 border-bottom bf-legend" id="bfLegend">
+<div class="d-flex flex-nowrap flex-md-wrap overflow-x-auto align-items-center gap-1 px-3 py-2 border-bottom">
     <span class="small text-muted me-1 flex-shrink-0">Parecidos:</span>
     {% for g in groups %}
     <button type="button" class="bf-key flex-shrink-0 text-nowrap bf-c{{ g.color }}{% if g.dashed %} bf-dashed{% endif %}" data-bf-group="{{ g.index }}" aria-pressed="false"
@@ -20,7 +22,7 @@ El enlace de la parcela lleva date_from/date_to vacíos para que el listado no s
 {% endif %}
 
 <div class="table-responsive">
-        <table class="table table-sm align-top mb-0 bf-table" id="bfTable" style="--bf-cols: {{ limit }}">
+        <table class="table table-sm align-top mb-0 bf-table{% if compact %} bf-table--compact{% endif %}" style="--bf-cols: {{ limit }}">
             <caption class="visually-hidden">Últimos {{ limit }} tratamientos hechos por parcela, del más reciente al más antiguo</caption>
             <thead>
             <tr>
@@ -43,7 +45,7 @@ El enlace de la parcela lleva date_from/date_to vacíos para que el listado no s
                     <a class="bf-card{% if t.similar %} bf-grouped bf-c{{ t.similar.color }}{% if t.similar.dashed %} bf-dashed{% endif %}{% endif %}"{% if t.similar %} data-bf-group="{{ t.similar.index }}"{% endif %}
                        href="{% url 'treatment-detail' t.id %}" title="{{ t.name }} · {{ t.finish_date|date:'d/m/Y' }}{% if t.similar %} · parecido a «{{ t.similar.label }}»{% endif %}">
                         <span class="bf-when">
-                            <b>{{ t.finish_date|date:"j b" }}</b> · {{ t.finish_date|relative_days }}
+                            <b>{{ t.finish_date|date:"j b" }}</b><span class="bf-rel"> · {{ t.finish_date|relative_days }}</span>
                             <i class="fa fa-{{ t|treatment_type_icon }} ms-auto d-none d-md-inline" aria-hidden="true" title="{{ t.get_type_display }}"></i>
                             <span class="visually-hidden">, {{ t.get_type_display }}</span>
                         </span>
@@ -62,20 +64,23 @@ El enlace de la parcela lleva date_from/date_to vacíos para que el listado no s
             </tbody>
         </table>
 </div>
+</div>
 
 <script>
-    // Leyenda de parecidos: pulsar un grupo atenúa el resto; pulsarlo otra vez lo quita
-    document.addEventListener('DOMContentLoaded', () => {
-        const table = document.getElementById('bfTable');
-        const keys = document.querySelectorAll('#bfLegend .bf-key');
-        if (!table || !keys.length) return;
-        keys.forEach(key => key.addEventListener('click', () => {
+    // Leyenda de parecidos: pulsar un grupo atenúa el resto de su tabla; pulsarlo otra vez lo quita.
+    // Se registra una sola vez aunque el parcial se incluya varias veces.
+    if (!window.bfLegendReady) {
+        window.bfLegendReady = true;
+        document.addEventListener('click', event => {
+            const key = event.target.closest('.bf-wrap .bf-key');
+            if (!key) return;
+            const wrap = key.closest('.bf-wrap');
             const on = key.getAttribute('aria-pressed') !== 'true';
-            keys.forEach(k => k.setAttribute('aria-pressed', 'false'));
-            table.querySelectorAll('.bf-card').forEach(card => {
+            wrap.querySelectorAll('.bf-key').forEach(k => k.setAttribute('aria-pressed', 'false'));
+            wrap.querySelectorAll('.bf-card').forEach(card => {
                 card.classList.toggle('bf-dim', on && card.dataset.bfGroup !== key.dataset.bfGroup);
             });
             if (on) key.setAttribute('aria-pressed', 'true');
-        }));
-    });
+        });
+    }
 </script>

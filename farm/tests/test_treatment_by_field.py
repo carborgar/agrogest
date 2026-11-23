@@ -389,3 +389,55 @@ class TestTabsAndHome:
         html = resp.content.decode()
         assert 'Cómo van las parcelas' in html and f'href="{URL}"' in html
         assert {g['label'] for g in history['groups']} == {'COBRE', 'CABRIO', 'MOSCA'}
+
+    def test_tabs_do_not_propagate_invalid_ids(self, setup):
+        client, org = setup
+        FieldFactory(organization=org)
+        resp = client.get(URL, {'field': 'abc', 'products': '999999'})
+        for key in ('todo_url', 'done_url'):
+            assert 'abc' not in resp.context[key] and '999999' not in resp.context[key]
+            assert client.get(resp.context[key]).status_code == 200
+
+    def test_todo_count_matches_list_tab(self, setup):
+        client, org = setup
+        field = FieldFactory(organization=org)
+        today = date.today()
+        SprayingTreatmentFactory(organization=org, field=field, date=today + timedelta(days=2))
+        SprayingTreatmentFactory(organization=org, field=field, date=_ago(400))  # atrasado de otro año
+        SprayingTreatmentFactory(organization=org, field=field, date=date(today.year + 1, 1, 15))
+        resp = client.get(URL)
+        listed = client.get(resp.context['todo_url']).context['todo_count']
+        assert resp.context['todo_count'] == listed == 2
+
+    def test_list_with_mixed_statuses_still_has_tabs(self, setup):
+        client, _ = setup
+        resp = client.get(reverse('treatment-list'), {'status': ['pending', 'completed']})
+        html = resp.content.decode()
+        assert resp.context['status_tab'] == 'all' and 'Por parcela' in html
+        assert 'tl-tab active' not in html
+
+    def test_home_without_done_treatments_shows_empty_state(self, setup):
+        client, org = setup
+        FieldFactory(organization=org)
+        html = client.get(reverse('field_list')).content.decode()
+        assert 'Cómo van las parcelas' in html and 'bf-table' not in html
+
+    def test_home_query_count_does_not_grow_with_fields(self, setup):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        def count():
+            client.get(reverse('field_list'))
+            with CaptureQueriesContext(connection) as ctx:
+                client.get(reverse('field_list'))
+            return len(ctx)
+
+        client, org = setup
+        field = FieldFactory(organization=org)
+        _done(org, field, 'COBRE', 1)
+        one = count()
+        for i in range(5):
+            field = FieldFactory(organization=org)
+            for j in range(4):
+                _done(org, field, f'T{i}{j}', j + 1)
+        assert count() == one
