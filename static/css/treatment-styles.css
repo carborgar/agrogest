@@ -1263,21 +1263,24 @@ button.cal-row:hover { background: var(--tl-soft); }
 .text-balance { text-wrap: balance; }
 
 /* ═══════════════════════════════════════════════
-   Por parcela (treatment_by_field.html). Cada tratamiento es una tarjeta de ancho fijo: el nombre se
-   recorta y la tabla se desplaza en horizontal en móvil. La parcela queda fija con position-sticky.
+   Por parcela (treatment_by_field.html). Tabla blanca a todo el ancho: columnas iguales (table-layout fixed)
+   y tarjetas que llenan la celda, sin huecos. Con muchas columnas la tabla tiene un ancho mínimo
+   (--bf-cols = N) y se desplaza en horizontal, con la parcela fija (position-sticky).
    bf-c0…11: un tono por grupo de tratamientos parecidos (borde y fondo suave), en celdas y leyenda.
 ═══════════════════════════════════════════════ */
-.bf-table th, .bf-table td { padding: .45rem .3rem; border-bottom-color: var(--tl-line); }
-.bf-table th:first-child { padding-left: .75rem; padding-right: .6rem; }
-.bf-table td:last-child { padding-right: .75rem; }
-.bf-field > a { max-width: 7.5rem; }
-.bf-card { display: flex; flex-direction: column; gap: 1px; width: 9.75rem; padding: .4rem .55rem; border: 1px solid var(--tl-line); border-left: 4px solid #D5D9D2; border-radius: 8px; background: #fff; color: var(--tl-ink); text-decoration: none; transition: opacity .15s; }
-.bf-card:hover { border-color: #C9CEC5; color: var(--tl-ink); box-shadow: 0 1px 3px rgba(0, 0, 0, .08); }
+.bf-table { --bs-table-bg: #fff; table-layout: fixed; min-width: calc(9rem + var(--bf-cols, 5) * 10rem); }
+.bf-table th, .bf-table td { padding: .4rem .25rem; border-bottom-color: var(--tl-line); }
+.bf-table thead th { padding-top: .6rem; padding-bottom: .6rem; font-size: .8rem; font-weight: 600; color: var(--tl-muted); }
+.bf-table tbody tr:last-child > * { border-bottom: 0; }
+.bf-table .bf-field { width: 9rem; padding-left: .85rem; padding-right: .6rem; }
+.bf-table td:last-child { padding-right: .6rem; }
+.bf-card { display: flex; flex-direction: column; gap: 1px; width: 100%; min-width: 0; padding: .4rem .55rem; border: 1px solid var(--tl-line); border-left: 4px solid #D5D9D2; border-radius: 8px; background: #fff; color: var(--tl-ink); text-decoration: none; transition: opacity .15s, box-shadow .15s; }
+.bf-card:hover { border-color: #C9CEC5; color: var(--tl-ink); box-shadow: 0 1px 4px rgba(0, 0, 0, .1); }
 .bf-when { display: flex; align-items: center; gap: .25rem; font-size: .75rem; color: var(--tl-muted); white-space: nowrap; }
 .bf-when b { color: var(--tl-ink); }
 .bf-name { overflow: hidden; font-size: .85rem; font-weight: 700; white-space: nowrap; text-overflow: ellipsis; }
 .bf-products { overflow: hidden; font-size: .72rem; color: var(--tl-muted); white-space: nowrap; text-overflow: ellipsis; }
-.bf-none { display: block; width: 9.75rem; padding: .4rem .55rem; color: #B8BDB4; }
+.bf-none { display: block; padding: .4rem .55rem; color: #C9CEC5; }
 .bf-dim { opacity: .25; }
 .bf-key { display: inline-flex; align-items: center; gap: .35rem; min-height: 32px; padding: .2rem .6rem; border: 1px solid var(--tl-line); border-radius: 16px; background: #fff; font-size: .8rem; font-weight: 600; color: var(--tl-ink); }
 .bf-key[aria-pressed="true"] { border-color: var(--bf); box-shadow: inset 0 0 0 1px var(--bf); }
@@ -1298,8 +1301,8 @@ button.cal-row:hover { background: var(--tl-soft); }
 /* A partir del 13.º grupo se repite el tono con borde discontinuo (y punto hueco en la leyenda) */
 .bf-card.bf-dashed { border-left-style: dashed; }
 .bf-key.bf-dashed .bf-dot { background: transparent; box-shadow: inset 0 0 0 2px var(--bf); }
-/* Móvil: dos columnas a la vista junto a la parcela */
+/* Móvil: parcela más estrecha y dos columnas a la vista */
 @media (max-width: 767.98px) {
-    .bf-field > a { max-width: 6rem; }
-    .bf-card, .bf-none { width: 8.25rem; }
+    .bf-table { min-width: calc(7rem + var(--bf-cols, 5) * 8.5rem); }
+    .bf-table .bf-field { width: 7rem; padding-left: .6rem; }
 }

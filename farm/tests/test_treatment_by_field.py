@@ -266,3 +266,24 @@ def test_more_groups_than_colors_repeat_with_dashed_border(setup):
     assert len(groups) == 10  # uno por nombre, con los últimos 10 de cada parcela
     assert [g['color'] for g in groups] == [0, 1, 2, 3] * 2 + [0, 1]
     assert [g['dashed'] for g in groups] == [False] * 4 + [True] * 6
+
+
+@pytest.mark.django_db
+def test_colors_do_not_change_with_n_or_filters(setup):
+    client, org = setup
+    fields = [FieldFactory(organization=org, name=n) for n in ('Uno', 'Dos', 'Tres')]
+    # Los más antiguos (solo visibles con N=10) forman el grupo más grande
+    for field in fields:
+        for i in range(4):
+            _done(org, field, 'ARAÑA', 60 + i)
+        _done(org, field, 'COBRE', 5)
+    _done(org, fields[0], 'CABRIO', 3)
+    _done(org, fields[1], 'CABRIO', 3)
+
+    def colors(params):
+        rows = client.get(URL, params).context['rows']
+        return {t.name: t.similar['color'] for r in rows for t in r['treatments'] if t.similar}
+
+    full, short = colors({'n': 10}), colors({'n': 3})
+    assert short['COBRE'] == full['COBRE'] and short['CABRIO'] == full['CABRIO']
+    assert colors({'n': 3, 'field': fields[0].id})['COBRE'] == full['COBRE']

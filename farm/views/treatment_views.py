@@ -819,6 +819,22 @@ class TreatmentByFieldView(BaseSecureViewMixin, TemplateView):
     LIMIT_CHOICES = (3, 5, 10)
     DEFAULT_LIMIT = 5
     COLORS = 12  # tonos .bf-c0…11 en treatment-styles.css; a partir del 13.º grupo se repiten con borde discontinuo
+    COLOR_BASE = 10  # últimos hechos por parcela sobre los que se fijan los colores (el N más alto)
+
+    @staticmethod
+    def _last_per_field(queryset, limit):
+        """Los `limit` hechos más recientes de cada parcela, en una sola consulta: numera los de cada
+        parcela con Window y filtra sobre esa numeración (necesita Django ≥ 4.2)."""
+        return (
+            queryset
+            .annotate(rank=Window(
+                RowNumber(), partition_by=F('field_id'),
+                order_by=[F('finish_date').desc(), F('date').desc(), F('id').desc()],
+            ))
+            .filter(rank__lte=limit)
+            .order_by('field_id', 'rank')
+            .prefetch_related('treatmentproduct_set__product')
+        )
 
     @staticmethod
     def _is_id(value):
@@ -883,32 +899,35 @@ class TreatmentByFieldView(BaseSecureViewMixin, TemplateView):
             fields = [x for x in all_fields if str(x.id) in f['field']]
             treatments = treatments.filter(field_id__in=f['field'])
 
-        # Una sola consulta: numera los hechos de cada parcela del más reciente al más antiguo
-        # y se queda con los N primeros (filtrar sobre Window necesita Django ≥ 4.2).
-        treatments = list(
-            treatments
-            .annotate(rank=Window(
-                RowNumber(), partition_by=F('field_id'),
-                order_by=[F('finish_date').desc(), F('date').desc(), F('id').desc()],
-            ))
-            .filter(rank__lte=limit)
-            .order_by('field_id', 'rank')
-            .prefetch_related('treatmentproduct_set__product')
-        )
+        treatments = list(self._last_per_field(treatments, limit))
 
-        # Parecidos → color. Los nombres de parcela no cuentan como parecido («ARAÑA CARTUJA»).
-        groups = group_similar(
-            [(t.id, t.name, {tp.product_id for tp in t.treatmentproduct_set.all()}) for t in treatments],
+        # Parecidos → color. Se agrupa siempre sobre la misma base (los últimos de cada parcela sin
+        # filtros) más lo que se ve, para que un tratamiento no cambie de color al cambiar N o
+        # los filtros. Los nombres de parcela no cuentan como parecido («ARAÑA CARTUJA»).
+        shown_ids = {t.id for t in treatments}
+        pool = {t.id: t for t in treatments}
+        for t in self._last_per_field(
+                Treatment.ownership_objects.get_queryset_for_user(user).filter(finish_date__isnull=False),
+                self.COLOR_BASE):
+            pool.setdefault(t.id, t)
+        all_groups = group_similar(
+            [(t.id, t.name, {tp.product_id for tp in t.treatmentproduct_set.all()}) for t in pool.values()],
             excluded_words={fl.name for fl in all_fields},
         )
-        group_of = {}
-        for index, group in enumerate(groups):
-            group['index'] = index + 1  # para la leyenda (data-bf-group)
+        groups, group_of = [], {}
+        for index, group in enumerate(all_groups):
             group['color'] = index % self.COLORS
             group['dashed'] = index >= self.COLORS
-            group['count'] = len(group['keys'])
-            for key in group['keys']:
+            shown = [k for k in group['keys'] if k in shown_ids]
+            if not shown:
+                continue
+            group['count'] = len(shown)
+            groups.append(group)
+            for key in shown:
                 group_of[key] = group
+        groups.sort(key=lambda g: -g['count'])  # leyenda: los que más se ven primero (el color no cambia)
+        for i, group in enumerate(groups, start=1):
+            group['index'] = i  # data-bf-group de leyenda y tarjetas
 
         by_field = {}
         for t in treatments:
