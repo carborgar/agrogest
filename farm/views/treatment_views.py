@@ -826,13 +826,41 @@ def by_field_url(get):
     return reverse('treatment-by-field') + ('?' + query if query else '')
 
 
-def list_urls(get):
-    """(Por hacer, Completados) del listado con los filtros de «Por parcela»."""
+def list_urls(filters, date_from=None, date_to=None):
+    """(Por hacer, Completados) del listado con los filtros de «Por parcela», ya validados (un id que
+    no existe haría fallar el listado). En «Completados» el periodo va sobre la fecha programada y
+    aquí sobre la de finalización: casi siempre coinciden, y es lo más cercano que admite el listado."""
     base = reverse('treatment-list')
-    todo = _shared_params(get, with_dates=False)
-    done = _shared_params(get, with_dates=True)
+    todo = QueryDict(mutable=True)
+    for key in SHARED_FILTERS:
+        if filters.get(key):
+            todo.setlist(key, filters[key])
+    done = todo.copy()
+    if date_from:
+        done['date_from'] = date_from.isoformat()
+    if date_to:
+        done['date_to'] = date_to.isoformat()
     done.setlist('status', [Treatment.STATUS_COMPLETED])
     return (base + ('?' + todo.urlencode() if todo else ''), base + '?' + done.urlencode())
+
+
+def todo_count_for_list(user, filters):
+    """Lo mismo que cuenta la pestaña «Por hacer» del listado sin fechas en la URL: pendientes y
+    atrasados del año en curso, más los atrasados de antes (el listado los enseña siempre)."""
+    today = date.today()
+    qs = Treatment.ownership_objects.get_queryset_for_user(user).filter(
+        Q(date__year=today.year) | Q(finish_date__isnull=True, date__lt=today),
+        status__in=TreatmentListView.TODO_STATUSES,
+    )
+    if filters.get('field'):
+        qs = qs.filter(field_id__in=filters['field'])
+    if filters.get('type'):
+        qs = qs.filter(type__in=filters['type'])
+    if filters.get('product_types'):
+        qs = qs.filter(products__product_type_id__in=filters['product_types'])
+    if filters.get('products'):
+        qs = qs.filter(products__id__in=filters['products'])
+    return qs.order_by().distinct().count()
 
 
 class TreatmentByFieldView(BaseSecureViewMixin, TemplateView):
@@ -894,7 +922,6 @@ class TreatmentByFieldView(BaseSecureViewMixin, TemplateView):
         if date_from and date_to and date_from > date_to:  # puestas al revés: se entiende el rango igual
             date_from, date_to = date_to, date_from
 
-
         history = field_history(user, all_fields, limit, f, date_from, date_to)
 
         # Enlaces del selector N: conservan los filtros
@@ -904,24 +931,14 @@ class TreatmentByFieldView(BaseSecureViewMixin, TemplateView):
         panel_count = (len(f['field']) + len(f['type']) + len(f['product_types']) + len(f['products'])
                        + (1 if date_from or date_to else 0))
 
-        todo_url, done_url = list_urls(self.request.GET)
-        todo = Treatment.ownership_objects.get_queryset_for_user(user).filter(
-            status__in=TreatmentListView.TODO_STATUSES)
-        if f['field']:
-            todo = todo.filter(field_id__in=f['field'])
-        if f['type']:
-            todo = todo.filter(type__in=f['type'])
-        if f['product_types']:
-            todo = todo.filter(products__product_type_id__in=f['product_types'])
-        if f['products']:
-            todo = todo.filter(products__id__in=f['products'])
+        todo_url, done_url = list_urls(f, date_from, date_to)
 
         context.update({
             'status_tab': 'by_field',
             'todo_url': todo_url,
             'done_url': done_url,
             'by_field_url': '?' + self.request.GET.urlencode(),
-            'todo_count': todo.order_by().distinct().count(),
+            'todo_count': todo_count_for_list(user, f),
             **history,
             'limit_choices': self.LIMIT_CHOICES,
             'has_fields': bool(all_fields),

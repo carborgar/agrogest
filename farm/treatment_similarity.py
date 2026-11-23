@@ -1,5 +1,5 @@
 """
-Agrupa tratamientos parecidos para pintarlos del mismo color en «Por parcela».
+Agrupa tratamientos parecidos para pintarlos del mismo color («Por parcela» e Inicio, vía farm.field_history).
 
 No clasifica tandas (la app no sabe qué es «la de la araña»): solo compara cada par por
   - productos en común, pesando menos los que van en casi todo (corrector de pH, mojante…),

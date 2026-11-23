@@ -30,7 +30,7 @@ def last_per_field(queryset, limit):
     )
 
 
-def field_history(user, all_fields, limit, filters=None, date_from=None, date_to=None):
+def field_history(user, all_fields, limit, filters=None, date_from=None, date_to=None, color_base=COLOR_BASE):
     """
     Devuelve {'rows', 'groups', 'has_treatments', 'limit', 'columns'} (lo que pinta
     `farm/treatments/_by_field_table.html`).
@@ -39,10 +39,12 @@ def field_history(user, all_fields, limit, filters=None, date_from=None, date_to
     parámetro ('field', 'type', 'product_types', 'products'). El periodo va sobre la fecha de
     finalización y los últimos `limit` se cuentan dentro de él. Las parcelas sin coincidencias
     siguen saliendo: que a una parcela le falte la pasada también es información.
+    `color_base`: cuántos por parcela se agrupan para fijar los colores. Inicio pasa su propio N
+    (sus colores no tienen que coincidir con los de «Por parcela» y así no agrupa de más).
     """
     f = {'field': [], 'type': [], 'product_types': [], 'products': [], **(filters or {})}
 
-    # Base para los colores: los últimos 10 de cada parcela dentro del periodo, sin el resto de
+    # Base para los colores: los últimos `color_base` de cada parcela dentro del periodo, sin el resto de
     # filtros. Agrupando siempre sobre ella (más lo que se vea) un tratamiento no cambia de color
     # al cambiar N, la parcela, el tipo o el producto.
     done = Treatment.ownership_objects.get_queryset_for_user(user).filter(finish_date__isnull=False)
@@ -50,7 +52,7 @@ def field_history(user, all_fields, limit, filters=None, date_from=None, date_to
         done = done.filter(finish_date__gte=date_from)
     if date_to:
         done = done.filter(finish_date__lte=date_to)
-    base = list(last_per_field(done, COLOR_BASE))
+    base = list(last_per_field(done, max(color_base, limit)))
 
     fields = all_fields
     if f['field']:
