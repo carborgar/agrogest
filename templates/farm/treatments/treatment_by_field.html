@@ -7,35 +7,119 @@
 
 {% block content %}
 {% comment %}
-El enlace de la parcela lleva date_from/date_to vacíos para que el listado no se limite al año en curso.
 Una fila por parcela y una columna por tratamiento hecho (1 = el último), para comparar parcelas
-y ver qué tanda va por delante. En móvil la tabla se desplaza en horizontal con la parcela fija.
+y ver qué tanda va por delante. Los tratamientos parecidos (productos y nombre) llevan el mismo color;
+la leyenda permite destacar un grupo. En móvil la tabla se desplaza en horizontal con la parcela fija.
+El enlace de la parcela lleva date_from/date_to vacíos para que el listado no se limite al año en curso.
 {% endcomment %}
-<div class="d-flex align-items-center gap-2 mb-3">
-    <span class="small fw-semibold text-muted">Últimos</span>
-    <nav class="tl-tabs" aria-label="Número de tratamientos por parcela">
-        {% for n in limit_choices %}
-        <a class="tl-tab{% if n == limit %} active{% endif %}" href="?n={{ n }}"{% if n == limit %} aria-current="page"{% endif %}>{{ n }}</a>
-        {% endfor %}
-    </nav>
-</div>
-
-{% if not rows %}
+{% if not has_fields %}
 <div class="card card-flat hm-empty">
     <span class="hm-empty-icon"><i class="fa fa-map-location-dot" aria-hidden="true"></i></span>
     <b>No hay parcelas</b>
     <span>Cuando des de alta alguna, aquí verás sus últimos tratamientos.</span>
 </div>
-{% elif not has_treatments %}
+{% else %}
+
+<form method="GET" id="bfFilterForm" class="mb-3">
+    <input type="hidden" name="n" value="{{ limit }}">
+
+    <div class="tl-toolbar">
+        <span class="small fw-semibold text-muted">Últimos</span>
+        <nav class="tl-tabs flex-fill flex-md-grow-0" aria-label="Número de tratamientos por parcela">
+            {% for n in limit_choices %}
+            <a class="tl-tab{% if n == limit %} active{% endif %}" href="?n={{ n }}{% if filter_qs %}&{{ filter_qs }}{% endif %}"{% if n == limit %} aria-current="page"{% endif %}>{{ n }}</a>
+            {% endfor %}
+        </nav>
+        <button class="btn btn-outline-secondary tl-filters-btn d-md-none ms-auto" type="button"
+                data-bs-toggle="offcanvas" data-bs-target="#bfFiltersPanel" aria-controls="bfFiltersPanel"
+                aria-label="Filtros{% if panel_filter_count %} ({{ panel_filter_count }} activos){% endif %}">
+            <i class="fa fa-sliders" aria-hidden="true"></i>
+            {% if panel_filter_count %}<span class="tl-filters-badge">{{ panel_filter_count }}</span>{% endif %}
+        </button>
+    </div>
+
+    {# Filtros: en línea en desktop, panel inferior en móvil (como el listado) #}
+    <div class="offcanvas-md offcanvas-bottom tl-filters" tabindex="-1" id="bfFiltersPanel" aria-labelledby="bfFiltersLabel">
+        <div class="offcanvas-header d-md-none">
+            <h5 class="offcanvas-title" id="bfFiltersLabel">Filtros</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#bfFiltersPanel" aria-label="Cerrar"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div class="row g-2 align-items-end w-100 m-0">
+                <div class="col-12 col-md-6 col-xl-3">
+                    {% include "farm/_filter_check_dropdown.html" with name="field" label="Parcelas" icon="map" options=field_options selected=selected.field all_label="Todas las parcelas…" %}
+                </div>
+                <div class="col-12 col-md-6 col-xl-2">
+                    {% include "farm/_filter_check_dropdown.html" with name="type" label="Tipo" icon="droplet" options=type_options selected=selected.type all_label="Todos…" %}
+                </div>
+                <div class="col-6 col-md-4 col-xl-2">
+                    <label class="form-label small fw-semibold text-muted mb-1" for="bf_date_from"><i class="fa fa-calendar me-1" aria-hidden="true"></i>Hecho desde</label>
+                    <input type="date" name="date_from" value="{{ date_from }}" class="form-control" id="bf_date_from">
+                </div>
+                <div class="col-6 col-md-4 col-xl-2">
+                    <label class="form-label small fw-semibold text-muted mb-1" for="bf_date_to"><i class="fa fa-calendar me-1" aria-hidden="true"></i>Hasta</label>
+                    <input type="date" name="date_to" value="{{ date_to }}" class="form-control" id="bf_date_to">
+                </div>
+                <div class="col-12 col-md-4 col-xl-3 d-flex gap-2 align-items-end order-last order-md-0">
+                    <button class="btn btn-primary flex-fill" type="submit"><i class="fa fa-filter me-1" aria-hidden="true"></i>Filtrar</button>
+                    {% if panel_filter_count %}
+                    <a class="btn btn-outline-secondary" href="?n={{ limit }}" title="Limpiar filtros" aria-label="Limpiar filtros"><i class="fa fa-rotate-left" aria-hidden="true"></i></a>
+                    {% endif %}
+                </div>
+
+                {# Productos: plegados en desktop, siempre visibles en el panel móvil #}
+                <div class="col-12">
+                    <button class="btn btn-link btn-sm text-muted p-0 text-decoration-none d-none d-md-inline-block" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#bfAdvanced" aria-controls="bfAdvanced"
+                            aria-expanded="{% if advanced_count %}true{% else %}false{% endif %}">
+                        <i class="fa fa-sliders me-1" aria-hidden="true"></i>Filtrar por producto
+                        {% if advanced_count %}<span class="badge bg-primary ms-1">{{ advanced_count }}</span>{% endif %}
+                    </button>
+                    <div class="collapse tl-advanced{% if advanced_count %} show{% endif %}" id="bfAdvanced">
+                        <div class="row g-2 align-items-end pt-2">
+                            <div class="col-12 col-md-6 col-xl-3">
+                                {% include "farm/_filter_check_dropdown.html" with name="product_types" label="Tipo de producto" icon="box" options=product_type_options selected=selected.product_types all_label="Todos los tipos…" searchable=True %}
+                            </div>
+                            <div class="col-12 col-md-6 col-xl-3">
+                                {% include "farm/_filter_check_dropdown.html" with name="products" label="Productos" icon="flask" options=product_options selected=selected.products all_label="Todos los productos…" searchable=True %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+{% if not has_treatments %}
 <div class="card card-flat hm-empty">
     <span class="hm-empty-icon"><i class="fa fa-droplet" aria-hidden="true"></i></span>
+    {% if panel_filter_count %}
+    <b>Ningún tratamiento hecho con estos filtros</b>
+    <span><a href="?n={{ limit }}">Quitar los filtros</a></span>
+    {% else %}
     <b>Todavía no hay tratamientos hechos</b>
     <span>Cuando marques alguno como hecho, aparecerá aquí en su parcela.</span>
+    {% endif %}
 </div>
 {% else %}
+
+{% if groups %}
+{# Leyenda: el mismo color = tratamientos parecidos. Pulsar uno destaca su grupo. #}
+<div class="d-flex flex-nowrap flex-md-wrap overflow-x-auto align-items-center gap-1 mb-2 pb-1" id="bfLegend">
+    <span class="small text-muted me-1 flex-shrink-0">Parecidos:</span>
+    {% for g in groups %}
+    <button type="button" class="bf-key flex-shrink-0 text-nowrap bf-c{{ g.color }}" data-bf-color="{{ g.color }}" aria-pressed="false"
+            title="Destacar los {{ g.count }} parecidos a «{{ g.label }}»">
+        <span class="bf-dot" aria-hidden="true"></span>{{ g.label }} <span class="text-muted">{{ g.count }}</span>
+    </button>
+    {% endfor %}
+</div>
+{% endif %}
+
 <section class="card card-flat">
     <div class="table-responsive">
-        <table class="table table-sm align-top mb-0 bf-table">
+        <table class="table table-sm align-top mb-0 bf-table" id="bfTable">
             <caption class="visually-hidden">Últimos {{ limit }} tratamientos hechos por parcela, del más reciente al más antiguo</caption>
             <thead>
             <tr>
@@ -55,18 +139,21 @@ y ver qué tanda va por delante. En móvil la tabla se desplaza en horizontal co
                 {% if row.treatments %}
                 {% for t in row.treatments %}
                 <td class="bf-cell">
-                    <a class="d-block text-body text-decoration-none" href="{% url 'treatment-detail' t.id %}" title="{{ t.name }} · {{ t.finish_date|date:'d/m/Y' }}">
-                        <span class="d-block small text-muted text-nowrap">
-                            <i class="fa fa-{{ t|treatment_type_icon }} me-1" aria-hidden="true"></i><span class="visually-hidden">{{ t.get_type_display }}: </span>{{ t.finish_date|date:"j b" }} · {{ t.finish_date|relative_days }}
+                    <a class="bf-card{% if t.similar_color is not None %} bf-c{{ t.similar_color }}{% endif %}"{% if t.similar_color is not None %} data-bf-color="{{ t.similar_color }}"{% endif %}
+                       href="{% url 'treatment-detail' t.id %}">
+                        <span class="bf-when">
+                            <b>{{ t.finish_date|date:"j b" }}</b> · {{ t.finish_date|relative_days }}
+                            <i class="fa fa-{{ t|treatment_type_icon }} ms-auto" aria-hidden="true" title="{{ t.get_type_display }}"></i>
+                            <span class="visually-hidden">, {{ t.get_type_display }}</span>
                         </span>
-                        <span class="d-block fw-semibold text-truncate">{{ t.name }}</span>
-                        <span class="d-none d-md-block small text-muted text-truncate">{% for tp in t.treatmentproduct_set.all %}{{ tp.product.name }}{% if not forloop.last %} · {% endif %}{% empty %}Sin productos{% endfor %}</span>
+                        <span class="bf-name">{{ t.name }}</span>
+                        <span class="bf-products d-none d-md-block">{% for tp in t.treatmentproduct_set.all %}{{ tp.product.name }}{% if not forloop.last %} · {% endif %}{% empty %}Sin productos{% endfor %}</span>
                     </a>
                 </td>
                 {% endfor %}
-                {% for _ in row.missing %}<td class="bf-cell text-muted">—</td>{% endfor %}
+                {% for _ in row.missing %}<td class="bf-cell"><span class="bf-none">—</span></td>{% endfor %}
                 {% else %}
-                <td class="text-muted small" colspan="{{ limit }}">Sin tratamientos hechos</td>
+                <td class="text-muted small align-middle" colspan="{{ limit }}">{% if panel_filter_count %}Ninguno con estos filtros{% else %}Sin tratamientos hechos{% endif %}</td>
                 {% endif %}
             </tr>
             {% endfor %}
@@ -75,4 +162,24 @@ y ver qué tanda va por delante. En móvil la tabla se desplaza en horizontal co
     </div>
 </section>
 {% endif %}
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Leyenda de parecidos: pulsar un grupo atenúa el resto; pulsarlo otra vez lo quita
+    document.addEventListener('DOMContentLoaded', () => {
+        const table = document.getElementById('bfTable');
+        const keys = document.querySelectorAll('#bfLegend .bf-key');
+        if (!table || !keys.length) return;
+        keys.forEach(key => key.addEventListener('click', () => {
+            const on = key.getAttribute('aria-pressed') !== 'true';
+            keys.forEach(k => k.setAttribute('aria-pressed', 'false'));
+            table.querySelectorAll('.bf-card').forEach(card => {
+                card.classList.toggle('bf-dim', on && card.dataset.bfColor !== key.dataset.bfColor);
+            });
+            if (on) key.setAttribute('aria-pressed', 'true');
+        }));
+    });
+</script>
 {% endblock %}

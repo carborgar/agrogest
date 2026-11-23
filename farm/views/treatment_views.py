@@ -23,6 +23,7 @@ from farm.services import (
     build_treatment_form_data, clone_treatment, create_treatments_for_fields, save_treatment_with_products,
 )
 from farm.templatetags.custom_filters import treatment_tone
+from farm.treatment_similarity import group_similar
 
 logger = logging.getLogger(__name__)
 
@@ -805,27 +806,74 @@ class TreatmentByFieldView(BaseSecureViewMixin, TemplateView):
 
     Con varias parcelas los tratamientos van por tandas (araña, fungicida…): poniendo
     las parcelas una debajo de otra se ve cuál va por delante o si se ha cambiado el orden.
-    No se agrupan por tandas: eso lo decide quien lleva la parcela. Solo cuentan los hechos
-    (con fecha de finalización, no por `status`, que puede estar desfasado), de cualquier tipo.
+    No se clasifican tandas; los parecidos (productos y nombre) se pintan del mismo color
+    para que salten a la vista (ver `farm.treatment_similarity`). Solo cuentan los hechos
+    (con fecha de finalización, no por `status`, que puede estar desfasado).
+
+    Filtros (mismos nombres de parámetro que el listado): parcela, tipo, tipo de producto,
+    producto y periodo. El periodo va sobre la fecha de finalización y los «últimos N» se
+    cuentan dentro de él. Las parcelas filtradas por producto siguen saliendo aunque no
+    tengan ninguno: que una parcela no tenga la pasada también es información.
     """
     template_name = 'farm/treatments/treatment_by_field.html'
     LIMIT_CHOICES = (3, 5, 10)
     DEFAULT_LIMIT = 5
+    MAX_COLORS = 8  # tonos de .bf-c0…7 en treatment-styles.css
 
     def _limit(self):
         value = self.request.GET.get('n', '')
         return int(value) if value.isdigit() and int(value) in self.LIMIT_CHOICES else self.DEFAULT_LIMIT
 
+    def _ids(self, name):
+        return [v for v in self.request.GET.getlist(name) if v.isdigit()]
+
+    def _date(self, name):
+        value = self.request.GET.get(name, '')
+        try:
+            return date.fromisoformat(value) if value else None
+        except ValueError:
+            return None
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         limit = self._limit()
         user = self.request.user
+        valid_types = dict(Treatment.TYPE_CHOICES)
+        f = {
+            'field': self._ids('field'),
+            'type': [t for t in self.request.GET.getlist('type') if t in valid_types],
+            'product_types': self._ids('product_types'),
+            'products': self._ids('products'),
+        }
+        date_from, date_to = self._date('date_from'), self._date('date_to')
 
-        # Una sola consulta: numera los hechos de cada parcela del más reciente al más antiguo
-        # y se queda con los N primeros (filtrar sobre Window necesita Django ≥ 4.2).
         treatments = (
             Treatment.ownership_objects.get_queryset_for_user(user)
             .filter(finish_date__isnull=False)
+        )
+        if f['type']:
+            treatments = treatments.filter(type__in=f['type'])
+        if f['product_types']:
+            treatments = treatments.filter(id__in=TreatmentProduct.objects.filter(
+                product__product_type_id__in=f['product_types']).values('treatment_id'))
+        if f['products']:
+            treatments = treatments.filter(id__in=TreatmentProduct.objects.filter(
+                product_id__in=f['products']).values('treatment_id'))
+        if date_from:
+            treatments = treatments.filter(finish_date__gte=date_from)
+        if date_to:
+            treatments = treatments.filter(finish_date__lte=date_to)
+
+        fields = Field.ownership_objects.get_queryset_for_user(user)
+        all_fields = list(fields)
+        if f['field']:
+            fields = fields.filter(id__in=f['field'])
+            treatments = treatments.filter(field_id__in=f['field'])
+
+        # Una sola consulta: numera los hechos de cada parcela del más reciente al más antiguo
+        # y se queda con los N primeros (filtrar sobre Window necesita Django ≥ 4.2).
+        treatments = list(
+            treatments
             .annotate(rank=Window(
                 RowNumber(), partition_by=F('field_id'),
                 order_by=[F('finish_date').desc(), F('date').desc(), F('id').desc()],
@@ -834,20 +882,56 @@ class TreatmentByFieldView(BaseSecureViewMixin, TemplateView):
             .order_by('field_id', 'rank')
             .prefetch_related('treatmentproduct_set__product')
         )
+
+        # Parecidos → color. Los nombres de parcela no cuentan como parecido («ARAÑA CARTUJA»).
+        groups = group_similar(
+            [(t.id, t.name, {tp.product_id for tp in t.treatmentproduct_set.all()}) for t in treatments],
+            excluded_words={w for fl in all_fields for w in fl.name.split()},
+        )[:self.MAX_COLORS]
+        color_of = {}
+        for index, group in enumerate(groups):
+            group['color'] = index
+            for key in group['keys']:
+                color_of[key] = index
+            group['count'] = len(group['keys'])
+
         by_field = {}
         for t in treatments:
+            t.similar_color = color_of.get(t.id)
             by_field.setdefault(t.field_id, []).append(t)
 
-        rows = []
-        for field in Field.ownership_objects.get_queryset_for_user(user):
-            done = by_field.get(field.id, [])
-            rows.append({'field': field, 'treatments': done, 'missing': range(limit - len(done))})
+        rows = [
+            {'field': field, 'treatments': by_field.get(field.id, []),
+             'missing': range(limit - len(by_field.get(field.id, [])))}
+            for field in fields
+        ]
+
+        # Enlaces del selector N: conservan los filtros
+        params = self.request.GET.copy()
+        params.pop('n', None)
+        filter_qs = params.urlencode()
+        panel_count = (len(f['field']) + len(f['type']) + len(f['product_types']) + len(f['products'])
+                       + (1 if date_from or date_to else 0))
 
         context.update({
             'rows': rows,
             'limit': limit,
             'limit_choices': self.LIMIT_CHOICES,
             'columns': range(1, limit + 1),
-            'has_treatments': bool(by_field),
+            'has_treatments': bool(treatments),
+            'has_fields': bool(all_fields),
+            'groups': groups,
+            'filter_qs': filter_qs,
+            'panel_filter_count': panel_count,
+            'advanced_count': len(f['product_types']) + len(f['products']),
+            'selected': f,
+            'date_from': date_from.isoformat() if date_from else '',
+            'date_to': date_to.isoformat() if date_to else '',
+            'field_options': [(str(x.id), x.name) for x in all_fields],
+            'type_options': list(Treatment.TYPE_CHOICES),
+            'product_type_options': [
+                (str(x.id), x.name) for x in ProductType.ownership_objects.get_queryset_for_user(user)],
+            'product_options': [
+                (str(x.id), x.name) for x in Product.ownership_objects.get_queryset_for_user(user).order_by('name')],
         })
         return context
