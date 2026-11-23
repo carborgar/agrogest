@@ -1,9 +1,15 @@
 {% extends "base.html" %}
 {% load custom_filters %}
 
-{% block title %}Por parcela{% endblock %}
-{% block header %}Por parcela{% endblock %}
+{% block title %}Tratamientos por parcela{% endblock %}
+{% block header %}Tratamientos{% endblock %}
 {% block sub_header %}<span class="d-none d-md-inline">Últimos tratamientos hechos en cada parcela, del más reciente al más antiguo</span>{% endblock %}
+
+{% block actions %}
+<a class="btn btn-primary d-none d-md-inline-block" href="{% url 'treatment-create' %}">
+    <i class="fa fa-plus me-1"></i>Nuevo tratamiento
+</a>
+{% endblock %}
 
 {% block content %}
 {% comment %}
@@ -25,7 +31,8 @@ El enlace de la parcela lleva date_from/date_to vacíos para que el listado no s
     <input type="hidden" name="n" value="{{ limit }}">
 
     <div class="tl-toolbar">
-        <span class="small fw-semibold text-muted">Últimos</span>
+        {% include "farm/treatments/_treatment_tabs.html" %}
+        <span class="small fw-semibold text-muted ms-md-auto">Últimos</span>
         <nav class="tl-tabs flex-fill flex-md-grow-0" aria-label="Número de tratamientos por parcela">
             {% for n in limit_choices %}
             <a class="tl-tab{% if n == limit %} active{% endif %}" href="?n={{ n }}{% if filter_qs %}&{{ filter_qs }}{% endif %}"{% if n == limit %} aria-current="page"{% endif %}>{{ n }}</a>
@@ -105,83 +112,9 @@ El enlace de la parcela lleva date_from/date_to vacíos para que el listado no s
 </div>
 {% else %}
 
-{% if groups %}
-{# Leyenda: el mismo color = tratamientos parecidos. Pulsar uno destaca su grupo. #}
-<div class="d-flex flex-nowrap flex-md-wrap overflow-x-auto align-items-center gap-1 mb-2 pb-1" id="bfLegend">
-    <span class="small text-muted me-1 flex-shrink-0">Parecidos:</span>
-    {% for g in groups %}
-    <button type="button" class="bf-key flex-shrink-0 text-nowrap bf-c{{ g.color }}{% if g.dashed %} bf-dashed{% endif %}" data-bf-group="{{ g.index }}" aria-pressed="false"
-            title="Destacar los {{ g.count }} parecidos a «{{ g.label }}»">
-        <span class="bf-dot" aria-hidden="true"></span>{{ g.label }} <span class="text-muted">{{ g.count }}</span>
-    </button>
-    {% endfor %}
-</div>
-{% endif %}
-
 <section class="card card-flat">
-    <div class="table-responsive">
-        <table class="table table-sm align-top mb-0 bf-table" id="bfTable" style="--bf-cols: {{ limit }}">
-            <caption class="visually-hidden">Últimos {{ limit }} tratamientos hechos por parcela, del más reciente al más antiguo</caption>
-            <thead>
-            <tr>
-                <th scope="col" class="position-sticky start-0 bg-white border-end bf-field">Parcela</th>
-                {% for c in columns %}
-                <th scope="col" class="text-nowrap">{% if forloop.first %}Último{% elif c == 2 %}Penúltimo{% else %}{{ c }}.º{% endif %}</th>
-                {% endfor %}
-            </tr>
-            </thead>
-            <tbody>
-            {% for row in rows %}
-            <tr>
-                <th scope="row" class="position-sticky start-0 bg-white border-end bf-field">
-                    <a class="d-block text-body text-decoration-none text-truncate" href="{% url 'treatment-list' %}?field={{ row.field.id }}&status=completed&date_from=&date_to=">{{ row.field.name }}</a>
-                    <span class="small fw-normal text-muted">{{ row.field.area|floatformat:"-2" }} ha</span>
-                </th>
-                {% if row.treatments %}
-                {% for t in row.treatments %}
-                <td class="bf-cell">
-                    <a class="bf-card{% if t.similar %} bf-grouped bf-c{{ t.similar.color }}{% if t.similar.dashed %} bf-dashed{% endif %}{% endif %}"{% if t.similar %} data-bf-group="{{ t.similar.index }}"{% endif %}
-                       href="{% url 'treatment-detail' t.id %}" title="{{ t.name }} · {{ t.finish_date|date:'d/m/Y' }}{% if t.similar %} · parecido a «{{ t.similar.label }}»{% endif %}">
-                        <span class="bf-when">
-                            <b>{{ t.finish_date|date:"j b" }}</b> · {{ t.finish_date|relative_days }}
-                            <i class="fa fa-{{ t|treatment_type_icon }} ms-auto d-none d-md-inline" aria-hidden="true" title="{{ t.get_type_display }}"></i>
-                            <span class="visually-hidden">, {{ t.get_type_display }}</span>
-                        </span>
-                        <span class="bf-name">{{ t.name }}</span>
-                        {% if t.similar %}<span class="visually-hidden">, parecido a «{{ t.similar.label }}»</span>{% endif %}
-                        <span class="bf-products d-none d-md-block">{% for tp in t.treatmentproduct_set.all %}{{ tp.product.name }}{% if not forloop.last %} · {% endif %}{% empty %}Sin productos{% endfor %}</span>
-                    </a>
-                </td>
-                {% endfor %}
-                {% for _ in row.missing %}<td class="bf-cell"><span class="bf-none" aria-hidden="true">—</span><span class="visually-hidden">Sin tratamiento</span></td>{% endfor %}
-                {% else %}
-                <td class="text-muted small align-middle" colspan="{{ limit }}">{% if panel_filter_count %}Ninguno con estos filtros{% else %}Sin tratamientos hechos{% endif %}</td>
-                {% endif %}
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-    </div>
+    {% include "farm/treatments/_by_field_table.html" %}
 </section>
 {% endif %}
 {% endif %}
-{% endblock %}
-
-{% block extra_js %}
-<script>
-    // Leyenda de parecidos: pulsar un grupo atenúa el resto; pulsarlo otra vez lo quita
-    document.addEventListener('DOMContentLoaded', () => {
-        const table = document.getElementById('bfTable');
-        const keys = document.querySelectorAll('#bfLegend .bf-key');
-        if (!table || !keys.length) return;
-        keys.forEach(key => key.addEventListener('click', () => {
-            const on = key.getAttribute('aria-pressed') !== 'true';
-            keys.forEach(k => k.setAttribute('aria-pressed', 'false'));
-            table.querySelectorAll('.bf-card').forEach(card => {
-                card.classList.toggle('bf-dim', on && card.dataset.bfGroup !== key.dataset.bfGroup);
-            });
-            if (on) key.setAttribute('aria-pressed', 'true');
-        }));
-    });
-</script>
 {% endblock %}

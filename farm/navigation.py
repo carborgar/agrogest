@@ -60,8 +60,7 @@ NAV = (
     NavGroup('Tratamientos', (
         NavItem('nav_treatments', 'Tratamientos', 'fas fa-droplet', 'treatment-list', tab_label='Tratamientos',
                 match=('treatment-create', 'treatment-detail', 'treatment-edit', 'treatment-clone',
-                       'treatment-repeat', 'treatment-finish', 'treatment-instructions')),
-        NavItem('nav_by_field', 'Por parcela', 'fa fa-table-list', 'treatment-by-field'),
+                       'treatment-repeat', 'treatment-finish', 'treatment-instructions', 'treatment-by-field')),
         NavItem('nav_calendar', 'Calendario', 'fas fa-calendar-days', 'treatment-calendar', tab_label='Calendario'),
         NavItem('nav_shopping', 'Preparar productos', 'fa fa-boxes-packing', 'treatment-shopping-list', tab_label='Preparar'),
         NavItem('nav_weather', 'El Tiempo', 'fa fa-cloud-sun', 'weather-overview', visible=_feature('WEATHER')),

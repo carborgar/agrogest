@@ -1,0 +1,12 @@
+{% comment %}
+Pestañas de Tratamientos: «Por hacer» y «Completados» (listado) y «Por parcela» (los hechos de cada
+parcela en filas para compararlas). Las tres conservan los filtros que comparten.
+Variables: status_tab ('todo' | 'done' | 'by_field' | 'all'), todo_count, todo_url, done_url, by_field_url.
+{% endcomment %}
+<nav class="tl-tabs tl-tabs--3" aria-label="Vista de tratamientos">
+    <a class="tl-tab{% if status_tab == 'todo' %} active{% endif %}" href="{{ todo_url }}"{% if status_tab == 'todo' %} aria-current="page"{% endif %}>
+        Por hacer <span class="tl-tab-count">{{ todo_count }}</span>
+    </a>
+    <a class="tl-tab{% if status_tab == 'done' %} active{% endif %}" href="{{ done_url }}"{% if status_tab == 'done' %} aria-current="page"{% endif %}>Completados</a>
+    <a class="tl-tab{% if status_tab == 'by_field' %} active{% endif %}" href="{{ by_field_url }}"{% if status_tab == 'by_field' %} aria-current="page"{% endif %}>Por parcela</a>
+</nav>

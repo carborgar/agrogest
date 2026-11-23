@@ -156,7 +156,7 @@ class TestTreatmentByField:
         assert f'?field={field.id}&status=completed&date_from=&date_to=' in html
         assert 'hace 3 d' in html
         active = [i['key'] for g in resp.context['nav_groups'] for i in g['items'] if i['active']]
-        assert active == ['nav_by_field']
+        assert active == ['nav_treatments']
 
 
 @pytest.mark.django_db
@@ -252,7 +252,6 @@ class TestTreatmentByFieldFilters:
 
 @pytest.mark.django_db
 def test_more_groups_than_colors_repeat_with_dashed_border(setup):
-    from farm.views.treatment_views import TreatmentByFieldView
     client, org = setup
     a, b = FieldFactory(organization=org, name='Uno'), FieldFactory(organization=org, name='Dos')
     names = ['Cobre', 'Cabrio', 'Mosca', 'Calibre', 'Potasio', 'Calcio', 'Hierro', 'Boro',
@@ -261,7 +260,7 @@ def test_more_groups_than_colors_repeat_with_dashed_border(setup):
         _done(org, a, name, i + 1)
         _done(org, b, name, i + 1)
     from unittest.mock import patch
-    with patch.object(TreatmentByFieldView, 'COLORS', 4):
+    with patch('farm.field_history.COLORS', 4):
         groups = client.get(URL, {'n': 10}).context['groups']
     assert len(groups) == 10  # uno por nombre, con los últimos 10 de cada parcela
     styles = sorted((g['color'], g['dashed']) for g in groups)
@@ -350,3 +349,43 @@ def test_legend_and_cards_share_group_index(setup):
     legend = set(re.findall(r'class="bf-key[^"]*" data-bf-group="(\d+)"', html))
     cards = set(re.findall(r'bf-card bf-grouped[^"]*" data-bf-group="(\d+)"', html))
     assert legend == cards == {'1', '2'}
+
+
+@pytest.mark.django_db
+class TestTabsAndHome:
+
+    def test_list_tab_opens_by_field_keeping_shared_filters(self, setup):
+        client, org = setup
+        field = FieldFactory(organization=org)
+        html = client.get(reverse('treatment-list'), {'field': field.id, 'type': 'spraying', 'q': 'x',
+                                                      'status': 'completed'}).content.decode()
+        assert f'{URL}?field={field.id}&amp;type=spraying"' in html
+
+    def test_list_tab_without_filters_has_no_dates(self, setup):
+        client, _ = setup
+        assert f'href="{URL}"' in client.get(reverse('treatment-list')).content.decode()
+
+    def test_by_field_tabs_go_back_to_list_with_filters(self, setup):
+        client, org = setup
+        field = FieldFactory(organization=org)
+        _done(org, field, 'COBRE', 3)
+        SprayingTreatmentFactory(organization=org, field=field, date=date.today() + timedelta(days=2))
+        resp = client.get(URL, {'field': field.id, 'n': 3, 'date_from': _ago(30).isoformat()})
+        list_url = reverse('treatment-list')
+        assert resp.context['todo_url'] == f'{list_url}?field={field.id}'
+        assert resp.context['done_url'] == (
+            f'{list_url}?field={field.id}&date_from={_ago(30).isoformat()}&status=completed')
+        assert resp.context['todo_count'] == 1 and resp.context['status_tab'] == 'by_field'
+
+    def test_home_card_shows_last_three_per_field(self, setup):
+        client, org = setup
+        a, b = FieldFactory(organization=org, name='Uno'), FieldFactory(organization=org, name='Dos')
+        for field in (a, b):
+            for i, name in enumerate(['COBRE', 'CABRIO', 'MOSCA', 'VIEJO']):
+                _done(org, field, name, i + 1)
+        resp = client.get(reverse('field_list'))
+        history = resp.context['field_history']
+        assert [[t.name for t in r['treatments']] for r in history['rows']] == [['COBRE', 'CABRIO', 'MOSCA']] * 2
+        html = resp.content.decode()
+        assert 'Cómo van las parcelas' in html and f'href="{URL}"' in html
+        assert {g['label'] for g in history['groups']} == {'COBRE', 'CABRIO', 'MOSCA'}

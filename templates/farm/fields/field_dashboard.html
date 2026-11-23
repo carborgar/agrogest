@@ -140,6 +140,24 @@
     </div>
 </div>
 
+{# ── Cómo van las parcelas: los últimos 3 hechos de cada una, para ver qué tanda va por delante ── #}
+{% if fields %}
+<section aria-labelledby="hm-fields-title" class="card card-flat mt-3">
+    <div class="dt-card-head">
+        <div>
+            <h2 class="dt-card-title" id="hm-fields-title">Cómo van las parcelas</h2>
+            <div class="dt-muted">Últimos {{ field_history.limit }} tratamientos hechos de cada una</div>
+        </div>
+        <a class="small fw-semibold text-decoration-none" href="{{ field_history_url }}">Ver por parcela</a>
+    </div>
+    {% if field_history.has_treatments %}
+    {% include "farm/treatments/_by_field_table.html" with rows=field_history.rows groups=field_history.groups limit=field_history.limit columns=field_history.columns %}
+    {% else %}
+    <div class="hm-group-empty">Cuando marques tratamientos como hechos, aquí verás cómo va cada parcela.</div>
+    {% endif %}
+</section>
+{% endif %}
+
 {% endblock %}
 
 {% block extra_js %}
