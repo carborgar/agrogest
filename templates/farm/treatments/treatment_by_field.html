@@ -119,11 +119,11 @@ El enlace de la parcela lleva date_from/date_to vacíos para que el listado no s
 
 <section class="card card-flat">
     <div class="table-responsive">
-        <table class="table table-sm align-top mb-0 bf-table" id="bfTable">
+        <table class="table table-sm align-top mb-0 bf-table" id="bfTable" style="--bf-cols: {{ limit }}">
             <caption class="visually-hidden">Últimos {{ limit }} tratamientos hechos por parcela, del más reciente al más antiguo</caption>
             <thead>
             <tr>
-                <th scope="col" class="position-sticky start-0 bg-body border-end">Parcela</th>
+                <th scope="col" class="position-sticky start-0 bg-white border-end bf-field">Parcela</th>
                 {% for c in columns %}
                 <th scope="col" class="text-nowrap">{% if forloop.first %}Último{% elif c == 2 %}Penúltimo{% else %}{{ c }}.º{% endif %}</th>
                 {% endfor %}
@@ -132,7 +132,7 @@ El enlace de la parcela lleva date_from/date_to vacíos para que el listado no s
             <tbody>
             {% for row in rows %}
             <tr>
-                <th scope="row" class="position-sticky start-0 bg-body border-end bf-field">
+                <th scope="row" class="position-sticky start-0 bg-white border-end bf-field">
                     <a class="d-block text-body text-decoration-none text-truncate" href="{% url 'treatment-list' %}?field={{ row.field.id }}&status=completed&date_from=&date_to=">{{ row.field.name }}</a>
                     <span class="small fw-normal text-muted">{{ row.field.area|floatformat:"-2" }} ha</span>
                 </th>
@@ -143,7 +143,7 @@ El enlace de la parcela lleva date_from/date_to vacíos para que el listado no s
                        href="{% url 'treatment-detail' t.id %}" title="{{ t.name }} · {{ t.finish_date|date:'d/m/Y' }}{% if t.similar %} · parecido a «{{ t.similar.label }}»{% endif %}">
                         <span class="bf-when">
                             <b>{{ t.finish_date|date:"j b" }}</b> · {{ t.finish_date|relative_days }}
-                            <i class="fa fa-{{ t|treatment_type_icon }} ms-auto" aria-hidden="true" title="{{ t.get_type_display }}"></i>
+                            <i class="fa fa-{{ t|treatment_type_icon }} ms-auto d-none d-md-inline" aria-hidden="true" title="{{ t.get_type_display }}"></i>
                             <span class="visually-hidden">, {{ t.get_type_display }}</span>
                         </span>
                         <span class="bf-name">{{ t.name }}</span>
