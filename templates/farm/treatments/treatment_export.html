@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    {% load static %}
+    {% load static static_versioned %}
     <meta charset="UTF-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>Instrucciones para el operador · {{ treatment.name }}</title>
 
+    <link rel="icon" href="{% static_v 'img/icons/favicon.svg' %}" type="image/svg+xml">
+    <link rel="icon" href="{% static_v 'img/icons/favicon-32.png' %}" type="image/png" sizes="32x32">
     <link href="{% static 'css/custom-bootstrap.min.css' %}" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
     <link href="{% static 'css/styles.css' %}" rel="stylesheet">

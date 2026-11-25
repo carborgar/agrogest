@@ -1,4 +1,5 @@
 import json
+import re
 import struct
 from pathlib import Path
 
@@ -13,21 +14,31 @@ def _static(path):
     return Path(found)
 
 
-def _png_size(path):
-    # Ancho y alto vienen en la cabecera IHDR del PNG (bytes 16-24)
-    data = _static(path).read_bytes()[:24]
+def _png_header(path):
+    # Cabecera IHDR del PNG: ancho y alto (bytes 16-24) y tipo de color (byte 25)
+    data = _static(path).read_bytes()[:26]
     assert data[:8] == b'\x89PNG\r\n\x1a\n', f'{path} no es un PNG'
-    return struct.unpack('>II', data[16:24])
+    ancho, alto = struct.unpack('>II', data[16:24])
+    return ancho, alto, data[25]
+
+
+def _png_size(path):
+    return _png_header(path)[:2]
 
 
 @pytest.mark.django_db
 def test_cabecera_declara_favicon_icono_ios_y_manifest(client):
     head = client.get('/').content.decode().split('</head>')[0]
-    for ruta in ('img/icons/favicon.svg', 'img/icons/favicon-32.png',
-                 'img/icons/apple-touch-icon.png', 'manifest.webmanifest'):
-        assert f'{settings.STATIC_URL}{ruta}' in head
-    assert 'rel="apple-touch-icon"' in head and 'rel="manifest"' in head
+    for rel, ruta in (('icon', 'img/icons/favicon.svg'), ('icon', 'img/icons/favicon-32.png'),
+                      ('apple-touch-icon', 'img/icons/apple-touch-icon.png'),
+                      ('manifest', 'manifest.webmanifest')):
+        assert re.search(rf'<link rel="{rel}" href="{re.escape(settings.STATIC_URL + ruta)}(\?v=\w+)?"', head), ruta
     assert 'name="apple-mobile-web-app-title" content="AgroGest"' in head
+
+
+def test_icono_de_ios_es_opaco():
+    # iOS pinta de negro las zonas transparentes del apple-touch-icon: tipo de color 2 = RGB sin alfa
+    assert _png_header('img/icons/apple-touch-icon.png')[2] == 2
 
 
 def test_iconos_tienen_el_tamano_que_declaran():

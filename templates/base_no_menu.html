@@ -2,18 +2,18 @@
 <html class="{% if sidebar_collapsed %}sidebar-collapsed{% endif %}" lang="es">
 <head>
     {% load django_bootstrap5 %}
-    {% load static %}
+    {% load static static_versioned %}
 
     <meta charset="UTF-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>{% block title %}AgroGest{% endblock %}</title>
 
     <!-- Iconos: favicon (pestaña), pantalla de inicio de iPhone y manifest para Android -->
-    <link rel="icon" href="{% static 'img/icons/favicon.svg' %}" type="image/svg+xml">
-    <link rel="icon" href="{% static 'img/icons/favicon-32.png' %}" type="image/png" sizes="32x32">
-    <link rel="apple-touch-icon" href="{% static 'img/icons/apple-touch-icon.png' %}">
+    <link rel="icon" href="{% static_v 'img/icons/favicon.svg' %}" type="image/svg+xml">
+    <link rel="icon" href="{% static_v 'img/icons/favicon-32.png' %}" type="image/png" sizes="32x32">
+    <link rel="apple-touch-icon" href="{% static_v 'img/icons/apple-touch-icon.png' %}">
     <meta name="apple-mobile-web-app-title" content="AgroGest">
-    <link rel="manifest" href="{% static 'manifest.webmanifest' %}">
+    <link rel="manifest" href="{% static_v 'manifest.webmanifest' %}">
 
     <!-- Brand typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
