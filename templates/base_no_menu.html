@@ -8,7 +8,12 @@
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>{% block title %}AgroGest{% endblock %}</title>
 
-    <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
+    <!-- Iconos: favicon (pestaña), pantalla de inicio de iPhone y manifest para Android -->
+    <link rel="icon" href="{% static 'img/icons/favicon.svg' %}" type="image/svg+xml">
+    <link rel="icon" href="{% static 'img/icons/favicon-32.png' %}" type="image/png" sizes="32x32">
+    <link rel="apple-touch-icon" href="{% static 'img/icons/apple-touch-icon.png' %}">
+    <meta name="apple-mobile-web-app-title" content="AgroGest">
+    <link rel="manifest" href="{% static 'manifest.webmanifest' %}">
 
     <!-- Brand typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
