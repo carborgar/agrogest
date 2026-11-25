@@ -904,3 +904,6 @@ footer a:hover {
     pointer-events: none;
     line-height: 1;
 }
+
+/* Logo de la app (mismo icono que la pantalla de inicio del móvil), con las esquinas redondeadas de iOS */
+.app-logo { border-radius: 22%; flex-shrink: 0; }
