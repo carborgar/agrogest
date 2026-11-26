@@ -30,6 +30,9 @@ def last_per_field(queryset, limit):
     )
 
 
+MAX_LIMIT = COLOR_BASE  # la vista solo ofrece 3, 5 o 10; aquí se acota igualmente
+
+
 def field_history(user, all_fields, limit, filters=None, date_from=None, date_to=None, color_base=COLOR_BASE):
     """
     Devuelve {'rows', 'groups', 'has_treatments', 'limit', 'columns'} (lo que pinta
@@ -42,6 +45,9 @@ def field_history(user, all_fields, limit, filters=None, date_from=None, date_to
     `color_base`: cuántos por parcela se agrupan para fijar los colores. Inicio pasa su propio N
     (sus colores no tienen que coincidir con los de «Por parcela» y así no agrupa de más).
     """
+    # Acotado aquí aunque la vista ya lo valide: marca cuántas columnas y huecos se generan
+    limit = min(max(int(limit), 1), MAX_LIMIT)
+    color_base = min(max(int(color_base), limit), MAX_LIMIT)
     f = {'field': [], 'type': [], 'product_types': [], 'products': [], **(filters or {})}
 
     # Base para los colores: los últimos `color_base` de cada parcela dentro del periodo, sin el resto de
@@ -52,28 +58,38 @@ def field_history(user, all_fields, limit, filters=None, date_from=None, date_to
         done = done.filter(finish_date__gte=date_from)
     if date_to:
         done = done.filter(finish_date__lte=date_to)
-    base = list(last_per_field(done, max(color_base, limit)))
+    base = list(last_per_field(done, color_base))
 
-    fields = all_fields
-    if f['field']:
-        fields = [x for x in all_fields if str(x.id) in f['field']]
     if any(f.values()):
-        treatments = done
-        if f['field']:
-            treatments = treatments.filter(field_id__in=f['field'])
-        if f['type']:
-            treatments = treatments.filter(type__in=f['type'])
-        if f['product_types']:
-            treatments = treatments.filter(id__in=TreatmentProduct.objects.filter(
-                product__product_type_id__in=f['product_types']).values('treatment_id'))
-        if f['products']:
-            treatments = treatments.filter(id__in=TreatmentProduct.objects.filter(
-                product_id__in=f['products']).values('treatment_id'))
-        treatments = list(last_per_field(treatments, limit))
+        treatments = list(last_per_field(_apply_filters(done, f), limit))
     else:
         treatments = [t for t in base if t.rank <= limit]  # sin filtros, lo visible sale de la base
 
-    # Parecidos → color. Los nombres de parcela no cuentan como parecido («ARAÑA CARTUJA»).
+    groups = _similar_groups(base, treatments, all_fields)
+    fields = [x for x in all_fields if str(x.id) in f['field']] if f['field'] else all_fields
+    return {'rows': _rows(fields, treatments, limit), 'groups': groups,
+            'has_treatments': bool(treatments), 'limit': limit, 'columns': range(1, limit + 1)}
+
+
+def _apply_filters(queryset, f):
+    """Filtros de parcela, tipo, tipo de producto y producto (ids ya validados)."""
+    if f['field']:
+        queryset = queryset.filter(field_id__in=f['field'])
+    if f['type']:
+        queryset = queryset.filter(type__in=f['type'])
+    if f['product_types']:
+        queryset = queryset.filter(id__in=TreatmentProduct.objects.filter(
+            product__product_type_id__in=f['product_types']).values('treatment_id'))
+    if f['products']:
+        queryset = queryset.filter(id__in=TreatmentProduct.objects.filter(
+            product_id__in=f['products']).values('treatment_id'))
+    return queryset
+
+
+def _similar_groups(base, treatments, all_fields):
+    """Agrupa los parecidos sobre la base más lo que se ve y marca cada tratamiento visible con
+    su grupo (`t.similar`). Devuelve los grupos con 2 o más visibles, para la leyenda."""
+    # Los nombres de parcela no cuentan como parecido («ARAÑA CARTUJA»)
     pool = {t.id: t for t in base}
     for t in treatments:
         pool.setdefault(t.id, t)
@@ -87,30 +103,30 @@ def field_history(user, all_fields, limit, filters=None, date_from=None, date_to
     groups = []
     for index, group in enumerate(all_groups):
         visible = [k for k in group['keys'] if k in shown]
-        if len(visible) < 2:  # «parecido» a algo que no se ve no aporta: sin color
-            continue
-        groups.append({'color': index % COLORS, 'dashed': index >= COLORS,
-                       'count': len(visible), 'keys': visible})
+        if len(visible) >= 2:  # «parecido» a algo que no se ve no aporta: sin color
+            groups.append({'color': index % COLORS, 'dashed': index >= COLORS,
+                           'count': len(visible), 'keys': visible})
     # La etiqueta, con lo que se ve; la leyenda, por lo que más se ve (el color no cambia)
-    for group, label in zip(groups, label_groups([[shown[k].name for k in g['keys']] for g in groups],
-                                                 excluded)):
+    labels = label_groups([[shown[k].name for k in g['keys']] for g in groups], excluded)
+    for group, label in zip(groups, labels):
         group['label'] = label
     groups.sort(key=lambda g: (-g['count'], g['color'], g['dashed']))
     group_of = {}
     for i, group in enumerate(groups, start=1):
         group['index'] = i  # data-bf-group de leyenda y tarjetas
-        for key in group['keys']:
-            group_of[key] = group
-
-    by_field = {}
+        group_of.update(dict.fromkeys(group['keys'], group))
     for t in treatments:
         t.similar = group_of.get(t.id)
-        by_field.setdefault(t.field_id, []).append(t)
+    return groups
 
-    rows = [
+
+def _rows(fields, treatments, limit):
+    """Una fila por parcela con sus tratamientos y los huecos hasta `limit`."""
+    by_field = {}
+    for t in treatments:
+        by_field.setdefault(t.field_id, []).append(t)
+    return [
         {'field': field, 'treatments': by_field.get(field.id, []),
-         'missing': range(limit - len(by_field.get(field.id, [])))}
+         'missing': range(max(limit - len(by_field.get(field.id, [])), 0))}
         for field in fields
     ]
-    return {'rows': rows, 'groups': groups, 'has_treatments': bool(treatments),
-            'limit': limit, 'columns': range(1, limit + 1)}

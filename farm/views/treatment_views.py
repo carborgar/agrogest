@@ -889,8 +889,9 @@ class TreatmentByFieldView(BaseSecureViewMixin, TemplateView):
         return value.isascii() and value.isdigit() and len(value) <= 9
 
     def _limit(self):
+        # Se devuelve la constante, no el valor del GET: N solo puede ser una de las opciones
         value = self.request.GET.get('n', '')
-        return int(value) if self._is_id(value) and int(value) in self.LIMIT_CHOICES else self.DEFAULT_LIMIT
+        return next((n for n in self.LIMIT_CHOICES if str(n) == value), self.DEFAULT_LIMIT)
 
     def _ids(self, name, valid):
         """Ids del GET que existen en las opciones (de la organización), sin repetir."""
