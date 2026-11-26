@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% load custom_filters %}
+
+{% block title %}Tratamientos por parcela{% endblock %}
+{% block header %}Tratamientos{% endblock %}
+{% block sub_header %}<span class="d-none d-md-inline">Gestión y seguimiento de todos los tratamientos</span>{% endblock %}
+
+{% block actions %}
+<a class="btn btn-primary d-none d-md-inline-block" href="{% url 'treatment-create' %}">
+    <i class="fa fa-plus me-1"></i>Nuevo tratamiento
+</a>
+{% endblock %}
+
+{% block content %}
+{% comment %}
+Pestaña «Por parcela» de Tratamientos: selector de N y filtros; la tabla es el parcial _by_field_table.html.
+{% endcomment %}
+{% if not has_fields %}
+<div class="card card-flat hm-empty">
+    <span class="hm-empty-icon"><i class="fa fa-map-location-dot" aria-hidden="true"></i></span>
+    <b>No hay parcelas</b>
+    <span>Cuando des de alta alguna, aquí verás sus últimos tratamientos.</span>
+</div>
+{% else %}
+
+<form method="GET" id="bfFilterForm" class="mb-3">
+    <input type="hidden" name="n" value="{{ limit }}">
+
+    <div class="tl-toolbar">
+        {% include "farm/treatments/_treatment_tabs.html" %}
+        <span class="small fw-semibold text-muted ms-md-auto">Últimos</span>
+        <nav class="tl-tabs flex-fill flex-md-grow-0" aria-label="Número de tratamientos por parcela">
+            {% for n in limit_choices %}
+            <a class="tl-tab{% if n == limit %} active{% endif %}" href="?n={{ n }}{% if filter_qs %}&{{ filter_qs }}{% endif %}"{% if n == limit %} aria-current="page"{% endif %}>{{ n }}</a>
+            {% endfor %}
+        </nav>
+        <button class="btn btn-outline-secondary tl-filters-btn d-md-none ms-auto" type="button"
+                data-bs-toggle="offcanvas" data-bs-target="#bfFiltersPanel" aria-controls="bfFiltersPanel"
+                aria-label="Filtros{% if panel_filter_count %} ({{ panel_filter_count }} activos){% endif %}">
+            <i class="fa fa-sliders" aria-hidden="true"></i>
+            {% if panel_filter_count %}<span class="tl-filters-badge">{{ panel_filter_count }}</span>{% endif %}
+        </button>
+    </div>
+
+    {# Filtros: en línea en desktop, panel inferior en móvil (como el listado) #}
+    <div class="offcanvas-md offcanvas-bottom tl-filters" tabindex="-1" id="bfFiltersPanel" aria-labelledby="bfFiltersLabel">
+        <div class="offcanvas-header d-md-none">
+            <h5 class="offcanvas-title" id="bfFiltersLabel">Filtros</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#bfFiltersPanel" aria-label="Cerrar"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div class="row g-2 align-items-end w-100 m-0">
+                <div class="col-12 col-md-6 col-xl-3">
+                    {% include "farm/_filter_check_dropdown.html" with name="field" label="Parcelas" icon="map" options=options.field selected=selected.field all_label="Todas las parcelas…" %}
+                </div>
+                <div class="col-12 col-md-6 col-xl-2">
+                    {% include "farm/_filter_check_dropdown.html" with name="type" label="Tipo" icon="droplet" options=options.type selected=selected.type all_label="Todos…" %}
+                </div>
+                <div class="col-6 col-md-4 col-xl-2">
+                    <label class="form-label small fw-semibold text-muted mb-1" for="bf_date_from"><i class="fa fa-calendar me-1" aria-hidden="true"></i>Hecho desde</label>
+                    <input type="date" name="date_from" value="{{ date_from }}" class="form-control" id="bf_date_from">
+                </div>
+                <div class="col-6 col-md-4 col-xl-2">
+                    <label class="form-label small fw-semibold text-muted mb-1" for="bf_date_to"><i class="fa fa-calendar me-1" aria-hidden="true"></i>Hasta</label>
+                    <input type="date" name="date_to" value="{{ date_to }}" class="form-control" id="bf_date_to">
+                </div>
+                <div class="col-12 col-md-4 col-xl-3 d-flex gap-2 align-items-end order-last order-md-0">
+                    <button class="btn btn-primary flex-fill" type="submit"><i class="fa fa-filter me-1" aria-hidden="true"></i>Filtrar</button>
+                    {% if panel_filter_count %}
+                    <a class="btn btn-outline-secondary" href="?n={{ limit }}" title="Limpiar filtros" aria-label="Limpiar filtros"><i class="fa fa-rotate-left" aria-hidden="true"></i></a>
+                    {% endif %}
+                </div>
+
+                {# Filtrar por producto: plegado en desktop, siempre visible en el panel móvil (igual que el listado) #}
+                <div class="col-12">
+                    <button class="btn btn-link btn-sm text-muted p-0 text-decoration-none d-none d-md-inline-block advanced-toggle" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#bfAdvanced" aria-controls="bfAdvanced"
+                            aria-expanded="{% if advanced_count %}true{% else %}false{% endif %}">
+                        <i class="fa fa-sliders me-1" aria-hidden="true"></i>Filtrar por producto
+                        <i class="fa fa-chevron-down ms-1 advanced-toggle-icon" aria-hidden="true"></i>
+                        {% if advanced_count %}<span class="badge bg-primary ms-1">{{ advanced_count }}</span>{% endif %}
+                    </button>
+                    <div class="collapse tl-advanced{% if advanced_count %} show{% endif %}" id="bfAdvanced">
+                        <div class="row g-2 align-items-end pt-2">
+                            <div class="col-12 col-md-6 col-xl-3">
+                                {% include "farm/_filter_check_dropdown.html" with name="product_types" label="Tipo de producto" icon="box" options=options.product_types selected=selected.product_types all_label="Todos los tipos…" searchable=True %}
+                            </div>
+                            <div class="col-12 col-md-6 col-xl-3">
+                                {% include "farm/_filter_check_dropdown.html" with name="products" label="Productos" icon="flask" options=options.products selected=selected.products all_label="Todos los productos…" searchable=True %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+{% if not has_treatments %}
+<div class="card card-flat hm-empty">
+    <span class="hm-empty-icon"><i class="fa fa-droplet" aria-hidden="true"></i></span>
+    {% if panel_filter_count %}
+    <b>Ningún tratamiento hecho con estos filtros</b>
+    <span><a href="?n={{ limit }}">Quitar los filtros</a></span>
+    {% else %}
+    <b>Todavía no hay tratamientos hechos</b>
+    <span>Cuando marques alguno como hecho, aparecerá aquí en su parcela.</span>
+    {% endif %}
+</div>
+{% else %}
+
+<section class="card card-flat">
+    {% include "farm/treatments/_by_field_table.html" %}
+</section>
+{% endif %}
+{% endif %}
+
+{# Móvil: «Nuevo tratamiento» como botón flotante, igual que en las otras pestañas #}
+<div class="tl-fab-spacer d-md-none"></div>
+<a class="tl-fab d-md-none" href="{% url 'treatment-create' %}" aria-label="Nuevo tratamiento" title="Nuevo tratamiento">
+    <i class="fa fa-plus" aria-hidden="true"></i>
+</a>
+{% endblock %}

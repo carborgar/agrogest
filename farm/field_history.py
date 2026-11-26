@@ -1,0 +1,132 @@
+"""
+Últimos tratamientos hechos de cada parcela, con los parecidos marcados del mismo color.
+
+Lo usan la vista «Por parcela» de Tratamientos y la tarjeta «Cómo van las parcelas» de Inicio.
+No clasifica tandas: los parecidos (productos y nombre) salen de `farm.treatment_similarity`.
+Solo cuentan los hechos (con fecha de finalización, no por `status`, que puede estar desfasado).
+"""
+from django.db.models import F, Window
+from django.db.models.functions import RowNumber
+
+from farm.models import Treatment, TreatmentProduct
+from farm.treatment_similarity import group_similar, label_groups
+
+COLORS = 12      # tonos .bf-c0…11 en treatment-styles.css; desde el 13.º grupo se repiten con borde discontinuo
+COLOR_BASE = 10  # últimos hechos por parcela sobre los que se fijan los colores (el N más alto)
+
+
+def last_per_field(queryset, limit):
+    """Los `limit` hechos más recientes de cada parcela, en una sola consulta: numera los de cada
+    parcela con Window y filtra sobre esa numeración (necesita Django ≥ 4.2)."""
+    return (
+        queryset
+        .annotate(rank=Window(
+            RowNumber(), partition_by=F('field_id'),
+            order_by=[F('finish_date').desc(), F('date').desc(), F('id').desc()],
+        ))
+        .filter(rank__lte=limit)
+        .order_by('field_id', 'rank')
+        .prefetch_related('treatmentproduct_set__product')
+    )
+
+
+MAX_LIMIT = COLOR_BASE  # la vista solo ofrece 3, 5 o 10; aquí se acota igualmente
+
+
+def field_history(user, all_fields, limit, filters=None, date_from=None, date_to=None, color_base=COLOR_BASE):
+    """
+    Devuelve {'rows', 'groups', 'has_treatments', 'limit', 'columns'} (lo que pinta
+    `farm/treatments/_by_field_table.html`).
+
+    `all_fields`: parcelas de la organización (lista). `filters`: ids ya validados por nombre de
+    parámetro ('field', 'type', 'product_types', 'products'). El periodo va sobre la fecha de
+    finalización y los últimos `limit` se cuentan dentro de él. Las parcelas sin coincidencias
+    siguen saliendo: que a una parcela le falte la pasada también es información.
+    `color_base`: cuántos por parcela se agrupan para fijar los colores. Inicio pasa su propio N
+    (sus colores no tienen que coincidir con los de «Por parcela» y así no agrupa de más).
+    """
+    # Acotado aquí aunque la vista ya lo valide: marca cuántas columnas y huecos se generan
+    limit = min(max(int(limit), 1), MAX_LIMIT)
+    color_base = min(max(int(color_base), limit), MAX_LIMIT)
+    f = {'field': [], 'type': [], 'product_types': [], 'products': [], **(filters or {})}
+
+    # Base para los colores: los últimos `color_base` de cada parcela dentro del periodo, sin el resto de
+    # filtros. Agrupando siempre sobre ella (más lo que se vea) un tratamiento no cambia de color
+    # al cambiar N, la parcela, el tipo o el producto.
+    done = Treatment.ownership_objects.get_queryset_for_user(user).filter(finish_date__isnull=False)
+    if date_from:
+        done = done.filter(finish_date__gte=date_from)
+    if date_to:
+        done = done.filter(finish_date__lte=date_to)
+    base = list(last_per_field(done, color_base))
+
+    if any(f.values()):
+        treatments = list(last_per_field(_apply_filters(done, f), limit))
+    else:
+        treatments = [t for t in base if t.rank <= limit]  # sin filtros, lo visible sale de la base
+
+    groups = _similar_groups(base, treatments, all_fields)
+    fields = [x for x in all_fields if str(x.id) in f['field']] if f['field'] else all_fields
+    return {'rows': _rows(fields, treatments, limit), 'groups': groups,
+            'has_treatments': bool(treatments), 'limit': limit, 'columns': range(1, limit + 1)}
+
+
+def _apply_filters(queryset, f):
+    """Filtros de parcela, tipo, tipo de producto y producto (ids ya validados)."""
+    if f['field']:
+        queryset = queryset.filter(field_id__in=f['field'])
+    if f['type']:
+        queryset = queryset.filter(type__in=f['type'])
+    if f['product_types']:
+        queryset = queryset.filter(id__in=TreatmentProduct.objects.filter(
+            product__product_type_id__in=f['product_types']).values('treatment_id'))
+    if f['products']:
+        queryset = queryset.filter(id__in=TreatmentProduct.objects.filter(
+            product_id__in=f['products']).values('treatment_id'))
+    return queryset
+
+
+def _similar_groups(base, treatments, all_fields):
+    """Agrupa los parecidos sobre la base más lo que se ve y marca cada tratamiento visible con
+    su grupo (`t.similar`). Devuelve los grupos con 2 o más visibles, para la leyenda."""
+    # Los nombres de parcela no cuentan como parecido («ARAÑA CARTUJA»)
+    pool = {t.id: t for t in base}
+    for t in treatments:
+        pool.setdefault(t.id, t)
+    shown = {t.id: t for t in treatments}
+    excluded = {fl.name for fl in all_fields}
+    all_groups = group_similar(
+        [(t.id, t.name, {tp.product_id for tp in t.treatmentproduct_set.all()})
+         for t in sorted(pool.values(), key=lambda t: t.id)],
+        excluded_words=excluded,
+    )
+    groups = []
+    for index, group in enumerate(all_groups):
+        visible = [k for k in group['keys'] if k in shown]
+        if len(visible) >= 2:  # «parecido» a algo que no se ve no aporta: sin color
+            groups.append({'color': index % COLORS, 'dashed': index >= COLORS,
+                           'count': len(visible), 'keys': visible})
+    # La etiqueta, con lo que se ve; la leyenda, por lo que más se ve (el color no cambia)
+    labels = label_groups([[shown[k].name for k in g['keys']] for g in groups], excluded)
+    for group, label in zip(groups, labels):
+        group['label'] = label
+    groups.sort(key=lambda g: (-g['count'], g['color'], g['dashed']))
+    group_of = {}
+    for i, group in enumerate(groups, start=1):
+        group['index'] = i  # data-bf-group de leyenda y tarjetas
+        group_of.update(dict.fromkeys(group['keys'], group))
+    for t in treatments:
+        t.similar = group_of.get(t.id)
+    return groups
+
+
+def _rows(fields, treatments, limit):
+    """Una fila por parcela con sus tratamientos y los huecos hasta `limit`."""
+    by_field = {}
+    for t in treatments:
+        by_field.setdefault(t.field_id, []).append(t)
+    return [
+        {'field': field, 'treatments': by_field.get(field.id, []),
+         'missing': range(max(limit - len(by_field.get(field.id, [])), 0))}
+        for field in fields
+    ]

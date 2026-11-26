@@ -1,0 +1,87 @@
+{% load custom_filters %}
+{% comment %}
+Tabla «por parcela»: una fila por parcela y una tarjeta por tratamiento hecho (1 = el último), con los
+parecidos del mismo color y una leyenda que destaca un grupo. Las columnas son iguales y ocupan todo el
+ancho. En escritorio caben siempre (con 10, en modo denso); en móvil y tableta
+se desplaza en horizontal con la parcela fija. Contexto de `farm.field_history`
+(rows, groups, limit, columns) y, opcionales, panel_filter_count y compact (columnas estrechas, Inicio).
+La usan «Por parcela» e Inicio. Todo va dentro de .bf-wrap y el script actúa en cada uno por separado.
+El enlace de la parcela lleva date_from/date_to vacíos para que el listado no se limite al año en curso.
+{% endcomment %}
+<div class="bf-wrap">
+{% if groups %}
+{# Leyenda: el mismo color = tratamientos parecidos. Pulsar uno destaca su grupo. #}
+<div class="d-flex align-items-center gap-1 px-3 py-2 border-bottom bf-legend">
+    <span class="small text-muted me-1 flex-shrink-0">Parecidos:</span>
+    {% for g in groups %}
+    <button type="button" class="bf-key flex-shrink-0 text-nowrap bf-c{{ g.color }}{% if g.dashed %} bf-dashed{% endif %}" data-bf-group="{{ g.index }}" aria-pressed="false"
+            title="Destacar los {{ g.count }} parecidos a «{{ g.label }}»">
+        <span class="bf-dot" aria-hidden="true"></span>{{ g.label }} <span class="text-muted">{{ g.count }}</span>
+    </button>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="table-responsive">
+        <table class="table table-sm align-top mb-0 bf-table{% if compact %} bf-table--compact{% endif %}{% if limit >= 10 %} bf-table--dense{% endif %}" style="--bf-cols: {{ limit }}">
+            <caption class="visually-hidden">Últimos {{ limit }} tratamientos hechos por parcela, del más reciente al más antiguo</caption>
+            <thead>
+            <tr>
+                <th scope="col" class="position-sticky start-0 bg-white border-end bf-field">Parcela</th>
+                {% for c in columns %}
+                <th scope="col" class="text-nowrap">{% if forloop.first %}Último{% elif c == 2 %}Penúltimo{% else %}{{ c }}.º{% endif %}</th>
+                {% endfor %}
+            </tr>
+            </thead>
+            <tbody>
+            {% for row in rows %}
+            <tr>
+                <th scope="row" class="position-sticky start-0 bg-white border-end bf-field">
+                    <a class="d-block text-body text-decoration-none text-truncate" href="{% url 'treatment-list' %}?field={{ row.field.id }}&status=completed&date_from=&date_to=">{{ row.field.name }}</a>
+                    <span class="small fw-normal text-muted">{{ row.field.area|floatformat:"-2" }} ha</span>
+                </th>
+                {% if row.treatments %}
+                {% for t in row.treatments %}
+                <td class="bf-cell">
+                    <a class="bf-card{% if t.similar %} bf-grouped bf-c{{ t.similar.color }}{% if t.similar.dashed %} bf-dashed{% endif %}{% endif %}"{% if t.similar %} data-bf-group="{{ t.similar.index }}"{% endif %}
+                       href="{% url 'treatment-detail' t.id %}" title="{{ t.name }} · {{ t.finish_date|date:'d/m/Y' }}{% if t.similar %} · parecido a «{{ t.similar.label }}»{% endif %}{% for tp in t.treatmentproduct_set.all %}{% if forloop.first %} · {% else %}, {% endif %}{{ tp.product.name }}{% endfor %}">
+                        <span class="bf-when">
+                            <b>{{ t.finish_date|date:"j b" }}</b><span class="bf-rel"> · {{ t.finish_date|relative_days }}</span>
+                            <i class="fa fa-{{ t|treatment_type_icon }} ms-auto d-none d-md-inline" aria-hidden="true" title="{{ t.get_type_display }}"></i>
+                            <span class="visually-hidden">, {{ t.get_type_display }}</span>
+                        </span>
+                        <span class="bf-name">{{ t.name }}</span>
+                        {% if t.similar %}<span class="visually-hidden">, parecido a «{{ t.similar.label }}»</span>{% endif %}
+                        <span class="bf-products d-none d-md-block">{% for tp in t.treatmentproduct_set.all %}{{ tp.product.name }}{% if not forloop.last %} · {% endif %}{% empty %}Sin productos{% endfor %}</span>
+                    </a>
+                </td>
+                {% endfor %}
+                {% for _ in row.missing %}<td class="bf-cell"><span class="bf-none" aria-hidden="true">—</span><span class="visually-hidden">Sin tratamiento</span></td>{% endfor %}
+                {% else %}
+                <td class="text-muted small align-middle" colspan="{{ limit }}">{% if panel_filter_count %}Ninguno con estos filtros{% else %}Sin tratamientos hechos{% endif %}</td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+</div>
+</div>
+
+<script>
+    // Leyenda de parecidos: pulsar un grupo atenúa el resto de su tabla; pulsarlo otra vez lo quita.
+    // Se registra una sola vez aunque el parcial se incluya varias veces.
+    if (!window.bfLegendReady) {
+        window.bfLegendReady = true;
+        document.addEventListener('click', event => {
+            const key = event.target.closest('.bf-wrap .bf-key');
+            if (!key) return;
+            const wrap = key.closest('.bf-wrap');
+            const on = key.getAttribute('aria-pressed') !== 'true';
+            wrap.querySelectorAll('.bf-key').forEach(k => k.setAttribute('aria-pressed', 'false'));
+            wrap.querySelectorAll('.bf-card').forEach(card => {
+                card.classList.toggle('bf-dim', on && card.dataset.bfGroup !== key.dataset.bfGroup);
+            });
+            if (on) key.setAttribute('aria-pressed', 'true');
+        });
+    }
+</script>

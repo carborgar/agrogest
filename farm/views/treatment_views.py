@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Case, Count, DateField, ExpressionWrapper, F, IntegerField, Q, Value, When
 from django.db.models.functions import Coalesce
-from django.http import Http404, JsonResponse
+from django.http import Http404, JsonResponse, QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -23,6 +23,7 @@ from farm.services import (
     build_treatment_form_data, clone_treatment, create_treatments_for_fields, save_treatment_with_products,
 )
 from farm.templatetags.custom_filters import treatment_tone
+from farm.field_history import field_history
 
 logger = logging.getLogger(__name__)
 
@@ -172,6 +173,8 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
         context['date_to_is_default'] = date_to_is_default
         context['product_types'] = ProductType.ownership_objects.get_queryset_for_user(self.request.user)
         context['selected_product_types'] = selected_product_types
+        # Contador de «Filtrar por producto» (en la plantilla, length|add con listas daba siempre 0)
+        context['advanced_filter_count'] = len(selected_product_types) + len(selected_products)
         context['total_count'] = self.object_list.count()
         context['show_groups'] = (sort == 'urgency')
         # Conteo por grupo sobre el total filtrado (no sobre la página), en una sola consulta
@@ -211,6 +214,7 @@ class TreatmentListView(BaseSecureViewMixin, ListView):
         done_params = base_params.copy()
         done_params.setlist('status', [Treatment.STATUS_COMPLETED])
         context['done_url'] = '?' + done_params.urlencode()
+        context['by_field_url'] = by_field_url(self.request.GET)
 
         active_filter_count = (
             len(selected_fields)
@@ -800,3 +804,153 @@ class TreatmentExcelExportView(BaseSecureViewMixin, View):
         return response
 
 
+# Filtros que comparten el listado y «Por parcela»: al cambiar de pestaña se conservan
+SHARED_FILTERS = ('field', 'type', 'product_types', 'products')
+
+
+def _shared_params(get, with_dates):
+    params = QueryDict(mutable=True)
+    for key in SHARED_FILTERS:
+        values = [v for v in get.getlist(key) if v]
+        if values:
+            params.setlist(key, values)
+    if with_dates:
+        for key in ('date_from', 'date_to'):
+            if get.get(key):
+                params[key] = get[key]
+    return params
+
+
+def by_field_url(get):
+    """«Por parcela» con los filtros del listado. Las fechas solo si se han puesto a mano: por defecto
+    el listado se limita al año en curso, y aquí se quiere ver lo último aunque sea del año pasado."""
+    query = _shared_params(get, with_dates=True).urlencode()
+    return reverse('treatment-by-field') + ('?' + query if query else '')
+
+
+def list_urls(filters, date_from=None, date_to=None):
+    """(Por hacer, Completados) del listado con los filtros de «Por parcela», ya validados (un id que
+    no existe haría fallar el listado). En «Completados» el periodo va sobre la fecha programada y
+    aquí sobre la de finalización: casi siempre coinciden, y es lo más cercano que admite el listado."""
+    base = reverse('treatment-list')
+    todo = QueryDict(mutable=True)
+    for key in SHARED_FILTERS:
+        if filters.get(key):
+            todo.setlist(key, filters[key])
+    done = todo.copy()
+    if date_from:
+        done['date_from'] = date_from.isoformat()
+    if date_to:
+        done['date_to'] = date_to.isoformat()
+    done.setlist('status', [Treatment.STATUS_COMPLETED])
+    return (base + ('?' + todo.urlencode() if todo else ''), base + '?' + done.urlencode())
+
+
+def todo_count_for_list(user, filters):
+    """Lo mismo que cuenta la pestaña «Por hacer» del listado sin fechas en la URL: pendientes y
+    atrasados del año en curso, más los atrasados de antes (el listado los enseña siempre)."""
+    today = date.today()
+    qs = Treatment.ownership_objects.get_queryset_for_user(user).filter(
+        Q(date__year=today.year) | Q(finish_date__isnull=True, date__lt=today),
+        status__in=TreatmentListView.TODO_STATUSES,
+    )
+    if filters.get('field'):
+        qs = qs.filter(field_id__in=filters['field'])
+    if filters.get('type'):
+        qs = qs.filter(type__in=filters['type'])
+    if filters.get('product_types'):
+        qs = qs.filter(products__product_type_id__in=filters['product_types'])
+    if filters.get('products'):
+        qs = qs.filter(products__id__in=filters['products'])
+    return qs.order_by().distinct().count()
+
+
+class TreatmentByFieldView(BaseSecureViewMixin, TemplateView):
+    """Últimos tratamientos hechos de cada parcela, en filas para compararlas.
+
+    Con varias parcelas los tratamientos van por tandas (araña, fungicida…): poniendo
+    las parcelas una debajo de otra se ve cuál va por delante o si se ha cambiado el orden.
+    No se clasifican tandas; los parecidos (productos y nombre) se pintan del mismo color
+    para que salten a la vista (ver `farm.treatment_similarity`). Solo cuentan los hechos
+    (con fecha de finalización, no por `status`, que puede estar desfasado).
+
+    Filtros (mismos nombres de parámetro que el listado): parcela, tipo, tipo de producto,
+    producto y periodo. El periodo va sobre la fecha de finalización y los «últimos N» se
+    cuentan dentro de él. Las parcelas filtradas por producto siguen saliendo aunque no
+    tengan ninguno: que una parcela no tenga la pasada también es información.
+    """
+    template_name = 'farm/treatments/treatment_by_field.html'
+    LIMIT_CHOICES = (3, 5, 10)
+    DEFAULT_LIMIT = 5
+
+    @staticmethod
+    def _is_id(value):
+        # isdigit() acepta «²» y números enormes que no caben en un entero de la BD
+        return value.isascii() and value.isdigit() and len(value) <= 9
+
+    def _limit(self):
+        # Se devuelve la constante, no el valor del GET: N solo puede ser una de las opciones
+        value = self.request.GET.get('n', '')
+        return next((n for n in self.LIMIT_CHOICES if str(n) == value), self.DEFAULT_LIMIT)
+
+    def _ids(self, name, valid):
+        """Ids del GET que existen en las opciones (de la organización), sin repetir."""
+        return [v for v in dict.fromkeys(self.request.GET.getlist(name)) if self._is_id(v) and v in valid]
+
+    def _date(self, name):
+        value = self.request.GET.get(name, '')
+        try:
+            return date.fromisoformat(value) if value else None
+        except ValueError:
+            return None
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        limit = self._limit()
+        user = self.request.user
+        all_fields = list(Field.ownership_objects.get_queryset_for_user(user))
+        options = {
+            'field': [(str(x.id), x.name) for x in all_fields],
+            'type': list(Treatment.TYPE_CHOICES),
+            'product_types': [(str(x.id), x.name)
+                              for x in ProductType.ownership_objects.get_queryset_for_user(user)],
+            'products': [(str(x.id), x.name)
+                         for x in Product.ownership_objects.get_queryset_for_user(user).order_by('name')],
+        }
+        f = {
+            name: self._ids(name, {v for v, _ in options[name]}) for name in ('field', 'product_types', 'products')
+        }
+        f['type'] = [t for t in dict.fromkeys(self.request.GET.getlist('type')) if t in dict(options['type'])]
+        date_from, date_to = self._date('date_from'), self._date('date_to')
+        if date_from and date_to and date_from > date_to:  # puestas al revés: se entiende el rango igual
+            date_from, date_to = date_to, date_from
+
+        history = field_history(user, all_fields, limit, f, date_from, date_to)
+
+        # Enlaces del selector N: conservan los filtros
+        params = self.request.GET.copy()
+        params.pop('n', None)
+        filter_qs = params.urlencode()
+        panel_count = (len(f['field']) + len(f['type']) + len(f['product_types']) + len(f['products'])
+                       + (1 if date_from or date_to else 0))
+
+        todo_url, done_url = list_urls(f, date_from, date_to)
+
+        context.update({
+            'status_tab': 'by_field',
+            'todo_url': todo_url,
+            'done_url': done_url,
+            'by_field_url': '?' + self.request.GET.urlencode(),
+            'todo_count': todo_count_for_list(user, f),
+            **history,
+            'limit_choices': self.LIMIT_CHOICES,
+            'has_fields': bool(all_fields),
+            'filter_qs': filter_qs,
+            'panel_filter_count': panel_count,
+            'advanced_count': len(f['product_types']) + len(f['products']),
+            'selected': f,
+            'date_from': date_from.isoformat() if date_from else '',
+            'date_to': date_to.isoformat() if date_to else '',
+            'options': options,
+        })
+        return context

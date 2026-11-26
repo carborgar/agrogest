@@ -20,16 +20,7 @@
 
     {# ── Barra superior: pestañas de estado + búsqueda (+ botón de filtros en móvil) ── #}
     <div class="tl-toolbar">
-        <nav class="tl-tabs" aria-label="Estado">
-            <a class="tl-tab{% if status_tab == 'todo' %} active{% endif %}" href="{{ todo_url }}"
-               {% if status_tab == 'todo' %}aria-current="page"{% endif %}>
-                Por hacer <span class="tl-tab-count">{{ todo_count }}</span>
-            </a>
-            <a class="tl-tab{% if status_tab == 'done' %} active{% endif %}" href="{{ done_url }}"
-               {% if status_tab == 'done' %}aria-current="page"{% endif %}>
-                Completados
-            </a>
-        </nav>
+        {% include "farm/treatments/_treatment_tabs.html" %}
         <div class="tl-search">
             <i class="fa fa-search" aria-hidden="true"></i>
             <input type="search" name="q" value="{{ search_query|default:'' }}" class="form-control"
@@ -136,15 +127,13 @@
 
                 {# Filtros avanzados: plegados en desktop, siempre visibles en el panel móvil #}
                 <div class="col-12">
-                    <button class="btn btn-link btn-sm text-muted p-0 text-decoration-none d-none d-md-inline-block" type="button"
-                            data-bs-toggle="collapse" data-bs-target="#advancedFilters"
-                            id="advancedToggleBtn"
+                    <button class="btn btn-link btn-sm text-muted p-0 text-decoration-none d-none d-md-inline-block advanced-toggle" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#advancedFilters" aria-controls="advancedFilters"
                             aria-expanded="{% if selected_product_types or selected_products %}true{% else %}false{% endif %}">
-                        <i class="fa fa-sliders me-1"></i>
-                        <span class="advanced-toggle-label">{% if selected_product_types or selected_products %}Menos filtros{% else %}Más filtros{% endif %}</span>
-                        <i class="fa fa-chevron-down ms-1 advanced-toggle-icon{% if selected_product_types or selected_products %} rotate-180{% endif %}"></i>
+                        <i class="fa fa-sliders me-1" aria-hidden="true"></i>Filtrar por producto
+                        <i class="fa fa-chevron-down ms-1 advanced-toggle-icon" aria-hidden="true"></i>
                         {% if selected_product_types or selected_products %}
-                        <span class="badge bg-primary ms-1">{{ selected_product_types|length|add:selected_products|length }}</span>
+                        <span class="badge bg-primary ms-1">{{ advanced_filter_count }}</span>
                         {% endif %}
                     </button>
                     <div class="collapse tl-advanced {% if selected_product_types or selected_products %}show{% endif %}" id="advancedFilters">
@@ -360,22 +349,6 @@
                 debounceTimer = setTimeout(() => {
                     document.getElementById('filterForm').submit();
                 }, 500);
-            });
-        }
-
-        // ── Advanced filters toggle icon rotation ──
-        const advancedEl = document.getElementById('advancedFilters');
-        const toggleBtn = document.getElementById('advancedToggleBtn');
-        if (advancedEl && toggleBtn) {
-            const icon = toggleBtn.querySelector('.advanced-toggle-icon');
-            const label = toggleBtn.querySelector('.advanced-toggle-label');
-            advancedEl.addEventListener('show.bs.collapse', () => {
-                icon && icon.classList.add('rotate-180');
-                if (label) label.textContent = 'Menos filtros';
-            });
-            advancedEl.addEventListener('hide.bs.collapse', () => {
-                icon && icon.classList.remove('rotate-180');
-                if (label) label.textContent = 'Más filtros';
             });
         }
     });

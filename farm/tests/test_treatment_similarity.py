@@ -1,0 +1,106 @@
+"""Agrupación de tratamientos parecidos (productos + nombre aproximado) para colorear «Por parcela»."""
+from farm.treatment_similarity import group_similar, name_similarity, name_tokens
+
+FIELDS = {'Cartuja', 'Borboli', 'Las', 'Pitas', 'Navelinos'}
+PH, MOJ = 'rango', 'mojante'  # van en casi todo
+
+
+def _groups(items):
+    return [sorted(g['keys']) for g in group_similar(items, FIELDS)]
+
+
+def test_name_ignores_accents_numbers_and_field_names():
+    a = name_tokens('ARAÑA 3 cartuja', {'cartuja'})
+    b = name_tokens('Araña BORBOLI', {'borboli'})
+    assert set(a) == set(b) == {'arana'}
+    assert name_similarity(a, b) == 1
+
+
+def test_name_matches_prefixes_and_typos():
+    assert name_similarity(name_tokens('Fungicida cobre'), name_tokens('COBRES')) == 1
+    assert name_similarity(name_tokens('Phytophtora'), name_tokens('PHYTOPHTHORA')) == 1
+    assert name_similarity(name_tokens('Cobre'), name_tokens('Cabrio')) == 0
+
+
+def test_same_round_grouped_across_fields_even_with_different_names():
+    items = [
+        ('a1', 'ARAÑA CARTUJA', {PH, 'flash', 'nissorun'}),
+        ('a2', 'ARAÑA BORBOLI', {PH, 'flash', 'nissorun', 'fulmit'}),
+        ('a3', 'Araña 2', {PH, 'nissorun', 'apache'}),
+        ('c1', 'COBRE', {'cuprocol'}),
+        ('c2', 'COBRE', {'cuprocol'}),
+        ('x', 'MOSCA', {MOJ, 'karate'}),
+    ]
+    assert _groups(items) == [['a1', 'a2', 'a3'], ['c1', 'c2']]
+
+
+def test_common_products_alone_do_not_group():
+    items = [(i, name, {PH, MOJ, own}) for i, (name, own) in
+             enumerate([('Cobre', 'cuprocol'), ('Cabrio', 'cabrio'), ('Mosca', 'karate'), ('Calibre', 'nitrato')])]
+    assert _groups(items) == []
+
+
+def test_same_products_different_names_still_group():
+    items = [('p1', 'Tratamiento hongo', {'alfil', 'sulfato'}), ('p2', 'PHYTOPHTHORA', {'alfil', 'sulfato'}),
+             ('z', 'Otro', {'karate'})]
+    assert _groups(items) == [['p1', 'p2']]
+
+
+def test_mixed_treatment_does_not_chain_two_groups():
+    items = [
+        ('f1', 'CABRIO', {'cabrio'}), ('f2', 'CABRIO', {'cabrio'}),
+        ('m', 'CABRIO + KARATE', {'cabrio', 'karate'}),
+        ('i1', 'MOSCA', {'karate'}), ('i2', 'MOSCA', {'karate'}),
+    ]
+    groups = _groups(items)
+    assert ['i1', 'i2'] in groups
+    assert not any({'f1', 'i1'} <= set(g) for g in groups)
+
+
+def test_labels_use_shared_word_and_disambiguate_duplicates():
+    items = [
+        ('a1', 'ARAÑA NADOR', {'flash', 'fulmit'}), ('a2', 'ARAÑA NADOR pitas', {'flash', 'fulmit'}),
+        ('b1', 'ARAÑA LEANRI', {'citrol', 'apache'}), ('b2', 'ARAÑA LEANRI', {'citrol', 'apache'}),
+    ]
+    labels = sorted(g['label'] for g in group_similar(items, FIELDS, threshold=0.6))
+    assert labels == ['ARAÑA LEANRI', 'ARAÑA NADOR']
+
+
+def test_singletons_and_empty_input():
+    assert group_similar([]) == []
+    assert group_similar([('a', 'COBRE', {'c'})]) == []
+
+
+def test_same_name_with_rotated_products_groups():
+    # Rotar materias activas (p. ej. acaricidas) es habitual: el nombre basta
+    items = [('a', 'ARAÑA', {'flash'}), ('b', 'ARAÑA', {'apache'}), ('c', 'COBRE', {'cuprocol'})]
+    assert _groups(items) == [['a', 'b']]
+
+
+def test_empty_names_get_a_label_and_duplicates_are_numbered():
+    groups = group_similar([('a', '', {'x'}), ('b', '', {'x'}), ('c', '12', {'y'}), ('d', '12', {'y'})])
+    labels = sorted(g['label'] for g in groups)
+    assert all(labels) and len(set(labels)) == len(labels)
+
+
+def test_label_uses_most_frequent_spelling():
+    items = [('a', 'Materia', {'m'}), ('b', 'MATERIA', {'m'}), ('c', 'MATERIA', {'m'})]
+    assert group_similar(items)[0]['label'] == 'MATERIA'
+
+
+def test_scales_to_a_few_hundred_treatments():
+    import random
+    import time
+    rnd = random.Random(1)
+    words = ['arana', 'cobre', 'cabrio', 'mosca', 'potasio', 'calcio', 'abono', 'raices', 'phyto', 'calibre']
+    items = [(i, f'{rnd.choice(words)} {rnd.choice(["nador", "leanri", "navel"])}',
+              {rnd.randint(0, 40) for _ in range(3)}) for i in range(300)]
+    start = time.perf_counter()
+    group_similar(items)
+    assert time.perf_counter() - start < 3  # holgado: en local tarda ~0,2 s
+
+
+def test_numbering_does_not_clash_with_names_that_already_have_a_number():
+    from farm.treatment_similarity import label_groups
+    labels = label_groups([['A'], ['A'], ['A (1)']])
+    assert len(set(labels)) == 3

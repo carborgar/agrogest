@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.views.generic import ListView
 
 from core.models import is_enabled
+from farm.field_history import field_history
 from farm.mixins import BaseSecureViewMixin
 from farm.models import Field, Treatment
 from farm.timeutils import local_today
@@ -29,6 +30,8 @@ class FieldDashboardView(BaseSecureViewMixin, ListView):
     # tratamientos), hasta 5 filas. «Ver todos» abre el listado de completados, lo más reciente primero
     recent_days = 7
     recent_preview = 5
+    # «Cómo van las parcelas»: los últimos 3 hechos de cada parcela (la vista completa, en Tratamientos)
+    history_preview = 3
 
     def get_queryset(self):
         return Field.ownership_objects.get_queryset_for_user(self.request.user)
@@ -133,6 +136,11 @@ class FieldDashboardView(BaseSecureViewMixin, ListView):
         context['products'] = products[:self.products_preview]
         context['products_total'] = len(products)
         context['products_hidden'] = max(len(products) - self.products_preview, 0)
+
+        # ── Cómo van las parcelas: los últimos hechos de cada una, con los parecidos en color ──
+        context['field_history'] = field_history(self.request.user, list(fields), self.history_preview,
+                                                 color_base=self.history_preview)
+        context['field_history_url'] = reverse('treatment-by-field')
 
         # ── Tiempo: si el módulo está activo y alguna parcela tiene coordenadas ──
         # La previsión se pide aparte (JS) para no frenar Inicio con las llamadas a AEMET.
