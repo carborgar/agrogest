@@ -1,5 +1,5 @@
 {% extends 'base_no_menu.html' %}
-{% load static %}
+{% load static static_versioned %}
 
 {# Portada pública de uso familiar: una sola pantalla con la marca, una frase y el acceso. Mismo marco que el login (au-*), repetido a mano porque aquí la marca es el h1 y en auth_base es un enlace #}
 
@@ -15,7 +15,7 @@
 <main class="au">
     <div class="au-box text-center">
         <h1 class="au-brand mb-2">
-            <img alt="" height="48" src="{% static 'img/favicon.svg' %}" width="48">
+            <img alt="" class="app-logo" height="48" src="{% static_v 'img/icons/app-icon.svg' %}" width="48">
             <span>AgroGest</span>
         </h1>
         <p class="text-muted mb-4 text-balance">Los tratamientos, productos y gastos de la finca, en un sitio.</p>

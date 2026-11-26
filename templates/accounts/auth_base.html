@@ -1,5 +1,5 @@
 {% extends 'base_no_menu.html' %}
-{% load static %}
+{% load static static_versioned %}
 
 {# Marco de las pantallas públicas de cuenta (login, recuperar contraseña) y de los errores 404/500: marca arriba y una sola columna centrada #}
 
@@ -7,7 +7,7 @@
 <main class="au">
     <div class="au-box">
         <a class="au-brand" href="{% url 'home' %}" aria-label="AgroGest, ir a la página principal">
-            <img alt="" height="36" src="{% static 'img/favicon.svg' %}" width="36">
+            <img alt="" class="app-logo" height="36" src="{% static_v 'img/icons/app-icon.svg' %}" width="36">
             <span>AgroGest</span>
         </a>
         {% block auth_content %}{% endblock %}
