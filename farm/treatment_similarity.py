@@ -204,11 +204,11 @@ def _with_extra_word(label, member_tokens, base):
 
 def _number_duplicates(groups):
     """Si aún hay etiquetas repetidas, las numera: «ARAÑA (1)», «ARAÑA (2)»."""
-    totals = Counter(g['label'] for g in groups)
+    # Se cuenta sobre las etiquetas ya renombradas: así tampoco choca con un nombre que ya sea «A (1)»
     seen = Counter()
     for g in groups:
-        if totals[g['label']] > 1:
-            seen[g['label']] += 1
+        seen[g['label']] += 1
+        if seen[g['label']] > 1 or sum(1 for o in groups if o['label'] == g['label']) > 1:
             g['label'] = f"{g['label']} ({seen[g['label']]})"
 
 

@@ -98,3 +98,9 @@ def test_scales_to_a_few_hundred_treatments():
     start = time.perf_counter()
     group_similar(items)
     assert time.perf_counter() - start < 3  # holgado: en local tarda ~0,2 s
+
+
+def test_numbering_does_not_clash_with_names_that_already_have_a_number():
+    from farm.treatment_similarity import label_groups
+    labels = label_groups([['A'], ['A'], ['A (1)']])
+    assert len(set(labels)) == 3
